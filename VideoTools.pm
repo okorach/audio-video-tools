@@ -9,6 +9,8 @@ use File::Copy;
 use File::Basename;
 use MP3::Info;
 use MP3::Tag;
+use Config::Properties;
+
 MP3::Tag->config(write_v24 => 1);
 
 # my $FFMPEG = "D:\\Tools\\ffmpeg\\ffmpeg.exe";
@@ -75,16 +77,9 @@ my %h_profiles = (
 	'avihd'         => ['avi', '.avi',"-f avi -acodec libmp3lame -ac 2 -ab 128k -vcodec libxvid -b 4096k -r 50"],	
 	#  			'avihd'        => ['avi', '.avi',"-f avi -acodec libmp3lame -ac 2 -ab 128k -vcodec libxvid -b 4096k -r 50"],
 
-	'720p'          => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 2048k -r 25 -aspect 16:9  -s 1280x720"],
-	'720p_mkv'      => ['mp4', '.mkv',"-acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 2048k -r 25 -aspect 16:9  -s 1280x720"],
-	'720p_tv'       => ['mp4', '.mp4',"-f mp4 -deinterlace -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 2048k -r 25 -aspect 16:9  -s 1280x720"],
-	'720p_theater'  => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 2048k -r 25 -aspect 221:100  -s 1280x720"],
-	'720p3m_theater'  => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 3072k -r 25 -aspect 221:100  -s 1280x720"],
-	'720p3m'        => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 3072k -r 25 -aspect 16:9  -s 1280x720"],
-	'720p4m'        => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 4096k -r 25 -aspect 16:9  -s 1280x720"],
-	'1080p'         => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 192k -vcodec libx264 -b:v 6144k -r 25 -aspect 16:9 -s 1920x1080"],
-	'1080p4m'       => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 192k -vcodec libx264 -b:v 4096k -r 25 -aspect 16:9 -s 1920x1080"],
-	'1080p8m'       => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 192k -vcodec libx264 -b:v 8192k -r 25 -aspect 16:9 -s 1920x1080"],
+	'rotate'        => ['mp4', '.mp4',"-vf \"transpose=1\""],
+	'rotate180'     => ['mp4', '.mp4',"-vf \"rotate=180\""],	
+
 	'mp4_1000_96'   => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 96k -vcodec libx264 -b:v 1024k"],
 	'mp4_1000'   => ['mp4', '.mp4',"-f mp4 -acodec libvo_aacenc -ac 2 -ab 128k -vcodec libx264 -b:v 1024k"],
 
@@ -223,12 +218,43 @@ sub getFileProperties
 }
 
 
+sub loadProfiles
+{
+	my $props = Config::Properties->new(file => 'E:\Tools\VideoTools.properties');
+	my $tree = $props->splitToTree();
+	@profilekeys = keys(%{$tree});
+	foreach my $prof (@profilekeys)
+	{
+		next if ($prof eq "default");
+		$h_profiles{$prof}->[0] = $props->requireProperty("$prof.format", $props->getProperty("default.format"));
+		$h_profiles{$prof}->[1] = $props->requireProperty("$prof.extension", $props->getProperty("$prof.format"), $props->getProperty("default.extension"));
+		$h_profiles{$prof}->[2] = $props->requireProperty("$prof.cmdline");
+	}
+}
 
+sub getProfileExtension
+{
+	my $prof = shift;
+	my $ext = $h_profiles{$prof}->[1];
+	Trace::trace("Extension for $prof is $ext\n");
+	return $h_profiles{$prof}->[1];
+}
+
+sub getProfileFormat($prof)
+{
+	return $h_profiles{$prof}->[0];
+}
+sub getProfileCmdline($prof)
+{
+	return $h_profiles{$prof}->[2];
+}
 
 sub encode
 {
 	my ($srcFile, $tgtFile, $profile, $h_opts, $ffmpeg_opts) = @_;
 
+
+	
 	die "FATAL ERROR: Undefined encoding profile \"$profile\" \n" if (!defined($h_profiles{$profile}));
 	Trace::trace(1,"Encoding $srcFile into $tgtFile in profile $profile: Start\n");
 
@@ -308,7 +334,7 @@ sub encode
 	#die("Just before encode\n") if ($srcFile =~ m/merge/);
 		$out = qx($cmd);
 		#system($cmd);
-		fixCbrAudio($tgtFile) if ($ext eq "avi" && (! defined($h_opts{'audiofix'}) || $h_opts{'audiofix'} == 1));
+		# fixCbrAudio($tgtFile) if ($ext eq "avi" && (! defined($h_opts{'audiofix'}) || $h_opts{'audiofix'} == 1));
 	}
 	Trace::trace(1, "Encoding of $srcFile into $tgtFile in profile $profile: End\n");
 }

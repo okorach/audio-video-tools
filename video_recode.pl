@@ -43,13 +43,18 @@ if ($options{'h'}) { usage; exit; }
 my $src_file = $options{'s'};
 Trace::trace(3, "Source file = $src_file\n");
 my $tgt_file = $options{'t'};
+my $profile = $options{'p'} || 'dvd';
+
+VideoTools::loadProfiles();
+	
 if (! defined($tgt_file) ) {
   $tgt_file = FileTools::stripExtension($src_file);
   #$tgt_file = $src_file;
-  $tgt_file .= "_recoded.mp4";
+  my $ext = VideoTools::getProfileExtension($profile);
+  $tgt_file .= "_recoded_$profile.$ext";
 }
 Trace::trace(3, "Target file = $tgt_file\n");
-my $profile = $options{'p'} || 'dvd';
+
 my $nbpass = 2;
 $nbpass = 1 if ($options{'P'} eq "1");
 
