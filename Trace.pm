@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 
 package Trace;
+use Exporter 'import';
+@EXPORT_OK = qw(getTraceLevel trace traceNoDate);
 
 my $TraceLevel = 1;
 my $LastCR = 1;

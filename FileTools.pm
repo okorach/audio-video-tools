@@ -3,6 +3,7 @@ package FileTools;
 use File::Basename;
 use File::Spec;
 use File::Path;
+use Trace;
 
 #-------------------------------------------------------
 # Return directory contents
@@ -12,7 +13,7 @@ sub getDir
 	my $some_dir = shift;
 	my @files;
 
-	printlog("Scanning $some_dir\n");
+	Trace::trace(3, "Scanning $some_dir\n");
 	
 	opendir(DIR, "$some_dir") || die "can't opendir $some_dir: $!";
 	my $i = 0;
@@ -70,6 +71,22 @@ sub stripExtension
 		$base =~ s/\.${ext}$//;
 	}
 	return $base;
+}
+
+sub replaceExtension
+{
+	my $path = shift;
+	my $ext = shift;
+	$ext =~ s/^\.+//;
+	my($filename, $dirs, $suffix) = fileparse($path, qr/\.[^.]*/);
+	return $dirs.$filename.'.'.$ext;
+}
+
+sub getFileExtension
+{
+	my $file = shift;
+	my @split = split(/\./, $file);
+	return pop(@split);
 }
 
 sub syncDir

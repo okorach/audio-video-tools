@@ -1,8 +1,11 @@
 #!/usr/bin/perl
 
 package VideoTools;
+use Exporter 'import';
+@EXPORT_OK = qw(encode);
 
-use Trace qw(Trace::trace);
+use Trace qw(trace);
+
 use FileTools;
 use File::Path qw(make_path);
 use File::Copy;
@@ -13,12 +16,14 @@ use Config::Properties;
 
 MP3::Tag->config(write_v24 => 1);
 
+my $PROPERTIES_FILE = 'D:\Tools\VideoTools.properties';
+
 # my $FFMPEG = "D:\\Tools\\ffmpeg\\ffmpeg.exe";
-my $FFMPEG = "E:\\Tools\\ffmpeg-20150926-win64\\bin\\ffmpeg.exe";
+my $FFMPEG = "D:\\Tools\\ffmpeg-20160319-win64\\bin\\ffmpeg.exe";
 # my $FFMPEG = "D:\\Tools\\FFmpeg-22508\\ffmpeg.exe";
-my $LAME = "E:\\Tools\\lame-3.98.2\\lame.exe";
+my $LAME = "D:\\Tools\\lame-3.99.5\\lame.exe";
 my $VLC    = 'C:\Program Files\VideoLAN\VLC\vlc.exe';
-my $VIRTUALDUB = 'E:\tools\virtualdub-1.8.3\virtualDub.exe';
+my $VIRTUALDUB = 'D:\tools\virtualdub-1.8.3\virtualDub.exe';
 
 # Signification of options
 # -b : Video bitrate
@@ -137,11 +142,148 @@ my %h_profiles = (
 
 sub setFFmpegPath
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	$FFMPEG = shift;
+}
+
+use Time::Local;
+
+sub timeToSeconds
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my $time = shift;
+	my $seconds = 0;
+	if ( $time =~ m/(\d+):(\d+):(\d+)/ ) {
+		$seconds = $1*3600+$2*60+$3;
+	} elsif ( $time =~ m/(\d+):(\d+)/ ) {
+		$seconds = $1*60+$2;
+	}
+	return $seconds;
+}
+
+sub secondsToTime
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my ($sec,$min,$hour,$foo,$foo,$foo,$foo,$foo,$foo) = gmtime(shift);
+	return sprintf("%02d:%02d:%02d", $hour, $min, $sec);
+}
+
+sub getTargetFile
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my ($src, $profile, $tgt) = (shift, shift, shift);
+	die "Undefined profile \"$profile\"" if (!defined $profile);
+	my $ext = getProfileExtension($profile);
+	die "Undefined extension for profile \"$profile\"" if (!defined $ext);
+	if (! defined($tgt) ) {
+		$tgt = FileTools::replaceExtension($src, "recoded_$profile.$ext");
+	} elsif ($ext ne getFileExtension($tgt)) {
+		$tgt .= ".$ext";
+	}
+	return $tgt;
+}
+
+sub getTimeRanges
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my $rangesString = shift;
+	my @ranges;
+	foreach my $r (split(/\s*,\s*/,$rangesString))
+	{
+		my ($start,$stop) = split(/\s*-\s*/,$r);
+		undef $start if ($start eq "");
+		undef $stop if ($stop eq "");
+		die "Invalid start timestamp \"$start\", aborting..." unless (defined($start) && $start =~ m/^(\d+:)?(\d+:)?\d+$/);
+		die "Invalid stop timestamp \"$stop\", aborting..." unless (defined($stop) && $stop =~ m/^(\d+:)?(\d+:)?\d+$/);
+		push(@ranges, { 'start' => $start, 'stop' => $stop });
+	}
+	return @ranges;
+}
+
+sub getLogProgress
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my $logfile = shift;
+	my $start = shift;
+	my $stop = shift;
+	
+	my $duration = -1;
+	my $duration_h = "??:??:??";
+	my $progress = 0;
+	my $first_round = 1;
+	my $starttime = timelocal(localtime());
+	my $sleepDuration = 30;
+	#sleep($sleepDuration);
+	while ($progress_pct < 99) {
+		open (FIN, $logfile) || ($first_round ? die "Cannot open $logfile" : return);
+		while (<FIN>) {
+			trace(10, "---1---".$_);
+			if (/Duration: (\d\d):(\d\d):(\d\d)/) {
+				if (defined($start)) {
+					my $sec_start = timeToSeconds($start);
+					my $sec_stop = timeToSeconds(defined($stop) ? $stop : "$1:$2:$3");
+					$duration = $sec_stop - $sec_start;
+					$duration_h = secondsToTime($duration);
+					trace(10, "---2--- ".$duration. " ".$duration_h."\n");
+				} else {
+					$duration_h = "$1:$2:$3";
+					$duration = timeToSeconds($duration_h);
+					trace(10, "---3--- ".$duration. " ".$duration_h."\n");
+				}
+				last;
+			}
+		}
+		trace(3, "Duration to encode = $duration seconds = $duration_h\n") if ($first_round);
+		{
+			use integer;
+			$sleepDuration = (($duration / 100) < 30 ? 30 : ($duration / 100));
+		}
+		$first_round = 0;
+		while (<FIN>) {
+			#print "---2---", $_;
+			if (/time=(\d\d):(\d\d):(\d\d)/) {
+				my @arr = split("frame=", $_);
+				my $line = pop(@arr);
+				if ($line =~ /time=(\d\d):(\d\d):(\d\d)/) {
+					$progress = $1*3600+$2*60+$3;
+				}
+			}
+		}
+		close(FIN);
+
+		$progress_pct = $progress / $duration * 100;
+		$progress_pct = 1 if ($progress_pct < 1);
+		my $nowtime = timelocal(localtime());
+		my $difftime = $nowtime - $starttime;
+		my $eta = $difftime * (100 - $progress_pct)/($progress_pct+1);
+
+		$sleepDuration = 30 if ($eta < 300);
+
+		trace(5, "Progress = $progress = $progress_pct %\n");
+		trace(5, "ETA = $eta\n");
+		trace(5, "Sleep duration = $sleepDuration\n");
+		
+		#print "now = $nowtime, start = $starttime, diff = $difftime, ETA = $eta\n";
+		
+		#my $eta = (100 - $progress_pct)/100 * $duration;
+		use integer;
+
+		my $h = $eta / 3600;
+		my $m = ($eta - $h*3600) / 60;
+		my $s = ($eta - $h*3600 - $m*60);
+		
+		#print "Progress % = $progress / $duration / $progress_pct / $eta / $h:$m:$s\n";
+		trace(1, sprintf("Progress = %02d%% - ETA = %s", $progress_pct, secondsToTime($eta)), "\n");
+		if ($eta <= $sleepDuration && $eta != 0) {
+			$sleepDuration = $eta;
+		}
+		sleep($sleepDuration);
+	}
 }
 
 sub getFileProperties
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $videofile = shift;
 	my %h_opts;
 	#$h_opts{'logfile'} = "C:\\temp\\ffmpeg$$.log";
@@ -220,43 +362,65 @@ sub getFileProperties
 
 sub loadProfiles
 {
-	my $props = Config::Properties->new(file => 'E:\Tools\VideoTools.properties');
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my $props = Config::Properties->new(file => $PROPERTIES_FILE);
 	my $tree = $props->splitToTree();
 	@profilekeys = keys(%{$tree});
 	foreach my $prof (@profilekeys)
 	{
 		next if ($prof eq "default");
+		next if ($prof eq "binaries");
 		$h_profiles{$prof}->[0] = $props->requireProperty("$prof.format", $props->getProperty("default.format"));
 		$h_profiles{$prof}->[1] = $props->requireProperty("$prof.extension", $props->getProperty("$prof.format"), $props->getProperty("default.extension"));
 		$h_profiles{$prof}->[2] = $props->requireProperty("$prof.cmdline");
 	}
+	loadBinaries();
+}
+
+sub loadBinaries
+{
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	my $props = Config::Properties->new(file => $PROPERTIES_FILE);
+	my $tree = $props->splitToTree();
+	@profilekeys = keys(%{$tree});
+	$FFMPEG = $props->getProperty("binaries.ffmpeg");
+	$LAME = $props->getProperty("binaries.lame");
+	$VLC = $props->getProperty("binaries.vlc");
+	$VIRTUALDUB = $props->getProperty("binaries.virtualdub");
 }
 
 sub getProfileExtension
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $prof = shift;
 	my $ext = $h_profiles{$prof}->[1];
-	Trace::trace("Extension for $prof is $ext\n");
+	trace(3, "Extension for profile \"$prof\" is \"$ext\"\n");
 	return $h_profiles{$prof}->[1];
 }
 
 sub getProfileFormat($prof)
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	return $h_profiles{$prof}->[0];
 }
 sub getProfileCmdline($prof)
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	return $h_profiles{$prof}->[2];
 }
 
 sub encode
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($srcFile, $tgtFile, $profile, $h_opts, $ffmpeg_opts) = @_;
-
-
+	foreach my $k (keys %$h_opts)
+	{
+		trace(3, sprintf("Opts{%s} = %s\n", $k, $h_opts->{$k}));
+	}
+	loadProfiles();
 	
 	die "FATAL ERROR: Undefined encoding profile \"$profile\" \n" if (!defined($h_profiles{$profile}));
-	Trace::trace(1,"Encoding $srcFile into $tgtFile in profile $profile: Start\n");
+	trace(1,"Encoding $srcFile into $tgtFile in profile $profile: Start\n");
 
 	my $cropping = "";
 	foreach my $c ('croptop', 'cropbottom', 'cropleft', 'cropright')
@@ -267,10 +431,11 @@ sub encode
 	$ffmpeg_opts .= ' -deinterlace ' if ( defined($h_opts->{'deinterlace'}));
 	$ffmpeg_opts .= ' -s '.$h_opts->{'size'} if ( defined($h_opts->{'size'}));
 	my $time_window = '';
-	$time_window .= " -ss ".$h_opts->{'start'} if defined($h_opts->{'start'});
-	$time_window .= " -t ".$h_opts->{'duration'} if defined($h_opts->{'duration'});
-	$time_window .= " -to ".$h_opts->{'stop'} if defined($h_opts->{'stop'});
-
+	trace(3, sprintf("Opts = *%s* *%s*\n", $h_opts->{'start'}, $h_opts->{'stop'}));
+	$time_window .= " -ss ".$h_opts->{'start'} if (defined($h_opts->{'start'}) && ($h_opts->{'start'} ne ''));
+	$time_window .= " -t ".$h_opts->{'duration'} if (defined($h_opts->{'duration'})); # && ($h_opts->{'duration'} ne ''));
+	$time_window .= " -to ".$h_opts->{'stop'} if (defined($h_opts->{'stop'}) && ($h_opts->{'stop'} ne ''));
+	
 	$overwrite = ($overw eq 'nooverwrite' ? '' : '-y');
 	$format =~ tr/A-Z/a-z/;
   my $ext = $tgtFile; $ext =~ s/.*\.//;
@@ -303,7 +468,7 @@ sub encode
 	if ( -f $tgtFile && ! -z $tgtFile )
 	{
 		if ($overw eq 'nooverwrite') {
-			Trace::trace("WARNING: File $tgtFile exists, skipping encoding\n");
+			trace(1, "WARNING: File $tgtFile exists, skipping encoding\n");
 			return;
 		} elsif ($overw eq "modifdate") {
 			$src_date = (stat($srcFile))[9];
@@ -317,69 +482,91 @@ sub encode
 		# Map additional audio tracks
 	}
 	if ($tgt_date >= $src_date) {
-		Trace::trace("WARNING: File $tgtFile is more recent than $srcFile, skipping encoding\n");
+		trace(1, "WARNING: File $tgtFile is more recent than $srcFile, skipping encoding\n");
 	} else {
 		my $fmt = $h_profiles{$profile}->[0];
-	  my $ext = $h_profiles{$profile}->[1];
-  	my $opts = $h_profiles{$profile}->[2];
+		my $ext = $h_profiles{$profile}->[1];
+		my $opts = $h_profiles{$profile}->[2];
 
 		my $logfile = $h_opts->{'logfile'};
 		if (! defined($logfile) || "$logfile" eq "") {
 			$logfile = $tgtFile;
 			$logfile =~s/\.[^.]+$/_ffmpeg.log/;
 		}
+		
 		#$cmd = "$FFMPEG -y -i \"$srcFile\" $cropping $time_window $opts $aspect $ffmpeg_opts \"$tgtFile\""." $audio_opts >> \"$logfile\" 2>>&1";
+		my $duration = 0;
+		my $start;
+		my $stop;
+		if (defined($h_opts->{'duration'}) && $h_opts->{'duration'} ne '') {
+			$duration = $h_opts->{'duration'};
+		} elsif ( defined($h_opts->{'stop'}) && $h_opts->{'stop'} ne '') {
+			$start = ((defined($h_opts->{'start'}) && ($h_opts->{'start'} ne '')) ? $h_opts->{'start'} : "00:00:00");
+			$stop = $h_opts->{'stop'};
+		}
+		my $pid = fork();
+		if ($pid == 0) {
+			if ( ! ($opts =~ /-c\s+copy/) ) {
+				# Display progress only if there is encoding (ie it it not a mere file copy)
+				sleep(10);
+				getLogProgress($logfile, $start, $stop);
+			}
+			exit(0);
+		}
 		$cmd = "$FFMPEG -y -i \"$srcFile\" $ffmpeg_opts $cropping $time_window $opts $aspect $audio_opts \"$tgtFile\""." >> \"$logfile\" 2>>&1";
-		Trace::trace(2, "*** Running: $cmd\n");
-	#die("Just before encode\n") if ($srcFile =~ m/merge/);
+		trace(1, "--> Running: $cmd\n");
+		#die("Just before encode\n") if ($srcFile =~ m/merge/);
+		my $starttime = timelocal(localtime());
 		$out = qx($cmd);
 		#system($cmd);
 		# fixCbrAudio($tgtFile) if ($ext eq "avi" && (! defined($h_opts{'audiofix'}) || $h_opts{'audiofix'} == 1));
+		trace(1, "Encoding of $srcFile into $tgtFile in profile $profile: End\n");
+		trace(1, "Time taken: ".secondsToTime(timelocal(localtime())-$starttime)."\n");
 	}
-	Trace::trace(1, "Encoding of $srcFile into $tgtFile in profile $profile: End\n");
 }
 
 # This function just rewrites the AVI header generated by ffmpeg to mark CBR instead of VBR (pb from ffmpeg)
 
 sub fixCbrAudio($file)
 {
-	Trace::trace(1, "Fixing $file CBR audio: Start\n");
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $file = shift;
 	my $newfile = "$file.cbr.avi";
 	$cmd = "$VIRTUALDUB /s \"D:\\tools\\virtualdub165\\cbr_settings.vcf\" /p \"$file\" \"$newfile\" /r /x";
 	$out = qx($cmd);
 	unlink $file;
 	rename($newfile, $file);
-	Trace::trace(1, "Fixing $file CBR audio: End\n");
+	trace(1, "Fixing $file CBR audio: End\n");
 }
 
 sub getProfiles()
 {
+  trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
   return { %h_profiles };
 }
 
 sub encodeDir
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($dirname, $profile, $h_opts, $ffmpeg_opts) = @_;
-	Trace::trace(1,"Encode directory $dirname with profile $profile\n");
+	trace(1,"Encode directory $dirname with profile $profile\n");
 	my @filelist = FileTools::getDir($dirname);
-	my $oldfile;
-	my $newfile;
-	foreach $oldfile (@filelist)
+	my $ext = getProfileExtension($profile);
+	foreach my $oldfile (@filelist)
 	{
-		next if (! ($oldfile =~ m/\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts)$/i));
-		$newfile = "$dirname\\$oldfile";
-		$newfile =~s/\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts)$/_recoded.mp4/i;
+		next if (! ($oldfile =~ m/\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$/i));
 		$oldfile = "$dirname\\$oldfile";
-		#rename($newfile, $oldfile);
-		Trace::trace(1,"Encode $oldfile into $newfile profile $profile\n");
+		my $newfile = FileTools::replaceExtension($oldfile, "recoded_$profile.$ext");
+		my $newfile = FileTools::replaceExtension($oldfile, $ext);
+		trace(1,"Encode $oldfile into $newfile profile $profile\n");
 		encode($oldfile, $newfile, $profile, $h_opts, $ffmpeg_opts);
 	}
 }
 
 sub encodeVideoDir
 {
-  ($src_dir, $tgt_dir, $profile) = @_;
+  trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+  my ($src_dir, $tgt_dir, $profile) = @_;
 	die "Profile $profile does not exist\n" if (!defined ($h_profiles{$profile}));
   my $begin = time();
   my $filelist = FileTools::getFileList($src_dir);
@@ -389,10 +576,10 @@ sub encodeVideoDir
 	my $ext = $video_profiles{$profile}->[1];
 	my $fmt = $video_profiles{$profile}->[0];
 
-  Trace::trace(1, "$nbfiles files to encode\n");
+  trace(1, "$nbfiles files to encode\n");
   foreach my $srcfile (@{$filelist}) {
 	  $i++;
-    Trace::trace(1, sprintf("%6d\/%6d - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
+    trace(1, sprintf("%6d\/%6d - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
     my $full_tgt_file = FileTools::patchPath($srcfile, $tgt_dir);	
     $full_tgt_file =~ s/\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts)$/${ext}/;
 	  encode($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
@@ -401,7 +588,8 @@ sub encodeVideoDir
 
 sub encodeAudioDir
 {
-  ($src_dir, $tgt_dir, $profile) = @_;
+  trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+  my ($src_dir, $tgt_dir, $profile) = @_;
 	die "Profile $profile does not exist\n" if (!defined ($h_profiles{$profile}));
   my $begin = time();
   my $filelist = FileTools::getFileList($src_dir);
@@ -411,7 +599,7 @@ sub encodeAudioDir
 	my $ext = $h_profiles{$profile}->[1];
 	my $fmt = $h_profiles{$profile}->[0];
 
-  Trace::trace(1, "$nbfiles files to encode\n");
+  trace(1, "$nbfiles files to encode\n");
   my $fmt = (($nbfiles < 100) ? "%2d\/%2d" :
             ($nbfiles < 1000) ? "%3d\/%3d" :
             ($nbfiles < 10000) ? "%4d\/%4d" :
@@ -419,7 +607,7 @@ sub encodeAudioDir
             "%6d\/%6d" );
   foreach my $srcfile (@{$filelist}) {
 	  $i++;
-    Trace::trace(1, sprintf("$fmt - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
+    trace(1, sprintf("$fmt - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
     my $full_tgt_file = FileTools::patchPath($srcfile, $tgt_dir);	
     $full_tgt_file =~ s/\.(mp3|aac|m4a|ac3)$/${ext}/;
 	  encodeAudioFile($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
@@ -428,13 +616,14 @@ sub encodeAudioDir
 
 sub encodeAudioFile
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($srcFile, $tgtFile, $profile, $h_opts) = @_;
 
 	my $shortname = $srcFile;
 	$shortname =~ s/(.*)(.................................................................)/...$2/;
-	Trace::trace(1, sprintf("%-70s", "$shortname: "));
+	trace(1, sprintf("%-70s", "$shortname: "));
   if (! (-f $srcFile)) {
-    Trace::trace (1, "Not a file, skipping\n");
+    trace (1, "Not a file, skipping\n");
     return;
   }
 
@@ -443,15 +632,15 @@ sub encodeAudioFile
 	my $cmdopts = $h_profiles{$profile}->[2];
   $tgtFile =~ s/\.(mp3|aac|m4a|ac3|avi)$/${ext}/;
 	
-	Trace::trace(3, "Profile: Format = $fmt, Extension = $ext, Options = $cmdopts\n");
-  Trace::trace(3, "Overwrite = ".$h_opts->{'overwrite'}, "\n");
+	trace(3, "Profile: Format = $fmt, Extension = $ext, Options = $cmdopts\n");
+  trace(3, "Overwrite = ".$h_opts->{'overwrite'}, "\n");
 	my $begin = time();
 	my $overw = $h_opts->{'overwrite'} || 'nooverwrite';
 	$format =~ tr/A-Z/a-z/;
 
 	make_path(FileTools::dirname($tgtFile));
   if (! ($srcFile =~ m/\.(mp3|ac3|aac|m4a|avi)$/i)) {
-    Trace::trace (1, "Not an audio file, simple copy\n");
+    trace (1, "Not an audio file, simple copy\n");
     copy($srcFile, $tgtFile);
     return 1;
   }
@@ -461,20 +650,20 @@ sub encodeAudioFile
 	if (-f $tgtFile && ! -z $tgtFile )
 	{
 		if ($overw eq 'nooverwrite') {
-			Trace::trace(1, "Skipped, target file exists");
-			Trace::trace(2, " - target file is $tgtFile");
-      Trace::trace(1, "\n");
+			trace(1, "Skipped, target file exists");
+			trace(2, " - target file is $tgtFile");
+      trace(1, "\n");
 			return 0;
 		} elsif ($overw eq 'modifdate') {
 			$src_date = (stat($srcFile))[9];
 			$tgt_date = (stat($tgtFile))[9];
-			Trace::trace(3, "Source file date = ".localtime($src_date)." - Target file date = ".localtime($tgt_date)."\n");
+			trace(3, "Source file date = ".localtime($src_date)." - Target file date = ".localtime($tgt_date)."\n");
 		}
 	}
 	if ($overw ne 'overwrite' && $tgt_date >= $src_date) {
-		Trace::trace(1, "Skipped, target file up to date");
-		Trace::trace(2, " - target file is $tgtFile");
-    Trace::trace(1, "\n");
+		trace(1, "Skipped, target file up to date");
+		trace(2, " - target file is $tgtFile");
+    trace(1, "\n");
 		return 2;
 	} else {
 		my $logfile = $h_opts->{'logfile'};
@@ -484,7 +673,7 @@ sub encodeAudioFile
 		}
   	$shortname = $tgtFile;
   	$shortname =~ s/(.*)(.................................................................)/...$2/;
-  	Trace::trace(1, "--> $shortname:");
+  	trace(1, "--> $shortname:");
 		if ($profile =~ m/lame/i) {
 		  die "$LAME executable missing\n" unless (-x $LAME);
 		  $cmd = "$LAME --mp3input -h \"$srcFile\" \"$tgtFile\" $cmdopts >> \"$logfile\" 2>>&1";
@@ -492,13 +681,13 @@ sub encodeAudioFile
       die "$FFMPEG executable missing\n" unless (-x $FFMPEG);
 		  $cmd = "$FFMPEG -y -i \"$srcFile\" $cmdopts \"$tgtFile\" >> \"$logfile\" 2>>&1";
     }
-    Trace::trace(2, $cmd);
+    trace(2, $cmd);
 		$out = qx($cmd);
    	copyMp3Tags($srcFile, $tgtFile) if ($fmt eq 'mp3');
 		#system($cmd);
 	
 		my $duration = time()-$begin;
-		Trace::trace(1, "Done ($duration s)\n");
+		trace(1, "Done ($duration s)\n");
 		return 1;
 	}
 }
@@ -511,6 +700,7 @@ sub encodeAudioFile
 
 sub delay_audio
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($ifile, $delay, $ofile, $recode) = @_;
 	$mapping = "-map 0:0 -map 1:1";
 	if ($recode == 1)
@@ -525,6 +715,7 @@ sub delay_audio
 
 sub delay_video
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($ifile, $delay, $ofile, $recode) = @_;
 	$mapping = "-map 1:0 -map 0:1";
 	if ($recode == 1)
@@ -539,24 +730,28 @@ sub delay_video
 
 sub concat_simple
 {
-  $ofile = pop @_;
-  
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	$ofile = pop @_;
+
+	loadBinaries();
+	die "$FFMPEG executable missing\n" unless (-x $FFMPEG);	
 	$cmd = "$FFMPEG -f concat"; # " -y";
-  while (my $f = shift @_) {
-    #$cmd .= " \"$f\"";
-    $txt .= "file '$f'\n";
-  }
+	while (my $f = shift @_) {
+		#$cmd .= " \"$f\"";
+		$txt .= "file '$f'\n";
+	}
   open(FOUT, ">$ofile.concat.txt");
   print FOUT $txt;
   close(FOUT);
-  $cmd .= " -i $ofile.concat.txt";
+  $cmd .= " -i \"$ofile.concat.txt\"";
   $cmd .= " -c copy \"$ofile\" >> \"$ofile.concat.log\" 2>>&1";
- 	Trace::trace(2, "*** Running: $cmd\n");
+  trace(1, "*** Running: $cmd\n");
   $out = qx($cmd);
 }
 
 sub merge
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $fmt = pop;
 	my $ofile = pop;
 	my @ifiles = @_;
@@ -597,6 +792,7 @@ sub merge
 
 sub concat
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $ofile = pop;
 	my @ifiles = @_;
 	my $cmd = '';
@@ -618,13 +814,14 @@ sub concat
 		}
 	}
 	$cmd .= " $ofile /B";
-	print("\n\n$cmd\n\n");
+	trace(1, "Running MPEG2 Concat: $cmd\n");
 	system($cmd);
 
 }
 
 sub capture
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($stream, $file, $fmt, $socks) = @_;
 
 	my $cmd = "$VLC $stream";
@@ -648,13 +845,14 @@ sub capture
 
 sub dumpDVD
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($src_dir, $tgtFile) = @_;
 	
 	if ( -f $tgtFile )
 	{
-		Trace::trace("WARNING: $tgtFile already exists, skipping dump...\n");
+		trace("WARNING: $tgtFile already exists, skipping dump...\n");
 	} else {
-		Trace::trace("INFO: Dumping $src_dir into $tgtFile\n");
+		trace("INFO: Dumping $src_dir into $tgtFile\n");
 		if ($src_dir =~ m/^[A-Z]:$/) { $src_dir .= "\\VIDEO_TS"; }
 	
 		my @filelist = FileTools::getDir($src_dir);
@@ -672,10 +870,11 @@ sub dumpDVD
 
 sub encodeDVD
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($srcDir, $tgtFile, $profile, $opts, $ffopts) = @_;
 	
 	dumpDVD($srcDir, $tgtFile);
-	Trace::trace("Encoding $tgtFile.vob\n");
+	trace("Encoding $tgtFile.vob\n");
 	$profile = 'dvd' if (!defined($profile));
 	
 	my %hcrop;
@@ -822,7 +1021,7 @@ sub set_tag
 
 	foreach my $fname (keys %$tag)
 	{
-	 Trace::trace(3, "Copying ID3 Frame = $fname\n");
+	 trace(3, "Copying ID3 Frame = $fname\n");
 		$id3v2->remove_frame($fname) if exists $old_frames{$fname};
 
 		if ($fname eq 'WXXX') {
@@ -964,10 +1163,11 @@ sub contains_word_char
 
 sub copyMp3Tags
 {
+	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($ifile, $ofile) = @_;
-	Trace::trace(3, " Tagging: $ifile --> $ofile:");
+	trace(3, " Tagging: $ifile --> $ofile:");
 
 	set_tag($ofile, get_tag($ifile));
 	
-	Trace::trace(3, " Done\n");
+	trace(3, " Done\n");
 }
