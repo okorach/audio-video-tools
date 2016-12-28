@@ -5,21 +5,25 @@ use VideoTools qw(encode);
 use File::Basename;
 use Trace qw(trace);
 use strict;
+use Win32::Console;
+Win32::Console::InputCP(1252);
 # require ConfigMgr;
 
 my $me = basename($0);
+
 
 my $overwrite = "";
 
 sub usage
 {
 	print "
-$me [-i <inputfile>] [-o <outputfile>] [-p <profile>] [-r <range>] [-d <duration>] [-h] \n\
+$me [-i <inputfile>] [-o <outputfile>] [-p <profile>] [-r <range>] [-d <duration>] [-x] [-h] \n\
 	-i: Input file. Can be a file or a disk drive. In case of a disk drive, this assumes the drives contains a DVD
 	-o: Output file. Optional <input>_recoded_<profile> by default
-	-p: Output profile: Default value is dvd: video XVID 1200 kbps audio MP3 128 kbps
+	-p: Output profile: Default value is 2mbps: video MP4 2048k kbps audio AAC 128 kbps
 	-a: list of audio tracks to encode
 	-r: Range(s) to encode, eg 05:27-1:12:17 the whole file is encoded if nothing specified
+	-x: Interactive session to get parameters
 	-T/-B/-L/-R: Top/Bottom/Left/Right cropping
 	    If only top is specified then bottom is assumed to be cropped the same way
 		If only left is specified then right is assumed to be cropped the same way
@@ -35,31 +39,65 @@ Example:
 }
 
 my %options;
-getopts('i:o:p:r:kO:a:d:T:B:L:R:S:P:f:hg:', \%options);
+my $profile;
+my %h_opts;
+getopts('i:o:p:r:kO:a:xd:T:B:L:R:S:P:f:hg:', \%options);
 Trace::setTraceLevel($options{'g'} || 1);
 VideoTools::loadProfiles();
 
 if ($options{'h'}) { usage; exit; }
+
 my $ifile = $options{'i'};
 trace(3, "Input file = $ifile\n");
-my $profile = $options{'p'} || 'dvd';
-my $ofile = VideoTools::getTargetFile($ifile, $profile, $options{'o'});
 
+if (defined($options{'x'})) {
+	print 'Profile ? '; $profile = <STDIN>;
+	chomp($profile);
+	$profile = 'gen' if ($profile eq '');
+
+	print 'Video bitrate ? '; $h_opts{'video_bitrate'} = <STDIN>;
+	chomp($h_opts{'video_bitrate'});
+	delete($h_opts{'video_bitrate'}) if ($h_opts{'video_bitrate'} eq '');
+
+	print 'Start ? '; $h_opts{'start'} = <STDIN>;
+	chomp($h_opts{'start'});
+	delete($h_opts{'start'}) if ($h_opts{'start'} eq '');
+
+	print 'Stop ? '; $h_opts{'stop'} = <STDIN>;
+	chomp($h_opts{'stop'});
+	delete($h_opts{'stop'}) if ($h_opts{'stop'} eq '');
+
+	print 'Video size WidthXHeight ? '; $h_opts{'size'} = <STDIN>;
+	chomp($h_opts{'size'});
+	delete($h_opts{'size'}) if ($h_opts{'size'} eq '');
+
+	print 'De-interlace (y) ? '; $h_opts{'deinterlace'} = <STDIN>;
+	chomp($h_opts{'deinterlace'});
+	delete ($h_opts{'deinterlace'}) if ($h_opts{'deinterlace'} eq 'n');
+
+	print 'Audio bitrate ? '; $h_opts{'audio_bitrate'} = <STDIN>;
+	chomp($h_opts{'audio_bitrate'});
+	delete($h_opts{'audio_bitrate'}) if ($h_opts{'audio_bitrate'} eq '');
+} else {
+	$profile = $options{'p'} || '2mbps';
+}
+
+my $ofile = VideoTools::getTargetFile($ifile, $profile, $options{'o'});
 trace(3, "Output file = $ofile\n");
 
 my $nbpass = ($options{'P'} eq "2" ? 2 : 1);
 
-my %h_opts = split(/\s+/, $options{'O'});
+# my %h_opts = split(/\s+/, $options{'O'});
 $h_opts{'audio_tracks'} = $options{'a'} if (defined($options{'a'}));
 
 # Select only a subset of the whole video
 my @ranges = VideoTools::getTimeRanges($options{'r'});
 if ($#ranges > 0) {
 	$h_opts{'start'} = $ranges[0]->{'start'};
-	$h_opts{'stop'} = $ranges[0]->{'start'};
+	$h_opts{'stop'} = $ranges[0]->{'stop'};
 }
 
-# Video cropping options
+# Video options
 $h_opts{'croptop'} = $h_opts{'cropbottom'} = $options{'T'} if (defined($options{'T'}));
 $h_opts{'cropbottom'} = $options{'B'} if (defined($options{'B'}));
 $h_opts{'cropleft'} = $h_opts{'cropright'} = $options{'L'} if (defined($options{'L'}));
