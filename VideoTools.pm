@@ -16,14 +16,14 @@ use Config::Properties;
 
 MP3::Tag->config(write_v24 => 1);
 
-my $PROPERTIES_FILE = 'D:\Tools\VideoTools.properties';
+my $PROPERTIES_FILE = 'E:\Tools\VideoTools.properties';
 
 # my $FFMPEG = "D:\\Tools\\ffmpeg\\ffmpeg.exe";
-my $FFMPEG = "D:\\Tools\\ffmpeg-20160319-win64\\bin\\ffmpeg.exe";
+my $FFMPEG = "E:\\Tools\\ffmpeg-20160318-win64\\bin\\ffmpeg.exe";
 # my $FFMPEG = "D:\\Tools\\FFmpeg-22508\\ffmpeg.exe";
-my $LAME = "D:\\Tools\\lame-3.99.5\\lame.exe";
+my $LAME = "E:\\Tools\\lame-3.99.5\\lame.exe";
 my $VLC    = 'C:\Program Files\VideoLAN\VLC\vlc.exe';
-my $VIRTUALDUB = 'D:\tools\virtualdub-1.8.3\virtualDub.exe';
+my $VIRTUALDUB = 'E:\tools\virtualdub-1.8.3\virtualDub.exe';
 
 # Signification of options
 # -b : Video bitrate
@@ -430,6 +430,8 @@ sub encode
 
 	$ffmpeg_opts .= ' -deinterlace ' if ( defined($h_opts->{'deinterlace'}));
 	$ffmpeg_opts .= ' -s '.$h_opts->{'size'} if ( defined($h_opts->{'size'}));
+	$ffmpeg_opts .= ' -b:v '.$h_opts->{'video_bitrate'} if ( defined($h_opts->{'video_bitrate'}));
+	$ffmpeg_opts .= ' -ab '.$h_opts->{'audio_bitrate'} if ( defined($h_opts->{'audio_bitrate'}));
 	my $time_window = '';
 	trace(3, sprintf("Opts = *%s* *%s*\n", $h_opts->{'start'}, $h_opts->{'stop'}));
 	$time_window .= " -ss ".$h_opts->{'start'} if (defined($h_opts->{'start'}) && ($h_opts->{'start'} ne ''));
@@ -514,7 +516,7 @@ sub encode
 			exit(0);
 		}
 		$cmd = "$FFMPEG -y -i \"$srcFile\" $ffmpeg_opts $cropping $time_window $opts $aspect $audio_opts \"$tgtFile\""." >> \"$logfile\" 2>>&1";
-		trace(1, "--> Running: $cmd\n");
+		trace(1, "\n--> Running: $cmd\n\n");
 		#die("Just before encode\n") if ($srcFile =~ m/merge/);
 		my $starttime = timelocal(localtime());
 		$out = qx($cmd);
