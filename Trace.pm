@@ -1,42 +1,52 @@
 #!/usr/bin/perl
 
 package Trace;
-use Exporter 'import';
-@EXPORT_OK = qw(getTraceLevel trace traceNoDate);
 
 my $TraceLevel = 1;
 my $LastCR = 1;
 
 $| = 1;
 
+#-------------------------------------------------------------------------------
+#   setTraceLevel($traceLevel)
+#-------------------------------------------------------------------------------
 sub setTraceLevel
 {
-  $TraceLevel = shift;
+   $TraceLevel = shift;
 }
 
+#-------------------------------------------------------------------------------
+#   getTraceLevel
+#-------------------------------------------------------------------------------
 sub getTraceLevel
 {
-  return $TraceLevel;
+   return $TraceLevel;
 }
 
+#-------------------------------------------------------------------------------
+#   trace
+#-------------------------------------------------------------------------------
 sub trace
 {
-  my $lvl = shift;
-  if ($lvl <= $TraceLevel) {
-    if ($LastCR) {
-      my ($s, $m, $h, $day, $month, $year) = localtime(time());
-      printf("%04d-%02d-%02d %02d:%02d:%02d | ", $year+1900, $month+1, $day, $h, $m, $s);
-    }
-    print @_ ;
-    my $lastChunk = pop @_;
-    $LastCR = ($lastChunk =~ m/\n$/);
-  }
+   my $lvl = shift;
+   if ($lvl <= $TraceLevel) {
+      if ($LastCR) {
+         my ($s, $m, $h, $day, $month, $year) = localtime(time());
+         printf("%04d-%02d-%02d %02d:%02d:%02d | ", $year+1900, $month+1, $day, $h, $m, $s);
+      }
+      print @_ ;
+      my $lastChunk = pop @_;
+      $LastCR = ($lastChunk =~ m/\n$/);
+   }
 }
 
+#-------------------------------------------------------------------------------
+#   traceNoDate
+#-------------------------------------------------------------------------------
 sub traceNoDate
 {
-  my $lvl = shift;
-  if ($lvl <= $TraceLevel) {
-    print @_ ;
-  }
+   my $lvl = shift;
+   if ($lvl <= $TraceLevel) {
+      print @_ ;
+   }
 }
