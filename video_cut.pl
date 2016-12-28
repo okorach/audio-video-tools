@@ -4,7 +4,9 @@ use Getopt::Std;
 use VideoTools;
 use File::Basename;
 use Trace;
-use strict;
+use strict;use Win32::Console;
+Win32::Console::InputCP(1252);
+
 # require ConfigMgr;
 
 my %h_opts;
