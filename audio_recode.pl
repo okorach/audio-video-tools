@@ -30,7 +30,9 @@ my $src_dir = $options{'s'};
 my $tgt_dir = $options{'t'} || "$src_dir recoded";
 my $profile = $options{'p'} || 'mp3_128k';
 my $lvl = $options{'g'} || 1;
-  
+ 
+ VideoTools::loadProfiles();
+ 
 use File::Spec;
 $src_dir = File::Spec->rel2abs( $src_dir ) ;
 $tgt_dir = File::Spec->rel2abs( $tgt_dir ) ;
@@ -41,7 +43,7 @@ die "ERROR: Source directory \"$src_dir\" does not exist, aborting" if (! (-d $s
 
 Trace::setTraceLevel($lvl);
 my $begin = time();
-Trace::trace(1, "Re-encoding directory \"$src_dir\" in directory \"$tgt_dir\" in  with profile \"$profile\"\n"); 
+Trace::trace(1, "Re-encoding directory \"$src_dir\" in directory \"$tgt_dir\" with profile \"$profile\"\n"); 
 VideoTools::encodeAudioDir($src_dir, $tgt_dir, $profile);
 
 my ($s, $m, $h, $day, $foo, $foo) = localtime(time()-$begin);

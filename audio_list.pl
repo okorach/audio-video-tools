@@ -14,6 +14,7 @@ my $size = $#{ $list };
 
 print("File;Format;Song;Artist;Album;Year;Track;Genre\n");
 foreach my $file (@{$list}) {
+	#$file = = decode("iso-8859-1", $file);
 	next if (-d $file); # Skip directories
 	my $format = FileTools::getFileExtension($file);
 	$format =~ tr/A-Z/a-z/;
