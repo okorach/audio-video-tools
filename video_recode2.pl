@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Getopt::Std;
-use VideoTools;
+use VideoTools qw(encode);
 use File::Basename;
 use Trace qw(trace);
 use strict;
@@ -41,9 +41,11 @@ Example:
 
 my %options;
 my $profile;
+my $ranges;
+my $keeplogs;
 my %h_opts;
-getopts('i:o:p:r:kdcxO:a:T:B:L:R:S:P:f:hg:F:', \%options);
-Trace::setTraceLevel($options{'g'} || 1);
+getopts('i:o:p:r:dcxkO:a:T:B:L:R:S:P:f:hg:', \%options);
+Trace::setTraceLevel($options{'g'} || 3);
 
 trace(3, "Command line options:\n");
 foreach my $k (keys %options) { trace(3, "\t$k => $options{$k} \n"); }
@@ -62,9 +64,7 @@ $h_opts{'cropleft'} = $h_opts{'cropright'} = $options{'L'} if (defined($options{
 $h_opts{'cropright'} = $options{'R'} if (defined($options{'R'}));
 $h_opts{'size'} = $options{'S'} if (defined($options{'S'}));
 $h_opts{'deinterlace'} = 1 if (defined($options{'d'}));
-$h_opts{'video_filters'} = $options{'F'} if (defined($options{'F'}));
-
-my $ranges = $options{'r'} if (defined($options{'r'}));
+$ranges = $options{'r'} if (defined($options{'r'}));
 my $keeplogs = 1 if (defined($options{'k'}));
 my $mergechunks = 1 if (defined($options{'c'}));
 
@@ -92,11 +92,6 @@ if (defined($options{'x'})) {
 	if (!defined($h_opts{'deinterlace'})) {
 		print 'De-interlace (y) ? '; $h_opts{'deinterlace'} = <STDIN>; chomp($h_opts{'deinterlace'});
 		delete ($h_opts{'deinterlace'}) if ($h_opts{'deinterlace'} eq 'n');
-	}
-
-	if (!defined($mergechunks)) {
-		print 'Merge Chunks (y) ? '; $mergechunks = <STDIN>; chomp($mergechunks);
-		$mergechunks = ($mergechunks eq 'n' ? 0 : 1);
 	}
 	
 	print 'Audio bitrate (128k) ? '; $h_opts{'audio_bitrate'} = <STDIN>; chomp($h_opts{'audio_bitrate'});
@@ -190,10 +185,10 @@ for (my $i=0; $i <= $#ranges; $i++)
 			trace (1, "Pass 1 log file $ofile.log exists, skipping pass 1\n");
 		} else {
 			
-			VideoTools::encode($ifile, $passOneFile, $profile, \%h_opts, $ffmpeg_opts." -pass 1 -passlogfile \"$ofile.log\"");
+			encode($ifile, $passOneFile, $profile, \%h_opts, $ffmpeg_opts." -pass 1 -passlogfile \"$ofile.log\"");
 			trace (1,"First pass encoding of $ofile complete\n");
 		}
-		VideoTools::encode($ifile, $ofile, $profile, \%h_opts, $ffmpeg_opts." -pass 2 -passlogfile \"$ofile.log\"");
+		encode($ifile, $ofile, $profile, \%h_opts, $ffmpeg_opts." -pass 2 -passlogfile \"$ofile.log\"");
 		trace (1,"2nd pass encoding of $ofile complete\n");
 	}
 

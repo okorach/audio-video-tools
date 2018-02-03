@@ -45,10 +45,12 @@ sub getFileList
 
 sub pushFile()
 {
-  my $file = $_;
+    # use Encode qw(decode encode);
+    my $file = $_;
 	my $fulldir = $File::Find::name;
 	my $fullpath = $File::Find::name;
 	$fullpath =~ s/\//\\/g;
+	# fullpath = decode("iso-8859-1", $fullpath);
 	push(@FileList, $fullpath);
 }
 
@@ -79,7 +81,8 @@ sub replaceExtension
 	my $ext = shift;
 	$ext =~ s/^\.+//;
 	my($filename, $dirs, $suffix) = fileparse($path, qr/\.[^.]*/);
-	return $dirs.$filename.'.'.$ext;
+
+	return ($dirs eq ".\\" ? $filename.'.'.$ext : $dirs.$filename.'.'.$ext);
 }
 
 sub getFileExtension

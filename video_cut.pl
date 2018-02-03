@@ -18,8 +18,9 @@ sub usage
 	print "
 $me -i <inputfile> [-o <outputfile>] [-r <range>] [-h] [-g <level>] \n\
 	-i: Input file. Mandatory
-	-o: Output file. Optional. <_inputfile>_recombined.mp4 by default
+	-o: Output file. Optional. <inputfile>_cut[_i].mp4 by default
 	-r: Ranges to cut (eg 00:00-17:25,41:25-1:36:19). Optional. Whole file by default
+	-c: Recombine cut files after cutting them
 	-g: Trace level
 	Example: $me -i myvideo.mp4 -o mymiddlechunk.mp4 -s 00:27:10 -e 00:34:43 
 	";
@@ -48,7 +49,7 @@ Trace::trace(3, "Input file = $ifile\n");
 Trace::trace(3, "Output file = $ofile\n");
 Trace::trace(3, "Ranges = $ranges\n");
 
-my @ranges = VideoTools::getTimeRanges($options{'r'});
+my @ranges = VideoTools::getTimeRanges($ranges);
 
 my $profile = 'direct';
 my $ext = FileTools::getFileExtension($ifile);
