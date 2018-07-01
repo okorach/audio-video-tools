@@ -42,7 +42,7 @@ class VideoFile:
         self.stream = ffmpeg.output(self.stream, target_file, acodec='libvo_aacenc', vcodec='libx264', f='mp4', vr='2048k', ar='128k' )
         self.stream = ffmpeg.overwrite_output(self.stream)
 
-        try
+        try:
             stderr, stdout = ffmpeg.run(self.stream)
         except ffmpeg.Error as e:
             print(e.stderr, file=sys.stderr)
@@ -61,12 +61,16 @@ class VideoFile:
         return ffmpeg.probe(self.name)
 
     def set_author(self, author):
+        self.author = author
 
     def get_author(self):
+        return self.author
 
     def set_copyright(self, copyright):
+        self.copyright = copyright
 
     def get_copyright(self):
+        return self.copyright
 
 
 
