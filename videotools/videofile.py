@@ -49,10 +49,10 @@ class VideoFile:
             sys.exit(1)
     
     def aspect(self, aspect_ratio):
-        self.stream = ffmpeg.filter(self.stream, 'fps', aspect=aspect_ratio)
+        self.stream = ffmpeg.filter_(self.stream, 'fps', aspect=aspect_ratio)
 
     def scale(self, scale):
-        self.stream = ffmpeg.filter(self.stream, 'scale', size=scale)
+        self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
 
     def crop(self, x, y, h, w):
         self.stream = ffmpeg.crop(self.stream, x, y, h, w)
