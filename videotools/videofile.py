@@ -43,7 +43,7 @@ class VideoFile:
         self.stream = ffmpeg.overwrite_output(self.stream)
 
         try:
-            stderr, stdout = ffmpeg.run(self.stream)
+            io = ffmpeg.run(self.stream)
         except ffmpeg.Error as e:
             print(e.stderr, file=sys.stderr)
             sys.exit(1)
