@@ -5,7 +5,8 @@ import sys
 
 class AudioFile:
     def __init__(self, filename):
-    self.filename = filename
+        self.filename = filename
+        self.stream = ffmpeg.input(filename)
 
     def get_album_art(self):
         # TODO
@@ -37,6 +38,7 @@ class AudioFile:
 
     def set_track_number(self, number):
 
+    def set_album_art(self, album_art_file):
 
 class AudioDirectory:
     __init__(self, dirname):

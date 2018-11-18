@@ -1,8 +1,12 @@
 
-#!python3
+#!python2
 
 import sys
 import ffmpeg
+import re
+
+PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+FFMPEG = r'E:\Tools\VideoTools.properties'
 
 class EncodeSpecs:
     def __init__(self):
@@ -58,7 +62,7 @@ class VideoFile:
         self.stream = ffmpeg.crop(self.stream, x, y, h, w)
 
     def get_metadata(self):
-        return ffmpeg.probe(self.name)
+        return ffmpeg.probe(self.filename)
 
     def set_author(self, author):
         self.author = author
@@ -73,4 +77,103 @@ class VideoFile:
         return self.copyright
 
 
+def getSize(cmdline):
+    m = re.search(r'-s\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
 
+def getVideoCodec(cmdline):
+    m = re.search(r'-vcodec\s+(\S+)', cmdline)
+    if m:
+        return m.group(1) 
+    m = re.search(r'-c:v\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getAudioCodec(cmdline):
+    m = re.search(r'-acodec\s+(\S+)', cmdline)
+    if m:
+        return m.group(1) 
+    m = re.search(r'-c:a\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getFormat(cmdline):
+    m = re.search(r'-f\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getAudioBitrate(cmdline):
+    m = re.search(r'-ab\s+(\S+)', cmdline)
+    if m:
+        return m.group(1) 
+    m = re.search(r'-b:a\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getVideoBitrate(cmdline):
+    m = re.search(r'-vb\s+(\S+)', cmdline)
+    if m:
+        return m.group(1) 
+    m = re.search(r'-b:v\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getAspectRatio(cmdline):
+    m = re.search(r'-aspect\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getFrameRate(cmdline):
+    m = re.search(r'-r\s+(\S+)', cmdline)
+    return m.group(1) if m else ''
+
+def getParams(cmdline):
+    found = True
+    parms = dict()
+    while (found):
+        cmdline = re.sub(r'^\s+', '', cmdline)
+        print (cmdline)
+        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
+        if m:
+            parms[m.group(1)] = m.group(2)
+            cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
+        else:
+            m = re.search(r'^-(\S+)\s*', cmdline)
+            if m:
+                parms[m.group(1)] = None
+                cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
+            else:
+                found = False
+    return parms
+
+def build_target_file(source_file, profile, properties):
+    try:
+        extension = properties[profile + '.extension']
+    except KeyError:
+        extension = properties['default.extension']
+    
+    # Strip extension from source file
+    source_file = re.sub(r'\.[^.]+$', '', source_file)
+    target_file = source_file + r'.' + profile + r'.' + extension
+    return target_file
+
+def encode(source_file, target_file, profile):
+    import jprops
+    with open(PROPERTIES_FILE) as fp:
+        properties = jprops.load_properties(fp)
+
+    myprop = properties[profile + '.cmdline']
+    print('Profile = ' + myprop)
+    if target_file is None:
+        target_file = build_target_file(source_file, profile, properties)
+
+    ffmpeg_exec = properties['binaries.ffmpeg']
+    print('FFmpeg = ' + ffmpeg_exec)
+    stream = ffmpeg.input(source_file)
+    parms = getParams(myprop)
+    print (parms)
+    #stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None, vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop), s=getSize(myprop), r=getFrameRate(myprop)  )
+    stream = ffmpeg.output(stream, target_file, **parms  )
+    # -qscale:v 3  is **{'qscale:v': 3} 
+    stream = ffmpeg.overwrite_output(stream)
+    print(ffmpeg.get_args(stream))
+    try:
+        io = ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stderr=True)
+    except ffmpeg.Error as e:
+        print(e.stderr, file=sys.stderr)
+        sys.exit(1)
+    print('Done')
