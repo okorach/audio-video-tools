@@ -2,12 +2,14 @@
 
 import videotools.videofile
 import sys
+import os
+import re
 
 def parse_args():
     parser = argparse.ArgumentParser(
             description='Python wrapper for ffmpeg.')
     parser.add_argument('-i', '--inputfile', required=True,
-                           help='File to encode'
+                           help='Input File or Directory to encode'
                         )
     parser.add_argument('-p', '--profile', required=True,
                            help='Profile to use for encoding'
@@ -28,13 +30,28 @@ except ImportError:
 
 args = parse_args()
 
-# Remove unset params from the dict
-noneparms = vars(args)
-parms = dict()
-for parm in noneparms:
-    if noneparms[parm] is not None:
-        parms[parm] = noneparms[parm]
-# Add SQ environment
-# parms.update(dict(env=sqenv))
-
-videotools.videofile.encode(parms['inputfile'], None, parms['profile'])
+if (os.path.isdir(args.inputfile)):
+    targetdir = args.inputfile + '.' + args.profile
+    try:
+        os.mkdir(targetdir)
+    except FileExistsError:
+        pass
+    ext = videotools.videofile.get_extension(args.profile)
+    print (args.inputfile + ' ==> ' + targetdir)
+    filelist = videotools.videofile.filelist(args.inputfile)
+    nbfiles = len(filelist)
+    i = 0
+    for fname in filelist:
+        targetfname = fname.replace(args.inputfile, targetdir, 1)
+        targetfname = re.sub(r'\.[^.]+$', '', targetfname)
+        targetfname = targetfname + r'.' + ext
+        pct = round(i * 100 / nbfiles)
+        print (str(i) + '/' + str(nbfiles) + ' : ' + str(pct) + '% : ')
+        directory = os.path.dirname(targetfname)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        videotools.videofile.encode(fname, targetfname, args.profile)
+        i = i + 1
+        print ('100%: Job finished')
+else:
+    videotools.videofile.encode(args.inputfile, None, args.profile)
