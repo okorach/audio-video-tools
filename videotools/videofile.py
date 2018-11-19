@@ -141,6 +141,12 @@ def getParams(cmdline):
                 found = False
     return parms
 
+def get_file_extension(filename):
+    return re.sub(r'^.*\.', '', filename)
+  
+def strip_file_extension(filename):
+    return re.sub(r'\.[^.]+$', '', filename)
+
 def get_extension(profile):
     with open(PROPERTIES_FILE) as fp:
         properties = jprops.load_properties(fp)
@@ -157,8 +163,7 @@ def build_target_file(source_file, profile, properties):
         extension = properties['default.extension']
     
     # Strip extension from source file
-    source_file = re.sub(r'\.[^.]+$', '', source_file)
-    target_file = source_file + r'.' + profile + r'.' + extension
+    target_file = strip_file_extension(source_file) + r'.' + profile + r'.' + extension
     return target_file
 
 
