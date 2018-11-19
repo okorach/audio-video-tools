@@ -42,16 +42,23 @@ if (os.path.isdir(args.inputfile)):
     nbfiles = len(filelist)
     i = 0
     for fname in filelist:
-        targetfname = fname.replace(args.inputfile, targetdir, 1)
-        targetfname = re.sub(r'\.[^.]+$', '', targetfname)
-        targetfname = targetfname + r'.' + ext
+        source_extension =  videotools.videofile.get_file_extension(fname)
         pct = round(i * 100 / nbfiles)
         print (str(i) + '/' + str(nbfiles) + ' : ' + str(pct) + '% : ')
-        directory = os.path.dirname(targetfname)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        videotools.videofile.encode(fname, targetfname, args.profile)
+        if re.match(r'(mp3|ogg|aac|ac3|m4a|ape|avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)', source_extension):
+            targetfname = fname.replace(args.inputfile, targetdir, 1)
+            targetfname = videotools.videofile.strip_file_extension(targetfname) + r'.' + ext
+
+            directory = os.path.dirname(targetfname)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            videotools.videofile.encode(fname, targetfname, args.profile)
+        else:
+            from shutil import copyfile
+            targetfname = fname.replace(args.inputfile, targetdir, 1)
+            copyfile(fname, targetfname)
+            print("Skipping/Plain Copy " + fname)
         i = i + 1
-        print ('100%: Job finished')
+    print ('100%: Job finished')
 else:
     videotools.videofile.encode(args.inputfile, None, args.profile)
