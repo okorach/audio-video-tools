@@ -4,6 +4,8 @@
 import sys
 import ffmpeg
 import re
+import os
+import jprops
 
 PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 FFMPEG = r'E:\Tools\VideoTools.properties'
@@ -126,7 +128,6 @@ def getParams(cmdline):
     parms = dict()
     while (found):
         cmdline = re.sub(r'^\s+', '', cmdline)
-        print (cmdline)
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
             parms[m.group(1)] = m.group(2)
@@ -140,6 +141,15 @@ def getParams(cmdline):
                 found = False
     return parms
 
+def get_extension(profile):
+    with open(PROPERTIES_FILE) as fp:
+        properties = jprops.load_properties(fp)
+    try:
+        extension = properties[profile + '.extension']
+    except KeyError:
+        extension = properties['default.extension']
+    return extension
+
 def build_target_file(source_file, profile, properties):
     try:
         extension = properties[profile + '.extension']
@@ -151,29 +161,33 @@ def build_target_file(source_file, profile, properties):
     target_file = source_file + r'.' + profile + r'.' + extension
     return target_file
 
+
 def encode(source_file, target_file, profile):
-    import jprops
     with open(PROPERTIES_FILE) as fp:
         properties = jprops.load_properties(fp)
 
     myprop = properties[profile + '.cmdline']
-    print('Profile = ' + myprop)
     if target_file is None:
         target_file = build_target_file(source_file, profile, properties)
 
-    ffmpeg_exec = properties['binaries.ffmpeg']
-    print('FFmpeg = ' + ffmpeg_exec)
     stream = ffmpeg.input(source_file)
     parms = getParams(myprop)
-    print (parms)
     #stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None, vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop), s=getSize(myprop), r=getFrameRate(myprop)  )
     stream = ffmpeg.output(stream, target_file, **parms  )
     # -qscale:v 3  is **{'qscale:v': 3} 
     stream = ffmpeg.overwrite_output(stream)
-    print(ffmpeg.get_args(stream))
+    # print(ffmpeg.get_args(stream))
+    print (source_file + ' --> ' + target_file)
     try:
-        io = ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stderr=True)
+        ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
-    print('Done')
+
+
+def filelist(rootDir):
+    fullfilelist = []
+    for dirName, subdirList, fileList in os.walk(rootDir):
+        for fname in fileList:
+            fullfilelist.append(dirName + r'\\' + fname)
+    return fullfilelist
