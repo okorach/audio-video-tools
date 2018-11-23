@@ -6,6 +6,7 @@ import ffmpeg
 import re
 import os
 import jprops
+import shutil
 
 PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 FFMPEG = r'E:\Tools\VideoTools.properties'
@@ -127,13 +128,14 @@ def getParams(cmdline):
     found = True
     parms = dict()
     while (found):
-        cmdline = re.sub(r'^\s+', '', cmdline)
-        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
+        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
+        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
         if m:
             parms[m.group(1)] = m.group(2)
+            print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
-            m = re.search(r'^-(\S+)\s*', cmdline)
+            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
             if m:
                 parms[m.group(1)] = None
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
@@ -190,9 +192,51 @@ def encode(source_file, target_file, profile):
         sys.exit(1)
 
 
+def encode_album_art(source_file, album_art_file):
+    profile = 'album_art'
+    with open(PROPERTIES_FILE) as fp:
+        properties = jprops.load_properties(fp)
+
+    myprop = properties[profile + '.cmdline']
+    extension = properties[profile + '.extension']
+    target_file = source_file + '.' + extension
+    #parms = getParams(myprop)
+    parms = { 'c': 'copy', 'id3v2_version': '3','metadata:s:v': 'title="Album cover"'} #, 'metadata:s:v': 'comment="Cover (Front)"'}
+    stream1 = ffmpeg.input(source_file)
+    a1 = stream1['0']
+    stream2 = ffmpeg.input(album_art_file)
+    a2 = stream2['0']
+    stream = ffmpeg.output(a1, a2, target_file, **parms  )
+    print("======ARGS======")
+    print(ffmpeg.get_args(stream))
+    print(ffmpeg.compile(stream))
+    print("=================")
+    try:
+        ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
+        shutil.copy(target_file, source_file)
+    except ffmpeg.Error as e:
+        print(e.stderr, file=sys.stderr)
+    os.remove(target_file)
+
 def filelist(rootDir):
     fullfilelist = []
     for dirName, subdirList, fileList in os.walk(rootDir):
         for fname in fileList:
             fullfilelist.append(dirName + r'\\' + fname)
     return fullfilelist
+
+def match_extension(file, regex):
+    p = re.compile(regex, re.IGNORECASE)
+    if re.search(p, file) is None:
+        return False
+    else:
+        return True
+
+def is_audio_file(file):
+    return match_extension(file,  r'\.(mp3|ogg|aac|ac3|m4a|ape)$')
+
+def is_video_file(file):
+    return match_extension(file,  r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$')
+
+def is_image_file(file):
+    return match_extension(file,  r'\.(jpg|jpeg|png)$')
