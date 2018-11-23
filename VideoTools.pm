@@ -19,7 +19,7 @@ MP3::Tag->config(write_v24 => 1);
 my $PROPERTIES_FILE = 'E:\Tools\VideoTools.properties';
 
 # my $FFMPEG = "D:\\Tools\\ffmpeg\\ffmpeg.exe";
-my $FFMPEG = "E:\\Tools\\ffmpeg-20160318-win64\\bin\\ffmpeg.exe";
+my $FFMPEG = "E:\\Tools\\ffmpeg-3.4-win64\\bin\\ffmpeg.exe";
 # my $FFMPEG = "D:\\Tools\\FFmpeg-22508\\ffmpeg.exe";
 my $LAME = "E:\\Tools\\lame-3.99.5\\lame.exe";
 my $VLC    = 'C:\Program Files\VideoLAN\VLC\vlc.exe';
@@ -177,7 +177,7 @@ sub getTargetFile
 	die "Undefined extension for profile \"$profile\"" if (!defined $ext);
 	if (! defined($tgt) ) {
 		$tgt = FileTools::replaceExtension($src, "recoded_$profile.$ext");
-	} elsif ($ext ne getFileExtension($tgt)) {
+	} elsif ($ext ne FileTools::getFileExtension($tgt)) {
 		$tgt .= ".$ext";
 	}
 	return $tgt;
@@ -188,6 +188,7 @@ sub getTimeRanges
 	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my $rangesString = shift;
 	my @ranges;
+	my $foundOne = 0;
 	foreach my $r (split(/\s*,\s*/,$rangesString))
 	{
 		my ($start,$stop) = split(/\s*-\s*/,$r);
@@ -196,7 +197,9 @@ sub getTimeRanges
 		die "Invalid start timestamp \"$start\", aborting..." unless (defined($start) && $start =~ m/^(\d+:)?(\d+:)?\d+$/);
 		die "Invalid stop timestamp \"$stop\", aborting..." unless (defined($stop) && $stop =~ m/^(\d+:)?(\d+:)?\d+$/);
 		push(@ranges, { 'start' => $start, 'stop' => $stop });
+		$foundOne = 1;
 	}
+	push(@ranges, { 'start' => undef, 'stop' => undef }) if (! $foundOne);
 	return @ranges;
 }
 
@@ -413,10 +416,10 @@ sub encode
 {
 	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
 	my ($srcFile, $tgtFile, $profile, $h_opts, $ffmpeg_opts) = @_;
-	foreach my $k (keys %$h_opts)
-	{
-		trace(3, sprintf("Opts{%s} = %s\n", $k, $h_opts->{$k}));
-	}
+
+	trace(3, "Encoding options:\n");
+	foreach my $k (keys %$h_opts) { trace(3, sprintf("\t%s => %s\n", $k, $h_opts->{$k})); }
+	
 	loadProfiles();
 	
 	die "FATAL ERROR: Undefined encoding profile \"$profile\" \n" if (!defined($h_profiles{$profile}));
@@ -425,22 +428,32 @@ sub encode
 	my $cropping = "";
 	foreach my $c ('croptop', 'cropbottom', 'cropleft', 'cropright')
 	{
-		if ( defined($h_opts->{$c}) && $h_opts->{$c} > 0 ) { $cropping .= " -$c ".$h_opts->{$c}; }
+		if ( defined($h_opts->{$c}) && $h_opts->{$c} > 0 )
+		{
+			#$cropping .= " -$c ".$h_opts->{$c};
+			$cropping .= " -vf \"crop=in_w:in_h-".$h_opts->{$c}."\"";
+		}
 	}
 
 	$ffmpeg_opts .= ' -deinterlace ' if ( defined($h_opts->{'deinterlace'}));
 	$ffmpeg_opts .= ' -s '.$h_opts->{'size'} if ( defined($h_opts->{'size'}));
 	$ffmpeg_opts .= ' -b:v '.$h_opts->{'video_bitrate'} if ( defined($h_opts->{'video_bitrate'}));
-	$ffmpeg_opts .= ' -ab '.$h_opts->{'audio_bitrate'} if ( defined($h_opts->{'audio_bitrate'}));
+	$ffmpeg_opts .= ' -b:a '.$h_opts->{'audio_bitrate'} if ( defined($h_opts->{'audio_bitrate'}));
+
+	$ffmpeg_opts .= $h_opts->{'video_filters'} if ( defined($h_opts->{'video_filters'}));
+
+	#$ffmpeg_opts .= ' -metadata year=2018 -metadata copyright="(c) O. Korach 2018" -c copy  -metadata author="Olivier Korach" -metadata:s:a:0 language=fre -metadata:s:v:0 language=fre';
+	$ffmpeg_opts .= ' -metadata:s:a:0 language=fre -metadata:s:v:0 language=fre';
 	my $time_window = '';
-	trace(3, sprintf("Opts = *%s* *%s*\n", $h_opts->{'start'}, $h_opts->{'stop'}));
+
+		
 	$time_window .= " -ss ".$h_opts->{'start'} if (defined($h_opts->{'start'}) && ($h_opts->{'start'} ne ''));
 	$time_window .= " -t ".$h_opts->{'duration'} if (defined($h_opts->{'duration'})); # && ($h_opts->{'duration'} ne ''));
 	$time_window .= " -to ".$h_opts->{'stop'} if (defined($h_opts->{'stop'}) && ($h_opts->{'stop'} ne ''));
 	
 	$overwrite = ($overw eq 'nooverwrite' ? '' : '-y');
 	$format =~ tr/A-Z/a-z/;
-  my $ext = $tgtFile; $ext =~ s/.*\.//;
+    my $ext = $tgtFile; $ext =~ s/.*\.//;
 	#---------------------------------------------------------------------------
 	# Audio tracks management
 	#---------------------------------------------------------------------------
@@ -584,15 +597,67 @@ sub encodeVideoDir
     trace(1, sprintf("%6d\/%6d - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
     my $full_tgt_file = FileTools::patchPath($srcfile, $tgt_dir);	
     $full_tgt_file =~ s/\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts)$/${ext}/;
-	  encode($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
+	  VideoTools::encode($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
   }
+}
+
+sub encodeAlbumArt
+{
+  trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+  my ($src_dir) = @_;
+  my $begin = time();
+  my $filelist = FileTools::getFileList($src_dir);
+  my $nbfiles = $#{ $filelist } + 1;
+  my $i = 0;
+  my $totalduration = time()-$begin;
+  my $albumArtFile;
+  
+  foreach my $srcfile (@{$filelist}) {
+	if ($srcfile =~ m/\.(jpg|jpeg|png)$/) {
+		$albumArtFile = $srcfile;
+		break;
+	}
+  }
+
+  if (! defined($albumArtFile)) {
+	trace(0, "No album art file found in $srcfile, aborting...");
+  } else {
+	if (0 && ! ($albumArtFile =~ m/ \(scaled\)\.jpg$/)) {
+		my $scaledAlbum = $albumArtFile;
+		$scaledAlbum = s/\.(jpg|jpeg|png)$/ (scaled).jpg/;
+		$cmd = "$FFMPEG -i \"$albumArtFile\" -vf scale=320:320 \"$scaledAlbum\"";
+		trace(2, $cmd);
+		$out = qx($cmd);
+		unlink($albumArtFile);
+		$albumArtFile = $scaledAlbum;
+	}
+
+    trace(1, "$nbfiles files to encode\n");
+    my $fmt = (($nbfiles < 100) ? "%2d\/%2d" :
+            ($nbfiles < 1000) ? "%3d\/%3d" :
+            ($nbfiles < 10000) ? "%4d\/%4d" :
+            ($nbfiles < 100000) ? "%5d\/%5d" :
+            "%6d\/%6d" );
+
+	foreach my $srcfile (@{$filelist}) {
+		$i++;
+		trace(1, sprintf("$fmt - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
+		next if (! ($srcfile =~ m/\.mp3$/));
+		my $tgtfile = $srcfile.".mp3";
+		$cmd = "$FFMPEG -i \"$srcfile\" -i \"$albumArtFile\" -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title=\"Album cover\" -metadata:s:v comment=\"Cover (Front)\" \"$tgtfile\"";
+		trace(2, $cmd);
+		$out = qx($cmd);
+		rename $srcfile, $srcfile.".old";
+		rename $tgtfile, $srcfile;
+	}
+  }  
 }
 
 sub encodeAudioDir
 {
   trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
   my ($src_dir, $tgt_dir, $profile) = @_;
-	die "Profile $profile does not exist\n" if (!defined ($h_profiles{$profile}));
+  die "Profile $profile does not exist\n" if (!defined ($h_profiles{$profile}));
   my $begin = time();
   my $filelist = FileTools::getFileList($src_dir);
   my $nbfiles = $#{ $filelist } + 1;
@@ -611,7 +676,7 @@ sub encodeAudioDir
 	  $i++;
     trace(1, sprintf("$fmt - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
     my $full_tgt_file = FileTools::patchPath($srcfile, $tgt_dir);	
-    $full_tgt_file =~ s/\.(mp3|aac|m4a|ac3)$/${ext}/;
+    $full_tgt_file =~ s/\.(mp3|aac|m4a|ac3|ogg|ape)$/\.${ext}/;
 	  encodeAudioFile($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
   }
 }
@@ -619,11 +684,12 @@ sub encodeAudioDir
 sub encodeAudioFile
 {
 	trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	
 	my ($srcFile, $tgtFile, $profile, $h_opts) = @_;
 
 	my $shortname = $srcFile;
 	$shortname =~ s/(.*)(.................................................................)/...$2/;
-	trace(1, sprintf("%-70s", "$shortname: "));
+		trace(1, sprintf("%-70s", "$shortname: "));
   if (! (-f $srcFile)) {
     trace (1, "Not a file, skipping\n");
     return;
@@ -632,16 +698,16 @@ sub encodeAudioFile
 	my $fmt = $h_profiles{$profile}->[0];
 	my $ext = $h_profiles{$profile}->[1];
 	my $cmdopts = $h_profiles{$profile}->[2];
-  $tgtFile =~ s/\.(mp3|aac|m4a|ac3|avi)$/${ext}/;
+    $tgtFile =~ s/\.(mp3|aac|ogg|ape|m4a|ac3|avi)$/\.${ext}/;
 	
 	trace(3, "Profile: Format = $fmt, Extension = $ext, Options = $cmdopts\n");
-  trace(3, "Overwrite = ".$h_opts->{'overwrite'}, "\n");
+    trace(3, "Overwrite = ".$h_opts->{'overwrite'}, "\n");
 	my $begin = time();
 	my $overw = $h_opts->{'overwrite'} || 'nooverwrite';
 	$format =~ tr/A-Z/a-z/;
 
 	make_path(FileTools::dirname($tgtFile));
-  if (! ($srcFile =~ m/\.(mp3|ac3|aac|m4a|avi)$/i)) {
+  if (! ($srcFile =~ m/\.(mp3|ac3|aac|m4a|avi|ogg|ape)$/i)) {
     trace (1, "Not an audio file, simple copy\n");
     copy($srcFile, $tgtFile);
     return 1;
@@ -708,10 +774,10 @@ sub delay_audio
 	if ($recode == 1)
 	{
 		my $wavFile = "$ifile.wav";
-		encode($ifile, $wavFile, 'wav', {'audiofix' => 0}, "");
-		encode($ifile, $ofile, 'resync', NULL, "-itsoffset $delay -i $wavFile -map 0:0 -map 1:0");
+		VideoTools::encode($ifile, $wavFile, 'wav', {'audiofix' => 0}, "");
+		VideoTools::encode($ifile, $ofile, 'resync', NULL, "-itsoffset $delay -i $wavFile -map 0:0 -map 1:0");
 	} else {
-		encode($ifile, $ofile, 'copy', NULL, "-itsoffset $delay -i $ifile $mapping");
+		VideoTools::encode($ifile, $ofile, 'copy', NULL, "-itsoffset $delay -i $ifile $mapping");
 	}
 }
 
@@ -723,10 +789,10 @@ sub delay_video
 	if ($recode == 1)
 	{
 		my $wavFile = "$ifile.wav";
-		encode($ifile, $wavFile, 'wav', {'audiofix' => 0}, "");
-		encode($ifile, $ofile, 'resync', NULL, "-itsoffset $delay -i $wavFile -map 0:0 -map 1:0");
+		VideoTools::encode($ifile, $wavFile, 'wav', {'audiofix' => 0}, "");
+		VideoTools::encode($ifile, $ofile, 'resync', NULL, "-itsoffset $delay -i $wavFile -map 0:0 -map 1:0");
 	} else {
-		encode($ifile, $ofile, 'copy', NULL, "-itsoffset $delay -i $ifile $mapping");
+		VideoTools::encode($ifile, $ofile, 'copy', NULL, "-itsoffset $delay -i $ifile $mapping");
 	}
 }
 
@@ -773,7 +839,7 @@ sub merge
 		$tmpfile = $file;
 		$tmpfile =~ s/\.(avi|wmv|mpg)$//i;
 		$tmpfile .= "_enc.mpg";
-		encode($file, $tmpfile, 'concat', {'audiofix' => 0});
+		VideoTools::encode($file, $tmpfile, 'concat', {'audiofix' => 0});
 		if ($cmd eq '') {
 			$cmd = "copy /Y \"$tmpfile\" /B";
 		} else {
@@ -786,7 +852,7 @@ sub merge
 
 	#delay_audio($merged_file, '00:00:06.00', $merged_file."_delay.mpg");
 	#encode($merged_file."_delay.mpg", $ofile, $fmt, 'overwrite');
-	encode($merged_file, $ofile, $fmt, {} );
+	VideoTools::encode($merged_file, $ofile, $fmt, {} );
 
 	unlink($merged_file);
 }
@@ -892,10 +958,10 @@ sub encodeDVD
 	# Video encoding
 	#---------------------------------------------------------------------------
 	# Encode first pass to generate log file
-	encode("$tgtFile.vob", $tgtFile."_pass1.avi", $profile, $opts, $ffopts." -pass 1/2 -passlogfile \"$tgtFile.log\"")  if ( -z  $tgtFile."_pass1.avi" || ! -f $tgtFile."_pass1.avi" );
+	VideoTools::encode("$tgtFile.vob", $tgtFile."_pass1.avi", $profile, $opts, $ffopts." -pass 1/2 -passlogfile \"$tgtFile.log\"")  if ( -z  $tgtFile."_pass1.avi" || ! -f $tgtFile."_pass1.avi" );
 
 	# Encode 2nd pass with optimal quality based on log file
-	encode("$tgtFile.vob", $tgtFile."_pass2.avi", $profile, $opts, $ffopts.." -pass 2/2 -passlogfile \"$tgtFile.log\"")  if ( ! -f $tgtFile."_pass2.avi" );
+	VideoTools::encode("$tgtFile.vob", $tgtFile."_pass2.avi", $profile, $opts, $ffopts.." -pass 2/2 -passlogfile \"$tgtFile.log\"")  if ( ! -f $tgtFile."_pass2.avi" );
 
 	# Test encode multiple subtitle tracks
 	if (0) {
@@ -905,7 +971,7 @@ sub encodeDVD
 			foreach my $track (@sub_tracks) { $sub_opts .= " -slang fre -newsubtitle -map 0:$track"; }
 		}
 
-		encode("$tgtFile.vob", $tgtFile."_pass2.avi", $vfmt, $audio_opts.$sub_opts, \%hcrop, $ffopts." -pass 2/2 -passlogfile \"$tgtFile.log\" ") if ( -z $tgtFile."_pass2.avi" || ! -f $tgtFile."_pass2.avi" );
+		VideoTools::encode("$tgtFile.vob", $tgtFile."_pass2.avi", $vfmt, $audio_opts.$sub_opts, \%hcrop, $ffopts." -pass 2/2 -passlogfile \"$tgtFile.log\" ") if ( -z $tgtFile."_pass2.avi" || ! -f $tgtFile."_pass2.avi" );
 	}
 }
 
@@ -1005,9 +1071,13 @@ sub get_tag
 # {{{ set_tag: set a ID3 V2 tag on a file
 sub set_tag
 {
+    trace(5, "Calling ".(caller(0))[3]."(".join(',',@_).")\n");
+	#use Encode;
 	my $file = shift @_;
 	my $tag  = shift @_;
+	trace(3, "Reading tag for $file\n");
 	my $mp3 = MP3::Tag->new($file);
+	return if (!$mp3);
 	#print Dumper $tag;
 	my $tags =  $mp3->get_tags();
 	my $id3v2;

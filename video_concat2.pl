@@ -55,7 +55,7 @@ if (!defined($ofile)) {
 	$ofile .= "_concat.mp4";
 }
 
-die("At least 2 input files must be specified to concat, aborting. Type $me -h for help\n") if ($#filelist <= 1);
+die("At least 2 input files must be specified to concat, aborting. Type $me -h for help\n") if ($#filelist <= 0);
 die("Output file \"$ofile\" already exist, aborting. Type $me -h for help\n") if (-f $ofile);
 
 Trace::trace(1,"Concatenating ".join(" + ", @filelist)." => \"$ofile\"\n");
