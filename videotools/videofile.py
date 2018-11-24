@@ -218,6 +218,15 @@ def encode_album_art(source_file, album_art_file):
         print(e.stderr, file=sys.stderr)
     os.remove(target_file)
 
+def rescale(in_file, width, height, out_file = None):
+    if out_file is None:
+        out_file = strip_file_extension(in_file) + '.' + str(width) + 'x' + str(height) + '.' + get_file_extension(in_file)
+    stream = ffmpeg.input(in_file)
+    stream = ffmpeg.filter_(stream, 'scale', size=str(width) + ':' + str(height))
+    stream = ffmpeg.output(stream, out_file)
+    ffmpeg.run(stream)
+    return out_file
+
 def filelist(rootDir):
     fullfilelist = []
     for dirName, subdirList, fileList in os.walk(rootDir):
