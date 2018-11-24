@@ -1,4 +1,4 @@
-#!python
+#!python3
 
 import videotools.videofile
 import sys
