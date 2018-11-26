@@ -256,11 +256,11 @@ def get_file_specs(in_file):
         print (dir(ffmpeg))
     return probe
 
-def filelist(rootDir):
+def filelist(root_dir):
     fullfilelist = []
-    for dirName, subdirList, fileList in os.walk(rootDir):
-        for fname in fileList:
-            fullfilelist.append(dirName + r'\\' + fname)
+    for dir_name, _, file_list in os.walk(root_dir):
+        for fname in file_list:
+            fullfilelist.append(dir_name + r'\\' + fname)
     return fullfilelist
 
 def match_extension(file, regex):
