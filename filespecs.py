@@ -60,4 +60,4 @@ for stream in specs['streams']:
 nb_streams = specs['format']['nb_streams']
 
 for param in myspecs:
-    print(param + ' : ' + str(myspecs[param]))
+    print("%-20s : %s" % (param, str(myspecs[param])))
