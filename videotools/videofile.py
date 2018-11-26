@@ -280,14 +280,13 @@ def is_image_file(file):
     return match_extension(file,  r'\.(jpg|jpeg|png)$')
 
 def to_hms(seconds):
-    s = int(re.sub(r'\..*$', '', seconds))
-    if re.search(r'\.[5-9]', seconds):
-        s = s + 1
-    hours = round(s/3600)
-    minutes = round(s/60) - hours*60
+    s = float(seconds)
+    hours = int(s)//3600
+    minutes = int(s)//60 - hours*60
     secs = s - hours*3600 - minutes*60
     return (hours, minutes, secs)
     
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
-    return str(hours) + ':' + str(minutes) + ':' + str(secs)
+    return "%d:%02d:%5.3f" % (hours, minutes, secs)
+
