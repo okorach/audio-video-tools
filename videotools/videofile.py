@@ -200,41 +200,17 @@ def get_properties():
     return properties
 
 def encode_album_art(source_file, album_art_file):
-    profile = 'album_art'
+    profile = 'album_art' # For the future, we'll use the cmd line associated to the profile in the config file
     properties = get_properties()
-
-    myprop = properties[profile + '.cmdline']
-    extension = properties[profile + '.extension']
-    target_file = source_file + '.' + extension
-    #parms = getParams(myprop)
-    parms = { 'c': 'copy', 'id3v2_version': '3','metadata:s:v': 'title="Album cover"'} #, 'metadata:s:v': 'comment="Cover (Front)"'}
-    stream1 = ffmpeg.input(source_file)
-    a1 = stream1['0']
-    stream2 = ffmpeg.input(album_art_file)
-    a2 = stream2['0']
-    stream = ffmpeg.output(a1, a2, target_file, **parms  )
-    print("======ARGS======")
-    print(ffmpeg.get_args(stream))
-    print(ffmpeg.compile(stream))
-    print("=================")
-    try:
-        ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
-        shutil.copy(target_file, source_file)
-    except ffmpeg.Error as e:
-        print(e.stderr, file=sys.stderr)
-    os.remove(target_file)
-
-def encode_album_art_direct(source_file, album_art_file):
-    profile = 'album_art'
-    properties = get_properties()
-    myprop = properties[profile + '.cmdline']
     target_file = strip_file_extension(source_file) + '.album_art.' + get_file_extension(source_file)
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
-    os.system(properties['binaries.ffmpeg'] + ' -i ' + source_file + ' -i ' + album_art_file \
-        + ' -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
+    cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
+        + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
         + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
-        + target_file)
+        + '"' + target_file + '"'
+    print("Running %s" % cmd)
+    os.system(cmd)
     shutil.copy(target_file, source_file)
     os.remove(target_file)
 
