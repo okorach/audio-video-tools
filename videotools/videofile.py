@@ -1,4 +1,3 @@
-
 #!python3
 
 import sys
@@ -7,6 +6,9 @@ import re
 import os
 import jprops
 import shutil
+
+class FileTypeError(Exception):
+    pass
 
 PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 FFMPEG = r'E:\Tools\VideoTools.properties'
@@ -225,14 +227,61 @@ def rescale(in_file, width, height, out_file = None):
     ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     return out_file
 
-def get_file_specs(in_file):
+def get_file_specs(file):
     properties = get_properties()
     probe = None
-    try:
-        probe = ffmpeg.probe(in_file, cmd=properties['binaries.ffprobe'])
-    except AttributeError:
-        print (dir(ffmpeg))
-    return probe
+    if is_media_file(file):
+        try:
+            specs = ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
+        except AttributeError:
+            print (dir(ffmpeg))
+    else:
+        raise FileTypeError('File %s is neither video, audio nor image file' % file)
+
+    file_type = specs['format']['format_name']
+    myspecs = dict()
+    myspecs['filename'] = specs['format']['filename']
+    myspecs['filesize'] = specs['format']['size']
+    #if file_type == 'image2':
+    if is_image_file(file):
+        myspecs['type'] = 'image'
+    #elif file_type == 'mp3' or file_type == 'aac':
+    elif is_audio_file(file):
+        myspecs['type'] = 'audio'
+        myspecs['format'] = specs['streams'][0]['codec_name']
+    #elif re.search(r'mp4', file_type) is not None:
+    elif is_video_file(file):
+        myspecs['type'] = 'video'
+        myspecs['format'] = get_file_extension(file)
+
+    for stream in specs['streams']:
+        try:
+            if myspecs['type'] == 'image':
+                myspecs['image_codec'] = stream['codec_name']
+                myspecs['width'] = stream['width']
+                myspecs['height'] = stream['height']
+                myspecs['format'] = stream['codec_name']
+            elif myspecs['type'] == 'video' and stream['codec_type'] == 'video':
+                myspecs['type'] = 'video'
+                myspecs['video_codec'] = stream['codec_name']
+                myspecs['video_bitrate'] = stream['bit_rate']
+                myspecs['width'] = stream['width']
+                myspecs['height'] = stream['height']
+                myspecs['duration'] = stream['duration']
+                myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                myspecs['aspect_ratio'] = stream['display_aspect_ratio']
+                myspecs['fps'] = stream['r_frame_rate']
+            elif (myspecs['type'] == 'audio' or myspecs['type'] == 'video') and stream['codec_type'] == 'audio':
+                myspecs['audio_codec'] = stream['codec_name']
+                myspecs['sample_rate'] = stream['sample_rate']
+                myspecs['duration'] = stream['duration']
+                myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                myspecs['audio_bitrate'] = stream['bit_rate']
+        except KeyError as e:
+            #print("Stream %s has no key %s" % (str(stream), e.args[0]))
+            #print(specs)
+            pass
+    return myspecs
 
 def filelist(root_dir):
     fullfilelist = []
@@ -257,6 +306,9 @@ def is_video_file(file):
 def is_image_file(file):
     return match_extension(file,  r'\.(jpg|jpeg|png)$')
 
+def is_media_file(file):
+    return is_audio_file(file) or is_image_file(file) or is_video_file(file)
+
 def to_hms(seconds):
     s = float(seconds)
     hours = int(s)//3600
@@ -266,5 +318,15 @@ def to_hms(seconds):
     
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
-    return "%d:%02d:%5.3f" % (hours, minutes, secs)
+    return "%d:%02d:%06.3f" % (hours, minutes, secs)
+
+def get_mp3_tags(file):
+    from mp3_tagger import MP3File
+    if get_file_extension(file).lower() is not 'mp3':
+        raise FileTypeError('File %s is not an mp3 file')
+    # Create MP3File instance.
+    mp3 = MP3File(file)
+    return { 'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
+        'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment } 
+
 
