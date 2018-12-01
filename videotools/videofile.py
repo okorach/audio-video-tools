@@ -197,6 +197,7 @@ def get_properties():
             properties = jprops.load_properties(fp)
     except FileNotFoundError:
         properties['binaries.ffmpeg'] = 'ffmpeg'
+        properties['binaries.ffprobe'] = 'ffprobe'
     return properties
 
 def encode_album_art(source_file, album_art_file):
@@ -225,9 +226,10 @@ def rescale(in_file, width, height, out_file = None):
     return out_file
 
 def get_file_specs(in_file):
+    properties = get_properties()
     probe = None
     try:
-        probe = ffmpeg.probe(in_file)
+        probe = ffmpeg.probe(in_file, cmd=properties['binaries.ffprobe'])
     except AttributeError:
         print (dir(ffmpeg))
     return probe
