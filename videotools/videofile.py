@@ -6,7 +6,7 @@ import re
 import os
 import jprops
 import shutil
-import filetools
+import videotools.filetools
 
 class FileTypeError(Exception):
     pass
@@ -152,7 +152,7 @@ def get_media_properties(props_file = None):
     if props_file is None:
         props_file = PROPERTIES_FILE
     try:
-        properties = filetools.get_properties(props_file)
+        properties = videotools.filetools.get_properties(props_file)
     except FileNotFoundError:
         properties['binaries.ffmpeg'] = 'ffmpeg'
         properties['binaries.ffprobe'] = 'ffprobe'
@@ -173,8 +173,8 @@ def get_profile_extension(profile, properties = None):
 def build_target_file(source_file, profile, properties):
     extension = get_profile_extension(profile, properties)
     if extension is None:
-        extension = filetools.get_file_extension(source_file)
-    return filetools.add_postfix(source_file, profile, extension)
+        extension = videotools.filetools.get_file_extension(source_file)
+    return videotools.filetools.add_postfix(source_file, profile, extension)
 
 def encode(source_file, target_file, profile):
     properties = get_media_properties(PROPERTIES_FILE)
@@ -202,7 +202,7 @@ def encode(source_file, target_file, profile):
 def encode_album_art(source_file, album_art_file):
     profile = 'album_art' # For the future, we'll use the cmd line associated to the profile in the config file
     properties = get_media_properties()
-    target_file = filetools.add_postfix(source_file, 'album_art')
+    target_file = videotools.filetools.add_postfix(source_file, 'album_art')
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
     cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
@@ -217,70 +217,66 @@ def encode_album_art(source_file, album_art_file):
 def rescale(in_file, width, height, out_file = None):
     properties = get_media_properties()
     if out_file is None:
-        out_file = filetools.add_postfix(in_file, "%dx%d" % (width,height))
+        out_file = videotools.filetools.add_postfix(in_file, "%dx%d" % (width,height))
     stream = ffmpeg.input(in_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
     ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     return out_file
 
-def get_file_specs(file):
-    properties = get_properties()
-    probe = None
-    if is_media_file(file):
+def probe(file, ffprobe_path):
+    if videotools.filetools.is_media_file(file):
         try:
-            specs = ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
+            probe = ffmpeg.probe(file, cmd=ffprobe_path)
         except AttributeError:
             print (dir(ffmpeg))
     else:
         raise FileTypeError('File %s is neither video, audio nor image file' % file)
+    return probe
 
-    file_type = specs['format']['format_name']
-    myspecs = dict()
-    myspecs['filename'] = specs['format']['filename']
-    myspecs['filesize'] = specs['format']['size']
+def get_file_specs(file):
+    properties = get_media_properties()
+    probe_data = probe(file, properties['binaries.ffprobe'])
+
+    specs = dict()
+    specs['filename'] = probe_data['format']['filename']
+    specs['filesize'] = probe_data['format']['size']
     #if file_type == 'image2':
-    if is_image_file(file):
-        myspecs['type'] = 'image'
-    #elif file_type == 'mp3' or file_type == 'aac':
-    elif is_audio_file(file):
-        myspecs['type'] = 'audio'
-        myspecs['format'] = specs['streams'][0]['codec_name']
+    specs['type'] = videotools.filetools.get_file_type(file)
+    if videotools.filetools.is_audio_file(file):
+        specs['format'] = probe_data['streams'][0]['codec_name']
     #elif re.search(r'mp4', file_type) is not None:
-    elif is_video_file(file):
-        myspecs['type'] = 'video'
-        myspecs['format'] = get_file_extension(file)
+    elif videotools.filetools.is_video_file(file):
+        specs['format'] = videotools.filetools.get_file_extension(file)
 
-    for stream in specs['streams']:
+    for stream in probe_data['streams']:
         try:
-            if myspecs['type'] == 'image':
-                myspecs['image_codec'] = stream['codec_name']
-                myspecs['width'] = stream['width']
-                myspecs['height'] = stream['height']
-                myspecs['format'] = stream['codec_name']
-            elif myspecs['type'] == 'video' and stream['codec_type'] == 'video':
-                myspecs['type'] = 'video'
-                myspecs['video_codec'] = stream['codec_name']
-                myspecs['video_bitrate'] = stream['bit_rate']
-                myspecs['width'] = stream['width']
-                myspecs['height'] = stream['height']
-                myspecs['duration'] = stream['duration']
-                myspecs['duration_hms'] = to_hms_str(stream['duration'])
-                myspecs['aspect_ratio'] = stream['display_aspect_ratio']
-                myspecs['fps'] = stream['r_frame_rate']
-            elif (myspecs['type'] == 'audio' or myspecs['type'] == 'video') and stream['codec_type'] == 'audio':
-                myspecs['audio_codec'] = stream['codec_name']
-                myspecs['sample_rate'] = stream['sample_rate']
-                myspecs['duration'] = stream['duration']
-                myspecs['duration_hms'] = to_hms_str(stream['duration'])
-                myspecs['audio_bitrate'] = stream['bit_rate']
+            if specs['type'] == 'image':
+                specs['image_codec'] = stream['codec_name']
+                specs['width'] = stream['width']
+                specs['height'] = stream['height']
+                specs['format'] = stream['codec_name']
+            elif specs['type'] == 'video' and stream['codec_type'] == 'video':
+                specs['type'] = 'video'
+                specs['video_codec'] = stream['codec_name']
+                specs['video_bitrate'] = stream['bit_rate']
+                specs['width'] = stream['width']
+                specs['height'] = stream['height']
+                specs['duration'] = stream['duration']
+                specs['duration_hms'] = to_hms_str(stream['duration'])
+                specs['aspect_ratio'] = stream['display_aspect_ratio']
+                specs['fps'] = stream['r_frame_rate']
+            elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
+                specs['audio_codec'] = stream['codec_name']
+                specs['sample_rate'] = stream['sample_rate']
+                specs['duration'] = stream['duration']
+                specs['duration_hms'] = to_hms_str(stream['duration'])
+                specs['audio_bitrate'] = stream['bit_rate']
         except KeyError as e:
             #print("Stream %s has no key %s" % (str(stream), e.args[0]))
             #print(specs)
             pass
-    return myspecs
-
-
+    return specs
 
 def to_hms(seconds):
     s = float(seconds)
@@ -295,7 +291,7 @@ def to_hms_str(seconds):
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
-    if get_file_extension(file).lower() is not 'mp3':
+    if videotools.filetools.get_file_extension(file).lower() is not 'mp3':
         raise FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
