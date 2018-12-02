@@ -1,6 +1,6 @@
 #!python3
 
-import videotools.videofile
+import videotools
 import sys
 import os
 import re
@@ -36,17 +36,17 @@ if (os.path.isdir(args.inputfile)):
         os.mkdir(targetdir)
     except FileExistsError:
         pass
-    ext = videotools.videofile.get_extension(args.profile)
+    ext = videotools.filetools.get_file_extension(args.profile)
     print ("%s ==> %s" % (args.inputfile, targetdir))
-    filelist = videotools.videofile.filelist(args.inputfile)
+    filelist = videotools.filetools.filelist(args.inputfile)
     nbfiles = len(filelist)
     i = 0
     for fname in filelist:
-        source_extension =  videotools.videofile.get_file_extension(fname)
+        source_extension =  videotools.filetools.get_file_extension(fname)
         print ("%5d/%5d : %3d%% : " % (i, nbfiles, round(i * 100 / nbfiles)))
         if re.match(r'(mp3|ogg|aac|ac3|m4a|ape|avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)', source_extension):
             targetfname = fname.replace(args.inputfile, targetdir, 1)
-            targetfname = videotools.videofile.strip_file_extension(targetfname) + r'.' + ext
+            targetfname = videotools.filetools.strip_file_extension(targetfname) + r'.' + ext
 
             directory = os.path.dirname(targetfname)
             if not os.path.exists(directory):
