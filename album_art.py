@@ -1,11 +1,11 @@
 #!python
 
-import videotools.videofile
+import videotools.filetools
 import sys
 
 album_art = None
 for file in sys.argv:
-    if videotools.videofile.is_image_file(file):
+    if videotools.filetools.is_image_file(file):
         album_art = file
 
 if album_art is None:
@@ -15,6 +15,6 @@ else:
     print('Encoding Album Art image file %s' % album_art)
 
 for file in sys.argv:
-    if videotools.videofile.is_audio_file(file):
+    if videotools.filetools.is_audio_file(file):
         print('Encoding audio file %s' % file)
         videotools.videofile.encode_album_art(file, album_art)
