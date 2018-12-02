@@ -1,5 +1,6 @@
 #!python3
  
+import os
 import re
 import jprops
 
@@ -46,6 +47,16 @@ def is_image_file(file):
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
     return is_audio_file(file) or is_image_file(file) or is_video_file(file)
+
+def get_file_type(file):
+    if is_audio_file(file):
+        return 'audio'
+    elif is_video_file(file):
+        return 'video'
+    elif is_image_file(file):
+        return 'image'
+    else:
+        return 'unknown'
 
 def get_properties(props_file):
     """Returns all properties found in the properties file as dictionary"""
