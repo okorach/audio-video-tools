@@ -136,7 +136,7 @@ def get_params(cmdline):
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
         if m:
             parms[m.group(1)] = m.group(2)
-            print("Found " + m.group(1) + " --> " + m.group(2))
+            #print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
