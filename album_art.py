@@ -1,6 +1,6 @@
 #!python
 
-import videotools.filetools
+import videotools.filetools, videotools.videofile
 import sys
 
 album_art = None
