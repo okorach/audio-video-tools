@@ -676,7 +676,7 @@ sub encodeAudioDir
 	  $i++;
     trace(1, sprintf("$fmt - %2d%% ", $i, $nbfiles, $i*100 / $nbfiles));
     my $full_tgt_file = FileTools::patchPath($srcfile, $tgt_dir);	
-    $full_tgt_file =~ s/\.(mp3|aac|m4a|ac3|ogg|ape)$/\.${ext}/;
+    $full_tgt_file =~ s/\.(wav|mp3|aac|m4a|ac3|ogg|ape)$/\.${ext}/;
 	  encodeAudioFile($srcfile, $full_tgt_file, $profile, { 'logfile' => "$profile.log", 'overwrite' => 'modifdate' });
   }
 }
@@ -698,7 +698,7 @@ sub encodeAudioFile
 	my $fmt = $h_profiles{$profile}->[0];
 	my $ext = $h_profiles{$profile}->[1];
 	my $cmdopts = $h_profiles{$profile}->[2];
-    $tgtFile =~ s/\.(mp3|aac|ogg|ape|m4a|ac3|avi)$/\.${ext}/;
+    $tgtFile =~ s/\.(wav|mp3|aac|ogg|ape|m4a|ac3|avi)$/\.${ext}/;
 	
 	trace(3, "Profile: Format = $fmt, Extension = $ext, Options = $cmdopts\n");
     trace(3, "Overwrite = ".$h_opts->{'overwrite'}, "\n");
@@ -707,7 +707,7 @@ sub encodeAudioFile
 	$format =~ tr/A-Z/a-z/;
 
 	make_path(FileTools::dirname($tgtFile));
-  if (! ($srcFile =~ m/\.(mp3|ac3|aac|m4a|avi|ogg|ape)$/i)) {
+  if (! ($srcFile =~ m/\.(mp3|wav|ac3|aac|m4a|avi|ogg|ape)$/i)) {
     trace (1, "Not an audio file, simple copy\n");
     copy($srcFile, $tgtFile);
     return 1;

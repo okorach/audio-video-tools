@@ -1,6 +1,6 @@
 #!python3
 
-import videotools
+import videotools.videofile, videotools.filetools
 import sys
 import os
 import re
@@ -52,6 +52,7 @@ if (os.path.isdir(args.inputfile)):
             if not os.path.exists(directory):
                 os.makedirs(directory)
             videotools.videofile.encode(fname, targetfname, args.profile)
+            #videofile.encode(fname, targetfname, args.profile)
         else:
             from shutil import copyfile
             targetfname = fname.replace(args.inputfile, targetdir, 1)
