@@ -36,7 +36,7 @@ if (os.path.isdir(args.inputfile)):
         os.mkdir(targetdir)
     except FileExistsError:
         pass
-    ext = videotools.filetools.get_file_extension(args.profile)
+    ext = videotools.videofile.get_profile_extension(args.profile)
     print ("%s ==> %s" % (args.inputfile, targetdir))
     filelist = videotools.filetools.filelist(args.inputfile)
     nbfiles = len(filelist)
