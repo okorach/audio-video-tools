@@ -41,4 +41,22 @@ if (os.path.isdir(args.inputfile)):
         i = i + 1
     print ('100%: Job finished')
 else:
-    videotools.videofile.encode(args.inputfile, args.outputfile, args.profile, **options)
+    if args.ranges is None:
+        videotools.videofile.encode(args.inputfile, args.outputfile, args.profile, **options)
+    else:
+        if args.outputfile is None:
+            ext = videotools.videofile.get_profile_extension(args.profile)
+        count = 0
+        for range in re.split(',', args.ranges):
+            start, stop = re.split('-', range)
+            options['ss'] = start
+            options['to'] = stop
+            count = count + 1
+            if args.outputfile is None:
+                target_file = videotools.filetools.add_postfix(args.inputfile, str(count), ext)
+            else:
+                target_file = args.outputfile
+            videotools.videofile.encode(args.inputfile, target_file, args.profile, **options)
+
+
+

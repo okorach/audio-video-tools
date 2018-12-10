@@ -185,7 +185,7 @@ def cmdline_options(**kwargs):
         return {}  
     mapping = { 'framerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
         'acodec' : 'acodec', 'vcodec' : 'vcodec', 'vsize' : 's', 'aspect' : 'aspect',
-        'format': 'f'}
+        'format': 'f', 'ss': 'ss', 'to': 'to'}
     params = {}
     for key in mapping.keys():
         if kwargs[key] is not None:
@@ -371,6 +371,7 @@ def parse_common_args(desc):
     parser.add_argument('--vsize', required=False, help='Video size HxW')
     parser.add_argument('--vbitrate', required=False, help='Video bitrate')
     parser.add_argument('--aspect', required=False, help='Aspect Ratio 16:9, 4:3, 1.5 ...')
+    parser.add_argument('--ranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
     return parser
 
