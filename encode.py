@@ -41,4 +41,4 @@ if (os.path.isdir(args.inputfile)):
         i = i + 1
     print ('100%: Job finished')
 else:
-    videotools.videofile.encode(args.inputfile, None, args.profile, **options)
+    videotools.videofile.encode(args.inputfile, args.outputfile, args.profile, **options)
