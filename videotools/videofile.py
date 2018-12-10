@@ -380,9 +380,8 @@ def parse_common_args(desc):
     parser.add_argument('-r', '--framerate', required=False,
                            help='Framerate of the output'
                         )
-    parser.add_argument('-g', '--debug', required=False,
-                           help='Debug level'
-                        )
+    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
+    parser.add_argument('-g', '--debug', required=False, help='Debug level')
     return parser
 
 def cleanup_options(options):
