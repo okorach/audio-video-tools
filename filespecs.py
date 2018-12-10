@@ -6,45 +6,41 @@ import os
 import re
 import argparse
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-            description='Get Audio/Video/Image file specifications')
-    parser.add_argument('-i', '--inputfile', required=True,
-                           help='Input file'
-                        )
-    parser.add_argument('-f', '--format', required=False,
-                           help='Format of output specs'
-                        )
-    args = parser.parse_args()
+parser = videotools.videofile.parse_common_args('Audio/Video/Image file specs extractor')
+args = parser.parse_args()
+if args.debug:
+    videotools.filetools.set_debug_level(int(args.debug))
+options = videotools.videofile.cleanup_options(vars(args))
 
-    return args
-
-args = parse_args()
 if os.path.isdir(args.inputfile):
-    filelist = videotools.videofile.filelist(args.inputfile)
+    filelist = videotools.filetools.filelist(args.inputfile)
 else:
     filelist = [ args.inputfile ]
 
 is_first = True
 
-props = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'video_codec', 'audio_codec', \
-    'audio_bitrate', 'video_bitrate', 'duration', 'duration_hms', 'sample_rate', 'fps', 'aspect_ratio', \
+props = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'duration', 'duration_hms', \
+    'video_codec', 'video_bitrate', 'video_aspect_ratio', 'video_fps', \
+    'audio_codec', 'audio_bitrate', 'audio_sample_rate',  \
     'author', 'title', 'album', 'year', 'track', 'genre']
 
-if args.format is not 'txt':
+if args.format != 'txt':
     print("# ")
     for prop in props:
         print("%s;" % prop, end='')
     print('')
 
 for file in filelist:
-    if not videotools.videofile.is_media_file(file):
+    if not videotools.filetools.is_media_file(file):
         continue
     try:
         myspecs = videotools.videofile.get_file_specs(file)
         for prop in props:
-            if args.format is "txt":
-                print("%-20s : %s" % (prop, str(myspecs[prop])))
+            if args.format == "txt":
+                try:
+                    print("%-20s : %s" % (prop, str(myspecs[prop])))
+                except KeyError:
+                    print("%-20s : %s" % (prop, ""))
             else:
                 # CSV format
                 try:
