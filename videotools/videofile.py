@@ -5,6 +5,7 @@ import ffmpeg
 import re
 import os
 import jprops
+import json
 import shutil
 import videotools.filetools
 from videotools.filetools import debug
@@ -260,8 +261,23 @@ def probe_file(file):
     else:
         raise FileTypeError('File %s is neither video, audio nor image file' % file)
 
+def compute_fps(rate):
+    if re.match(r"^\d+\/\d+$", rate):
+        a, b = re.split(r'/', rate)
+        return str(round(int(a)/int(b), 1))
+    else:
+        return rate
+
+def reduce_aspect_ratio(w, h):
+    for n in [2, 3, 5, 7, 11, 13, 17]:
+        while w % n == 0 and h % n == 0:
+            w = w // n
+            h = h // n
+    return "%d/%d" % (w, h)
+
 def get_file_specs(file):
     probe_data = probe_file(file)
+    debug(2, json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
     myspecs = dict()
     myspecs['filename'] = probe_data['format']['filename']
     myspecs['filesize'] = probe_data['format']['size']
@@ -273,6 +289,7 @@ def get_file_specs(file):
     elif videotools.filetools.is_video_file(file):
         myspecs['format'] = videotools.filetools.get_file_extension(file)
 
+    debug(1, "File type %s" % myspecs['type'])
     for stream in probe_data['streams']:
         try:
             if myspecs['type'] == 'image':
@@ -281,24 +298,35 @@ def get_file_specs(file):
                 myspecs['height'] = stream['height']
                 myspecs['format'] = stream['codec_name']
             elif myspecs['type'] == 'video' and stream['codec_type'] == 'video':
+                debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
                 myspecs['type'] = 'video'
                 myspecs['video_codec'] = stream['codec_name']
-                myspecs['video_bitrate'] = stream['bit_rate']
+                try:
+                    myspecs['video_bitrate'] = stream['bit_rate']
+                except KeyError:
+                    pass
                 myspecs['width'] = stream['width']
                 myspecs['height'] = stream['height']
                 myspecs['duration'] = stream['duration']
                 myspecs['duration_hms'] = to_hms_str(stream['duration'])
-                myspecs['aspect_ratio'] = stream['display_aspect_ratio']
-                myspecs['fps'] = stream['r_frame_rate']
+                myspecs['video_fps'] = compute_fps(stream['r_frame_rate'])
+                try:
+                    myspecs['video_aspect_ratio'] = stream['display_aspect_ratio']
+                except KeyError:
+                    myspecs['video_aspect_ratio'] = reduce_aspect_ratio(myspecs['width'], myspecs['height'])
             elif (myspecs['type'] == 'audio' or myspecs['type'] == 'video') and stream['codec_type'] == 'audio':
                 myspecs['audio_codec'] = stream['codec_name']
-                myspecs['sample_rate'] = stream['sample_rate']
-                myspecs['duration'] = stream['duration']
-                myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                myspecs['audio_sample_rate'] = stream['sample_rate']
+                try:
+                    myspecs['duration'] = stream['duration']
+                    myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                except KeyError:
+                    pass
                 myspecs['audio_bitrate'] = stream['bit_rate']
-        except KeyError: # as e:
-            #print("Stream %s has no key %s" % (str(stream), e.args[0]))
-            #print(specs)
+
+        except KeyError as e:
+            print("Stream %s has no key %s" % (str(stream), e.args[0]))
+            print(myspecs)
             pass
     return myspecs
 
@@ -323,7 +351,7 @@ def get_mp3_tags(file):
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment } 
 
 
-def parse_common_args():
+def parse_common_args(desc):
     """Parses options common to all media encoding scripts"""
     try:
         import argparse
@@ -333,15 +361,14 @@ def parse_common_args():
                    Option 1: Upgrade to python version >= 2.7
                    Option 2: Install argparse library for the current python version
                              See: https://pypi.python.org/pypi/argparse""")
-    parser = argparse.ArgumentParser(
-            description='Python wrapper for ffmpeg.')
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True,
                            help='Input File or Directory to encode'
                         )
     parser.add_argument('-o', '--outputfile', required=False,
                            help='Output file or directory'
                         )
-    parser.add_argument('-p', '--profile', required=True,
+    parser.add_argument('-p', '--profile', required=False,
                            help='Profile to use for encoding'
                         )
     parser.add_argument('-t', '--timeranges', required=False,
