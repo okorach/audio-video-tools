@@ -5,7 +5,7 @@ import sys
 import os
 import re
 
-parser = videotools.videofile.parse_common_args()
+parser = videotools.videofile.parse_common_args('Audio and Video file (re)encoder')
 args = parser.parse_args()
 if args.debug:
     videotools.filetools.set_debug_level(int(args.debug))
