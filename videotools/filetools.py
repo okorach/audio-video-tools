@@ -4,6 +4,8 @@ import os
 import re
 import jprops
 
+debug_level = 0
+
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
@@ -103,3 +105,12 @@ def get_properties(props_file):
     with open(props_file) as fp:
         properties = jprops.load_properties(fp)
     return properties
+
+def set_debug_level(level):
+    global debug_level
+    debug_level = level
+
+def debug(level, string):
+    global debug_level
+    if level <= debug_level:
+        print(string)
