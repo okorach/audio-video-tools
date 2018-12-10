@@ -7,11 +7,13 @@ import os
 import jprops
 import shutil
 import videotools.filetools
+from videotools.filetools import debug
 
 class FileTypeError(Exception):
     pass
 
-PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+#PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
 class EncodeSpecs:
     def __init__(self):
@@ -207,15 +209,13 @@ def encode(source_file, target_file, profile, **kwargs):
     stream = ffmpeg.output(stream, target_file, **parms  )
     # -qscale:v 3  is **{'qscale:v': 3} 
     stream = ffmpeg.overwrite_output(stream)
-    # print(ffmpeg.get_args(stream))
-    print (source_file + ' --> ' + target_file)
+    videotools.filetools.debug(2, ffmpeg.get_args(stream))
+    videotools.filetools.debug(1, "%s --> %s" % (source_file, target_file))
     try:
         ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
-
-
 
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
@@ -233,7 +233,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
         + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
         + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
         + '"' + target_file + '"'
-    # print("Running %s" % cmd)
+    debug(1, "Running %s" % cmd)
     os.system(cmd)
     shutil.copy(target_file, source_file)
     os.remove(target_file)
@@ -344,13 +344,22 @@ def parse_common_args():
     parser.add_argument('-p', '--profile', required=True,
                            help='Profile to use for encoding'
                         )
-    parser.add_argument('-t', '--timeranges', required=True,
+    parser.add_argument('-t', '--timeranges', required=False,
                            help='Time ranges to encode'
                         )
-    parser.add_argument('-f', '--format', required=True,
+    parser.add_argument('-f', '--format', required=False,
                            help='Output file format'
                         )
-    parser.add_argument('-r', '--rate', required=True,
+    parser.add_argument('-r', '--framerate', required=False,
                            help='Framerate of the output'
                         )
+    parser.add_argument('-g', '--debug', required=False,
+                           help='Debug level'
+                        )
     return parser
+
+def cleanup_options(options):
+    new_options = options.copy()
+    for key in ['inputfile', 'outputfile', 'profile', 'debug']:
+        del new_options[key]
+    return new_options
