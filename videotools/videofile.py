@@ -182,17 +182,14 @@ def build_target_file(source_file, profile, properties):
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
     if kwargs is None:
-        return {}
-    
-    mapping = { 'vframerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
+        return {}  
+    mapping = { 'framerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
         'acodec' : 'acodec', 'vcodec' : 'vcodec', 'vsize' : 's', 'aspect' : 'aspect',
         'format': 'f'}
     params = {}
     for key in mapping.keys():
-        try:
+        if kwargs[key] is not None:
             params[mapping[key]] = kwargs[key]
-        except KeyError:
-            pass
     return params
 
 def encode(source_file, target_file, profile, **kwargs):
@@ -362,25 +359,18 @@ def parse_common_args(desc):
                    Option 2: Install argparse library for the current python version
                              See: https://pypi.python.org/pypi/argparse""")
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-i', '--inputfile', required=True,
-                           help='Input File or Directory to encode'
-                        )
-    parser.add_argument('-o', '--outputfile', required=False,
-                           help='Output file or directory'
-                        )
-    parser.add_argument('-p', '--profile', required=False,
-                           help='Profile to use for encoding'
-                        )
-    parser.add_argument('-t', '--timeranges', required=False,
-                           help='Time ranges to encode'
-                        )
-    parser.add_argument('-f', '--format', required=False,
-                           help='Output file format'
-                        )
-    parser.add_argument('-r', '--framerate', required=False,
-                           help='Framerate of the output'
-                        )
+    parser.add_argument('-i', '--inputfile', required=True, help='Input File or Directory to encode')
+    parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
+    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
+    parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
+    parser.add_argument('-f', '--format', required=False, help='Output file format')
+    parser.add_argument('-r', '--framerate', required=False, help='Video framerate of the output')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
+    parser.add_argument('--abitrate', required=False, help='Audio bitrate')
+    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
+    parser.add_argument('--vsize', required=False, help='Video size HxW')
+    parser.add_argument('--vbitrate', required=False, help='Video bitrate')
+    parser.add_argument('--aspect', required=False, help='Aspect Ratio 16:9, 4:3, 1.5 ...')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
     return parser
 
