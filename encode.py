@@ -1,12 +1,15 @@
-#!python3
+#!/usr/local/bin/python3
 
-import videotools
+import videotools.videofile
 import sys
 import os
 import re
 
 parser = videotools.videofile.parse_common_args()
 args = parser.parse_args()
+if args.debug:
+    videotools.filetools.set_debug_level(int(args.debug))
+options = videotools.videofile.cleanup_options(vars(args))
 
 if (os.path.isdir(args.inputfile)):
     targetdir = args.inputfile + '.' + args.profile
@@ -28,7 +31,7 @@ if (os.path.isdir(args.inputfile)):
             directory = os.path.dirname(targetfname)
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            videotools.videofile.encode(fname, targetfname, args.profile)
+            videotools.videofile.encode(fname, targetfname, args.profile, **options)
             #videofile.encode(fname, targetfname, args.profile)
         else:
             from shutil import copyfile
@@ -38,4 +41,4 @@ if (os.path.isdir(args.inputfile)):
         i = i + 1
     print ('100%: Job finished')
 else:
-    videotools.videofile.encode(args.inputfile, None, args.profile)
+    videotools.videofile.encode(args.inputfile, None, args.profile, **options)
