@@ -176,7 +176,23 @@ def build_target_file(source_file, profile, properties):
         extension = videotools.filetools.get_file_extension(source_file)
     return videotools.filetools.add_postfix(source_file, profile, extension)
 
-def encode(source_file, target_file, profile):
+def cmdline_options(**kwargs):
+    # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
+    if kwargs is None:
+        return {}
+    
+    mapping = { 'vframerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
+        'acodec' : 'acodec', 'vcodec' : 'vcodec', 'vsize' : 's', 'aspect' : 'aspect',
+        'format': 'f'}
+    params = {}
+    for key in mapping.keys():
+        try:
+            params[mapping[key]] = kwargs[key]
+        except KeyError:
+            pass
+    return params
+
+def encode(source_file, target_file, profile, **kwargs):
     properties = get_media_properties(PROPERTIES_FILE)
 
     myprop = properties[profile + '.cmdline']
@@ -185,6 +201,8 @@ def encode(source_file, target_file, profile):
 
     stream = ffmpeg.input(source_file)
     parms = get_params(myprop)
+    parms.update(cmdline_options(**kwargs))
+
     #stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None, vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop), s=getSize(myprop), r=getFrameRate(myprop)  )
     stream = ffmpeg.output(stream, target_file, **parms  )
     # -qscale:v 3  is **{'qscale:v': 3} 
@@ -199,84 +217,90 @@ def encode(source_file, target_file, profile):
 
 
 
-def encode_album_art(source_file, album_art_file):
-    profile = 'album_art' # For the future, we'll use the cmd line associated to the profile in the config file
+def encode_album_art(source_file, album_art_file, **kwargs):
+    """Encodes album art image in an audio file after optionally resizing"""
+    # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
     properties = get_media_properties()
     target_file = videotools.filetools.add_postfix(source_file, 'album_art')
+
+    if kwargs['scale'] is not None:
+        w, h = re.split("x",kwargs['scale'])
+        album_art_file = rescale(source_file, w, h)
+        delete_aa_file = True
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
     cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
         + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
         + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
         + '"' + target_file + '"'
-    print("Running %s" % cmd)
+    # print("Running %s" % cmd)
     os.system(cmd)
     shutil.copy(target_file, source_file)
     os.remove(target_file)
+    if delete_aa_file:
+        os.remove(album_art_file)
 
-def rescale(in_file, width, height, out_file = None):
+def rescale(image_file, width, height, out_file = None):
     properties = get_media_properties()
     if out_file is None:
-        out_file = videotools.filetools.add_postfix(in_file, "%dx%d" % (width,height))
-    stream = ffmpeg.input(in_file)
+        out_file = videotools.filetools.add_postfix(image_file, "%dx%d" % (width,height))
+    stream = ffmpeg.input(image_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
     ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     return out_file
 
-def probe(file, ffprobe_path):
+def probe_file(file):
     if videotools.filetools.is_media_file(file):
         try:
-            probe = ffmpeg.probe(file, cmd=ffprobe_path)
+            properties = get_media_properties()
+            return ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
         except AttributeError:
             print (dir(ffmpeg))
     else:
         raise FileTypeError('File %s is neither video, audio nor image file' % file)
-    return probe
 
 def get_file_specs(file):
-    properties = get_media_properties()
-    probe_data = probe(file, properties['binaries.ffprobe'])
-
-    specs = dict()
-    specs['filename'] = probe_data['format']['filename']
-    specs['filesize'] = probe_data['format']['size']
+    probe_data = probe_file(file)
+    myspecs = dict()
+    myspecs['filename'] = probe_data['format']['filename']
+    myspecs['filesize'] = probe_data['format']['size']
     #if file_type == 'image2':
-    specs['type'] = videotools.filetools.get_file_type(file)
+    myspecs['type'] = videotools.filetools.get_file_type(file)
     if videotools.filetools.is_audio_file(file):
-        specs['format'] = probe_data['streams'][0]['codec_name']
+        myspecs['format'] = probe_data['streams'][0]['codec_name']
     #elif re.search(r'mp4', file_type) is not None:
     elif videotools.filetools.is_video_file(file):
-        specs['format'] = videotools.filetools.get_file_extension(file)
+        myspecs['format'] = videotools.filetools.get_file_extension(file)
 
     for stream in probe_data['streams']:
         try:
-            if specs['type'] == 'image':
-                specs['image_codec'] = stream['codec_name']
-                specs['width'] = stream['width']
-                specs['height'] = stream['height']
-                specs['format'] = stream['codec_name']
-            elif specs['type'] == 'video' and stream['codec_type'] == 'video':
-                specs['type'] = 'video'
-                specs['video_codec'] = stream['codec_name']
-                specs['video_bitrate'] = stream['bit_rate']
-                specs['width'] = stream['width']
-                specs['height'] = stream['height']
-                specs['duration'] = stream['duration']
-                specs['duration_hms'] = to_hms_str(stream['duration'])
-                specs['aspect_ratio'] = stream['display_aspect_ratio']
-                specs['fps'] = stream['r_frame_rate']
-            elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
-                specs['audio_codec'] = stream['codec_name']
-                specs['sample_rate'] = stream['sample_rate']
-                specs['duration'] = stream['duration']
-                specs['duration_hms'] = to_hms_str(stream['duration'])
-                specs['audio_bitrate'] = stream['bit_rate']
-        except KeyError as e:
+            if myspecs['type'] == 'image':
+                myspecs['image_codec'] = stream['codec_name']
+                myspecs['width'] = stream['width']
+                myspecs['height'] = stream['height']
+                myspecs['format'] = stream['codec_name']
+            elif myspecs['type'] == 'video' and stream['codec_type'] == 'video':
+                myspecs['type'] = 'video'
+                myspecs['video_codec'] = stream['codec_name']
+                myspecs['video_bitrate'] = stream['bit_rate']
+                myspecs['width'] = stream['width']
+                myspecs['height'] = stream['height']
+                myspecs['duration'] = stream['duration']
+                myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                myspecs['aspect_ratio'] = stream['display_aspect_ratio']
+                myspecs['fps'] = stream['r_frame_rate']
+            elif (myspecs['type'] == 'audio' or myspecs['type'] == 'video') and stream['codec_type'] == 'audio':
+                myspecs['audio_codec'] = stream['codec_name']
+                myspecs['sample_rate'] = stream['sample_rate']
+                myspecs['duration'] = stream['duration']
+                myspecs['duration_hms'] = to_hms_str(stream['duration'])
+                myspecs['audio_bitrate'] = stream['bit_rate']
+        except KeyError: # as e:
             #print("Stream %s has no key %s" % (str(stream), e.args[0]))
             #print(specs)
             pass
-    return specs
+    return myspecs
 
 def to_hms(seconds):
     s = float(seconds)
@@ -299,3 +323,34 @@ def get_mp3_tags(file):
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment } 
 
 
+def parse_common_args():
+    """Parses options common to all media encoding scripts"""
+    try:
+        import argparse
+    except ImportError:
+        if sys.version_info < (2, 7, 0):
+            print("""Error: You are running an old version of python. Two options to fix the problem
+                   Option 1: Upgrade to python version >= 2.7
+                   Option 2: Install argparse library for the current python version
+                             See: https://pypi.python.org/pypi/argparse""")
+    parser = argparse.ArgumentParser(
+            description='Python wrapper for ffmpeg.')
+    parser.add_argument('-i', '--inputfile', required=True,
+                           help='Input File or Directory to encode'
+                        )
+    parser.add_argument('-o', '--outputfile', required=False,
+                           help='Output file or directory'
+                        )
+    parser.add_argument('-p', '--profile', required=True,
+                           help='Profile to use for encoding'
+                        )
+    parser.add_argument('-t', '--timeranges', required=True,
+                           help='Time ranges to encode'
+                        )
+    parser.add_argument('-f', '--format', required=True,
+                           help='Output file format'
+                        )
+    parser.add_argument('-r', '--rate', required=True,
+                           help='Framerate of the output'
+                        )
+    return parser

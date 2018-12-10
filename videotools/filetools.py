@@ -13,6 +13,46 @@ def filelist(root_dir):
             fullfilelist.append(dir_name + r'\\' + fname)
     return fullfilelist
 
+def audio_filelist(root_dir):
+    """Returns and array of all audio files under a given root directory
+    going down into sub directories"""
+    fullfilelist = []
+    for dir_name, _, file_list in os.walk(root_dir):
+        for file in file_list:
+            if (is_audio_file(file)):
+                fullfilelist.append(dir_name + r'\\' + file)
+    return fullfilelist
+
+def video_filelist(root_dir):
+    """Returns and array of all video files under a given root directory
+    going down into sub directories"""
+    fullfilelist = []
+    for dir_name, _, file_list in os.walk(root_dir):
+        for file in file_list:
+            if (is_video_file(file)):
+                fullfilelist.append(dir_name + r'\\' + file)
+    return fullfilelist
+
+def image_filelist(root_dir):
+    """Returns and array of all audio files under a given root directory
+    going down into sub directories"""
+    fullfilelist = []
+    for dir_name, _, file_list in os.walk(root_dir):
+        for file in file_list:
+            if (is_image_file(file)):
+                fullfilelist.append(dir_name + r'\\' + file)
+    return fullfilelist
+
+def subdir_list(root_dir):
+    """Returns and array of all audio files under a given root directory
+    going down into sub directories"""
+    fullfilelist = []
+    for _, _, file_list in os.walk(root_dir):
+        for file in file_list:
+            if (os.path.isdir(file)):
+                fullfilelist.append(file)
+    return fullfilelist
+
 def get_file_extension(filename):
     """Returns a file extension"""
     return re.sub(r'^.*\.', '', filename)
