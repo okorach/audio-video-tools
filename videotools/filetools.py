@@ -92,13 +92,15 @@ def is_media_file(file):
 
 def get_file_type(file):
     if is_audio_file(file):
-        return 'audio'
+        filetype = 'audio'
     elif is_video_file(file):
-        return 'video'
+        filetype = 'video'
     elif is_image_file(file):
-        return 'image'
+        filetype = 'image'
     else:
-        return 'unknown'
+        filetype = 'unknown'
+    debug(2, "Fietype of %s is %s" % (file, filetype))
+    return filetype
 
 def get_properties(props_file):
     """Returns all properties found in the properties file as dictionary"""
