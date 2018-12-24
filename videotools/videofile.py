@@ -116,7 +116,7 @@ def get_audio_bitrate(cmdline):
     m = re.search(r'-b:a\s+(\S+)', cmdline)
     return m.group(1) if m else ''
 
-def get_video_bitrate(cmdline):
+def get_video_bitrate_option(cmdline):
     m = re.search(r'-vb\s+(\S+)', cmdline)
     if m:
         return m.group(1) 
@@ -307,15 +307,23 @@ def get_audio_specs(stream):
     specs['audio_bitrate'] = stream['bit_rate']
     return specs
 
+def get_video_bitrate(stream):
+    bitrate = None
+    try:
+        bitrate = stream['bit_rate']
+    except KeyError:
+        try:
+            bitrate = stream['duration_ts']
+        except KeyError:
+            pass
+    return bitrate
+
 def get_video_specs(stream):
     debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
     specs = {}
     specs['type'] = 'video'
     specs['video_codec'] = stream['codec_name']
-    try:
-        specs['video_bitrate'] = stream['bit_rate']
-    except KeyError:
-        pass
+    specs['video_bitrate'] = get_video_bitrate(stream)
     specs['width'] = stream['width']
     specs['height'] = stream['height']
     specs['duration'] = stream['duration']
