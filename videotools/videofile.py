@@ -9,12 +9,14 @@ import json
 import shutil
 import videotools.filetools
 from videotools.filetools import debug
+import platform
 
 class FileTypeError(Exception):
     pass
-
-#PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
-PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
+if platform.system() is 'Windows':
+    PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+else:
+    PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
 class EncodeSpecs:
     def __init__(self):
