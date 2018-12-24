@@ -9,12 +9,14 @@ import json
 import shutil
 import videotools.filetools
 from videotools.filetools import debug
+import platform
 
 class FileTypeError(Exception):
     pass
-
-#PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
-PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
+if platform.system() is 'Windows':
+    PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+else:
+    PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
 class EncodeSpecs:
     def __init__(self):
@@ -188,8 +190,11 @@ def cmdline_options(**kwargs):
         'format': 'f', 'ss': 'ss', 'to': 'to', 'asampling': 'ar'}
     params = {}
     for key in mapping.keys():
-        if kwargs[key] is not None:
-            params[mapping[key]] = kwargs[key]
+        try:
+            if kwargs[key] is not None:
+                params[mapping[key]] = kwargs[key]
+        except KeyError:
+            pass
     return params
 
 def encode(source_file, target_file, profile, **kwargs):
@@ -272,60 +277,73 @@ def reduce_aspect_ratio(w, h):
             h = h // n
     return "%d/%d" % (w, h)
 
+def get_audio_specs(stream):
+    specs = {}
+    specs['audio_codec'] = stream['codec_name']
+    specs['audio_sample_rate'] = stream['sample_rate']
+    try:
+        specs['duration'] = stream['duration']
+        specs['duration_hms'] = to_hms_str(stream['duration'])
+    except KeyError:
+        pass
+    specs['audio_bitrate'] = stream['bit_rate']
+    return specs
+
+def get_video_specs(stream):
+    debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+    specs = {}
+    specs['type'] = 'video'
+    specs['video_codec'] = stream['codec_name']
+    try:
+        specs['video_bitrate'] = stream['bit_rate']
+    except KeyError:
+        pass
+    specs['width'] = stream['width']
+    specs['height'] = stream['height']
+    specs['duration'] = stream['duration']
+    specs['duration_hms'] = to_hms_str(stream['duration'])
+    specs['video_fps'] = compute_fps(stream['r_frame_rate'])
+    try:
+        specs['video_aspect_ratio'] = stream['display_aspect_ratio']
+    except KeyError:
+        specs['video_aspect_ratio'] = reduce_aspect_ratio(specs['width'], specs['height'])
+    return specs
+
+def get_image_specs(stream):
+    specs = {}
+    specs['image_codec'] = stream['codec_name']
+    specs['width'] = stream['width']
+    specs['height'] = stream['height']
+    specs['format'] = stream['codec_name']
+    return specs
+
 def get_file_specs(file):
     probe_data = probe_file(file)
     debug(2, json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
-    myspecs = dict()
-    myspecs['filename'] = probe_data['format']['filename']
-    myspecs['filesize'] = probe_data['format']['size']
+    specs = {}
+    specs['filename'] = probe_data['format']['filename']
+    specs['filesize'] = probe_data['format']['size']
     #if file_type == 'image2':
-    myspecs['type'] = videotools.filetools.get_file_type(file)
+    specs['type'] = videotools.filetools.get_file_type(file)
     if videotools.filetools.is_audio_file(file):
-        myspecs['format'] = probe_data['streams'][0]['codec_name']
+        specs['format'] = probe_data['streams'][0]['codec_name']
     #elif re.search(r'mp4', file_type) is not None:
     elif videotools.filetools.is_video_file(file):
-        myspecs['format'] = videotools.filetools.get_file_extension(file)
+        specs['format'] = videotools.filetools.get_file_extension(file)
 
-    debug(1, "File type %s" % myspecs['type'])
+    debug(1, "File type %s" % specs['type'])
     for stream in probe_data['streams']:
         try:
-            if myspecs['type'] == 'image':
-                myspecs['image_codec'] = stream['codec_name']
-                myspecs['width'] = stream['width']
-                myspecs['height'] = stream['height']
-                myspecs['format'] = stream['codec_name']
-            elif myspecs['type'] == 'video' and stream['codec_type'] == 'video':
-                debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
-                myspecs['type'] = 'video'
-                myspecs['video_codec'] = stream['codec_name']
-                try:
-                    myspecs['video_bitrate'] = stream['bit_rate']
-                except KeyError:
-                    pass
-                myspecs['width'] = stream['width']
-                myspecs['height'] = stream['height']
-                myspecs['duration'] = stream['duration']
-                myspecs['duration_hms'] = to_hms_str(stream['duration'])
-                myspecs['video_fps'] = compute_fps(stream['r_frame_rate'])
-                try:
-                    myspecs['video_aspect_ratio'] = stream['display_aspect_ratio']
-                except KeyError:
-                    myspecs['video_aspect_ratio'] = reduce_aspect_ratio(myspecs['width'], myspecs['height'])
-            elif (myspecs['type'] == 'audio' or myspecs['type'] == 'video') and stream['codec_type'] == 'audio':
-                myspecs['audio_codec'] = stream['codec_name']
-                myspecs['audio_sample_rate'] = stream['sample_rate']
-                try:
-                    myspecs['duration'] = stream['duration']
-                    myspecs['duration_hms'] = to_hms_str(stream['duration'])
-                except KeyError:
-                    pass
-                myspecs['audio_bitrate'] = stream['bit_rate']
-
+            if specs['type'] == 'image':
+                specs.update(get_image_specs(stream))
+            elif specs['type'] == 'video' and stream['codec_type'] == 'video':
+                specs.update(get_video_specs(stream))
+            elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
+                specs.update(get_audio_specs(stream))
         except KeyError as e:
-            print("Stream %s has no key %s" % (str(stream), e.args[0]))
-            print(myspecs)
-            pass
-    return myspecs
+            debug(1, "Stream %s has no key %s" % (str(stream), e.args[0]))
+            debug(1, str(specs))
+    return specs
 
 def to_hms(seconds):
     s = float(seconds)
@@ -381,3 +399,21 @@ def cleanup_options(options):
     for key in ['inputfile', 'outputfile', 'profile', 'debug']:
         del new_options[key]
     return new_options
+
+def concat(target_file, filelist):
+#    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
+#  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
+#  -map "[v]" -map "[a]" output.mkv
+    properties = get_media_properties()
+    cmd = properties['binaries.ffmpeg']
+    debug(2, str(filelist))
+    for file in filelist:
+        cmd = cmd + (' -i "%s" ' % file)
+    count = 0
+    cmd = cmd + '-filter_complex "'
+    for file in filelist:
+        cmd = cmd + ("[%d:v] [%d:a]" % (count, count))
+        count = count + 1
+    cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
+    debug(1, "Running %s" % cmd)
+    os.system(cmd)
