@@ -253,7 +253,23 @@ def rescale(image_file, width, height, out_file = None):
     ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     return out_file
 
+def get_deshake_filter_options(width, height):
+    # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
+    return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
+
+def deshake(video_file, width, height, out_file = None):
+    ''' Applies deshake video filter for width x height pixels '''
+    properties = get_media_properties()
+    if out_file is None:
+        out_file = videotools.filetools.add_postfix(video_file, "deshake_%dx%d" % (width,height))
+    cmd = "%s -i %s %s %s" % \
+        (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
+    debug(1, "Running %s" % cmd)
+    os.system(cmd)
+    return out_file
+
 def probe_file(file):
+    ''' Returns file probe (media specs) '''
     if videotools.filetools.is_media_file(file):
         try:
             properties = get_media_properties()
@@ -264,6 +280,7 @@ def probe_file(file):
         raise FileTypeError('File %s is neither video, audio nor image file' % file)
 
 def compute_fps(rate):
+    ''' Simplifies the FPS calculation '''
     if re.match(r"^\d+\/\d+$", rate):
         a, b = re.split(r'/', rate)
         return str(round(int(a)/int(b), 1))
@@ -271,6 +288,7 @@ def compute_fps(rate):
         return rate
 
 def reduce_aspect_ratio(w, h):
+    ''' Simplifies the Aspect Ratio calculation '''
     for n in [2, 3, 5, 7, 11, 13, 17]:
         while w % n == 0 and h % n == 0:
             w = w // n
