@@ -110,7 +110,9 @@ def get_properties(props_file):
 
 def set_debug_level(level):
     global debug_level
-    debug_level = level
+    if level is None:
+        level = 0
+    debug_level = int(level)
 
 def debug(level, string):
     global debug_level

@@ -253,6 +253,10 @@ def rescale(image_file, width, height, out_file = None):
     ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     return out_file
 
+def get_crop_filter_options(width, height, top, left):
+    # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
+    return "-filter:v crop=%d:%d:%d:%d" % (width, height, top, left)
+
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
@@ -262,9 +266,21 @@ def deshake(video_file, width, height, out_file = None):
     properties = get_media_properties()
     if out_file is None:
         out_file = videotools.filetools.add_postfix(video_file, "deshake_%dx%d" % (width,height))
-    cmd = "%s -i %s %s %s" % \
+    cmd = "%s -i %s %s -vcodec libx264 -deinterlace %s" % \
         (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
     debug(1, "Running %s" % cmd)
+    os.system(cmd)
+    return out_file
+
+def crop(video_file, width, height, top, left, out_file = None):
+    ''' Applies crop video filter for width x height pixels '''
+    properties = get_media_properties()
+    if out_file is None:
+        out_file = videotools.filetools.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width,height, top, left))
+    aw, ah = re.split("/", reduce_aspect_ratio(width, height))
+    cmd = "%s -i %s %s -vcodec libx264 -aspect %d:%d %s" % \
+        (properties['binaries.ffmpeg'], video_file, get_crop_filter_options(width, height, top, left), int(aw), int(ah), out_file)
+    debug(2, "Running %s" % cmd)
     os.system(cmd)
     return out_file
 
@@ -328,7 +344,8 @@ def get_video_specs(stream):
     specs['height'] = stream['height']
     specs['duration'] = stream['duration']
     specs['duration_hms'] = to_hms_str(stream['duration'])
-    specs['video_fps'] = compute_fps(stream['r_frame_rate'])
+    raw_fps = stream['avg_frame_rate'] if 'avg_frame_rate' in stream.keys() else stream['r_frame_rate']
+    specs['video_fps'] = compute_fps(raw_fps)
     try:
         specs['video_aspect_ratio'] = stream['display_aspect_ratio']
     except KeyError:

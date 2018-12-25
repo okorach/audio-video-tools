@@ -2,9 +2,6 @@
 
 from videotools.videofile import deshake
 from videotools.filetools import debug
-import sys
-import os
-import re
 import argparse
 
 def parse_args():
