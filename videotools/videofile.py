@@ -11,6 +11,21 @@ import videotools.filetools
 from videotools.filetools import debug
 import platform
 
+FFMPEG_FORMAT_OPTION = 'f'
+FFMPEG_SIZE_OPTION = 's'
+FFMPEG_VCODEC_OPTION = 'vcodec'
+FFMPEG_ACODEC_OPTION = 'acodec'
+FFMPEG_VBITRATE_OPTION = 'b:v'
+FFMPEG_ABITRATE_OPTION = 'a:v'
+FFMPEG_SIZE_OPTION = 's'
+FFMPEG_FPS_OPTION = 'r'
+FFMPEG_ASPECT_OPTION = 'aspect'
+FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
+FFMPEG_ACHANNELS_OPTION = 'ac'
+FFMPEG_VFILTER_OPTION = 'vf'
+
+OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, 'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate': FFMPEG_VBITRATE_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, 'fps':'r', 'aspect':FFMPEG_ASPECT_OPTION, 'size':FFMPEG_SIZE_OPTION, 'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, 'vfilter':FFMPEG_VFILTER_OPTION }
+
 class FileTypeError(Exception):
     pass
 
@@ -19,15 +34,53 @@ if platform.system() is 'Windows':
 else:
     PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
-class EncodeSpecs:
+class Encoder:
     def __init__(self):
-        self.vcodec = 'libx264'
-        self.acodec = 'libvo_aacenc'
-        self.vbitrate = '2048k'
-        self.abitrate = '128k'
+        self.format = None
+        self.vcodec = None # 'libx264'
+        self.acodec = None # 'libvo_aacenc'
+        self.vbitrate = None # '2048k'
+        self.abitrate = None # '128k'
+        self.fps = None
+        self.aspect = None
+        self.size = None
+        self.deinterlace = None
+        self.achannels = None
+        self.vfilters = {}
+        self.other_options = {}
+
+    def set_ffmpeg_properties(self, props):
+        params = get_params(props)
+        for param in params.keys():
+            # internal_keys = OPTIONS_MAPPING.keys()
+            if param is FFMPEG_FORMAT_OPTION:
+                self.format = params[param]
+            elif param is FFMPEG_VBITRATE_OPTION:
+                self.vbitrate = params[param]
+            elif param is FFMPEG_VCODEC_OPTION:
+                self.vcodec = params[param]
+            elif param is FFMPEG_ABITRATE_OPTION:
+                self.abitrate = params[param]
+            elif param is FFMPEG_ACODEC_OPTION:
+                self.acodec = params[param]
+            elif param is FFMPEG_DEINTERLACE_OPTION:
+                self.deinterlace = ''
+            elif param is FFMPEG_FPS_OPTION:
+                self.fps = params[param]
+            elif param is FFMPEG_SIZE_OPTION:
+                self.size = params[param]
+            elif param is FFMPEG_ASPECT_OPTION:
+                self.aspect = params[param]
+            elif param is FFMPEG_ACHANNELS_OPTION:
+                self.achannels = params[param]
+            elif param is FFMPEG_VFILTER_OPTION:
+                self.vfilters.update({FFMPEG_VFILTER_OPTION:params[param]})
 
     def set_vcodec(self, vcodec):
         self.vcodec = vcodec
+
+    def set_size(self, size):
+        self.size = size
 
     def set_acodec(self, acodec):
         self.acodec = acodec
@@ -37,9 +90,20 @@ class EncodeSpecs:
 
     def set_abitrate(self, bitrate):
         self.abitrate = bitrate
-    
+
+    def set_deinterlace(self):
+        self.deinterlace = ''
+        
     def set_format(self, fmt):
         self.format = fmt
+    
+    def build_ffmpeg_options(self):
+        options = vars(self)
+        cmd = ''
+        for option in options.keys():
+            if options[option] is not None:
+                cmd = cmd + " -%s %s" % (OPTIONS_MAPPING[option], options[option])
+        return cmd
 
 class MediaFile:
     def __init__(self, filename):
@@ -304,6 +368,15 @@ class VideoFile(MediaFile):
         all_props.update(self.get_video_properties())
         return all_props
 
+    def get_ffmpeg_params(self):
+        mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
+        props = self.get_properties()
+        ffmpeg_parms = {}
+        for key in mapping.keys():
+            if props[key] is not None and props[key] is not '':
+                ffmpeg_parms[mapping[key]] = props[key]
+        return ffmpeg_parms
+
     def encode(self, target_file, profile):
         # stream = ffmpeg.input(self.filename)
         self.stream = ffmpeg.output(self.stream, target_file, acodec='libvo_aacenc', vcodec='libx264', f='mp4', vr='2048k', ar='128k' )
@@ -432,16 +505,14 @@ def build_target_file(source_file, profile, properties):
 
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
+    global OPTIONS_MAPPING
     if kwargs is None:
         return {}  
-    mapping = { 'framerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
-        'acodec' : 'acodec', 'vcodec' : 'vcodec', 'vsize' : 's', 'aspect' : 'aspect',
-        'format': 'f', 'ss': 'ss', 'to': 'to', 'asampling': 'ar'}
     params = {}
-    for key in mapping.keys():
+    for key in OPTIONS_MAPPING.keys():
         try:
             if kwargs[key] is not None:
-                params[mapping[key]] = kwargs[key]
+                params[OPTIONS_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
     return params
@@ -468,6 +539,23 @@ def encode(source_file, target_file, profile, **kwargs):
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
+
+def encodeoo(source_file, target_file, profile, **kwargs):
+    properties = get_media_properties(PROPERTIES_FILE)
+
+    profile_options = properties[profile + '.cmdline']
+    if target_file is None:
+        target_file = build_target_file(source_file, profile, properties)
+
+
+    file_o = VideoFile(source_file)
+    parms = file_o.get_ffmpeg_params()
+    parms.update(get_params(profile_options))
+    parms.update(cmdline_options(**kwargs))
+
+    cmd = "%s %s %s" % (properties['binaries.ffmpeg'], build_ffmpeg_options(parms), target_file)
+    debug(1, "Running %s" % cmd)
+    os.system(cmd)
 
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
@@ -699,3 +787,10 @@ def concat(target_file, filelist):
     cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
     debug(1, "Running %s" % cmd)
     os.system(cmd)
+
+def build_ffmpeg_options(options):
+    cmd = ''
+    for option in options.keys():
+        if options[option] is not None:
+            cmd = cmd + " -%s %s" % (option, options[option])
+    return cmd
