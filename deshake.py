@@ -1,8 +1,8 @@
 #!python3
 
-from videotools.videofile import deshake
-from videotools.filetools import debug
 import argparse
+import mediatools.utilities as util
+from mediatools.videofile import deshake
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Apply deshake filter')
@@ -10,9 +10,8 @@ def parse_args():
     parser.add_argument('-o', '--outputfile', required=False, help='Output file to generate')
     parser.add_argument('-w', '--width', required=True, help='Deshake width')
     parser.add_argument('-x', '--height', required=True, help='Deshake height')
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 args = parse_args()
 outputfile = deshake(args.inputfile, int(args.width), int(args.height), args.outputfile)
-debug(1, 'Generated %s' % outputfile)
+util.debug(1, 'Generated %s' % outputfile)

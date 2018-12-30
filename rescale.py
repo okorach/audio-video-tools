@@ -1,6 +1,6 @@
 #!python3
 
-import videotools.videofile
+import mediatools.videofile
 import argparse
 import sys
 import os
@@ -16,6 +16,6 @@ def parse_args():
 
 args = parse_args()
 width, height = args.scale.split("x")
-outputfile = videotools.videofile.rescale(args.inputfile, width, height, args.outputfile)
+outputfile = mediatools.videofile.rescale(args.inputfile, width, height, args.outputfile)
 
 print('Generated', outputfile)
