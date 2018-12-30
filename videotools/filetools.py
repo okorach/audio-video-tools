@@ -84,7 +84,7 @@ def is_video_file(file):
 
 def is_image_file(file):
     """Returns whether the file has an extension corresponding to images files"""
-    return match_extension(file,  r'\.(jpg|jpeg|png)$')
+    return match_extension(file,  r'\.(jpg|jpeg|png|gif|svg|raw)$')
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
@@ -107,6 +107,12 @@ def get_properties(props_file):
     with open(props_file) as fp:
         properties = jprops.load_properties(fp)
     return properties
+
+def to_k(value):
+    return int(value)/1024
+
+def to_m(value):
+    return int(value)/1024/1024
 
 def set_debug_level(level):
     global debug_level

@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+#!python3
 
 from videotools.videofile import deshake
 from videotools.filetools import debug

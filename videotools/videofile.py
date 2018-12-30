@@ -11,22 +11,81 @@ import videotools.filetools
 from videotools.filetools import debug
 import platform
 
+FFMPEG_FORMAT_OPTION = 'f'
+FFMPEG_SIZE_OPTION = 's'
+FFMPEG_VCODEC_OPTION = 'vcodec'
+FFMPEG_ACODEC_OPTION = 'acodec'
+FFMPEG_VBITRATE_OPTION = 'b:v'
+FFMPEG_ABITRATE_OPTION = 'a:v'
+FFMPEG_SIZE_OPTION = 's'
+FFMPEG_FPS_OPTION = 'r'
+FFMPEG_ASPECT_OPTION = 'aspect'
+FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
+FFMPEG_ACHANNELS_OPTION = 'ac'
+FFMPEG_VFILTER_OPTION = 'vf'
+
+OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
+   'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
+   'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
+   'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'size':FFMPEG_SIZE_OPTION, \
+   'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
+   'vfilter':FFMPEG_VFILTER_OPTION }
+
 class FileTypeError(Exception):
     pass
+
 if platform.system() is 'Windows':
     PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 else:
     PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
-class EncodeSpecs:
+class Encoder:
     def __init__(self):
-        self.vcodec = 'libx264'
-        self.acodec = 'libvo_aacenc'
-        self.vbitrate = '2048k'
-        self.abitrate = '128k'
+        self.format = None
+        self.vcodec = None # 'libx264'
+        self.acodec = None # 'libvo_aacenc'
+        self.vbitrate = None # '2048k'
+        self.abitrate = None # '128k'
+        self.fps = None
+        self.aspect = None
+        self.size = None
+        self.deinterlace = None
+        self.achannels = None
+        self.vfilters = {}
+        self.other_options = {}
+
+    def set_ffmpeg_properties(self, props):
+        params = get_params(props)
+        for param in params.keys():
+            # internal_keys = OPTIONS_MAPPING.keys()
+            if param is FFMPEG_FORMAT_OPTION:
+                self.format = params[param]
+            elif param is FFMPEG_VBITRATE_OPTION:
+                self.vbitrate = params[param]
+            elif param is FFMPEG_VCODEC_OPTION:
+                self.vcodec = params[param]
+            elif param is FFMPEG_ABITRATE_OPTION:
+                self.abitrate = params[param]
+            elif param is FFMPEG_ACODEC_OPTION:
+                self.acodec = params[param]
+            elif param is FFMPEG_DEINTERLACE_OPTION:
+                self.deinterlace = ''
+            elif param is FFMPEG_FPS_OPTION:
+                self.fps = params[param]
+            elif param is FFMPEG_SIZE_OPTION:
+                self.size = params[param]
+            elif param is FFMPEG_ASPECT_OPTION:
+                self.aspect = params[param]
+            elif param is FFMPEG_ACHANNELS_OPTION:
+                self.achannels = params[param]
+            elif param is FFMPEG_VFILTER_OPTION:
+                self.vfilters.update({FFMPEG_VFILTER_OPTION:params[param]})
 
     def set_vcodec(self, vcodec):
         self.vcodec = vcodec
+
+    def set_size(self, size):
+        self.size = size
 
     def set_acodec(self, acodec):
         self.acodec = acodec
@@ -36,21 +95,293 @@ class EncodeSpecs:
 
     def set_abitrate(self, bitrate):
         self.abitrate = bitrate
-    
+
+    def set_deinterlace(self):
+        self.deinterlace = ''
+        
     def set_format(self, fmt):
         self.format = fmt
-
-class VideoFile:
-    def __init__(self, filename):
-        self.filename = filename
-        self.stream = ffmpeg.input(filename)
-
-    def set_profile(self, profile):
-        self.profile = profile
-
-    def set_fps(self, fps):
-        self.stream = ffmpeg.filter_(self.stream, 'fps', fps=fps, round='up')
     
+    def build_ffmpeg_options(self):
+        options = vars(self)
+        cmd = ''
+        for option in options.keys():
+            if options[option] is not None:
+                cmd = cmd + " -%s %s" % (OPTIONS_MAPPING[option], options[option])
+        return cmd
+
+class MediaFile:
+    def __init__(self, filename):
+        if not videotools.filetools.is_media_file(filename):
+            raise FileTypeError('File %s is neither video, audio nor image file' % filename)
+        self.type = videotools.filetools.get_file_type(filename)
+        self.filename = filename
+        self.specs = None
+        self.author = None
+        self.year =  None
+        self.copyright = None
+        self.format = None
+    
+    def get_filename(self):
+        return self.filename
+
+    def get_author(self):
+        if self.author is None:
+            self.get_specs()
+        return self.author
+
+    def get_filetype(self):
+        return self.type
+
+    def get_year(self):
+        if self.year is None:
+            self.get_specs()
+        return self.year
+
+    def get_copyright(self):
+        if self.copyright is None:
+            self.get_specs()
+        return self.copyright
+
+    def get_specs(self):
+        if self.specs is None:
+            self.specs = self.probe()
+            videotools.filetools.debug(1, \
+                json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
+        self.get_format_specs()
+        return self.specs
+
+    def get_format_specs(self):
+        self.format = self.specs['format']['format_name']
+        self.format_long = self.specs['format']['format_long_name']
+        self.nb_streams = self.specs['format']['nb_streams']
+        self.size = self.specs['format']['size']
+        try:
+            self.bitrate = self.specs['format']['bit_rate']
+        except KeyError:
+            pass
+        try:
+            self.duration = self.specs['format']['duration']
+        except KeyError:
+            pass
+
+    def get_file_properties(self):
+        return {'filename':self.filename, 'type':self.type, 'format':self.format, 'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, 'bitrate':self.bitrate}
+
+    def probe(self):
+        ''' Returns file probe (media specs) '''
+        try:
+            properties = get_media_properties()
+            return ffmpeg.probe(self.filename, cmd=properties['binaries.ffprobe'])
+        except AttributeError:
+            print (dir(ffmpeg))
+
+class AudioFile(MediaFile):
+    def __init__(self, filename):
+        super(AudioFile, self).__init__(filename)
+        self.audio_codec = None
+        self.artist = None
+        self.title = None
+        self.author = None
+        self.album = None
+        self.year = None
+        self.track = None
+        self.genre = None
+        self.comment = None
+
+    def get_audio_specs(self):
+        for stream in self.specs['streams']:
+            if stream['codec_type'] == 'audio':
+                try:
+                    self.audio_bitrate = stream['bit_rate']
+                    self.duration = stream['duration']
+                    self.audio_codec = stream['codec_name']
+                    self.audio_sample_rate = stream['sample_rate']
+                except KeyError as e:
+                    debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+        return self.specs
+
+    def get_tags(self):
+        from mp3_tagger import MP3File
+        if videotools.filetools.get_file_extension(self.filename).lower() is not 'mp3':
+            raise FileTypeError('File %s is not an mp3 file')
+            # Create MP3File instance.
+        mp3 = MP3File(self.filename)
+        self.artist = mp3.artist
+        self.title = mp3.song
+        self.album = mp3.album
+        self.year = mp3.year
+        self.track = mp3.track
+        self.genre = mp3.genre
+        self.comment = mp3.comment
+
+    def get_title(self):
+        if self.title is None:
+            self.get_tags()
+        return self.title
+
+    def get_album(self):
+        if self.album is None:
+            self.get_tags()
+        return self.album
+
+    def get_author(self):
+        if self.author is None:
+            self.get_tags()
+        return self.author
+    
+    def get_track(self):
+        if self.track is None:
+            self.get_tags()
+        return self.track
+    
+    def get_year(self):
+        if self.year is None:
+            self.get_tags()
+        return self.year
+
+    def get_genre(self):
+        if self.genre is None:
+            self.get_tags()
+        return self.genre
+    
+    def get_properties(self):
+        if self.audio_codec is None:
+            self.get_specs()
+        all_specs = self.get_file_properties()
+        all_specs.update({'file_size':self.size, 'file_format':self.format, 'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, 'audio_sample_rate':self.audio_sample_rate, 'author': self.author, 'year': self.year, 'title':self.title, 'track':self.track, 'genre':self.genre, 'album':self.album })
+        return  all_specs
+
+    def get_specs(self):
+        super(AudioFile, self).get_specs()
+        self.get_audio_specs()
+
+class VideoFile(MediaFile):
+    def __init__(self, filename):
+        super(VideoFile, self).__init__(filename)
+        self.aspect = None
+        self.get_specs()
+    
+    def get_specs(self):
+        super(VideoFile, self).get_specs()
+        self.get_video_specs()
+        self.get_audio_specs()
+        
+    def get_video_specs(self):  
+        for stream in self.specs['streams']:
+            if stream['codec_type'] == 'video':
+                try:
+                    self.video_codec = stream['codec_name']
+                    self.video_bitrate = get_video_bitrate(stream)
+                    self.width = int(stream['width'])
+                    self.height = int(stream['height'])
+                    self.duration = stream['duration']
+                    self.video_fps = compute_fps(stream['avg_frame_rate'])
+                except KeyError as e:
+                    debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+                try:
+                    ar = stream['display_aspect_ratio']
+                except KeyError:
+                    ar = reduce_aspect_ratio("%d:%d" % (self.width, self.height))
+                self.aspect = reduce_aspect_ratio(ar)
+                try:
+                    par = stream['sample_aspect_ratio']
+                except KeyError:
+                    par = reduce_aspect_ratio("%d:%d" % (self.width, self.height))
+                self.pixel_aspect = reduce_aspect_ratio(par)
+        return self.specs
+
+    def get_audio_specs(self):
+        for stream in self.specs['streams']:
+            if stream['codec_type'] == 'audio':
+                try:
+                    self.audio_codec = stream['codec_name']
+                    self.audio_bitrate = stream['bit_rate']
+                    self.audio_sample_rate = stream['sample_rate']
+                except KeyError as e:
+                    debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+        return self.specs
+
+    def get_aspect_ratio(self):
+        if self.aspect is None:
+            self.get_specs()
+        return self.aspect
+
+    def get_pixel_aspect_ratio(self):
+        if self.pixel_aspect is None:
+            self.get_specs()
+        return self.pixel_aspect
+
+    def get_video_codec(self):
+        if self.video_codec is None:
+            self.get_specs()
+        return self.video_codec
+
+    def get_video_bitrate(self):
+        if self.video_bitrate is None:
+            self.get_specs()
+        return self.video_bitrate
+
+    def get_audio_codec(self):
+        if self.audio_codec is None:
+            self.get_specs()
+        return self.audio_codec
+
+    def get_audio_bitrate(self):
+        if self.audio_bitrate is None:
+            self.get_specs()
+        return self.audio_bitrate
+
+    def get_fps(self):
+        if self.video_fps is None:
+            self.get_specs()
+        return self.video_fps
+
+    def get_duration(self):
+        if self.duration is None:
+            self.get_specs()
+        return self.duration
+
+    def get_height(self):
+        if self.height is None:
+            self.get_specs()
+        return self.height
+
+    def get_width(self):
+        if self.width is None:
+            self.get_specs()
+        return self.width
+
+    def get_dimensions(self):
+        if self.width is None or self.height is None:
+            self.get_specs()
+        return self.width, self.height
+
+    def get_audio_properties(self):
+        if self.audio_codec is None:
+            self.get_specs()
+        return {'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, 'audio_sample_rate':self.audio_sample_rate }
+
+    def get_video_properties(self):
+        if self.video_codec is None:
+            self.get_specs()
+        return {'file_size':self.size, 'file_format': self.format, 'video_bitrate': self.video_bitrate, 'video_codec': self.video_codec, 'video_fps':self.video_fps, 'width':self.width, 'height': self.height, 'aspect_ratio': self.aspect,'pixel_aspect_ratio': self.pixel_aspect,'author': self.author, 'copyright': self.copyright, 'year':self.year }
+
+    def get_properties(self):
+        all_props = self.get_file_properties()
+        all_props.update(self.get_audio_properties())
+        all_props.update(self.get_video_properties())
+        return all_props
+
+    def get_ffmpeg_params(self):
+        mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
+        props = self.get_properties()
+        ffmpeg_parms = {}
+        for key in mapping.keys():
+            if props[key] is not None and props[key] is not '':
+                ffmpeg_parms[mapping[key]] = props[key]
+        return ffmpeg_parms
+
     def encode(self, target_file, profile):
         # stream = ffmpeg.input(self.filename)
         self.stream = ffmpeg.output(self.stream, target_file, acodec='libvo_aacenc', vcodec='libx264', f='mp4', vr='2048k', ar='128k' )
@@ -62,9 +393,6 @@ class VideoFile:
             print(e.stderr, file=sys.stderr)
             sys.exit(1)
     
-    def aspect(self, aspect_ratio):
-        self.stream = ffmpeg.filter_(self.stream, 'fps', aspect=aspect_ratio)
-
     def scale(self, scale):
         self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
 
@@ -85,7 +413,6 @@ class VideoFile:
 
     def get_copyright(self):
         return self.copyright
-
 
 def get_size(cmdline):
     m = re.search(r'-s\s+(\S+)', cmdline)
@@ -183,16 +510,17 @@ def build_target_file(source_file, profile, properties):
 
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
+    global OPTIONS_MAPPING
+    debug(2, 'Building cmd line options from %s' % str(kwargs))
     if kwargs is None:
         return {}  
-    mapping = { 'framerate' : 'r', 'vbitrate':'b:v', 'abitrate' : 'b:a',
-        'acodec' : 'acodec', 'vcodec' : 'vcodec', 'vsize' : 's', 'aspect' : 'aspect',
-        'format': 'f', 'ss': 'ss', 'to': 'to', 'asampling': 'ar'}
     params = {}
-    for key in mapping.keys():
+    for key in OPTIONS_MAPPING.keys():
+        debug(5, "Checking option %s" % key)
         try:
             if kwargs[key] is not None:
-                params[mapping[key]] = kwargs[key]
+                debug(5, "Found in cmd line with value %s" % kwargs[key])
+                params[OPTIONS_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
     return params
@@ -219,6 +547,26 @@ def encode(source_file, target_file, profile, **kwargs):
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
+
+def encodeoo(source_file, target_file, profile, **kwargs):
+    properties = get_media_properties(PROPERTIES_FILE)
+
+    profile_options = properties[profile + '.cmdline']
+    if target_file is None:
+        target_file = build_target_file(source_file, profile, properties)
+
+
+    file_o = VideoFile(source_file)
+    parms = file_o.get_ffmpeg_params()
+    debug(1, "File settings = %s" % str(parms))
+    parms.update(get_params(profile_options))
+    debug(1, "Profile settings = %s" % str(parms))
+    parms.update(cmdline_options(**kwargs))
+    debug(1, "Cmd line settings = %s" % str(parms))
+
+    cmd = "%s -i %s %s %s" % (properties['binaries.ffmpeg'], source_file, build_ffmpeg_options(parms), target_file)
+    debug(1, "Running %s" % cmd)
+    os.system(cmd)
 
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
@@ -303,13 +651,20 @@ def compute_fps(rate):
     else:
         return rate
 
-def reduce_aspect_ratio(w, h):
-    ''' Simplifies the Aspect Ratio calculation '''
+def reduce_aspect_ratio(aspect_ratio, height = None):
+    ''' Reduces the Aspect ratio calculation in prime factors '''
+    if height is None:
+        ws, hs = re.split("[:/x]", aspect_ratio)
+        w = int(ws)
+        h = int(hs)
+    else:
+        w = aspect_ratio
+        h = height
     for n in [2, 3, 5, 7, 11, 13, 17]:
         while w % n == 0 and h % n == 0:
             w = w // n
             h = h // n
-    return "%d/%d" % (w, h)
+    return "%d:%d" % (w, h)
 
 def get_audio_specs(stream):
     specs = {}
@@ -425,7 +780,7 @@ def parse_common_args(desc):
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
     parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
     parser.add_argument('-f', '--format', required=False, help='Output file format')
-    parser.add_argument('-r', '--framerate', required=False, help='Video framerate of the output')
+    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
     parser.add_argument('--abitrate', required=False, help='Audio bitrate')
     parser.add_argument('--asampling', required=False, help='Audio sampling')
@@ -460,3 +815,10 @@ def concat(target_file, filelist):
     cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
     debug(1, "Running %s" % cmd)
     os.system(cmd)
+
+def build_ffmpeg_options(options):
+    cmd = ''
+    for option in options.keys():
+        if options[option] is not None:
+            cmd = cmd + " -%s %s" % (option, options[option])
+    return cmd
