@@ -1,19 +1,19 @@
 #!python3
 
-import videotools.videofile
+import mediatools.videofile
 import sys
 import os
 import re
 import argparse
 
-parser = videotools.videofile.parse_common_args('Audio/Video/Image file specs extractor')
+parser = mediatools.videofile.parse_common_args('Audio/Video/Image file specs extractor')
 args = parser.parse_args()
 if args.debug:
-    videotools.filetools.set_debug_level(int(args.debug))
-options = videotools.videofile.cleanup_options(vars(args))
+    mediatools.utilities.set_debug_level(int(args.debug))
+options = mediatools.videofile.cleanup_options(vars(args))
 
 if os.path.isdir(args.inputfile):
-    filelist = videotools.filetools.filelist(args.inputfile)
+    filelist = mediatools.utilities.filelist(args.inputfile)
 else:
     filelist = [ args.inputfile ]
 
@@ -31,10 +31,10 @@ if args.format != 'txt':
     print('')
 
 for file in filelist:
-    if not videotools.filetools.is_media_file(file):
+    if not mediatools.utilities.is_media_file(file):
         continue
     try:
-        myspecs = videotools.videofile.get_file_specs(file)
+        myspecs = mediatools.videofile.get_file_specs(file)
         for prop in props:
             if args.format == "txt":
                 try:
@@ -48,5 +48,5 @@ for file in filelist:
                 except KeyError:
                     print("%s;" % '', end='')
         print('')
-    except videotools.videofile.FileTypeError as e:
+    except mediatools.videofile.FileTypeError as e:
         print ('ERROR: File %s type error' % file)

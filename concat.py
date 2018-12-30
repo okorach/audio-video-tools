@@ -1,10 +1,10 @@
 #!/usr/local/bin/python3
 
-import videotools.filetools, videotools.videofile
+import mediatools.utilities, mediatools.videofile
 import sys
 import os
 
-videotools.filetools.set_debug_level(0)
+mediatools.utilities.set_debug_level(0)
 
 sys.argv.pop(0)
 target_file = sys.argv.pop()
@@ -13,4 +13,4 @@ filelist = []
 for file in sys.argv:
     filelist.append(file)
 
-videotools.videofile.concat(target_file, filelist)
+mediatools.videofile.concat(target_file, filelist)

@@ -1,7 +1,7 @@
 #!python3
 
-from videotools.videofile import deshake
-from videotools.filetools import debug
+from mediatools.videofile import deshake
+from mediatools.utilities import debug
 import argparse
 
 def parse_args():

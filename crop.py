@@ -1,7 +1,7 @@
 #!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 
-from videotools.videofile import crop
-from videotools.filetools import debug, set_debug_level
+from mediatools.videofile import crop
+from mediatools.utilities import debug, set_debug_level
 import argparse
 
 def parse_args():
