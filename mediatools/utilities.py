@@ -176,7 +176,7 @@ def parse_common_args(desc):
     parser.add_argument('-i', '--inputfile', required=True, help='Input File or Directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
-    parser.add_argument('-t', '--ranges', required=False, help='Time ranges to encode')
+    parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
     parser.add_argument('-f', '--format', required=False, help='Output file format')
     parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
@@ -187,7 +187,7 @@ def parse_common_args(desc):
     parser.add_argument('--vbitrate', required=False, help='Video bitrate')
     parser.add_argument('--aspect', required=False, help='Aspect Ratio 16:9, 4:3, 1.5 ...')
     parser.add_argument('--ranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('-g', '--util.debug', required=False, help='util.debug level')
+    parser.add_argument('-g', '--debug', required=False, help='debug level')
     return parser
 
 def cleanup_options(options):
