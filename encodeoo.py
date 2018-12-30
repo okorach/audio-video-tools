@@ -42,7 +42,7 @@ if (os.path.isdir(args.inputfile)):
     print ('100%: Job finished')
 else:
     if args.ranges is None:
-        videotools.videofile.encode(args.inputfile, args.outputfile, args.profile, **options)
+        videotools.videofile.encodeoo(args.inputfile, args.outputfile, args.profile, **options)
     else:
         if args.outputfile is None:
             ext = videotools.videofile.get_profile_extension(args.profile)
@@ -56,7 +56,7 @@ else:
                 target_file = videotools.filetools.add_postfix(args.inputfile, str(count), ext)
             else:
                 target_file = args.outputfile
-            videotools.videofile.encode(args.inputfile, target_file, args.profile, **options)
+            videotools.videofile.encodeoo(args.inputfile, target_file, args.profile, **options)
 
 
 
