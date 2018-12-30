@@ -24,7 +24,12 @@ FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
 FFMPEG_ACHANNELS_OPTION = 'ac'
 FFMPEG_VFILTER_OPTION = 'vf'
 
-OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, 'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate': FFMPEG_VBITRATE_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, 'fps':'r', 'aspect':FFMPEG_ASPECT_OPTION, 'size':FFMPEG_SIZE_OPTION, 'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, 'vfilter':FFMPEG_VFILTER_OPTION }
+OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
+   'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
+   'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
+   'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'size':FFMPEG_SIZE_OPTION, \
+   'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
+   'vfilter':FFMPEG_VFILTER_OPTION }
 
 class FileTypeError(Exception):
     pass
@@ -506,12 +511,15 @@ def build_target_file(source_file, profile, properties):
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
     global OPTIONS_MAPPING
+    debug(2, 'Building cmd line options from %s' % str(kwargs))
     if kwargs is None:
         return {}  
     params = {}
     for key in OPTIONS_MAPPING.keys():
+        debug(5, "Checking option %s" % key)
         try:
             if kwargs[key] is not None:
+                debug(5, "Found in cmd line with value %s" % kwargs[key])
                 params[OPTIONS_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
@@ -550,10 +558,13 @@ def encodeoo(source_file, target_file, profile, **kwargs):
 
     file_o = VideoFile(source_file)
     parms = file_o.get_ffmpeg_params()
+    debug(1, "File settings = %s" % str(parms))
     parms.update(get_params(profile_options))
+    debug(1, "Profile settings = %s" % str(parms))
     parms.update(cmdline_options(**kwargs))
+    debug(1, "Cmd line settings = %s" % str(parms))
 
-    cmd = "%s %s %s" % (properties['binaries.ffmpeg'], build_ffmpeg_options(parms), target_file)
+    cmd = "%s -i %s %s %s" % (properties['binaries.ffmpeg'], source_file, build_ffmpeg_options(parms), target_file)
     debug(1, "Running %s" % cmd)
     os.system(cmd)
 
@@ -752,7 +763,7 @@ def parse_common_args(desc):
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
     parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
     parser.add_argument('-f', '--format', required=False, help='Output file format')
-    parser.add_argument('-r', '--framerate', required=False, help='Video framerate of the output')
+    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
     parser.add_argument('--abitrate', required=False, help='Audio bitrate')
     parser.add_argument('--asampling', required=False, help='Audio sampling')
