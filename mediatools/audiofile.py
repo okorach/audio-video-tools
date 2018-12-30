@@ -77,7 +77,10 @@ class AudioFile(media.MediaFile):
         if self.audio_codec is None:
             self.get_specs()
         all_specs = self.get_file_properties()
-        all_specs.update({'file_size':self.size, 'file_format':self.format, 'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, 'audio_sample_rate':self.audio_sample_rate, 'author': self.author, 'year': self.year, 'title':self.title, 'track':self.track, 'genre':self.genre, 'album':self.album })
+        all_specs.update({'file_size':self.size, 'file_format':self.format, \
+            'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
+            'audio_sample_rate':self.audio_sample_rate, 'author': self.author, 'year': self.year, \
+            'title':self.title, 'track':self.track, 'genre':self.genre, 'album':self.album })
         return  all_specs
 
     def get_specs(self):
