@@ -12,8 +12,7 @@ def parse_args():
     parser.add_argument('-b', '--box', required=True, help='Video box')
     parser.add_argument('-t', '--top', required=True, help='Video top origin')
     parser.add_argument('-l', '--left', required=True, help='Video left origin')
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 args = parse_args()
 set_debug_level(args.debug)
