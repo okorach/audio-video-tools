@@ -1,19 +1,22 @@
 #!/usr/local/bin/python3
 
-import videotools.videofile
 import sys
 import os
 import re
 import argparse
+import mediatools.utilities as util
+import mediatools.videofile as video
+import mediatools.audiofile as audio
+import mediatools.mediafile as media
 
-parser = videotools.videofile.parse_common_args('Audio/Video/Image file specs extractor')
+parser = util.parse_common_args('Audio/Video/Image file specs extractor')
 args = parser.parse_args()
 if args.debug:
-    videotools.filetools.set_debug_level(int(args.debug))
-options = videotools.videofile.cleanup_options(vars(args))
+    util.set_debug_level(int(args.debug))
+options = util.cleanup_options(vars(args))
 
 if os.path.isdir(args.inputfile):
-    filelist = videotools.filetools.filelist(args.inputfile)
+    filelist = util.filelist(args.inputfile)
 else:
     filelist = [ args.inputfile ]
 
@@ -34,17 +37,17 @@ if args.format == 'csv':
     print('')
 
 for file in filelist:
-    if not videotools.filetools.is_media_file(file):
+    if not util.is_media_file(file):
         continue
     try:
-        if videotools.filetools.is_video_file(file):
-            file_object = videotools.videofile.VideoFile(file)
-        elif videotools.filetools.is_audio_file(file):
-            file_object = videotools.videofile.AudioFile(file)
-        elif videotools.filetools.is_image_file(file):
-            file_object = videotools.videofile.MediaFile(file)
+        if util.is_video_file(file):
+            file_object = video.VideoFile(file)
+        elif util.is_audio_file(file):
+            file_object = audio.AudioFile(file)
+        elif util.is_image_file(file):
+            file_object = media.MediaFile(file)
         else:
-            file_object = videotools.videofile.MediaFile(file)
+            file_object = media.MediaFile(file)
         specs = file_object.get_properties()
         for prop in PROPS:
             if args.format != "csv":
@@ -53,7 +56,7 @@ for file in filelist:
                         divider = UNITS[prop][0]
                         unit = UNITS[prop][1]
                         if unit is 'hms':
-                            print("%-20s : %s" % (prop, videotools.videofile.to_hms_str(specs[prop])))
+                            print("%-20s : %s" % (prop, util.to_hms_str(specs[prop])))
                         else:
                             print("%-20s : %.1f %s" % (prop, (int(specs[prop])/divider), unit))
                     else:
@@ -65,9 +68,9 @@ for file in filelist:
                 try:
                     print("%s;" % (str(specs[prop]) if specs[prop] is not None else ''), end='')
                     if prop is 'duration':
-                        print("%s;" % videotools.videofile.to_hms_str(specs[prop]))
+                        print("%s;" % util.to_hms_str(specs[prop]))
                 except KeyError:
                     print("%s;" % '', end='')
         print('')
-    except videotools.videofile.FileTypeError as e:
+    except media.FileTypeError as e:
         print ('ERROR: File %s type error' % file)
