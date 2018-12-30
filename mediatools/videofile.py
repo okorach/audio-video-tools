@@ -298,7 +298,7 @@ def encode(source_file, target_file, profile, **kwargs):
     parms.update(cmdline_options(**kwargs))
 
     # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
-    # vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop), 
+    # vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop),
     # s=getSize(myprop), r=getFrameRate(myprop)  )
     stream = ffmpeg.output(stream, target_file, **parms  )
     # -qscale:v 3  is **{'qscale:v': 3}
