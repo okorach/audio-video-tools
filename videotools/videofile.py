@@ -683,7 +683,8 @@ def get_video_specs(stream):
     specs['height'] = stream['height']
     specs['duration'] = stream['duration']
     specs['duration_hms'] = to_hms_str(stream['duration'])
-    specs['video_fps'] = compute_fps(stream['avg_frame_rate'])
+    raw_fps = stream['avg_frame_rate'] if 'avg_frame_rate' in stream.keys() else stream['r_frame_rate']
+    specs['video_fps'] = compute_fps(raw_fps)
     try:
         specs['video_aspect_ratio'] = stream['display_aspect_ratio']
     except KeyError:
