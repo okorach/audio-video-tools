@@ -8,7 +8,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Apply deshake filter')
     parser.add_argument('-i', '--inputfile', required=True, help='Input File or Directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file to generate')
-<<<<<<< HEAD
     parser.add_argument('-g', '--debug', required=False, help='util.debug level')
     parser.add_argument('-b', '--box', required=True, help='Video box')
     parser.add_argument('-t', '--top', required=True, help='Video top origin')
