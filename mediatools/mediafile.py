@@ -9,7 +9,6 @@ import shutil
 import jprops
 import ffmpeg
 import mediatools.utilities as util
-from mediatools.videofile import VideoFile
 
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
@@ -310,26 +309,6 @@ def encode(source_file, target_file, profile, **kwargs):
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
-
-def encodeoo(source_file, target_file, profile, **kwargs):
-    properties = get_media_properties()
-
-    profile_options = properties[profile + '.cmdline']
-    if target_file is None:
-        target_file = build_target_file(source_file, profile, properties)
-
-
-    file_o = VideoFile(source_file)
-    parms = file_o.get_ffmpeg_params()
-    util.debug(1, "File settings = %s" % str(parms))
-    parms.update(get_params(profile_options))
-    util.debug(1, "Profile settings = %s" % str(parms))
-    parms.update(cmdline_options(**kwargs))
-    util.debug(1, "Cmd line settings = %s" % str(parms))
-
-    cmd = "%s -i %s %s %s" % (properties['binaries.ffmpeg'], source_file, build_ffmpeg_options(parms), target_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
 
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
