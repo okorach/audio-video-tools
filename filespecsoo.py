@@ -27,7 +27,7 @@ PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'duration'
 UNITS = { 'filesize' : [1048576, 'MB'], 'duration':[1,'hms'], 'video_bitrate':[1024, 'kbits/s'], \
           'audio_bitrate':[1024, 'kbits/s'], 'audio_sample_rate':[1000, 'k'], }
 
-if args.format != 'txt':
+if args.format == 'csv':
     print("# ")
     for prop in PROPS:
         print("%s;" % prop, end='')
@@ -47,7 +47,7 @@ for file in filelist:
             file_object = videotools.videofile.MediaFile(file)
         specs = file_object.get_properties()
         for prop in PROPS:
-            if args.format == "txt":
+            if args.format != "csv":
                 try:
                     if prop in UNITS.keys():
                         divider = UNITS[prop][0]
