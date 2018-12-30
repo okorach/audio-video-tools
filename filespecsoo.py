@@ -11,8 +11,8 @@ import mediatools.mediafile as media
 
 parser = util.parse_common_args('Audio/Video/Image file specs extractor')
 args = parser.parse_args()
-if args.util.debug:
-    util.set_debug_level(int(args.util.debug))
+if args.debug:
+    util.set_debug_level(int(args.debug))
 options = util.cleanup_options(vars(args))
 
 if os.path.isdir(args.inputfile):

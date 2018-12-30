@@ -9,11 +9,11 @@ import mediatools.mediafile as media
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
 args = parser.parse_args()
-if args.util.debug:
-    util.set_debug_level(int(args.util.debug))
+if args.debug:
+    util.set_debug_level(int(args.debug))
 options = util.cleanup_options(vars(args))
 
-if (os.path.isdir(args.inputfile)):
+if os.path.isdir(args.inputfile):
     targetdir = args.inputfile + '.' + args.profile
     try:
         os.mkdir(targetdir)
