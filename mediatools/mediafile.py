@@ -462,35 +462,6 @@ def get_mp3_tags(file):
     return {'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment}
 
-
-def parse_common_args(desc):
-    """Parses options common to all media encoding scripts"""
-    try:
-        import argparse
-    except ImportError:
-        if sys.version_info < (2, 7, 0):
-            print("""Error: You are running an old version of python. Two options to fix the problem
-                   Option 1: Upgrade to python version >= 2.7
-                   Option 2: Install argparse library for the current python version
-                             See: https://pypi.python.org/pypi/argparse""")
-    parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-i', '--inputfile', required=True, help='Input File or Directory to encode')
-    parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
-    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
-    parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
-    parser.add_argument('-f', '--format', required=False, help='Output file format')
-    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output')
-    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
-    parser.add_argument('--abitrate', required=False, help='Audio bitrate')
-    parser.add_argument('--asampling', required=False, help='Audio sampling')
-    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
-    parser.add_argument('--vsize', required=False, help='Video size HxW')
-    parser.add_argument('--vbitrate', required=False, help='Video bitrate')
-    parser.add_argument('--aspect', required=False, help='Aspect Ratio 16:9, 4:3, 1.5 ...')
-    parser.add_argument('--ranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('-g', '--util.debug', required=False, help='util.debug level')
-    return parser
-
 def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \

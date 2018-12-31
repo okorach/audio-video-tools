@@ -9,8 +9,7 @@ import mediatools.mediafile as media
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
 args = parser.parse_args()
-if args.debug:
-    util.set_debug_level(int(args.debug))
+util.set_debug_level(int(args.debug))
 options = util.cleanup_options(vars(args))
 
 if os.path.isdir(args.inputfile):
@@ -43,13 +42,13 @@ if os.path.isdir(args.inputfile):
         i = i + 1
     print ('100%: Job finished')
 else:
-    if args.ranges is None:
+    if args.timeranges is None:
         video.encodeoo(args.inputfile, args.outputfile, args.profile, **options)
     else:
         if args.outputfile is None:
             ext = util.get_profile_extension(args.profile)
         count = 0
-        for video_range in re.split(',', args.ranges):
+        for video_range in re.split(',', args.timeranges):
             start, stop = re.split('-', video_range)
             options['ss'] = start
             options['to'] = stop
