@@ -1,7 +1,7 @@
 #!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 
 import argparse
-from mediatools.videofile import cropoo
+import mediatools.videofile as video
 from mediatools.utilities import debug, set_debug_level
 
 def parse_args():
@@ -22,6 +22,6 @@ kwargs = vars(args).copy()
 for key in ['inputfile', 'outputfile', 'box', 'debug', 'left', 'top']:
     del kwargs[key]
 
-outputfile = crop(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
+outputfile = video.crop(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
     args.outputfile, **kwargs)
 debug(1, 'Generated %s' % outputfile)
