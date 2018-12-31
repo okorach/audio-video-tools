@@ -383,19 +383,7 @@ def deshake(video_file, width, height, out_file = None):
     os.system(cmd)
     return out_file
 
-def crop(video_file, width, height, top, left, out_file = None):
-    ''' Applies crop video filter for width x height pixels '''
-    properties = util.get_media_properties()
-    if out_file is None:
-        out_file = util.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width,height, top, left))
-    aw, ah = re.split("/", reduce_aspect_ratio(width, height))
-    cmd = "%s -i %s %s -vcodec libx264 -aspect %d:%d %s" % \
-        (util.get_ffmpeg(), video_file, get_crop_filter_options(width, height, top, left), int(aw), int(ah), out_file)
-    util.debug(2, "Running %s" % cmd)
-    os.system(cmd)
-    return out_file
-
-def cropoo(video_file, width, height, top, left, out_file = None, **kwargs):
+def crop(video_file, width, height, top, left, out_file = None, **kwargs):
     file_o = VideoFile(video_file)
     return file_o.crop(width, height, top, left, out_file, **kwargs)
 
