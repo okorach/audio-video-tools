@@ -15,9 +15,8 @@ class ImageFile(media.MediaFile):
         super(ImageFile, self).__init__(filename)
 
 def rescale(image_file, width, height, out_file = None):
-    properties = util.get_media_properties()
     if out_file is None:
-        out_file = util.add_postfix(image_file, "%dx%d" % (width,height))
+        out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
     stream = ffmpeg.input(image_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
