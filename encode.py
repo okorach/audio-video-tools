@@ -1,11 +1,11 @@
-#!/usr/local/bin/python3
+#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 
 import sys
 import os
 import re
 import mediatools.videofile as video
-import mediatools.mediafile as media
 import mediatools.utilities as util
+import mediatools.mediafile as media
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
 args = parser.parse_args()
@@ -20,7 +20,7 @@ if os.path.isdir(args.inputfile):
     except FileExistsError:
         pass
     ext = util.get_profile_extension(args.profile)
-    print ("%s ==> %s" % (args.inputfile, targetdir))
+    util.debug(1, "%s ==> %s" % (args.inputfile, targetdir))
     filelist = util.filelist(args.inputfile)
     nbfiles = len(filelist)
     i = 0
@@ -44,7 +44,7 @@ if os.path.isdir(args.inputfile):
     print ('100%: Job finished')
 else:
     if args.ranges is None:
-        video.encode(args.inputfile, args.outputfile, args.profile, **options)
+        video.encodeoo(args.inputfile, args.outputfile, args.profile, **options)
     else:
         if args.outputfile is None:
             ext = util.get_profile_extension(args.profile)
@@ -53,9 +53,9 @@ else:
             start, stop = re.split('-', video_range)
             options['ss'] = start
             options['to'] = stop
-            count += 1
+            count = count + 1
             if args.outputfile is None:
                 target_file = util.add_postfix(args.inputfile, str(count), ext)
             else:
                 target_file = args.outputfile
-            video.encode(args.inputfile, target_file, args.profile, **options)
+            video.encodeoo(args.inputfile, target_file, args.profile, **options)
