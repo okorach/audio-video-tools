@@ -32,7 +32,7 @@ class Encoder:
 
     def set_ffmpeg_properties(self, props):
         '''Set Encoder properties according to ffmpeg conventions'''
-        params = get_params(props)
+        params = util.get_cmdline_params(props)
         for param in params.keys():
             if param is util.FFMPEG_FORMAT_OPTION:
                 self.format = params[param]
@@ -171,7 +171,7 @@ class MediaFile:
     def probe(self):
         ''' Returns file probe (media specs) '''
         try:
-            properties = get_media_properties()
+            properties = util.get_media_properties()
             return ffmpeg.probe(self.filename, cmd=properties['binaries.ffprobe'])
         except AttributeError:
             print (dir(ffmpeg))
@@ -221,50 +221,8 @@ def get_frame_rate(cmdline):
     m = re.search(r'-r\s+(\S+)', cmdline)
     return m.group(1) if m else ''
 
-def get_params(cmdline):
-    """Returns a dictionary of all parameters found on input string command line
-    Parameters can be of the format -<option> <value> or -<option>"""
-    found = True
-    parms = dict()
-    while found:
-        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
-        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
-        if m:
-            parms[m.group(1)] = m.group(2)
-            #print("Found " + m.group(1) + " --> " + m.group(2))
-            cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
-        else:
-            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
-            if m:
-                parms[m.group(1)] = None
-                cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
-            else:
-                found = False
-    return parms
-
-def get_media_properties(props_file = None):
-    """Returns all properties found in the properties file as dictionary"""
-    try:
-        properties = util.get_properties(props_file)
-    except FileNotFoundError:
-        properties['binaries.ffmpeg'] = 'ffmpeg'
-        properties['binaries.ffprobe'] = 'ffprobe'
-    return properties
-
-def get_profile_extension(profile, properties = None):
-    if properties is None:
-        properties = get_media_properties()
-    try:
-        extension = properties[profile + '.extension']
-    except KeyError:
-        try:
-            extension = properties['default.extension']
-        except KeyError:
-            extension = None
-    return extension
-
-def build_target_file(source_file, profile, properties):
-    extension = get_profile_extension(profile, properties)
+def build_target_file(source_file, profile):
+    extension = util.get_profile_extension(profile)
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
@@ -286,14 +244,11 @@ def cmdline_options(**kwargs):
     return params
 
 def encode(source_file, target_file, profile, **kwargs):
-    properties = get_media_properties()
-
-    myprop = properties[profile + '.cmdline']
     if target_file is None:
-        target_file = build_target_file(source_file, profile, properties)
+        target_file = build_target_file(source_file, profile)
 
     stream = ffmpeg.input(source_file)
-    parms = get_params(myprop)
+    parms = util.get_profile_params(profile)
     parms.update(cmdline_options(**kwargs))
 
     # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
@@ -305,7 +260,7 @@ def encode(source_file, target_file, profile, **kwargs):
     util.debug(2, ffmpeg.get_args(stream))
     util.debug(1, "%s --> %s" % (source_file, target_file))
     try:
-        ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
+        ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
         print(e.stderr, file=sys.stderr)
         sys.exit(1)
@@ -313,7 +268,7 @@ def encode(source_file, target_file, profile, **kwargs):
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
     # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
-    properties = get_media_properties()
+    properties = util.get_media_properties()
     target_file = util.add_postfix(source_file, 'album_art')
 
     if kwargs['scale'] is not None:
@@ -335,7 +290,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
         os.remove(album_art_file)
 
 def rescale(image_file, width, height, out_file=None):
-    properties = get_media_properties()
+    properties = util.get_media_properties()
     if out_file is None:
         out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
     stream = ffmpeg.input(image_file)
@@ -354,7 +309,7 @@ def get_deshake_filter_options(width, height):
 
 def deshake(video_file, width, height, out_file=None):
     ''' Applies deshake video filter for width x height pixels '''
-    properties = get_media_properties()
+    properties = util.get_media_properties()
     if out_file is None:
         out_file = util.add_postfix(video_file, "deshake_%dx%d" % (width, height))
     cmd = "%s -i %s %s -vcodec libx264 -deinterlace %s" % \
@@ -365,7 +320,7 @@ def deshake(video_file, width, height, out_file=None):
 
 def crop(video_file, width, height, top, left, out_file = None):
     ''' Applies crop video filter for width x height pixels '''
-    properties = get_media_properties()
+    properties = util.get_media_properties()
     if out_file is None:
         out_file = util.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width, height, top, left))
     aw, ah = re.split("/", reduce_aspect_ratio(width, height))
@@ -380,7 +335,7 @@ def probe_file(file):
     ''' Returns file probe (media specs) '''
     if util.is_media_file(file):
         try:
-            properties = get_media_properties()
+            properties = util.get_media_properties()
             return ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
         except AttributeError:
             print(dir(ffmpeg))
@@ -546,7 +501,7 @@ def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
 #  -map "[v]" -map "[a]" output.mkv
-    properties = get_media_properties()
+    properties = util.get_media_properties()
     cmd = properties['binaries.ffmpeg']
     util.debug(2, str(file_list))
     for file in file_list:
