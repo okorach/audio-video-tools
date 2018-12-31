@@ -171,22 +171,10 @@ class VideoFile(MediaFile):
         mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
         props = self.get_properties()
         ffmpeg_parms = {}
-        for key in mapping.keys():
+        for key in mapping:
             if props[key] is not None and props[key] is not '':
                 ffmpeg_parms[mapping[key]] = props[key]
         return ffmpeg_parms
-
-    def encode(self, target_file, profile):
-        self.stream = ffmpeg.input(self.filename)
-        self.stream = ffmpeg.output(self.stream, target_file, acodec='libvo_aacenc', vcodec='libx264', \
-            f='mp4', vr='2048k', ar='128k' )
-        self.stream = ffmpeg.overwrite_output(self.stream)
-
-        try:
-            ffmpeg.run(self.stream)
-        except ffmpeg.Error as e:
-            print(e.stderr, file=sys.stderr)
-            sys.exit(1)
 
     def scale(self, scale):
         self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
@@ -278,7 +266,7 @@ def cmdline_options(**kwargs):
     if kwargs is None:
         return {}
     params = {}
-    for key in util.OPTIONS_MAPPING.keys():
+    for key in util.OPTIONS_MAPPING:
         util.debug(5, "Checking option %s" % key)
         try:
             if kwargs[key] is not None:
