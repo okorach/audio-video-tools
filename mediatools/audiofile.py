@@ -1,4 +1,8 @@
+import re
+import os
+import shutil
 import mediatools.mediafile as media
+import mediatools.imagefile as image
 import mediatools.utilities as util
 
 class AudioFile(media.MediaFile):
@@ -86,3 +90,27 @@ class AudioFile(media.MediaFile):
     def get_specs(self):
         super(AudioFile, self).get_specs()
         self.get_audio_specs()
+
+
+def encode_album_art(source_file, album_art_file, **kwargs):
+    """Encodes album art image in an audio file after optionally resizing"""
+    # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
+    target_file = util.add_postfix(source_file, 'album_art')
+
+    if kwargs['scale'] is not None:
+        w, h = re.split("x",kwargs['scale'])
+        album_art_file = image.rescale(source_file, w, h)
+        delete_aa_file = True
+
+    # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
+    # -metadata:s:v comment="Cover (Front)" %1.mp3
+    cmd = util.get_ffmpeg() + ' -i "' + source_file + '" -i "' + album_art_file \
+        + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
+        + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
+        + '"' + target_file + '"'
+    util.debug(1, "Running %s" % cmd)
+    os.system(cmd)
+    shutil.copy(target_file, source_file)
+    os.remove(target_file)
+    if delete_aa_file:
+        os.remove(album_art_file)
