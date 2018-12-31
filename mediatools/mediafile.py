@@ -171,8 +171,7 @@ class MediaFile:
     def probe(self):
         ''' Returns file probe (media specs) '''
         try:
-            properties = util.get_media_properties()
-            return ffmpeg.probe(self.filename, cmd=properties['binaries.ffprobe'])
+            return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
         except AttributeError:
             print (dir(ffmpeg))
 
@@ -278,7 +277,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3
     # -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
-    cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
+    cmd = util.get_ffmpeg() + ' -i "' + source_file + '" -i "' + album_art_file \
         + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
         + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
         + '"' + target_file + '"'
@@ -296,7 +295,7 @@ def rescale(image_file, width, height, out_file=None):
     stream = ffmpeg.input(image_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
-    ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
+    ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
     return out_file
 
 def get_crop_filter_options(width, height, top, left):
@@ -313,7 +312,7 @@ def deshake(video_file, width, height, out_file=None):
     if out_file is None:
         out_file = util.add_postfix(video_file, "deshake_%dx%d" % (width, height))
     cmd = "%s -i %s %s -vcodec libx264 -deinterlace %s" % \
-        (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
+        (util.get_ffmpeg(), video_file, get_deshake_filter_options(width, height), out_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
     return out_file
@@ -325,7 +324,7 @@ def crop(video_file, width, height, top, left, out_file = None):
         out_file = util.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width, height, top, left))
     aw, ah = re.split("/", reduce_aspect_ratio(width, height))
     cmd = "%s -i %s %s -vcodec libx264 -aspect %d:%d %s" % \
-        (properties['binaries.ffmpeg'], video_file, get_crop_filter_options(width, height, top, left), \
+        (util.get_ffmpeg(), video_file, get_crop_filter_options(width, height, top, left), \
         int(aw), int(ah), out_file)
     util.debug(2, "Running %s" % cmd)
     os.system(cmd)
@@ -335,8 +334,7 @@ def probe_file(file):
     ''' Returns file probe (media specs) '''
     if util.is_media_file(file):
         try:
-            properties = util.get_media_properties()
-            return ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
+            return ffmpeg.probe(file, cmd=util.get_ffprobe())
         except AttributeError:
             print(dir(ffmpeg))
     else:
