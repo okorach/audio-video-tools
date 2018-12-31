@@ -208,7 +208,7 @@ def parse_common_args(desc):
     parser.add_argument('-g', '--debug', required=False, help='debug level')
     return parser
 
-def cleanup_options(**kwargs):
+def cleanup_options(kwargs):
     new_options = kwargs.copy()
     for key in ['inputfile', 'outputfile', 'profile', 'debug']:
         try:
