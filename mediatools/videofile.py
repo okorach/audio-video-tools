@@ -194,7 +194,7 @@ class VideoFile(MediaFile):
     def crop(self, width, height, top, left, out_file, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
         parms = self.get_ffmpeg_params()
-        clean_options = util.cleanup_options(**kwargs)
+        clean_options = util.cleanup_options(kwargs)
         parms.update(cmdline_options(**clean_options))
         util.debug(1, "Cmd line settings = %s" % str(parms))
         if out_file is None:
