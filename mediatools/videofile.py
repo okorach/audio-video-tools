@@ -318,39 +318,6 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
 
-def encode_album_art(source_file, album_art_file, **kwargs):
-    """Encodes album art image in an audio file after optionally resizing"""
-    # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
-    properties = util.get_media_properties()
-    target_file = util.add_postfix(source_file, 'album_art')
-
-    if kwargs['scale'] is not None:
-        w, h = re.split("x",kwargs['scale'])
-        album_art_file = rescale(source_file, w, h)
-        delete_aa_file = True
-
-    # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
-    # -metadata:s:v comment="Cover (Front)" %1.mp3
-    cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
-        + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
-        + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
-        + '"' + target_file + '"'
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
-    shutil.copy(target_file, source_file)
-    os.remove(target_file)
-    if delete_aa_file:
-        os.remove(album_art_file)
-
-def rescale(image_file, width, height, out_file = None):
-    properties = util.get_media_properties()
-    if out_file is None:
-        out_file = util.add_postfix(image_file, "%dx%d" % (width,height))
-    stream = ffmpeg.input(image_file)
-    stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
-    stream = ffmpeg.output(stream, out_file)
-    ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
-    return out_file
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
