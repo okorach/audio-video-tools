@@ -468,23 +468,22 @@ def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
 #  -map "[v]" -map "[a]" output.mkv
-    properties = util.get_media_properties()
-    cmd = properties['binaries.ffmpeg']
-    util.debug(2, str(file_list))
+    util.debug(1, "%s = %s" % (target_file, ' + '.join(file_list)))
+    cmd = util.get_ffmpeg()
     for file in file_list:
-        cmd = cmd + (' -i "%s" ' % file)
+        cmd += (' -i "%s" ' % file)
     count = 0
-    cmd = cmd + '-filter_complex "'
+    cmd += '-filter_complex "'
     for file in file_list:
-        cmd = cmd + ("[%d:v] [%d:a]" % (count, count))
-        count = count + 1
-    cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
+        cmd += ("[%d:v] [%d:a]" % (count, count))
+        count += 1
+    cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
 
 def build_ffmpeg_options(options):
     cmd = ''
-    for option in options.keys():
+    for option in options:
         if options[option] is not None:
-            cmd = cmd + " -%s %s" % (option, options[option])
+            cmd += " -%s %s" % (option, options[option])
     return cmd
