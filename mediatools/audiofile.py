@@ -99,7 +99,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
 
     if kwargs['scale'] is not None:
         w, h = re.split("x",kwargs['scale'])
-        album_art_file = image.rescale(source_file, w, h)
+        album_art_file = image.rescale(album_art_file, int(w), int(h))
         delete_aa_file = True
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
