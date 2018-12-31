@@ -163,7 +163,7 @@ class VideoFile(MediaFile):
         if 'profile' in kwargs.keys():
             parms.update(util.get_cmdline_params(kwargs['profile']))
         util.debug(1, "Profile settings = %s" % str(parms))
-        clean_options = util.cleanup_options(kwargs)
+        clean_options = util.cleanup_options(**kwargs)
         parms.update(cmdline_options(**clean_options))
         util.debug(1, "Cmd line settings = %s" % str(parms))
 
