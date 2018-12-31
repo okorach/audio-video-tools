@@ -29,10 +29,12 @@ OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'vfilter':FFMPEG_VFILTER_OPTION }
 
 if platform.system() is 'Windows':
-    PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
+    DEFAULT_PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 else:
-    PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
+    DEFAULT_PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
 
+PROPERTIES_FILE = ''
+PROPERTIES_VALUES = {}
 
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
@@ -130,15 +132,31 @@ def get_file_type(file):
     debug(2, "Fietype of %s is %s" % (file, filetype))
     return filetype
 
-def get_properties(props_file = None):
-    """Returns all properties found in the properties file as dictionary"""
-    global PROPERTIES_FILE
-    if props_file is None:
-        props_file = PROPERTIES_FILE
+def get_ffmpeg(props_file = None):
+    props = get_media_properties(props_file)
+    return props['binaries.ffmpeg']
 
-    with open(props_file) as fp:
-        properties = jprops.load_properties(fp)
-    return properties
+def get_ffprobe(props_file = None):
+    props = get_media_properties(props_file)
+    return props['binaries.ffprobe']
+
+def get_media_properties(props_file = None):
+    """Returns all properties found in the properties file as dictionary"""
+    global DEFAULT_PROPERTIES_FILE
+    global PROPERTIES_FILE
+    global PROPERTIES_VALUES
+    if props_file is None:
+        props_file = DEFAULT_PROPERTIES_FILE
+    if props_file == PROPERTIES_FILE and PROPERTIES_VALUES is not {}:
+        return PROPERTIES_VALUES
+    PROPERTIES_FILE = props_file
+    try:
+        with open(props_file) as fp:
+            PROPERTIES_VALUES = jprops.load_properties(fp)
+    except FileNotFoundError:
+        PROPERTIES_VALUES['binaries.ffmpeg'] = 'ffmpeg'
+        PROPERTIES_VALUES['binaries.ffprobe'] = 'ffprobe'
+    return PROPERTIES_VALUES
 
 def to_hms(seconds):
     s = float(seconds)
@@ -190,20 +208,14 @@ def parse_common_args(desc):
     parser.add_argument('-g', '--debug', required=False, help='debug level')
     return parser
 
-def cleanup_options(options):
-    new_options = options.copy()
+def cleanup_options(**kwargs):
+    new_options = kwargs.copy()
     for key in ['inputfile', 'outputfile', 'profile', 'debug']:
-        del new_options[key]
+        try:
+            del new_options[key]
+        except KeyError:
+            pass
     return new_options
-
-def get_media_properties(props_file = None):
-    """Returns all properties found in the properties file as dictionary"""
-    try:
-        properties = get_properties(props_file)
-    except FileNotFoundError:
-        properties['binaries.ffmpeg'] = 'ffmpeg'
-        properties['binaries.ffprobe'] = 'ffprobe'
-    return properties
 
 def get_profile_extension(profile, properties = None):
     if properties is None:
@@ -216,3 +228,28 @@ def get_profile_extension(profile, properties = None):
         except KeyError:
             extension = None
     return extension
+
+def get_profile_params(profile):
+    props = get_media_properties()
+    return get_cmdline_params(props[profile +'.cmdline'])
+
+def get_cmdline_params(cmdline):
+    """Returns a dictionary of all parameters found on input string command line
+    Parameters can be of the format -<option> <value> or -<option>"""
+    found = True
+    parms = dict()
+    while found:
+        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
+        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
+        if m:
+            parms[m.group(1)] = m.group(2)
+            #print("Found " + m.group(1) + " --> " + m.group(2))
+            cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
+        else:
+            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
+            if m:
+                parms[m.group(1)] = None
+                cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
+            else:
+                found = False
+    return parms
