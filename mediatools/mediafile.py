@@ -33,7 +33,7 @@ class Encoder:
     def set_ffmpeg_properties(self, props):
         '''Set Encoder properties according to ffmpeg conventions'''
         params = util.get_cmdline_params(props)
-        for param in params.keys():
+        for param in params:
             if param is util.FFMPEG_FORMAT_OPTION:
                 self.format = params[param]
             elif param is util.FFMPEG_VBITRATE_OPTION:
@@ -171,55 +171,9 @@ class MediaFile:
     def probe(self):
         ''' Returns file probe (media specs) '''
         try:
-            properties = util.get_media_properties()
-            return ffmpeg.probe(self.filename, cmd=properties['binaries.ffprobe'])
+            return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
         except AttributeError:
             print (dir(ffmpeg))
-
-
-def get_size(cmdline):
-    m = re.search(r'-s\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_video_codec(cmdline):
-    m = re.search(r'-vcodec\s+(\S+)', cmdline)
-    if m:
-        return m.group(1)
-    m = re.search(r'-c:v\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_audio_codec(cmdline):
-    m = re.search(r'-acodec\s+(\S+)', cmdline)
-    if m:
-        return m.group(1)
-    m = re.search(r'-c:a\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_format(cmdline):
-    m = re.search(r'-f\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_audio_bitrate(cmdline):
-    m = re.search(r'-ab\s+(\S+)', cmdline)
-    if m:
-        return m.group(1)
-    m = re.search(r'-b:a\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_video_bitrate_option(cmdline):
-    m = re.search(r'-vb\s+(\S+)', cmdline)
-    if m:
-        return m.group(1)
-    m = re.search(r'-b:v\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_aspect_ratio(cmdline):
-    m = re.search(r'-aspect\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
-
-def get_frame_rate(cmdline):
-    m = re.search(r'-r\s+(\S+)', cmdline)
-    return m.group(1) if m else ''
 
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
@@ -233,7 +187,7 @@ def cmdline_options(**kwargs):
     if kwargs is None:
         return {}
     params = {}
-    for key in util.OPTIONS_MAPPING.keys():
+    for key in util.OPTIONS_MAPPING:
         util.debug(5, "Checking option %s" % key)
         try:
             if kwargs[key] is not None:
@@ -268,7 +222,6 @@ def encode(source_file, target_file, profile, **kwargs):
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
     # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
-    properties = util.get_media_properties()
     target_file = util.add_postfix(source_file, 'album_art')
 
     if kwargs['scale'] is not None:
@@ -278,7 +231,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3
     # -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
-    cmd = properties['binaries.ffmpeg'] + ' -i "' + source_file + '" -i "' + album_art_file \
+    cmd = util.get_ffmpeg() + ' -i "' + source_file + '" -i "' + album_art_file \
         + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
         + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
         + '"' + target_file + '"'
@@ -290,13 +243,12 @@ def encode_album_art(source_file, album_art_file, **kwargs):
         os.remove(album_art_file)
 
 def rescale(image_file, width, height, out_file=None):
-    properties = util.get_media_properties()
     if out_file is None:
         out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
     stream = ffmpeg.input(image_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
-    ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
+    ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
     return out_file
 
 def get_crop_filter_options(width, height, top, left):
@@ -307,36 +259,11 @@ def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
 
-def deshake(video_file, width, height, out_file=None):
-    ''' Applies deshake video filter for width x height pixels '''
-    properties = util.get_media_properties()
-    if out_file is None:
-        out_file = util.add_postfix(video_file, "deshake_%dx%d" % (width, height))
-    cmd = "%s -i %s %s -vcodec libx264 -deinterlace %s" % \
-        (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
-    return out_file
-
-def crop(video_file, width, height, top, left, out_file = None):
-    ''' Applies crop video filter for width x height pixels '''
-    properties = util.get_media_properties()
-    if out_file is None:
-        out_file = util.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width, height, top, left))
-    aw, ah = re.split("/", reduce_aspect_ratio(width, height))
-    cmd = "%s -i %s %s -vcodec libx264 -aspect %d:%d %s" % \
-        (properties['binaries.ffmpeg'], video_file, get_crop_filter_options(width, height, top, left), \
-        int(aw), int(ah), out_file)
-    util.debug(2, "Running %s" % cmd)
-    os.system(cmd)
-    return out_file
-
 def probe_file(file):
     ''' Returns file probe (media specs) '''
     if util.is_media_file(file):
         try:
-            properties = util.get_media_properties()
-            return ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
+            return ffmpeg.probe(file, cmd=util.get_ffprobe())
         except AttributeError:
             print(dir(ffmpeg))
     else:
@@ -461,35 +388,6 @@ def get_mp3_tags(file):
     mp3 = MP3File(file)
     return {'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment}
-
-
-def parse_common_args(desc):
-    """Parses options common to all media encoding scripts"""
-    try:
-        import argparse
-    except ImportError:
-        if sys.version_info < (2, 7, 0):
-            print("""Error: You are running an old version of python. Two options to fix the problem
-                   Option 1: Upgrade to python version >= 2.7
-                   Option 2: Install argparse library for the current python version
-                             See: https://pypi.python.org/pypi/argparse""")
-    parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-i', '--inputfile', required=True, help='Input File or Directory to encode')
-    parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
-    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
-    parser.add_argument('-t', '--timeranges', required=False, help='Time ranges to encode')
-    parser.add_argument('-f', '--format', required=False, help='Output file format')
-    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output')
-    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
-    parser.add_argument('--abitrate', required=False, help='Audio bitrate')
-    parser.add_argument('--asampling', required=False, help='Audio sampling')
-    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
-    parser.add_argument('--vsize', required=False, help='Video size HxW')
-    parser.add_argument('--vbitrate', required=False, help='Video bitrate')
-    parser.add_argument('--aspect', required=False, help='Aspect Ratio 16:9, 4:3, 1.5 ...')
-    parser.add_argument('--ranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('-g', '--util.debug', required=False, help='util.debug level')
-    return parser
 
 def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
