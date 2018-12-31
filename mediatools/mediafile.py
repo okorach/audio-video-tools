@@ -491,12 +491,6 @@ def parse_common_args(desc):
     parser.add_argument('-g', '--util.debug', required=False, help='util.debug level')
     return parser
 
-def cleanup_options(options):
-    new_options = options.copy()
-    for key in ['inputfile', 'outputfile', 'profile', 'util.debug']:
-        del new_options[key]
-    return new_options
-
 def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
