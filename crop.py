@@ -22,6 +22,6 @@ kwargs = vars(args).copy()
 for key in ['inputfile', 'outputfile', 'box', 'debug', 'left', 'top']:
     del kwargs[key]
 
-outputfile = cropoo(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
+outputfile = crop(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
     args.outputfile, **kwargs)
 debug(1, 'Generated %s' % outputfile)
