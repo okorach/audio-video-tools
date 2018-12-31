@@ -157,6 +157,16 @@ class VideoFile(MediaFile):
         all_props.update(self.get_video_properties())
         return all_props
 
+    def build_encoding_options(self, **kwargs):
+        parms = self.get_ffmpeg_params()
+        util.debug(1, "File settings = %s" % str(parms))
+        if 'profile' in kwargs.keys():
+            parms.update(util.get_cmdline_params(kwargs['profile']))
+        util.debug(1, "Profile settings = %s" % str(parms))
+        clean_options = util.cleanup_options(kwargs)
+        parms.update(cmdline_options(**clean_options))
+        util.debug(1, "Cmd line settings = %s" % str(parms))
+
     def get_ffmpeg_params(self):
         mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
         props = self.get_properties()
@@ -181,8 +191,21 @@ class VideoFile(MediaFile):
     def scale(self, scale):
         self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
 
-    def crop(self, x, y, h, w):
-        self.stream = ffmpeg.crop(self.stream, x, y, h, w)
+    def crop(self, width, height, top, left, out_file, **kwargs):
+        ''' Applies crop video filter for width x height pixels '''
+        parms = self.get_ffmpeg_params()
+        clean_options = util.cleanup_options(**kwargs)
+        parms.update(cmdline_options(**clean_options))
+        util.debug(1, "Cmd line settings = %s" % str(parms))
+        if out_file is None:
+            out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
+        aw, ah = re.split(":", reduce_aspect_ratio(width, height))
+        cmd = "%s -i %s %s %s -aspect %d:%d %s" % (util.get_ffmpeg(), self.filename, \
+            build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
+            int(aw), int(ah), out_file)
+        util.debug(1, "Running %s" % cmd)
+        os.system(cmd)
+        return out_file
 
     def get_metadata(self):
         return ffmpeg.probe(self.filename)
@@ -243,27 +266,6 @@ def get_frame_rate_option(cmdline):
     m = re.search(r'-r\s+(\S+)', cmdline)
     return m.group(1) if m else ''
 
-def get_params(cmdline):
-    """Returns a dictionary of all parameters found on input string command line
-    Parameters can be of the format -<option> <value> or -<option>"""
-    found = True
-    parms = dict()
-    while found:
-        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
-        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
-        if m:
-            parms[m.group(1)] = m.group(2)
-            #print("Found " + m.group(1) + " --> " + m.group(2))
-            cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
-        else:
-            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
-            if m:
-                parms[m.group(1)] = None
-                cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
-            else:
-                found = False
-    return parms
-
 def build_target_file(source_file, profile, properties):
     extension = util.get_profile_extension(profile, properties)
     if extension is None:
@@ -288,13 +290,11 @@ def cmdline_options(**kwargs):
 
 def encode(source_file, target_file, profile, **kwargs):
     properties = util.get_media_properties()
-
-    myprop = properties[profile + '.cmdline']
     if target_file is None:
         target_file = build_target_file(source_file, profile, properties)
 
     stream = ffmpeg.input(source_file)
-    parms = get_params(myprop)
+    parms = util.get_profile_params(profile)
     parms.update(cmdline_options(**kwargs))
 
     # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
@@ -321,12 +321,12 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     file_o = VideoFile(source_file)
     parms = file_o.get_ffmpeg_params()
     util.debug(1, "File settings = %s" % str(parms))
-    parms.update(get_params(profile_options))
+    parms.update(util.get_cmdline_params(profile_options))
     util.debug(1, "Profile settings = %s" % str(parms))
     parms.update(cmdline_options(**kwargs))
     util.debug(1, "Cmd line settings = %s" % str(parms))
 
-    cmd = "%s -i %s %s %s" % (properties['binaries.ffmpeg'], source_file, build_ffmpeg_options(parms), target_file)
+    cmd = "%s -i %s %s %s" % (util.get_ffmpeg(), source_file, build_ffmpeg_options(parms), target_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
 
@@ -390,10 +390,14 @@ def crop(video_file, width, height, top, left, out_file = None):
         out_file = util.add_postfix(video_file, "crop_%dx%d-%dx%d" % (width,height, top, left))
     aw, ah = re.split("/", reduce_aspect_ratio(width, height))
     cmd = "%s -i %s %s -vcodec libx264 -aspect %d:%d %s" % \
-        (properties['binaries.ffmpeg'], video_file, get_crop_filter_options(width, height, top, left), int(aw), int(ah), out_file)
+        (util.get_ffmpeg(), video_file, get_crop_filter_options(width, height, top, left), int(aw), int(ah), out_file)
     util.debug(2, "Running %s" % cmd)
     os.system(cmd)
     return out_file
+
+def cropoo(video_file, width, height, top, left, out_file = None, **kwargs):
+    file_o = VideoFile(video_file)
+    return file_o.crop(width, height, top, left, out_file, **kwargs)
 
 def probe_file(file):
     ''' Returns file probe (media specs) '''
