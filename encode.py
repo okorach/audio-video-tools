@@ -33,7 +33,6 @@ if os.path.isdir(args.inputfile):
             if not os.path.exists(directory):
                 os.makedirs(directory)
             video.encode(fname, targetfname, args.profile, **options)
-            #videofile.encode(fname, targetfname, args.profile)
         else:
             from shutil import copyfile
             targetfname = fname.replace(args.inputfile, targetdir, 1)
