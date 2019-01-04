@@ -188,7 +188,7 @@ class VideoFile(MediaFile):
         if out_file is None:
             out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
         aw, ah = re.split(":", reduce_aspect_ratio(width, height))
-        cmd = "%s -i %s %s %s -aspect %d:%d %s" % (util.get_ffmpeg(), self.filename, \
+        cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
             build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
         util.debug(1, "Running %s" % cmd)
@@ -306,15 +306,17 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     if target_file is None:
         target_file = build_target_file(source_file, profile, properties)
 
-    file_o = VideoFile(source_file)
-    parms = file_o.get_ffmpeg_params()
-    util.debug(1, "File settings = %s" % str(parms))
+    parms = {}
+    if util.is_video_file(source_file):
+        parms = VideoFile(source_file).get_ffmpeg_params()
+        util.debug(1, "File settings = %s" % str(parms))
+    
     parms.update(util.get_cmdline_params(profile_options))
     util.debug(1, "Profile settings = %s" % str(parms))
     parms.update(cmdline_options(**kwargs))
     util.debug(1, "Cmd line settings = %s" % str(parms))
 
-    cmd = "%s -i %s %s %s" % (util.get_ffmpeg(), source_file, build_ffmpeg_options(parms), target_file)
+    cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), source_file, build_ffmpeg_options(parms), target_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
 
@@ -332,7 +334,7 @@ def deshake(video_file, width, height, out_file = None):
     properties = util.get_media_properties()
     if out_file is None:
         out_file = util.add_postfix(video_file, "deshake_%dx%d" % (width,height))
-    cmd = "%s -i %s %s -vcodec libx264 -deinterlace %s" % \
+    cmd = '%s -i "%s" %s -vcodec libx264 -deinterlace "%s"' % \
         (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
@@ -477,7 +479,7 @@ def concat(target_file, file_list):
     for file in file_list:
         cmd += ("[%d:v] [%d:a]" % (count, count))
         count += 1
-    cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
+    cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "%s"' % (count, target_file)
     util.debug(1, "Running %s" % cmd)
     os.system(cmd)
 
