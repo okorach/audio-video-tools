@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+#!python3
 
 import sys
 import os
@@ -52,7 +52,7 @@ def encode_dir(args, options):
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
 args = parser.parse_args()
-util.set_debug_level(int(args.debug))
+util.set_debug_level(args.debug)
 options = util.cleanup_options(vars(args))
 
 if os.path.isdir(args.inputfile):
