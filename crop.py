@@ -1,13 +1,13 @@
-#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+#!python3
 
 import argparse
 import mediatools.videofile as video
 import mediatools.utilities as util
 
 parser = util.parse_common_args('Crops a region of the input video file')
-parser.add_argument('-b', '--box', required=True, help='Video box eg 320x200')
-parser.add_argument('-t', '--top', required=True, help='Video top origin')
-parser.add_argument('-l', '--left', required=True, help='Video left origin')
+parser.add_argument('--box', required=True, help='Video box eg 320x200')
+parser.add_argument('--top', required=True, help='Video top origin')
+parser.add_argument('--left', required=True, help='Video left origin')
 args = parser.parse_args()
 util.set_debug_level(args.debug)
 
