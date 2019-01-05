@@ -28,6 +28,8 @@ OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
    'vfilter':FFMPEG_VFILTER_OPTION }
 
+OPTIONS_VERBATIM = ['ss', 'to']
+
 if platform.system() is 'Windows':
     DEFAULT_PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 else:
