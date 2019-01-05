@@ -1,4 +1,4 @@
-#!python
+#!/usr/local/bin/python3
 
 import sys
 import os
@@ -24,7 +24,7 @@ def dir_album_art(directory):
     filelist = util.filelist(directory)
     album_art_file = find_image(filelist)
     if album_art_file is None:
-        util.debug(0, "No image file in directory %" % directory)
+        util.debug(0, "No image file in directory %s" % directory)
     else:
         filelist_album_art(filelist, album_art_file)
 

@@ -1,10 +1,10 @@
-#!python3
+#!/usr/local/bin/python3
 
 import sys
 import os
 import re
 import argparse
-import mediatools.videofile as video
+import mediatools.imagefile as image
 import mediatools.utilities as util
 
 parser = argparse.ArgumentParser(description='Rescale image dimensions of a file or directory')
@@ -16,6 +16,6 @@ parser.add_argument('-g', '--debug', required=False, default=0, help='Debug leve
 args = parser.parse_args()
 util.set_debug_level(args.debug)
 width, height = args.scale.split("x")
-outputfile = video.rescale(args.inputfile, width, height, args.outputfile)
+outputfile = image.rescale(args.inputfile, width, height, args.outputfile)
 
 print('Generated', outputfile)

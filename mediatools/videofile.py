@@ -1,4 +1,5 @@
-#!python3
+#!/usr/local/bin/python3
+
 '''Video file tools'''
 
 import sys

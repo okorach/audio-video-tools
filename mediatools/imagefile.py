@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import ffmpeg
 import mediatools.utilities as util
 import mediatools.mediafile as media
