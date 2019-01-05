@@ -43,6 +43,8 @@ class VideoFile(MediaFile):
                 try:
                     self.video_codec = stream['codec_name']
                     self.video_bitrate = get_video_bitrate(stream)
+                    if self.video_bitrate is None:
+                        self.video_bitrate = self.specs['format']['bit_rate']
                     self.width = int(stream['width'])
                     self.height = int(stream['height'])
                     self.duration = stream['duration']
@@ -188,13 +190,46 @@ class VideoFile(MediaFile):
         util.debug(1, "Cmd line settings = %s" % str(parms))
         if out_file is None:
             out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
-        aw, ah = re.split(":", reduce_aspect_ratio(width, height))
+        if 'aspect' not in kwargs:
+            aw, ah = re.split(":", reduce_aspect_ratio(width, height))
+        else:
+            aw, ah = re.split(":", kwargs['aspect'])
         cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
             build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
         util.debug(1, "Running %s" % cmd)
         os.system(cmd)
         return out_file
+
+    def deshake(self, width, height, out_file, **kwargs):
+        ''' Applies deshake video filter for width x height pixels '''
+        parms = self.get_ffmpeg_params()
+        clean_options = util.cleanup_options(kwargs)
+        parms.update({'deinterlace':'', 'aspect':self.get_aspect_ratio()})
+        parms.update(cmdline_options(**clean_options))
+
+        if out_file is None or 'nocrop' in kwargs:
+            output_file = util.add_postfix(self.filename, "deshake_%dx%d" % (width, height))
+        else:
+            output_file = out_file
+        cmd = '%s -i "%s" %s %s "%s"' % (util.get_ffmpeg(), self.filename, \
+            build_ffmpeg_options(parms), get_deshake_filter_options(width, height), output_file)
+        util.debug(1, "Running %s" % cmd)
+        os.system(cmd)
+        if 'nocrop' not in kwargs:
+            return output_file
+
+        new_w = self.get_width() - width
+        new_h = self.get_height() - height
+        if out_file is None:
+            output_file2 = util.add_postfix(self.filename, "deshake_crop_%dx%d" % (new_w, new_h))
+        else:
+            output_file2 = out_file
+        deshake_file_o = VideoFile(output_file)
+        kwargs.update({'aspect': self.get_aspect_ratio()})
+        deshake_file_o.crop(new_w, new_h, width//2, height//2, output_file2, **kwargs)
+        # os.remove(output_file)
+        return output_file2
 
     def get_metadata(self):
         return ffmpeg.probe(self.filename)
@@ -275,6 +310,11 @@ def cmdline_options(**kwargs):
                 params[util.OPTIONS_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
+    # Special for timerange
+    for key in util.OPTIONS_VERBATIM:
+        if key in kwargs:
+            params[key] = kwargs[key]
+
     return params
 
 def encode(source_file, target_file, profile, **kwargs):
@@ -330,16 +370,10 @@ def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
 
-def deshake(video_file, width, height, out_file = None):
+def deshake(video_file, width, height, out_file = None, **kwargs):
     ''' Applies deshake video filter for width x height pixels '''
-    properties = util.get_media_properties()
-    if out_file is None:
-        out_file = util.add_postfix(video_file, "deshake_%dx%d" % (width,height))
-    cmd = '%s -i "%s" %s -vcodec libx264 -deinterlace "%s"' % \
-        (properties['binaries.ffmpeg'], video_file, get_deshake_filter_options(width, height), out_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
-    return out_file
+    file_o = VideoFile(video_file)
+    return file_o.deshake(width, height, out_file, **kwargs)
 
 def crop(video_file, width, height, top, left, out_file = None, **kwargs):
     file_o = VideoFile(video_file)
@@ -396,10 +430,7 @@ def get_video_bitrate(stream):
     try:
         bitrate = stream['bit_rate']
     except KeyError:
-        try:
-            bitrate = stream['duration_ts']
-        except KeyError:
-            pass
+        pass
     return bitrate
 
 def get_video_specs(stream):
@@ -455,8 +486,6 @@ def get_file_specs(file):
             util.debug(1, "Stream %s has no key %s" % (str(stream), e.args[0]))
             util.debug(1, str(specs))
     return specs
-
-
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
