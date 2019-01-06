@@ -8,6 +8,7 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
 import mediatools.mediafile as media
+import mediatools.imagefile as img
 
 parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extractor')
 parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to probe')
@@ -47,7 +48,7 @@ for file in filelist:
         elif util.is_audio_file(file):
             file_object = audio.AudioFile(file)
         elif util.is_image_file(file):
-            file_object = media.MediaFile(file)
+            file_object = img.ImageFile(file)
         else:
             file_object = media.MediaFile(file)
         specs = file_object.get_properties()
