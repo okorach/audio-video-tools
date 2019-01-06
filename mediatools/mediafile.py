@@ -404,8 +404,7 @@ def concat(target_file, file_list):
         cmd = cmd + ("[%d:v] [%d:a]" % (count, count))
         count = count + 1
     cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
+    util.run_os_cmd(cmd)
 
 def build_ffmpeg_options(options):
     cmd = ''
