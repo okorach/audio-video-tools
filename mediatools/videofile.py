@@ -10,9 +10,9 @@ import shutil
 import ffmpeg
 import jprops
 import mediatools.utilities as util
-from mediatools.mediafile import MediaFile, FileTypeError
+import mediatools.mediafile as media
 
-class VideoFile(MediaFile):
+class VideoFile(media.MediaFile):
     '''Video file abstraction'''
     def __init__(self, filename):
         super(VideoFile, self).__init__(filename)
@@ -195,10 +195,9 @@ class VideoFile(MediaFile):
         else:
             aw, ah = re.split(":", kwargs['aspect'])
         cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
-            build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
+            media.build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
-        util.debug(1, "Running %s" % cmd)
-        os.system(cmd)
+        util.run_os_cmd(cmd)
         return out_file
 
     def deshake(self, width, height, out_file, **kwargs):
@@ -213,9 +212,8 @@ class VideoFile(MediaFile):
         else:
             output_file = out_file
         cmd = '%s -i "%s" %s %s "%s"' % (util.get_ffmpeg(), self.filename, \
-            build_ffmpeg_options(parms), get_deshake_filter_options(width, height), output_file)
-        util.debug(1, "Running %s" % cmd)
-        os.system(cmd)
+            media.build_ffmpeg_options(parms), get_deshake_filter_options(width, height), output_file)
+        util.run_os_cmd(cmd)
         if 'nocrop' not in kwargs:
             return output_file
 
@@ -228,7 +226,7 @@ class VideoFile(MediaFile):
         deshake_file_o = VideoFile(output_file)
         kwargs.update({'aspect': self.get_aspect_ratio()})
         deshake_file_o.crop(new_w, new_h, width//2, height//2, output_file2, **kwargs)
-        # os.remove(output_file)
+        os.remove(output_file)
         return output_file2
 
     def get_metadata(self):
@@ -351,15 +349,14 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     if util.is_video_file(source_file):
         parms = VideoFile(source_file).get_ffmpeg_params()
         util.debug(1, "File settings = %s" % str(parms))
-    
+
     parms.update(util.get_cmdline_params(profile_options))
     util.debug(1, "Profile settings = %s" % str(parms))
     parms.update(cmdline_options(**kwargs))
     util.debug(1, "Cmd line settings = %s" % str(parms))
 
-    cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), source_file, build_ffmpeg_options(parms), target_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
+    cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), source_file, media.build_ffmpeg_options(parms), target_file)
+    util.run_os_cmd(cmd)
 
 
 def get_crop_filter_options(width, height, top, left):
@@ -378,17 +375,6 @@ def deshake(video_file, width, height, out_file = None, **kwargs):
 def crop(video_file, width, height, top, left, out_file = None, **kwargs):
     file_o = VideoFile(video_file)
     return file_o.crop(width, height, top, left, out_file, **kwargs)
-
-def probe_file(file):
-    ''' Returns file probe (media specs) '''
-    if util.is_media_file(file):
-        try:
-            properties = util.get_media_properties()
-            return ffmpeg.probe(file, cmd=properties['binaries.ffprobe'])
-        except AttributeError:
-            print (dir(ffmpeg))
-    else:
-        raise FileTypeError('File %s is neither video, audio nor image file' % file)
 
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
@@ -460,7 +446,7 @@ def get_image_specs(stream):
     return specs
 
 def get_file_specs(file):
-    probe_data = probe_file(file)
+    probe_data = media.probe_file(file)
     util.debug(2, json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
     specs = {}
     specs['filename'] = probe_data['format']['filename']
@@ -490,16 +476,14 @@ def get_file_specs(file):
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
     if util.get_file_extension(file).lower() is not 'mp3':
-        raise FileTypeError('File %s is not an mp3 file')
+        raise media.FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
     return { 'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment }
 
 def concat(target_file, file_list):
-#    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
-#  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
-#  -map "[v]" -map "[a]" output.mkv
+    '''Concatenates several video files - They must have same video+audio format and bitrate'''
     util.debug(1, "%s = %s" % (target_file, ' + '.join(file_list)))
     cmd = util.get_ffmpeg()
     for file in file_list:
@@ -510,12 +494,4 @@ def concat(target_file, file_list):
         cmd += ("[%d:v] [%d:a]" % (count, count))
         count += 1
     cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "%s"' % (count, target_file)
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
-
-def build_ffmpeg_options(options):
-    cmd = ''
-    for option in options:
-        if options[option] is not None:
-            cmd += " -%s %s" % (option, options[option])
-    return cmd
+    util.run_os_cmd(cmd)
