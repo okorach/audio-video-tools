@@ -142,6 +142,10 @@ def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
     return props['binaries.ffprobe']
 
+def run_os_cmd(cmd):
+    debug(1, "Running: %s" % cmd)
+    os.system(cmd)
+
 def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
     global DEFAULT_PROPERTIES_FILE
