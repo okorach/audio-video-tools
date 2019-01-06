@@ -22,23 +22,22 @@ def filelist_album_art(filelist, image_file):
 
 def dir_album_art(directory):
     filelist = util.filelist(directory)
-    album_art_file = find_image(filelist)
+    dir_album_art_file = find_image(filelist)
     if album_art_file is None:
         util.debug(0, "No image file in directory %s" % directory)
     else:
-        filelist_album_art(filelist, album_art_file)
+        filelist_album_art(filelist, dir_album_art_file)
 
-filelist = []
+file_list = []
 album_art_file = None
-for file in sys.argv:
-    if os.path.isdir(file):
-        dir_album_art(file)
-    elif util.is_image_file(file):
-        album_art_file = file
+for file_arg in sys.argv:
+    if os.path.isdir(file_arg):
+        dir_album_art(file_arg)
+    elif util.is_image_file(file_arg):
+        album_art_file = file_arg
     else:
-        filelist.append(file)
+        file_list.append(file_arg)
 if album_art_file is None:
     util.debug(0, "No image file found in %s" % str(sys.argv))
 else:
-    filelist_album_art(filelist, album_art_file)
-
+    filelist_album_art(file_list, album_art_file)
