@@ -437,42 +437,6 @@ def get_video_specs(stream):
         specs['video_aspect_ratio'] = reduce_aspect_ratio(specs['width'], specs['height'])
     return specs
 
-def get_image_specs(stream):
-    specs = {}
-    specs['image_codec'] = stream['codec_name']
-    specs['width'] = stream['width']
-    specs['height'] = stream['height']
-    specs['format'] = stream['codec_name']
-    return specs
-
-def get_file_specs(file):
-    probe_data = media.probe_file(file)
-    util.debug(2, json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
-    specs = {}
-    specs['filename'] = probe_data['format']['filename']
-    specs['filesize'] = probe_data['format']['size']
-    #if file_type == 'image2':
-    specs['type'] = util.get_file_type(file)
-    if util.is_audio_file(file):
-        specs['format'] = probe_data['streams'][0]['codec_name']
-    #elif re.search(r'mp4', file_type) is not None:
-    elif util.is_video_file(file):
-        specs['format'] = util.get_file_extension(file)
-
-    util.debug(1, "File type %s" % specs['type'])
-    for stream in probe_data['streams']:
-        try:
-            if specs['type'] == 'image':
-                specs.update(get_image_specs(stream))
-            elif specs['type'] == 'video' and stream['codec_type'] == 'video':
-                specs.update(get_video_specs(stream))
-            elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
-                specs.update(get_audio_specs(stream))
-        except KeyError as e:
-            util.debug(1, "Stream %s has no key %s" % (str(stream), e.args[0]))
-            util.debug(1, str(specs))
-    return specs
-
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
     if util.get_file_extension(file).lower() is not 'mp3':
