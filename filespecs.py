@@ -55,7 +55,7 @@ for file in filelist:
         for prop in PROPS:
             if args.format != "csv":
                 try:
-                    if prop in UNITS.keys():
+                    if prop in UNITS:
                         divider = UNITS[prop][0]
                         unit = UNITS[prop][1]
                         if unit is 'hms':
@@ -66,6 +66,8 @@ for file in filelist:
                         print("%-20s : %s" % (prop, str(specs[prop]) if specs[prop] is not None else ''))
                 except KeyError:
                     print("%-20s : %s" % (prop, ""))
+                except TypeError:
+                    print("%-20s : %s" % (prop, "Wrong type"))
             else:
                 # CSV format
                 try:
