@@ -27,7 +27,7 @@ is_first = True
 
 VIDEO_PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'duration', \
     'video_codec', 'video_bitrate', 'aspect_ratio', 'pixel_aspect_ratio', 'video_fps', \
-    'audio_codec', 'audio_bitrate', 'audio_sample_rate',  'author']
+    'audio_codec', 'audio_bitrate', 'audio_language', 'audio_sample_rate',  'author']
 
 AUDIO_PROPS = ['filename', 'filesize', 'type', 'format', 'duration', \
     'audio_codec', 'audio_bitrate', 'audio_sample_rate',  \
