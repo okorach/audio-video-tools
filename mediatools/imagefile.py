@@ -8,6 +8,7 @@ class ImageFile(media.MediaFile):
     def __init__(self, filename):
         self.width = None
         self.height = None
+        self.pixels = None
         self.title = None
         self.author = None
         self.year = None
@@ -30,21 +31,47 @@ class ImageFile(media.MediaFile):
         self.get_image_specs()
         return self.specs
 
+    def get_dimensions(self):
+        if self.width is None or self.height is None:
+            stream = self.get_stream_by_codec('mjpeg')
+            if stream is None:
+                return None
+            for tag in [ 'height', 'codec_height', 'coded_height']:
+                if tag in stream:
+                    self.height = stream[tag]
+                    break
+            for tag in [ 'width', 'codec_width', 'coded_width']:
+                if tag in stream:
+                    self.width = stream[tag]
+                    break
+            if self.width is not None and self.height is not None:
+                self.pixels = self.width * self.height
+        return [self.width, self.height]
+
+    def get_width(self):
+        if self.width is None:
+            _, _ = self.get_dimensions
+        return self.width
+
+    def get_height(self):
+        if self.height is None:
+            _, _ = self.get_dimensions
+        return self.height
+
     def get_image_specs(self):
         util.debug(2, "Getting image specs")
+        _, _ = self.get_dimensions()
         for stream in self.specs['streams']:
             if stream['codec_name'] == 'mjpeg':
                 try:
                     util.debug(2, "Found stream %s" % str(stream))
-                    self.width = stream['codec_width']
-                    self.height = stream['codec_duration']
                     self.format = stream['codec_name']
                 except KeyError as e:
                     util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
 
     def get_image_properties(self):
         self.get_image_specs()
-        return { 'format':self.format, 'width':self.width, 'height': self.height }
+        return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
 def rescale(image_file, width, height, out_file = None):
     if out_file is None:

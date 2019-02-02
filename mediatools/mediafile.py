@@ -175,6 +175,12 @@ class MediaFile:
         except AttributeError:
             print (dir(ffmpeg))
 
+    def get_stream_by_codec(self, codec):
+        for stream in self.specs['streams']:
+            if stream['codec_name'] == codec:
+                return stream
+        return None
+
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
