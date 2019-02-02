@@ -5,7 +5,6 @@
 import sys
 import re
 import os
-import logging
 import json
 import shutil
 import ffmpeg
