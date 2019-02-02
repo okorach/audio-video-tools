@@ -33,29 +33,29 @@ class ImageFile(media.MediaFile):
 
     def get_dimensions(self):
         if self.width is None or self.height is None:
-            stream = self.get_stream_by_codec('mjpeg')
-            if stream is None:
-                return None
+            stream = self.get_stream_by_codec('codec_name', 'mjpeg')
+        if self.width is None:
             for tag in [ 'height', 'codec_height', 'coded_height']:
                 if tag in stream:
                     self.height = stream[tag]
                     break
+        if self.height is None:
             for tag in [ 'width', 'codec_width', 'coded_width']:
                 if tag in stream:
                     self.width = stream[tag]
                     break
-            if self.width is not None and self.height is not None:
-                self.pixels = self.width * self.height
+        if self.width is not None and self.height is not None:
+            self.pixels = self.width * self.height
         return [self.width, self.height]
 
     def get_width(self):
         if self.width is None:
-            _, _ = self.get_dimensions
+            _, _ = self.get_dimensions()
         return self.width
 
     def get_height(self):
         if self.height is None:
-            _, _ = self.get_dimensions
+            _, _ = self.get_dimensions()
         return self.height
 
     def get_image_specs(self):
