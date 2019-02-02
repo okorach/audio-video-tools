@@ -28,6 +28,8 @@ OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
    'vfilter':FFMPEG_VFILTER_OPTION }
 
+LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
+
 OPTIONS_VERBATIM = ['ss', 'to']
 
 if platform.system() is 'Windows':
@@ -131,7 +133,7 @@ def get_file_type(file):
         filetype = 'image'
     else:
         filetype = 'unknown'
-    debug(2, "Fietype of %s is %s" % (file, filetype))
+    debug(2, "Filetype of %s is %s" % (file, filetype))
     return filetype
 
 def get_ffmpeg(props_file = None):
