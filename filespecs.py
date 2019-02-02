@@ -25,34 +25,49 @@ else:
 
 is_first = True
 
-PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'duration', \
+VIDEO_PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'duration', \
     'video_codec', 'video_bitrate', 'aspect_ratio', 'pixel_aspect_ratio', 'video_fps', \
+    'audio_codec', 'audio_bitrate', 'audio_sample_rate',  'author']
+
+AUDIO_PROPS = ['filename', 'filesize', 'type', 'format', 'duration', \
     'audio_codec', 'audio_bitrate', 'audio_sample_rate',  \
     'author', 'title', 'album', 'year', 'track', 'genre']
 
+IMAGE_PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'pixels', 'author', 'title']
+
 UNITS = { 'filesize' : [1048576, 'MB'], 'duration':[1,'hms'], 'video_bitrate':[1024, 'kbits/s'], \
-          'audio_bitrate':[1024, 'kbits/s'], 'audio_sample_rate':[1000, 'k'], }
+          'audio_bitrate':[1024, 'kbits/s'], 'audio_sample_rate':[1000, 'k'], 'pixels':[1000000, 'Mpix'] }
+
+all_props = VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS
 
 if args.format == 'csv':
     print("# ")
-    for prop in PROPS:
+    for prop in all_props:
         print("%s;" % prop, end='')
     print('')
 
+props = all_props
+nb_files = len(filelist)
 for file in filelist:
     if not util.is_media_file(file):
         continue
     try:
         if util.is_video_file(file):
             file_object = video.VideoFile(file)
+            if nb_files == 1:
+                props = VIDEO_PROPS
         elif util.is_audio_file(file):
             file_object = audio.AudioFile(file)
+            if nb_files == 1:
+                props = AUDIO_PROPS
         elif util.is_image_file(file):
             file_object = img.ImageFile(file)
+            if nb_files == 1:
+                props = IMAGE_PROPS
         else:
             file_object = media.MediaFile(file)
         specs = file_object.get_properties()
-        for prop in PROPS:
+        for prop in props:
             if args.format != "csv":
                 try:
                     if prop in UNITS:
