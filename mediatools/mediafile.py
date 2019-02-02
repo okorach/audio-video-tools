@@ -175,9 +175,11 @@ class MediaFile:
         except AttributeError:
             print (dir(ffmpeg))
 
-    def get_stream_by_codec(self, codec):
+    def get_stream_by_codec(self, field, value):
+        util.debug(5, 'Searching stream for codec %s = %s' % (field, value))
         for stream in self.specs['streams']:
-            if stream['codec_name'] == codec:
+            util.debug(5, 'Found codec %s' % stream[field])
+            if stream[field] == value:
                 return stream
         return None
 
