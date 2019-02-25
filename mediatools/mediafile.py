@@ -119,7 +119,7 @@ class MediaFile:
     def get_author(self):
         '''Returns file author'''
         if self.author is None:
-            self.get_specs()
+            self.probe()
         return self.author
 
     def get_filetype(self):
@@ -129,19 +129,19 @@ class MediaFile:
     def get_year(self):
         '''Returns file year'''
         if self.year is None:
-            self.get_specs()
+            self.probe()
         return self.year
 
     def get_copyright(self):
         '''Returns file copyright'''
         if self.copyright is None:
-            self.get_specs()
+            self.probe()
         return self.copyright
 
-    def get_specs(self):
+    def probe(self):
         '''Returns media file general specs'''
         if self.specs is None:
-            self.specs = self.probe()
+            self.specs = self.probe2()
             util.debug(1, \
                 json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         self.get_format_specs()
@@ -168,7 +168,7 @@ class MediaFile:
         'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, \
         'bitrate':self.bitrate}
 
-    def probe(self):
+    def probe2(self):
         ''' Returns file probe (media specs) '''
         try:
             return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
