@@ -16,6 +16,7 @@ parser.add_argument('-g', '--debug', required=False, default=0, help='Debug leve
 
 args = parser.parse_args()
 util.set_debug_level(args.debug)
+
 outputfile = image.stack(args.inputfile1, args.inputfile2, args.direction, args.outputfile)
 
 print('Generated', outputfile)
