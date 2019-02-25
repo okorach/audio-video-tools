@@ -24,7 +24,7 @@ FFMPEG_VFILTER_OPTION = 'vf'
 OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
    'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
-   'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'size':FFMPEG_SIZE_OPTION, \
+   'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'vsize':FFMPEG_SIZE_OPTION, \
    'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
    'vfilter':FFMPEG_VFILTER_OPTION }
 
@@ -210,6 +210,7 @@ def parse_common_args(desc):
     parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
     parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
     parser.add_argument('--vsize', required=False, help='Video size HxW')
+    parser.add_argument('--vwidth', required=False, help='Video width')
     parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')

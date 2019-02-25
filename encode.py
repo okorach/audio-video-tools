@@ -9,6 +9,14 @@ import mediatools.utilities as util
 import mediatools.mediafile as media
 
 def encode_file(args, options):
+    if util.is_video_file(args.inputfile) and args.vwidth is not None:
+        file_object = video.VideoFile(args.inputfile)
+        specs = file_object.get_properties()
+        w = int(specs['width'])
+        h = int(specs['height'])
+        new_w = int(args.vwidth)
+        new_h = (int(h * new_w / w) // 8) * 8
+        options['vsize'] = "%dx%d" % (new_w, new_h)
     if args.timeranges is None:
         video.encodeoo(args.inputfile, args.outputfile, args.profile, **options)
         return
