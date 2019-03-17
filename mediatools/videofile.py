@@ -33,9 +33,10 @@ class VideoFile(media.MediaFile):
 
     def get_specs(self):
         '''Returns video file complete specs as dict'''
-        super(VideoFile, self).get_specs()
-        self.get_video_specs()
-        self.get_audio_specs()
+        if self.specs is None:
+            self.probe()
+            self.get_video_specs()
+            self.get_audio_specs()
 
     def get_video_specs(self):
         '''Returns video file video specs as dict'''
@@ -387,14 +388,22 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     parms = {}
     if util.is_video_file(source_file):
         parms = VideoFile(source_file).get_ffmpeg_params()
-        util.debug(1, "File settings = %s" % str(parms))
+        util.debug(2, "File settings = %s" % str(parms))
 
     parms.update(util.get_cmdline_params(profile_options))
-    util.debug(1, "Profile settings = %s" % str(parms))
+    util.debug(2, "Profile settings = %s" % str(parms))
     parms.update(cmdline_options(**kwargs))
-    util.debug(1, "Cmd line settings = %s" % str(parms))
-
-    cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), source_file, media.build_ffmpeg_options(parms), target_file)
+    util.debug(2, "Cmd line settings = %s" % str(parms))
+    
+    # Hack for channels selection
+    if 'achannels' in kwargs and kwargs['achannels'] is not None:
+        mapping = "-map 0:v:0"
+        for channel in kwargs['achannels'].split(','):
+            mapping += " -map 0:a:%s" % channel
+    else:
+        mapping = ""
+    
+    cmd = '%s -i "%s" %s %s "%s"' % (util.get_ffmpeg(), source_file, media.build_ffmpeg_options(parms), mapping, target_file)
     util.run_os_cmd(cmd)
 
 
