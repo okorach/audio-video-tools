@@ -18,14 +18,14 @@ FFMPEG_SIZE_OPTION = 's'
 FFMPEG_FPS_OPTION = 'r'
 FFMPEG_ASPECT_OPTION = 'aspect'
 FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
-FFMPEG_ACHANNELS_OPTION = 'ac'
+FFMPEG_ACHANNEL_OPTION = 'ac'
 FFMPEG_VFILTER_OPTION = 'vf'
 
 OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
    'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
    'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'vsize':FFMPEG_SIZE_OPTION, \
-   'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannels':FFMPEG_ACHANNELS_OPTION, \
+   'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannel':FFMPEG_ACHANNEL_OPTION, \
    'vfilter':FFMPEG_VFILTER_OPTION }
 
 LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
@@ -110,7 +110,7 @@ def add_postfix(file, postfix, extension = None):
 
 def is_audio_file(file):
     """Returns whether the file has an extension corresponding to audio files"""
-    return match_extension(file, r'\.(mp3|ogg|aac|ac3|m4a|ape)$')
+    return match_extension(file, r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$')
 
 def is_video_file(file):
     """Returns whether the file has an extension corresponding to video files"""
@@ -206,6 +206,7 @@ def parse_common_args(desc):
     parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
     parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
+    parser.add_argument('--achannels', required=False, help='Audio channel to pick')
     parser.add_argument('--abitrate', required=False, help='Audio bitrate eg 128k')
     parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
     parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
