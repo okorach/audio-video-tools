@@ -224,7 +224,7 @@ def encode(source_file, target_file, profile, **kwargs):
     try:
         ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
-        print(e.stderr, file=sys.stderr)
+        print(e.stderr) #, file=sys.stderr)
         sys.exit(1)
 
 def encode_album_art(source_file, album_art_file, **kwargs):

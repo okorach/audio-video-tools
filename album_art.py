@@ -23,7 +23,7 @@ def filelist_album_art(filelist, image_file):
 def dir_album_art(directory):
     filelist = util.filelist(directory)
     dir_album_art_file = find_image(filelist)
-    if album_art_file is None:
+    if dir_album_art_file is None:
         util.debug(0, "No image file in directory %s" % directory)
     else:
         filelist_album_art(filelist, dir_album_art_file)
