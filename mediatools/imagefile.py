@@ -33,22 +33,30 @@ class ImageFile(media.MediaFile):
             self.get_image_specs()
         return self.specs
 
-    def get_dimensions(self):
-        self.get_specs()
-        if self.width is None or self.height is None:
-            stream = self.get_stream_by_codec('codec_name', 'mjpeg')
+    def find_width_from_stream(self, stream):
         if self.width is None:
             for tag in [ 'width', 'codec_width', 'coded_width']:
                 if tag in stream:
                     util.debug(5, 'Tag %s found' % tag)
                     self.width = stream[tag]
                     break
+        return self.width
+
+    def find_height_from_stream(self, stream):
         if self.height is None:
             for tag in [ 'height', 'codec_height', 'coded_height']:
                 if tag in stream:
                     util.debug(5, 'Tag %s found' % tag)
                     self.height = stream[tag]
                     break
+        return self.height
+
+    def get_dimensions(self):
+        self.get_specs()
+        if self.width is None or self.height is None:
+            stream = self.get_stream_by_codec('codec_name', 'mjpeg')
+            self.width = find_width_from_stream(self, stream)
+            self.height = find_height_from_stream(self, stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.debug(5, "Returning %d x %d" % (self.width, self.height))
@@ -80,9 +88,15 @@ class ImageFile(media.MediaFile):
         return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
 def rescale(image_file, width, height, out_file = None):
-    util.debug(5, "Rescaling %s to %d x %d" % (image_file, width, height))
+    util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
+    # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
     if out_file is None:
         out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
+    
+    cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
+    util.run_os_cmd(cmd)
+
+    return out_file
     stream = ffmpeg.input(image_file)
     stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
     stream = ffmpeg.output(stream, out_file)
@@ -130,3 +144,52 @@ def stack(file1, file2, direction, out_file = None):
     if tmpfile2 is not file2:
         os.remove(tmpfile2)
     return out_file
+
+def min_height(files):
+    val = 2^32-1
+    for file in files:
+        obj = ImageFile(file)
+        val = min(obj.get_height(), val)
+    return val
+
+def min_width(files):
+    val = 2^32-1
+    for file in files:
+        obj = ImageFile(file)
+        val = min(obj.get_width(), val)
+    return val
+
+def posterize(files, posterfile=None, background_color="black"):
+    cmd = util.get_ffmpeg()
+    i = 0
+    cmplx = ''
+    min_h = min_height(files)
+    min_w = min_width(files)
+    for file in files:
+        tmpfile = "pip%d.tmp.jpg" % i
+        rescale(file, 2048, 1360, tmpfile)
+        cmd = cmd + " -i " + tmpfile
+        cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+        i = i+1
+
+    tmpbg = "bg.tmp.jpg"
+    rescale("black-square.jpg", 4400, 3000, tmpbg)
+    gap=96
+    i_bg = 0
+    cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[bg%d]; " % (i, i_bg, gap, gap, i_bg)
+    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
+    i_bg = i_bg+1
+    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
+    i_bg = i_bg+1
+    cmplx = cmplx + "[bg%d][pip%d]overlay=%d:main_h-overlay_h-%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
+    i_bg = i_bg+1
+    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:main_h-overlay_h-%d" % (i_bg, i_bg, gap, gap)
+ 
+    if posterfile is None:
+        posterfile = util.add_postfix(files[0], "poster")
+    cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
+    util.run_os_cmd(cmd)
+    for i in range(len(files)):
+        os.remove("pip%d.tmp.jpg" % i)
+    os.remove(tmpbg)
+    return posterfile
