@@ -26,6 +26,14 @@ while len(sys.argv) > 0:
         util.set_debug_level(sys.argv.pop(0))
     elif arg == "-background":
         bg = sys.argv.pop(0)
+    elif arg == "-bottom":
+        bottom = sys.argv.pop(0)
+    elif arg == "-top":
+        top = sys.argv.pop(0)
+    elif arg == "-left":
+        left = sys.argv.pop(0)
+    elif arg == "-right":
+        left = sys.argv.pop(0)
     elif arg == "-margin":
         margin = int(sys.argv.pop(0))
     elif os.path.isdir(arg):
