@@ -141,20 +141,20 @@ def stack(file1, file2, direction, out_file = None):
     return out_file
 
 def min_height(files):
-    val = 2^32-1
+    val = 2**32-1
     for file in files:
         obj = ImageFile(file)
         val = min(obj.get_height(), val)
     return val
 
 def min_width(files):
-    val = 2^32-1
+    val = 2**32-1
     for file in files:
         obj = ImageFile(file)
         val = min(obj.get_width(), val)
     return val
 
-def posterize(files, posterfile=None, background_color="black"):
+def posterize(files, posterfile=None, background_color="black", margin=5):
     cmd = util.get_ffmpeg()
     i = 0
     cmplx = ''
@@ -162,14 +162,18 @@ def posterize(files, posterfile=None, background_color="black"):
     min_w = min_width(files)
     for file in files:
         tmpfile = "pip%d.tmp.jpg" % i
-        rescale(file, 2048, 1360, tmpfile)
+        rescale(file, min_w, min_h, tmpfile)
         cmd = cmd + " -i " + tmpfile
         cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
         i = i+1
 
     tmpbg = "bg.tmp.jpg"
-    rescale("black-square.jpg", 4400, 3000, tmpbg)
-    gap=96
+    gap = (min_w * margin) // 100
+    full_w = 2 * min_w + 3 * gap
+    full_h = 2 * min_h + 3 * gap
+    util.debug(2, "W x H = %d x %d / Gap = %d => Full W x H = %d x %d" % (min_w, min_h, gap, full_w, full_h))
+    rescale("black-square.jpg", full_w, full_h, tmpbg)
+
     i_bg = 0
     cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[bg%d]; " % (i, i_bg, gap, gap, i_bg)
     cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg+1, gap, gap, i_bg+1)
