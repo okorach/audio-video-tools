@@ -55,8 +55,8 @@ class ImageFile(media.MediaFile):
         self.get_specs()
         if self.width is None or self.height is None:
             stream = self.get_stream_by_codec('codec_name', 'mjpeg')
-            self.width = find_width_from_stream(self, stream)
-            self.height = find_height_from_stream(self, stream)
+            self.width = self.find_width_from_stream(stream)
+            self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.debug(5, "Returning %d x %d" % (self.width, self.height))
@@ -96,11 +96,6 @@ def rescale(image_file, width, height, out_file = None):
     cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
     util.run_os_cmd(cmd)
 
-    return out_file
-    stream = ffmpeg.input(image_file)
-    stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
-    stream = ffmpeg.output(stream, out_file)
-    ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
     return out_file
 
 def stack(file1, file2, direction, out_file = None):
@@ -177,13 +172,11 @@ def posterize(files, posterfile=None, background_color="black"):
     gap=96
     i_bg = 0
     cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[bg%d]; " % (i, i_bg, gap, gap, i_bg)
-    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
+    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg+1, gap, gap, i_bg+1)
     i_bg = i_bg+1
-    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
+    cmplx = cmplx + "[bg%d][pip%d]overlay=%d:main_h-overlay_h-%d[bg%d]; " % (i_bg, i_bg+1, gap, gap, i_bg+1)
     i_bg = i_bg+1
-    cmplx = cmplx + "[bg%d][pip%d]overlay=%d:main_h-overlay_h-%d[bg%d]; " % (i_bg, i_bg, gap, gap, i_bg+1)
-    i_bg = i_bg+1
-    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:main_h-overlay_h-%d" % (i_bg, i_bg, gap, gap)
+    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:main_h-overlay_h-%d" % (i_bg, i_bg+1, gap, gap)
  
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
