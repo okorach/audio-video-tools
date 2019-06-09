@@ -91,11 +91,49 @@ class ImageFile(media.MediaFile):
         self.get_image_specs()
         return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
+
+    def crop(self, width, height, left, right, out_file = None):
+        util.debug(3, "%s(->%s, %d, %d, %d, %d)" % ('crop', self.filename, width, height, left, right))
+        if out_file is None:
+            out_file = util.add_postfix(self.filename, "crop.%dx%d" % (width, height))
+    
+        # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
+        cmd = "%s -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
+        util.run_os_cmd(cmd)
+
+    def crop_square(self, align = "center", out_file = None):
+        w, h = self.get_dimensions()
+        if w > h:
+            crop_w = h
+            crop_h = h
+        else:
+            crop_w = w
+            crop_h = w
+        
+        if align == 'left':
+            x = 0
+            y = 0
+        elif align == 'right':
+            if w > h:
+                x = w - h
+                y = 0
+            else:
+                x = 0
+                y = h - w
+        else:
+            if w > h:
+                x = (w - h)//2
+                y = 0
+            else:
+                x = 0
+                y = (h - w)//2
+        self.crop(crop_w, crop_h, x, y, out_file)
+
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
     if out_file is None:
-        out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
+        out_file = util.add_postfix(image_file, "scale.%dx%d" % (width, height))
     
     cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
     util.run_os_cmd(cmd)
@@ -223,6 +261,94 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
         for icol in range(cols):
             x = gap+icol*(min_w+gap)
             y = gap+irow*(min_h+gap)
+            if irow == 0 and icol == 0:
+                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
+                    (i, i_photo, x, y, i_photo)
+            elif irow == rows-1 and icol == cols-1:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
+                    (i_photo-1, i_photo, x, y)
+            else:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
+                    (i_photo-1, i_photo, x, y, i_photo)
+            i_photo = i_photo+1
+ 
+    if posterfile is None:
+        posterfile = util.add_postfix(files[0], "poster")
+    cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
+    util.run_os_cmd(cmd, False)
+    for i in range(len(files)):
+        os.remove("pip%d.tmp.jpg" % i)
+    os.remove(tmpbg)
+    return posterfile
+
+
+def posterize2(files, posterfile=None, **kwargs):
+    cmd = util.get_ffmpeg()
+    i = 0
+    cmplx = ''
+    try:
+        rescaling = kwargs['rescaling']
+    except KeyError:
+        rescaling = 'max'
+    
+    if rescaling == 'min':
+        img_h = min_height(files)
+        img_w = min_width(files)
+    elif rescaling == 'avg':
+        img_h = avg_height(files)
+        img_w = avg_width(files)
+    elif rescaling == 'square':
+        img_h = max_height(files)
+        img_w = max_width(files)
+    else:
+        img_h = max_height(files)
+        img_w = max_width(files)
+    util.debug(2, "Max W x H = %d x %d" % (img_w, img_h))
+    for file in files:
+        tmpfile = "pip%d.tmp.jpg" % i
+        rescale(file, img_w, img_h, tmpfile)
+        cmd = cmd + " -i " + tmpfile
+        cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+        i = i+1
+
+    try:
+        margin = kwargs['margin']
+    except KeyError:
+        margin = 5
+
+    gap = (img_w * margin) // 100
+    squares = []
+    n_minus_1 = []
+    for k in range(9):
+        n = k+2
+        squares.append(n**2)
+        n_minus_1.append(n**2-n)
+    util.debug(3, squares)
+    nb_files = len(files)
+    util.debug(3, "%d files to posterize" % nb_files)
+    if nb_files in squares:
+        cols = int(math.sqrt(nb_files))
+        rows = cols 
+    elif nb_files in n_minus_1:
+        cols = int(round(math.sqrt(nb_files)))
+        rows = cols+1
+
+    full_w = (cols*img_w) + (cols+1)*gap
+    full_h = (rows*img_h) + (rows+1)*gap
+
+    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (img_w, img_h, gap, cols, rows, full_w, full_h))
+    if 'background_color' in kwargs and kwargs['background_color'] == "white":
+        bgfile = "white-square.jpg"
+    else:
+        bgfile = "black-square.jpg"
+    tmpbg = "bg.tmp.jpg"
+    rescale(bgfile, full_w, full_h, tmpbg)
+
+    i_photo = 0
+    for irow in range(rows):
+        for icol in range(cols):
+            x = gap+icol*(img_w+gap)
+            y = gap+irow*(img_h+gap)
             if irow == 0 and icol == 0:
                 cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
                     (i, i_photo, x, y, i_photo)
