@@ -98,7 +98,7 @@ def rescale(image_file, width, height, out_file = None):
         out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
     
     cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
-    util.run_os_cmd(cmd, False)
+    util.run_os_cmd(cmd)
 
     return out_file
 
@@ -211,8 +211,12 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     full_h = (rows*min_h) + (rows+1)*gap
 
     util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (min_w, min_h, gap, cols, rows, full_w, full_h))
+    if background_color == "white":
+        bgfile = "white-square.jpg"
+    else:
+        bgfile = "black-square.jpg"
     tmpbg = "bg.tmp.jpg"
-    rescale("black-square.jpg", full_w, full_h, tmpbg)
+    rescale(bgfile, full_w, full_h, tmpbg)
 
     i_photo = 0
     for irow in range(rows):
