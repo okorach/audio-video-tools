@@ -98,7 +98,7 @@ def rescale(image_file, width, height, out_file = None):
         out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
     
     cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
-    util.run_os_cmd(cmd)
+    util.run_os_cmd(cmd, False)
 
     return out_file
 
@@ -144,27 +144,45 @@ def stack(file1, file2, direction, out_file = None):
         os.remove(tmpfile2)
     return out_file
 
-def min_height(files):
-    val = 2**32-1
+def get_widths(files):
+    values = []
     for file in files:
-        obj = ImageFile(file)
-        val = min(obj.get_height(), val)
-    return val
+        values.append(ImageFile(file).get_width())
+    return values
+
+def get_heights(files):
+    values = []
+    for file in files:
+        values.append(ImageFile(file).get_height())
+    return values
+
+def min_height(files):
+    return min(get_heights(files))
 
 def min_width(files):
-    val = 2**32-1
-    for file in files:
-        obj = ImageFile(file)
-        val = min(obj.get_width(), val)
-    return val
+    return min(get_widths(files))
+
+def max_height(files):
+    return max(get_heights(files))
+
+def max_width(files):
+    return max(get_widths(files))
+
+def avg_height(files):
+    values = get_heights(files)
+    return sum(values)//len(values)
+
+def avg_width(files):
+    values = get_widths(files)
+    return sum(values)//len(values)
 
 def posterize(files, posterfile=None, background_color="black", margin=5):
     cmd = util.get_ffmpeg()
     i = 0
     cmplx = ''
-    min_h = min_height(files)
-    min_w = min_width(files)
-    util.debug(2, "Min W x H = %d x %d" % (min_w, min_h))
+    min_h = max_height(files)
+    min_w = max_width(files)
+    util.debug(2, "Max W x H = %d x %d" % (min_w, min_h))
     for file in files:
         tmpfile = "pip%d.tmp.jpg" % i
         rescale(file, min_w, min_h, tmpfile)
@@ -172,13 +190,14 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
         cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
         i = i+1
 
-    tmpbg = "bg.tmp.jpg"
     gap = (min_w * margin) // 100
-    squares = [4, 9, 16, 25, 36, 49, 64, 81, 100]
+    squares = []
     n_minus_1 = []
-    for n in squares:
-        n_minus_1.append(n-math.sqrt(n))
-
+    for k in range(9):
+        n = k+2
+        squares.append(n**2)
+        n_minus_1.append(n**2-n)
+    util.debug(3, squares)
     nb_files = len(files)
     util.debug(3, "%d files to posterize" % nb_files)
     if nb_files in squares:
@@ -192,6 +211,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     full_h = (rows*min_h) + (rows+1)*gap
 
     util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (min_w, min_h, gap, cols, rows, full_w, full_h))
+    tmpbg = "bg.tmp.jpg"
     rescale("black-square.jpg", full_w, full_h, tmpbg)
 
     i_photo = 0
