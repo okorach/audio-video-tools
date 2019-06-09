@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3
 
 import os
+import math
 import ffmpeg
 import mediatools.utilities as util
 import mediatools.mediafile as media
@@ -40,6 +41,7 @@ class ImageFile(media.MediaFile):
                     util.debug(5, 'Tag %s found' % tag)
                     self.width = stream[tag]
                     break
+        util.debug(5, 'Returning image width %d' % self.width)
         return self.width
 
     def find_height_from_stream(self, stream):
@@ -49,6 +51,7 @@ class ImageFile(media.MediaFile):
                     util.debug(5, 'Tag %s found' % tag)
                     self.height = stream[tag]
                     break
+        util.debug(5, 'Returning image height %d' % self.height)
         return self.height
 
     def get_dimensions(self):
@@ -59,12 +62,13 @@ class ImageFile(media.MediaFile):
             self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
-        util.debug(5, "Returning %d x %d" % (self.width, self.height))
+        util.debug(5, "Returning dimensions %d x %d" % (self.width, self.height))
         return [self.width, self.height]
 
     def get_width(self):
         if self.width is None:
             _, _ = self.get_dimensions()
+        util.debug(5, "Returning image Width = %d" % self.width)
         return self.width
 
     def get_height(self):
@@ -160,6 +164,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     cmplx = ''
     min_h = min_height(files)
     min_w = min_width(files)
+    util.debug(2, "Min W x H = %d x %d" % (min_w, min_h))
     for file in files:
         tmpfile = "pip%d.tmp.jpg" % i
         rescale(file, min_w, min_h, tmpfile)
@@ -169,23 +174,46 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
 
     tmpbg = "bg.tmp.jpg"
     gap = (min_w * margin) // 100
-    full_w = 2 * min_w + 3 * gap
-    full_h = 2 * min_h + 3 * gap
-    util.debug(2, "W x H = %d x %d / Gap = %d => Full W x H = %d x %d" % (min_w, min_h, gap, full_w, full_h))
+    squares = [4, 9, 16, 25, 36, 49, 64, 81, 100]
+    n_minus_1 = []
+    for n in squares:
+        n_minus_1.append(n-math.sqrt(n))
+
+    nb_files = len(files)
+    util.debug(3, "%d files to posterize" % nb_files)
+    if nb_files in squares:
+        cols = int(math.sqrt(nb_files))
+        rows = cols 
+    elif nb_files in n_minus_1:
+        cols = int(round(math.sqrt(nb_files)))
+        rows = cols+1
+
+    full_w = (cols*min_w) + (cols+1)*gap
+    full_h = (rows*min_h) + (rows+1)*gap
+
+    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (min_w, min_h, gap, cols, rows, full_w, full_h))
     rescale("black-square.jpg", full_w, full_h, tmpbg)
 
-    i_bg = 0
-    cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[bg%d]; " % (i, i_bg, gap, gap, i_bg)
-    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:%d[bg%d]; " % (i_bg, i_bg+1, gap, gap, i_bg+1)
-    i_bg = i_bg+1
-    cmplx = cmplx + "[bg%d][pip%d]overlay=%d:main_h-overlay_h-%d[bg%d]; " % (i_bg, i_bg+1, gap, gap, i_bg+1)
-    i_bg = i_bg+1
-    cmplx = cmplx + "[bg%d][pip%d]overlay=main_w-overlay_w-%d:main_h-overlay_h-%d" % (i_bg, i_bg+1, gap, gap)
+    i_photo = 0
+    for irow in range(rows):
+        for icol in range(cols):
+            x = gap+icol*(min_w+gap)
+            y = gap+irow*(min_h+gap)
+            if irow == 0 and icol == 0:
+                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
+                    (i, i_photo, x, y, i_photo)
+            elif irow == rows-1 and icol == cols-1:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
+                    (i_photo-1, i_photo, x, y)
+            else:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
+                    (i_photo-1, i_photo, x, y, i_photo)
+            i_photo = i_photo+1
  
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
     cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
-    util.run_os_cmd(cmd)
+    util.run_os_cmd(cmd, False)
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
