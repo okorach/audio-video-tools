@@ -1,0 +1,1 @@
+encode.py -i %1 -p 2mbps --vwidth 1280 -g 5
