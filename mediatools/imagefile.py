@@ -78,12 +78,12 @@ class ImageFile(media.MediaFile):
         return self.height
 
     def get_image_specs(self):
-        util.debug(2, "Getting image specs")
+        util.debug(5, "Getting image specs")
         _, _ = self.get_dimensions()
         for stream in self.specs['streams']:
             if stream['codec_name'] == 'mjpeg':
                 try:
-                    util.debug(2, "Found stream %s" % str(stream))
+                    util.debug(5, "Found stream %s" % str(stream))
                     self.format = stream['codec_name']
                 except KeyError as e:
                     util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
@@ -99,7 +99,7 @@ class ImageFile(media.MediaFile):
             out_file = util.add_postfix(self.filename, "crop.%dx%d" % (width, height))
     
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
-        cmd = "%s -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
+        cmd = "%s -y -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
         util.run_os_cmd(cmd)
 
     def crop_any(self, width_height_ratio = "1.5", align = "center", out_file = None):
@@ -132,6 +132,40 @@ class ImageFile(media.MediaFile):
                 x = (w-crop_w)//2
 
         self.crop(crop_w, crop_h, x, y, out_file)
+    
+    def blindify(self, nbr_blinds = 10 , blinds_size_pct = 5, background_color = "black", out_file = None):
+        w, h = self.get_dimensions()
+        blinds_height = h * blinds_size_pct // 100
+        if background_color == "white":
+            bgfile = "white-square.jpg"
+        else:
+            bgfile = "black-square.jpg"
+        tmpbg = "bg.tmp.jpg"
+        rescale(bgfile, w, blinds_height, tmpbg)
+        crop_h = h // nbr_blinds
+        slicefile = "slice.jpg"
+
+        temp_files = [ tmpbg, slicefile]
+        n = 0
+        for islice in range(nbr_blinds):
+            self.crop(w, crop_h, 0, islice*crop_h, slicefile)
+            if islice == 0:
+                stack(slicefile, tmpbg, 'vertical', "window_blinds.%d.jpg" % n)
+            elif islice == (nbr_blinds - 1):
+                if out_file is None:
+                    out_file = util.add_postfix(self.filename, "blinds")
+                stack("window_blinds.%d.jpg" % n, slicefile, 'vertical', out_file)
+            else:
+                stack("window_blinds.%d.jpg" % n, slicefile, 'vertical', "window_blinds.%d.jpg" % (n+1))
+                temp_files.append("window_blinds.%d.jpg" % n)
+                n = n+1
+                stack("window_blinds.%d.jpg" % n, tmpbg, 'vertical', "window_blinds.%d.jpg" % (n+1))
+                temp_files.append("window_blinds.%d.jpg" % n)
+                n = n+1
+        for f in temp_files:
+            os.remove(f)           
+
+            
 
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
@@ -152,10 +186,8 @@ def stack(file1, file2, direction, out_file = None):
         raise media.FileTypeError('File %s is not an image file' % file2) 
     if out_file is None:
         out_file = util.add_postfix(file1, "stacked")
-    o_file1 = ImageFile(file1)
-    o_file2 = ImageFile(file2)
-    w1, h1 = o_file1.get_dimensions()
-    w2, h2 = o_file2.get_dimensions()
+    w1, h1 = ImageFile(file1).get_dimensions()
+    w2, h2 = ImageFile(file2).get_dimensions()
     tmpfile1 = file1
     tmpfile2 = file2
     util.debug(5, "Images dimensions: %d x %d and %d x %d" % (w1, h1, w2, h2))
@@ -163,7 +195,7 @@ def stack(file1, file2, direction, out_file = None):
         filter = 'hstack'
         if h1 > h2:
             new_w2 = w2 * h1 // h2
-            tmpfile2 = rescale(file2, new_w2, h1, )
+            tmpfile2 = rescale(file2, new_w2, h1)
         elif h2 > h1:
             new_w1 = w1 * h2 // h1
             tmpfile1 = rescale(file1, new_w1, h2)
@@ -178,7 +210,7 @@ def stack(file1, file2, direction, out_file = None):
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
-    cmd = '%s -i "%s" -i "%s" -filter_complex %s "%s"' % (util.get_ffmpeg(), tmpfile1, tmpfile2, filter, out_file)
+    cmd = '%s -y -i "%s" -i "%s" -filter_complex %s "%s"' % (util.get_ffmpeg(), tmpfile1, tmpfile2, filter, out_file)
     util.run_os_cmd(cmd)
     if tmpfile1 is not file1:
         os.remove(tmpfile1)
