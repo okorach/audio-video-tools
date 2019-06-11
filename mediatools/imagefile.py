@@ -2,6 +2,7 @@
 
 import os
 import math
+import re
 import ffmpeg
 import mediatools.utilities as util
 import mediatools.mediafile as media
@@ -101,32 +102,35 @@ class ImageFile(media.MediaFile):
         cmd = "%s -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
         util.run_os_cmd(cmd)
 
-    def crop_square(self, align = "center", out_file = None):
+    def crop_any(self, width_height_ratio = "1.5", align = "center", out_file = None):
+        if re.match(r"^\d+:\d+$", width_height_ratio):
+            a, b = re.split(r':', width_height_ratio)
+            ratio = float(a)/float(b)
+        else:
+            ratio = float(width_height_ratio)
+
         w, h = self.get_dimensions()
-        if w > h:
-            crop_w = h
-            crop_h = h
+        current_ratio = w / h
+        crop_w = w
+        crop_h = h
+        if current_ratio > ratio:
+            crop_w = h * ratio 
         else:
-            crop_w = w
-            crop_h = w
+            crop_h = w // ratio
         
-        if align == 'left':
-            x = 0
-            y = 0
-        elif align == 'right':
-            if w > h:
-                x = w - h
-                y = 0
+        x = 0
+        y = 0
+        if align == 'right':
+            if ratio > current_ratio:
+                y = h-crop_h
             else:
-                x = 0
-                y = h - w
-        else:
-            if w > h:
-                x = (w - h)//2
-                y = 0
+                x = w-crop_w
+        elif align == 'center':
+            if ratio > current_ratio:
+                y = (h-crop_h)//2
             else:
-                x = 0
-                y = (h - w)//2
+                x = (w-crop_w)//2
+
         self.crop(crop_w, crop_h, x, y, out_file)
 
 def rescale(image_file, width, height, out_file = None):
@@ -235,7 +239,6 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
         n = k+2
         squares.append(n**2)
         n_minus_1.append(n**2-n)
-    util.debug(3, squares)
     nb_files = len(files)
     util.debug(3, "%d files to posterize" % nb_files)
     if nb_files in squares:
@@ -275,7 +278,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
     cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
-    util.run_os_cmd(cmd, False)
+    util.run_os_cmd(cmd)
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
@@ -363,7 +366,7 @@ def posterize2(files, posterfile=None, **kwargs):
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
     cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
-    util.run_os_cmd(cmd, False)
+    util.run_os_cmd(cmd)
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
