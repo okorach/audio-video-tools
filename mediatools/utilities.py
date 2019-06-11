@@ -144,9 +144,9 @@ def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
     return props['binaries.ffprobe']
 
-def run_os_cmd(cmd, quiet=True):
-    if (quiet):
-        cmd = cmd + " 1>/dev/null 2>&1"
+def run_os_cmd(cmd):
+    if (DEBUG_LEVEL < 2):
+        cmd = cmd + " 1>>mediatools.log 2>&1"
     debug(1, "Running: %s" % cmd)
     os.system(cmd)
 
