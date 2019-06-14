@@ -131,42 +131,41 @@ class ImageFile(media.MediaFile):
             else:
                 x = (w-crop_w)//2
 
-        self.crop(crop_w, crop_h, x, y, out_file)
-    
-    def blindify(self, nbr_blinds = 10 , blinds_size_pct = 5, background_color = "black", out_file = None):
+        self.crop(crop_w, crop_h, x, y, out_file)          
+
+    def blindify(self, nbr_blinds = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
         w, h = self.get_dimensions()
-        blinds_height = h * blinds_size_pct // 100
-        if background_color == "white":
-            bgfile = "white-square.jpg"
+        if direction == 'horizontal':
+            tmpbg = get_square(background_color, w * blinds_size_pct // 100, h)
         else:
-            bgfile = "black-square.jpg"
-        tmpbg = "bg.tmp.jpg"
-        rescale(bgfile, w, blinds_height, tmpbg)
+            tmpbg = get_square(background_color, w, h * blinds_size_pct // 100)
+
+        crop_w = w // nbr_blinds
         crop_h = h // nbr_blinds
         slicefile = "slice.jpg"
 
-        temp_files = [ tmpbg, slicefile]
+        temp_files = [tmpbg, slicefile]
         n = 0
         for islice in range(nbr_blinds):
-            self.crop(w, crop_h, 0, islice*crop_h, slicefile)
+            if direction == 'horizontal':
+                self.crop(crop_w, h, islice*crop_w, 0, slicefile)
+            else:
+                self.crop(w, crop_h, 0, islice*crop_h, slicefile)
             if islice == 0:
-                stack(slicefile, tmpbg, 'vertical', "window_blinds.%d.jpg" % n)
+                stack(slicefile, tmpbg, direction, "window_blinds.%d.jpg" % n)
             elif islice == (nbr_blinds - 1):
                 if out_file is None:
                     out_file = util.add_postfix(self.filename, "blinds")
-                stack("window_blinds.%d.jpg" % n, slicefile, 'vertical', out_file)
+                stack("window_blinds.%d.jpg" % n, slicefile, direction, out_file)
             else:
-                stack("window_blinds.%d.jpg" % n, slicefile, 'vertical', "window_blinds.%d.jpg" % (n+1))
+                stack("window_blinds.%d.jpg" % n, slicefile, direction, "window_blinds.%d.jpg" % (n+1))
                 temp_files.append("window_blinds.%d.jpg" % n)
                 n = n+1
-                stack("window_blinds.%d.jpg" % n, tmpbg, 'vertical', "window_blinds.%d.jpg" % (n+1))
+                stack("window_blinds.%d.jpg" % n, tmpbg, direction, "window_blinds.%d.jpg" % (n+1))
                 temp_files.append("window_blinds.%d.jpg" % n)
                 n = n+1
         for f in temp_files:
-            os.remove(f)           
-
-            
-
+            os.remove(f)               
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
@@ -177,6 +176,15 @@ def rescale(image_file, width, height, out_file = None):
     util.run_os_cmd(cmd)
 
     return out_file
+
+def get_square(color, w, h):
+    if color == "white":
+        bgfile = "white-square.jpg"
+    else:
+        bgfile = "black-square.jpg"
+    tmpbg = "bg.tmp.jpg"
+    rescale(bgfile, w, h, tmpbg)
+    return tmpbg
 
 def stack(file1, file2, direction, out_file = None):
     util.debug(1, "stack(%s, %s, %s, _)" % (file1, file2, direction))
