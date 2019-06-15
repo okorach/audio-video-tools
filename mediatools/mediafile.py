@@ -205,60 +205,6 @@ def cmdline_options(**kwargs):
             pass
     return params
 
-def encode(source_file, target_file, profile, **kwargs):
-    if target_file is None:
-        target_file = build_target_file(source_file, profile)
-
-    stream = ffmpeg.input(source_file)
-    parms = util.get_profile_params(profile)
-    parms.update(cmdline_options(**kwargs))
-
-    # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
-    # vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop),
-    # s=getSize(myprop), r=getFrameRate(myprop)  )
-    stream = ffmpeg.output(stream, target_file, **parms)
-    # -qscale:v 3  is **{'qscale:v': 3}
-    stream = ffmpeg.overwrite_output(stream)
-    util.debug(2, ffmpeg.get_args(stream))
-    util.debug(1, "%s --> %s" % (source_file, target_file))
-    try:
-        ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error as e:
-        print(e.stderr) #, file=sys.stderr)
-        sys.exit(1)
-
-def encode_album_art(source_file, album_art_file, **kwargs):
-    """Encodes album art image in an audio file after optionally resizing"""
-    # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
-    target_file = util.add_postfix(source_file, 'album_art')
-
-    if kwargs['scale'] is not None:
-        w, h = re.split("x", kwargs['scale'])
-        album_art_file = rescale(source_file, w, h)
-        delete_aa_file = True
-
-    # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3
-    # -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" %1.mp3
-    cmd = util.get_ffmpeg() + ' -i "' + source_file + '" -i "' + album_art_file \
-        + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
-        + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
-        + '"' + target_file + '"'
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
-    shutil.copy(target_file, source_file)
-    os.remove(target_file)
-    if delete_aa_file:
-        os.remove(album_art_file)
-
-def rescale(image_file, width, height, out_file=None):
-    if out_file is None:
-        out_file = util.add_postfix(image_file, "%dx%d" % (width, height))
-    stream = ffmpeg.input(image_file)
-    stream = ffmpeg.filter_(stream, 'scale', size= "%d:%d" % (width, height))
-    stream = ffmpeg.output(stream, out_file)
-    ffmpeg.run(stream, cmd=util.get_ffmpeg(), capture_stdout=True, capture_stderr=True)
-    return out_file
-
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
     return "-filter:v crop=%d:%d:%d:%d" % (width, height, top, left)
@@ -401,18 +347,14 @@ def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
 #  -map "[v]" -map "[a]" output.mkv
-    properties = util.get_media_properties()
-    cmd = properties['binaries.ffmpeg']
     util.debug(2, str(file_list))
-    for file in file_list:
-        cmd = cmd + (' -i "%s" ' % file)
     count = 0
+    cmd = util.build_ffmpeg_file_list(file_list)
     cmd = cmd + '-filter_complex "'
-    for file in file_list:
-        cmd = cmd + ("[%d:v] [%d:a]" % (count, count))
-        count = count + 1
-    cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (count, target_file)
-    util.run_os_cmd(cmd)
+    for i in range(len(file_list)):
+        cmd = cmd + ('[%d:v] [%d:a] ' % (i, i))
+    cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (len(file_list), target_file)
+    util.run_ffmpeg(cmd)
 
 def build_ffmpeg_options(options):
     cmd = ''

@@ -106,12 +106,8 @@ def encode_album_art(source_file, album_art_file, **kwargs):
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
     # -metadata:s:v comment="Cover (Front)" %1.mp3
-    cmd = util.get_ffmpeg() + ' -i "' + source_file + '" -i "' + album_art_file \
-        + '" -map 0:0 -map 1:0 -c copy -id3v2_version 3 ' \
-        + ' -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" ' \
-        + '"' + target_file + '"'
-    util.debug(1, "Running %s" % cmd)
-    os.system(cmd)
+    util.run_ffmpeg('-i "%s" -i "%s"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" "%s"' % \
+        (source_file, album_art_file, target_file))
     shutil.copy(target_file, source_file)
     os.remove(target_file)
     if delete_aa_file:
