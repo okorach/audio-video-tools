@@ -150,6 +150,21 @@ def run_os_cmd(cmd):
     debug(1, "Running: %s" % cmd)
     os.system(cmd)
 
+def run_ffmpeg(params):
+    run_os_cmd("%s %s" % get_ffmpeg, params)
+
+def build_ffmpeg_file_list(filelist):
+    s = ''
+    for f in filelist:
+        s = s + " -i %s" % f
+    return s
+
+def build_ffmpeg_complex_prep(filelist):
+    s = ''
+    for i in range(len(filelist)):
+        s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+    return s
+
 def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
     global DEFAULT_PROPERTIES_FILE
