@@ -93,26 +93,25 @@ class ImageFile(media.MediaFile):
         return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
 
-    def crop(self, width, height, left, right, out_file = None):
-        util.debug(3, "%s(->%s, %d, %d, %d, %d)" % ('crop', self.filename, width, height, left, right))
+    def crop(self, w, h, x, y, out_file = None):
+        util.debug(3, "%s(->%s, %d, %d, %d, %d)" % ('crop', self.filename, w, h, x, y))
         if out_file is None:
-            out_file = util.add_postfix(self.filename, "crop.%dx%d" % (width, height))
+            out_file = util.add_postfix(self.filename, "crop.%dx%d" % (w, h))
     
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
-        cmd = "%s -y -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
-        util.run_os_cmd(cmd)
+        util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
 
     def slice(self, nbr_slices, direction = 'vertical', slice_pattern = 'slice'):
         w, h = self.get_dimensions()
-        crop_w = w // nbr_slices
-        crop_h = h // nbr_slices
+        slice_w = w // nbr_slices
+        slice_h = h // nbr_slices
         slices = []
         for i in range(nbr_slices):
             slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
             if direction == 'horizontal':
-                self.crop(crop_w, h, i*crop_w, 0, slicefile)
+                self.crop(w, slice_h, 0, i * slice_h, slicefile)
             else:
-                self.crop(w, crop_h, 0, i*crop_h, slicefile)
+                self.crop(slice_w, h, i*slice_w, 0, slicefile)
             slices.append(slicefile)
         return slices
 
@@ -145,50 +144,112 @@ class ImageFile(media.MediaFile):
             else:
                 x = (w-crop_w)//2
 
-        self.crop(crop_w, crop_h, x, y, out_file)          
+        self.crop(crop_w, crop_h, x, y, out_file)
 
-    def blindify(self, nbr_blinds = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
         w, h = self.get_dimensions()
-        slices = self.slice(nbr_blinds, direction)
+        
+        w_gap = w * blinds_size_pct // 100
+        h_gap = h * blinds_size_pct // 100
+        
         if direction == 'horizontal':
-            tmpbg = get_square(background_color, w * blinds_size_pct // 100, h)
+            tmpbg = get_rectangle(background_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
         else:
-            tmpbg = get_square(background_color, w, h * blinds_size_pct // 100)
+            tmpbg = get_rectangle(background_color, (w//nbr_slices*nbr_slices) + w_gap*(nbr_slices-1), h)
+
+        # ffmpeg -i file1.jpg -i file2.jpg -i bg.tmp.jpg \
+        # -filter_complex "[0]scale=iw:-1:flags=lanczos[pip0]; \
+        # [1]scale=iw:-1:flags=lanczos[pip1]; \
+        # [8]scale=iw:-1:flags=lanczos[pip8]; \
+        # [9][pip0]overlay=204:204[step0] ; \
+        # [step0][pip1]overlay=2456:204[step1]; \
+        # [step7][pip8]overlay=4708:3374" outfile.jpg
+
+        slices = self.slice(nbr_slices, direction)
+        filelist = util.build_ffmpeg_file_list(slices)
+        filelist = filelist + ' -i "%s"' % tmpbg
+        cmplx = util.build_ffmpeg_complex_prep(slices)
+
+        i = 0
+        cmplx = ''
+        for slicefile in slices:
+            cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+            i = i + 1
+
+        step = 0
+        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (i, step)
+        first_slice = slices.pop(0)
+        j = 0
+        x = 0
+        y = 0
+        for slicefile in slices:
+            if direction == 'horizontal':
+                y = (j+1) * (h // nbr_slices + h_gap)
+            else:
+                x = (j+1) * (w // nbr_slices + w_gap)
+            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            if slicefile != slices[len(slices)-1]:
+                cmplx = cmplx + '[step%d]; ' % (j+1)
+            j = j+1
 
         if out_file is None:
-            out_file = util.add_postfix(self.filename, "blinds")
-        blind_pattern = "window_blinds.%d.jpg"
-
-        temp_files = [tmpbg]
-        n = 0
-        for slicefile in slices:
-            if slicefile == slices[0]:
-                stack(slicefile, tmpbg, direction, blind_pattern % n)
-            elif slicefile == slices[len(slices)-1]:
-                stack(blind_pattern % n, slicefile, direction, out_file)
-            else:
-                stack(blind_pattern % n, slicefile, direction, blind_pattern % (n+1))
-                temp_files.append(blind_pattern % n)
-                n = n+1
-                stack(blind_pattern % n, tmpbg, direction, blind_pattern % (n+1))
-                temp_files.append(blind_pattern % n)
-                n = n+1
-            os.remove(slicefile)
-        for f in temp_files:
+            out_file = util.add_postfix(self.filename, "blind")
+        util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
+        for f in slices:
             os.remove(f)
+        os.remove(first_slice)
+        os.remove(tmpbg)
+
+    def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+        w, h = self.get_dimensions()
+        w_jitter = w * shake_pct // 100
+        h_jitter = h * shake_pct // 100
+        if direction == 'horizontal':
+            tmpbg = get_rectangle(background_color, w + w_jitter, h)
+        else:
+            tmpbg = get_rectangle(background_color, w, h + h_jitter)
+ 
+        slices = self.slice(nbr_slices, direction)
+        filelist = util.build_ffmpeg_file_list(slices)
+        filelist = filelist + ' -i "%s"' % tmpbg
+        cmplx = util.build_ffmpeg_complex_prep(slices)
+        
+        step = 0
+        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (len(slices), step)
+        first_slice = slices.pop(0)
+        n_slices = len(slices)
+        x = 0
+        y = 0
+        for j in range(n_slices):
+            if direction == 'horizontal':
+                x = w_jitter - x
+                y = (j+1) * (h // nbr_slices)
+            else:
+                x = (j+1) * (w // nbr_slices)
+                y = h_jitter - y
+            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            if j < n_slices-1:
+                cmplx = cmplx + '[step%d]; ' % (j+1)
+            j = j+1
+        
+        if out_file is None:
+            out_file = util.add_postfix(self.filename, "shake")
+        util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
+        for f in slices:
+            os.remove(f)
+        os.remove(first_slice)
+        os.remove(tmpbg)
+        return out_file
           
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
     if out_file is None:
         out_file = util.add_postfix(image_file, "scale.%dx%d" % (width, height))
-    
-    cmd = "%s -i %s -vf scale=%d:%d %s" % (util.get_ffmpeg(), image_file, width, height, out_file)
-    util.run_os_cmd(cmd)
-
+    util.run_ffmpeg('-i "%s" -vf scale=%d:%d "%s"' % (image_file, width, height, out_file))
     return out_file
 
-def get_square(color, w, h):
+def get_rectangle(color, w, h):
     if color == "white":
         bgfile = "white-square.jpg"
     else:
@@ -229,8 +290,7 @@ def stack(file1, file2, direction, out_file = None):
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
-    cmd = '%s -y -i "%s" -i "%s" -filter_complex %s "%s"' % (util.get_ffmpeg(), tmpfile1, tmpfile2, filter, out_file)
-    util.run_os_cmd(cmd)
+    util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter, out_file))
     if tmpfile1 is not file1:
         os.remove(tmpfile1)
     if tmpfile2 is not file2:
@@ -272,16 +332,11 @@ def avg_width(files):
 def posterize(files, posterfile=None, background_color="black", margin=5):
     cmd = util.get_ffmpeg()
     i = 0
-    cmplx = ''
     min_h = max_height(files)
     min_w = max_width(files)
     util.debug(2, "Max W x H = %d x %d" % (min_w, min_h))
-    for file in files:
-        tmpfile = "pip%d.tmp.jpg" % i
-        rescale(file, min_w, min_h, tmpfile)
-        cmd = cmd + " -i " + tmpfile
-        cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
-        i = i+1
+    cmd = util.build_ffmpeg_file_list(files)
+    cmplx = util.build_ffmpeg_complex_prep(files)
 
     gap = (min_w * margin) // 100
     squares = []
@@ -328,18 +383,14 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
  
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
-    cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
-    util.run_os_cmd(cmd)
+    util.run_ffmpeg('%s -i "%s" -filter_complex "%s" "%s"' % (cmd, tmpbg, cmplx, posterfile))
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
     return posterfile
 
-
 def posterize2(files, posterfile=None, **kwargs):
-    cmd = util.get_ffmpeg()
     i = 0
-    cmplx = ''
     try:
         rescaling = kwargs['rescaling']
     except KeyError:
@@ -358,13 +409,9 @@ def posterize2(files, posterfile=None, **kwargs):
         img_h = max_height(files)
         img_w = max_width(files)
     util.debug(2, "Max W x H = %d x %d" % (img_w, img_h))
-    for file in files:
-        tmpfile = "pip%d.tmp.jpg" % i
-        rescale(file, img_w, img_h, tmpfile)
-        cmd = cmd + " -i " + tmpfile
-        cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
-        i = i+1
 
+    file_list = util.build_ffmpeg_file_list(files)
+    cmplx = util.build_ffmpeg_complex_prep(files)
     try:
         margin = kwargs['margin']
     except KeyError:
@@ -397,6 +444,7 @@ def posterize2(files, posterfile=None, **kwargs):
         bgfile = "black-square.jpg"
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
+    file_list = file_list + '-i "%s"' % tmpbg
 
     i_photo = 0
     for irow in range(rows):
@@ -416,8 +464,8 @@ def posterize2(files, posterfile=None, **kwargs):
  
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
-    cmd = cmd + ' -i %s -filter_complex "%s" %s' % (tmpbg, cmplx, posterfile)
-    util.run_os_cmd(cmd)
+    util.run_ffmpeg('%s -filter_complex "%s" "%s"' % (file_list, cmplx, posterfile))
+
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
