@@ -102,6 +102,20 @@ class ImageFile(media.MediaFile):
         cmd = "%s -y -i %s -vf crop=%d:%d:%d:%d %s" % (util.get_ffmpeg(), self.filename, width, height, left, right, out_file)
         util.run_os_cmd(cmd)
 
+    def slice(self, nbr_slices, direction = 'vertical', slice_pattern = 'slice'):
+        w, h = self.get_dimensions()
+        crop_w = w // nbr_slices
+        crop_h = h // nbr_slices
+        slices = []
+        for i in range(nbr_slices):
+            slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
+            if direction == 'horizontal':
+                self.crop(crop_w, h, i*crop_w, 0, slicefile)
+            else:
+                self.crop(w, crop_h, 0, i*crop_h, slicefile)
+            slices.append(slicefile)
+        return slices
+
     def crop_any(self, width_height_ratio = "1.5", align = "center", out_file = None):
         if re.match(r"^\d+:\d+$", width_height_ratio):
             a, b = re.split(r':', width_height_ratio)
@@ -135,37 +149,37 @@ class ImageFile(media.MediaFile):
 
     def blindify(self, nbr_blinds = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
         w, h = self.get_dimensions()
+        slices = self.slice(nbr_blinds, direction)
         if direction == 'horizontal':
             tmpbg = get_square(background_color, w * blinds_size_pct // 100, h)
         else:
             tmpbg = get_square(background_color, w, h * blinds_size_pct // 100)
 
+        if out_file is None:
+            out_file = util.add_postfix(self.filename, "blinds")
+
         crop_w = w // nbr_blinds
         crop_h = h // nbr_blinds
-        slicefile = "slice.jpg"
+        blind_pattern = "window_blinds.%d.jpg"
 
-        temp_files = [tmpbg, slicefile]
+        temp_files = [tmpbg]
         n = 0
-        for islice in range(nbr_blinds):
-            if direction == 'horizontal':
-                self.crop(crop_w, h, islice*crop_w, 0, slicefile)
+        for slicefile in slices:
+            if slicefile == slices[0]:
+                stack(slicefile, tmpbg, direction, blind_pattern % n)
+            elif slicefile == slices[len(slices)-1]:
+                stack(blind_pattern % n, slicefile, direction, out_file)
             else:
-                self.crop(w, crop_h, 0, islice*crop_h, slicefile)
-            if islice == 0:
-                stack(slicefile, tmpbg, direction, "window_blinds.%d.jpg" % n)
-            elif islice == (nbr_blinds - 1):
-                if out_file is None:
-                    out_file = util.add_postfix(self.filename, "blinds")
-                stack("window_blinds.%d.jpg" % n, slicefile, direction, out_file)
-            else:
-                stack("window_blinds.%d.jpg" % n, slicefile, direction, "window_blinds.%d.jpg" % (n+1))
-                temp_files.append("window_blinds.%d.jpg" % n)
+                stack(blind_pattern % n, slicefile, direction, blind_pattern % (n+1))
+                temp_files.append(blind_pattern % n)
                 n = n+1
-                stack("window_blinds.%d.jpg" % n, tmpbg, direction, "window_blinds.%d.jpg" % (n+1))
-                temp_files.append("window_blinds.%d.jpg" % n)
+                stack(blind_pattern % n, tmpbg, direction, blind_pattern % (n+1))
+                temp_files.append(blind_pattern % n)
                 n = n+1
+            os.remove(slicefile)
         for f in temp_files:
-            os.remove(f)               
+            os.remove(f)
+          
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
