@@ -157,9 +157,6 @@ class ImageFile(media.MediaFile):
 
         if out_file is None:
             out_file = util.add_postfix(self.filename, "blinds")
-
-        crop_w = w // nbr_blinds
-        crop_h = h // nbr_blinds
         blind_pattern = "window_blinds.%d.jpg"
 
         temp_files = [tmpbg]
