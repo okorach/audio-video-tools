@@ -151,7 +151,7 @@ def run_os_cmd(cmd):
     os.system(cmd)
 
 def run_ffmpeg(params):
-    run_os_cmd("%s %s" % get_ffmpeg, params)
+    run_os_cmd("%s -y %s" % (get_ffmpeg(), params))
 
 def build_ffmpeg_file_list(filelist):
     s = ''
