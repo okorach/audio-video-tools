@@ -4,6 +4,7 @@ import os
 import math
 import re
 import ffmpeg
+import random
 import mediatools.utilities as util
 import mediatools.mediafile as media
 
@@ -222,11 +223,13 @@ class ImageFile(media.MediaFile):
         y = 0
         for j in range(n_slices):
             if direction == 'horizontal':
-                x = w_jitter - x
+                # x = w_jitter - x
+                x = random.randint(1, w_jitter)
                 y = (j+1) * (h // nbr_slices)
             else:
                 x = (j+1) * (w // nbr_slices)
-                y = h_jitter - y
+                y = random.randint(1, h_jitter)
+                #y = h_jitter - y
             cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
             if j < n_slices-1:
                 cmplx = cmplx + '[step%d]; ' % (j+1)
