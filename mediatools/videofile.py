@@ -232,12 +232,25 @@ class VideoFile(media.MediaFile):
         if out_file is None:
             out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
         if 'aspect' not in kwargs:
-            aw, ah = re.split(":", reduce_aspect_ratio(width, height))
+            aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
         else:
             aw, ah = re.split(":", kwargs['aspect'])
         cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
-            media.build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
+            media.build_ffmpeg_options(parms), media.get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
+        util.run_os_cmd(cmd)
+        return out_file
+
+    def cut(self, start, end, out_file = None, **kwargs):
+        parms = self.get_ffmpeg_params()
+        clean_options = util.cleanup_options(kwargs)
+        parms.update(media.cmdline_options(**clean_options))
+        parms['start'] = start
+        parms['end'] = end
+
+        util.debug(1, "Cmd line settings = %s" % str(parms))
+        cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), self.filename, \
+            media.build_ffmpeg_options(parms), out_file)
         util.run_os_cmd(cmd)
         return out_file
 
