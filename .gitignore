@@ -20,3 +20,6 @@ nytprof.out
 /_eumm/
 *.pyc
 .vscode/
+*.jpg
+*.png
+*.mp4
