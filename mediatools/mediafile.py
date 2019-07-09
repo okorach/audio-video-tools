@@ -260,13 +260,9 @@ def get_audio_specs(stream):
 
 def get_video_bitrate(stream):
     bitrate = None
-    try:
-        bitrate = stream['bit_rate']
-    except KeyError:
-        try:
-            bitrate = stream['duration_ts']
-        except KeyError:
-            pass
+    bitrate = stream.get('bit_rate', None)
+    if bitrate is None:
+        bitrate = stream.get('duration_ts', None)
     return bitrate
 
 def get_video_specs(stream):
@@ -281,9 +277,8 @@ def get_video_specs(stream):
     specs['duration_hms'] = to_hms_str(stream['duration'])
     raw_fps = stream['avg_frame_rate'] if 'avg_frame_rate' in stream.keys() else stream['r_frame_rate']
     specs['video_fps'] = compute_fps(raw_fps)
-    try:
-        specs['video_aspect_ratio'] = stream['display_aspect_ratio']
-    except KeyError:
+    specs['video_aspect_ratio'] = stream.get('display_aspect_ratio', None)
+    if specs['video_aspect_ratio'] is None:
         specs['video_aspect_ratio'] = reduce_aspect_ratio(specs['width'], specs['height'])
     return specs
 
