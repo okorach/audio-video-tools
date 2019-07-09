@@ -45,5 +45,5 @@ while len(sys.argv) > 0:
 for directory in dir_list:
     dir_poster(directory, bg, margin)
 
-if len(file_list) > 0:
+if file_list != False:
     filelist_poster(file_list, bg, margin)

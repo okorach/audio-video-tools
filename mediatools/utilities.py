@@ -28,14 +28,14 @@ OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
    'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'vsize':FFMPEG_SIZE_OPTION, \
    'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannel':FFMPEG_ACHANNEL_OPTION, \
-   'vfilter':FFMPEG_VFILTER_OPTION,
+   'vfilter':FFMPEG_VFILTER_OPTION, \
    'start': FFMPEG_START_OPTION, 'stop': FFMPEG_STOP_OPTION }
 
 LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
-if platform.system() is 'Windows':
+if platform.system() == 'Windows':
     DEFAULT_PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
 else:
     DEFAULT_PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
@@ -160,7 +160,7 @@ def get_first_value(a_dict, key_list):
     return None
 
 def run_os_cmd(cmd):
-    if (DEBUG_LEVEL < 2):
+    if DEBUG_LEVEL < 2:
         cmd = cmd + " 1>>mediatools.log 2>&1"
     debug(1, "Running: %s" % cmd)
     os.system(cmd)
@@ -168,15 +168,15 @@ def run_os_cmd(cmd):
 def run_ffmpeg(params):
     run_os_cmd("%s -y %s" % (get_ffmpeg(), params))
 
-def build_ffmpeg_file_list(filelist):
+def build_ffmpeg_file_list(file_list):
     s = ''
-    for f in filelist:
+    for f in file_list:
         s = s + " -i %s" % f
     return s
 
-def build_ffmpeg_complex_prep(filelist):
+def build_ffmpeg_complex_prep(file_list):
     s = ''
-    for i in range(len(filelist)):
+    for i in range(len(file_list)):
         s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
     return s
 
@@ -187,7 +187,7 @@ def get_media_properties(props_file = None):
     global PROPERTIES_VALUES
     if props_file is None:
         props_file = DEFAULT_PROPERTIES_FILE
-    if props_file == PROPERTIES_FILE and PROPERTIES_VALUES is not {}:
+    if props_file == PROPERTIES_FILE and PROPERTIES_VALUES != {}:
         return PROPERTIES_VALUES
     PROPERTIES_FILE = props_file
     try:

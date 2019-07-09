@@ -154,11 +154,10 @@ class ImageFile(media.MediaFile):
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.get_dimensions()
 
-        w_gap = w * blinds_size_pct // 100
-        h_gap = h * blinds_size_pct // 100
+        w_gap = w * blinds_size_pct // 100file_list h_gap = h * blinds_size_pct // 100
 
         if direction == 'horizontal':
-            tmpbg = get_rectangle(background_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
+            tmpbg = get_rectangle(bafile_list_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
         else:
             tmpbg = get_rectangle(background_color, (w//nbr_slices*nbr_slices) + w_gap*(nbr_slices-1), h)
 
@@ -274,7 +273,7 @@ def stack(file1, file2, direction, out_file = None):
     tmpfile2 = file2
     util.debug(5, "Images dimensions: %d x %d and %d x %d" % (w1, h1, w2, h2))
     if direction == 'horizontal':
-        filter = 'hstack'
+        filter_name = 'hstack'
         if h1 > h2:
             new_w2 = w2 * h1 // h2
             tmpfile2 = rescale(file2, new_w2, h1)
@@ -282,7 +281,7 @@ def stack(file1, file2, direction, out_file = None):
             new_w1 = w1 * h2 // h1
             tmpfile1 = rescale(file1, new_w1, h2)
     else:
-        filter = 'vstack'
+        filter_name = 'vstack'
         if w1 > w2:
             new_h2 = h2 * w1 // w2
             tmpfile2 = rescale(file2, w1, new_h2)
@@ -292,7 +291,7 @@ def stack(file1, file2, direction, out_file = None):
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
-    util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter, out_file))
+    util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter_name, out_file))
     if tmpfile1 is not file1:
         os.remove(tmpfile1)
     if tmpfile2 is not file2:

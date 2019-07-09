@@ -22,6 +22,7 @@ class VideoFile(media.MediaFile):
         self.video_bitrate = None
         self.width = None
         self.height = None
+        self.pixels = None
         self.duration = None
         self.video_fps = None
         self.pixel_aspect = None
@@ -96,7 +97,7 @@ class VideoFile(media.MediaFile):
         '''Returns video file video codec'''
         util.debug(5, 'Getting video codec')
         if self.video_codec is None:
-            if stream == None:
+            if stream is None:
                 stream = self.get_video_stream()
                 util.debug(2, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
             self.video_codec = stream['codec_name']
@@ -148,7 +149,7 @@ class VideoFile(media.MediaFile):
 
     def get_fps(self, stream = None):
         if self.video_fps is None:
-            if stream == None:
+            if stream is None:
                 stream = self.get_video_stream()
                 util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
             for tag in [ 'avg_frame_rate', 'r_frame_rate']:
@@ -159,13 +160,13 @@ class VideoFile(media.MediaFile):
 
     def get_dimensions(self, stream = None):
         util.debug(5, 'Getting video dimensions')
-        if self.width is None or self.height is None and stream == None:
+        if self.width is None or self.height is None and stream is None:
             stream = self.get_video_stream()
             util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.width is None:
             self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
         if self.height is None:
-            self.height == util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
+            self.height = util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.debug(5, "Returning %s, %s" % (str(self.width), str(self.height)))
@@ -207,7 +208,7 @@ class VideoFile(media.MediaFile):
         props = self.get_properties()
         ffmpeg_parms = {}
         for key in mapping:
-            if props[key] is not None and props[key] is not '':
+            if props[key] is not None and props[key] != '':
                 ffmpeg_parms[mapping[key]] = props[key]
         return ffmpeg_parms
 
@@ -412,8 +413,7 @@ def compute_fps(rate):
     if re.match(r"^\d+\/\d+$", rate):
         a, b = re.split(r'/', rate)
         return str(round(int(a)/int(b), 1))
-    else:
-        return rate
+    return rate
 
 def reduce_aspect_ratio(aspect_ratio, height = None):
     ''' Reduces the Aspect ratio calculation in prime factors '''
@@ -458,7 +458,7 @@ def get_video_specs(stream):
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
-    if util.get_file_extension(file).lower() is not 'mp3':
+    if util.get_file_extension(file).lower() != 'mp3':
         raise media.FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
