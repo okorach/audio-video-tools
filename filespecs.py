@@ -73,7 +73,7 @@ for file in filelist:
                     if prop in UNITS:
                         divider = UNITS[prop][0]
                         unit = UNITS[prop][1]
-                        if unit is 'hms':
+                        if unit == 'hms':
                             print("%-20s : %s" % (prop, util.to_hms_str(specs[prop])))
                         else:
                             print("%-20s : %.1f %s" % (prop, (int(specs[prop])/divider), unit))
@@ -87,7 +87,7 @@ for file in filelist:
                 # CSV format
                 try:
                     print("%s;" % (str(specs[prop]) if specs[prop] is not None else ''), end='')
-                    if prop is 'duration':
+                    if prop == 'duration':
                         print("%s;" % util.to_hms_str(specs[prop]))
                 except KeyError:
                     print("%s;" % '', end='')

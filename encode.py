@@ -26,10 +26,7 @@ def encode_file(args, options):
     for video_range in re.split(',', args.timeranges):
         options['ss'], options['to'] = re.split('-', video_range)
         count += 1
-        if args.outputfile is None:
-            target_file = util.add_postfix(args.inputfile, str(count), ext)
-        else:
-            target_file = args.outputfile
+        target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         video.encodeoo(args.inputfile, target_file, args.profile, **options)
 
 def encode_dir(args, options):
@@ -59,11 +56,11 @@ def encode_dir(args, options):
     util.debug(0, '%05d/%05d : 100%% : Job finished' % (nbfiles, nbfiles))
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
-args = parser.parse_args()
-util.set_debug_level(args.debug)
-options = util.cleanup_options(vars(args))
+myargs = parser.parse_args()
+util.set_debug_level(myargs.debug)
+myoptions = util.cleanup_options(vars(myargs))
 
-if os.path.isdir(args.inputfile):
-    encode_dir(args, options)
+if os.path.isdir(myargs.inputfile):
+    encode_dir(myargs, myoptions)
 else:
-    encode_file(args, options)
+    encode_file(myargs, myoptions)

@@ -3,8 +3,9 @@
 import os
 import math
 import re
-import ffmpeg
 import random
+import ffmpeg
+
 import mediatools.utilities as util
 import mediatools.mediafile as media
 
@@ -96,9 +97,7 @@ class ImageFile(media.MediaFile):
 
     def crop(self, w, h, x, y, out_file = None):
         util.debug(3, "%s(->%s, %d, %d, %d, %d)" % ('crop', self.filename, w, h, x, y))
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "crop.%dx%d" % (w, h))
-    
+        out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
 
@@ -128,10 +127,10 @@ class ImageFile(media.MediaFile):
         crop_w = w
         crop_h = h
         if current_ratio > ratio:
-            crop_w = h * ratio 
+            crop_w = h * ratio
         else:
             crop_h = w // ratio
-        
+
         x = 0
         y = 0
         if align == 'right':
@@ -149,10 +148,10 @@ class ImageFile(media.MediaFile):
 
     def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
         w, h = self.get_dimensions()
-        
+
         w_gap = w * blinds_size_pct // 100
         h_gap = h * blinds_size_pct // 100
-        
+
         if direction == 'horizontal':
             tmpbg = get_rectangle(background_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
         else:
@@ -193,8 +192,7 @@ class ImageFile(media.MediaFile):
                 cmplx = cmplx + '[step%d]; ' % (j+1)
             j = j+1
 
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "blind")
+        out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
         for f in slices:
             os.remove(f)
@@ -209,12 +207,12 @@ class ImageFile(media.MediaFile):
             tmpbg = get_rectangle(background_color, w + w_jitter, h)
         else:
             tmpbg = get_rectangle(background_color, w, h + h_jitter)
- 
+
         slices = self.slice(nbr_slices, direction)
         filelist = util.build_ffmpeg_file_list(slices)
         filelist = filelist + ' -i "%s"' % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
-        
+
         step = 0
         cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (len(slices), step)
         first_slice = slices.pop(0)
@@ -234,7 +232,7 @@ class ImageFile(media.MediaFile):
             if j < n_slices-1:
                 cmplx = cmplx + '[step%d]; ' % (j+1)
             j = j+1
-        
+
         if out_file is None:
             out_file = util.add_postfix(self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
@@ -243,12 +241,11 @@ class ImageFile(media.MediaFile):
         os.remove(first_slice)
         os.remove(tmpbg)
         return out_file
-          
+
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
-    if out_file is None:
-        out_file = util.add_postfix(image_file, "scale.%dx%d" % (width, height))
+    out_file = util.automatic_output_file_name(out_file, image_file, "scale-%dx%d" % (width, height))
     util.run_ffmpeg('-i "%s" -vf scale=%d:%d "%s"' % (image_file, width, height, out_file))
     return out_file
 
@@ -266,9 +263,8 @@ def stack(file1, file2, direction, out_file = None):
     if not util.is_image_file(file1):
         raise media.FileTypeError('File %s is not an image file' % file1)
     if not util.is_image_file(file2):
-        raise media.FileTypeError('File %s is not an image file' % file2) 
-    if out_file is None:
-        out_file = util.add_postfix(file1, "stacked")
+        raise media.FileTypeError('File %s is not an image file' % file2)
+    out_file = util.automatic_output_file_name(out_file, file1, "stacked")
     w1, h1 = ImageFile(file1).get_dimensions()
     w2, h2 = ImageFile(file2).get_dimensions()
     tmpfile1 = file1
@@ -352,7 +348,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     util.debug(3, "%d files to posterize" % nb_files)
     if nb_files in squares:
         cols = int(math.sqrt(nb_files))
-        rows = cols 
+        rows = cols
     elif nb_files in n_minus_1:
         cols = int(round(math.sqrt(nb_files)))
         rows = cols+1
@@ -383,9 +379,8 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
                 cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
                     (i_photo-1, i_photo, x, y, i_photo)
             i_photo = i_photo+1
- 
-    if posterfile is None:
-        posterfile = util.add_postfix(files[0], "poster")
+
+    posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
     util.run_ffmpeg('%s -i "%s" -filter_complex "%s" "%s"' % (cmd, tmpbg, cmplx, posterfile))
     for i in range(len(files)):
         os.remove("pip%d.tmp.jpg" % i)
@@ -398,7 +393,7 @@ def posterize2(files, posterfile=None, **kwargs):
         rescaling = kwargs['rescaling']
     except KeyError:
         rescaling = 'max'
-    
+
     if rescaling == 'min':
         img_h = min_height(files)
         img_w = min_width(files)
@@ -432,7 +427,7 @@ def posterize2(files, posterfile=None, **kwargs):
     util.debug(3, "%d files to posterize" % nb_files)
     if nb_files in squares:
         cols = int(math.sqrt(nb_files))
-        rows = cols 
+        rows = cols
     elif nb_files in n_minus_1:
         cols = int(round(math.sqrt(nb_files)))
         rows = cols+1
@@ -464,7 +459,7 @@ def posterize2(files, posterfile=None, **kwargs):
                 cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
                     (i_photo-1, i_photo, x, y, i_photo)
             i_photo = i_photo+1
- 
+
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
     util.run_ffmpeg('%s -filter_complex "%s" "%s"' % (file_list, cmplx, posterfile))
