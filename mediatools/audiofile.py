@@ -97,6 +97,8 @@ class AudioFile(media.MediaFile):
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
     # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
+
+    album_art_std_settings = '-metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)"'
     target_file = util.add_postfix(source_file, 'album_art')
 
     if kwargs['scale'] is not None:
@@ -106,10 +108,9 @@ def encode_album_art(source_file, album_art_file, **kwargs):
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
     # -metadata:s:v comment="Cover (Front)" %1.mp3
-    util.run_ffmpeg('-i "%s" -i "%s"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)" "%s"' % \
-        (source_file, album_art_file, target_file))
+    util.run_ffmpeg('-i "%s" -i "%s"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 %s "%s"' % \
+        (source_file, album_art_file, album_art_std_settings, target_file))
     shutil.copy(target_file, source_file)
     os.remove(target_file)
     if delete_aa_file:
         os.remove(album_art_file)
-        

@@ -357,7 +357,8 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     full_w = (cols*min_w) + (cols+1)*gap
     full_h = (rows*min_h) + (rows+1)*gap
 
-    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (min_w, min_h, gap, cols, rows, full_w, full_h))
+    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
+        (min_w, min_h, gap, cols, rows, full_w, full_h))
     if background_color == "white":
         bgfile = "white-square.jpg"
     else:
