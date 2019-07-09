@@ -20,8 +20,8 @@ FFMPEG_ASPECT_OPTION = 'aspect'
 FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
 FFMPEG_ACHANNEL_OPTION = 'ac'
 FFMPEG_VFILTER_OPTION = 'vf'
-FFMPEG_START_OPTION = '-ss'
-FFMPEG_STOP_OPTION = '-to'
+FFMPEG_START_OPTION = 'ss'
+FFMPEG_STOP_OPTION = 'to'
 
 OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
@@ -110,6 +110,12 @@ def add_postfix(file, postfix, extension = None):
     if extension is None:
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
+
+def automatic_output_file_name(outfile, infile, postfix):
+    if outfile is not None:
+        return outfile
+    postfix.replace(':', '-')
+    return add_postfix(infile, postfix)
 
 def is_audio_file(file):
     """Returns whether the file has an extension corresponding to audio files"""
