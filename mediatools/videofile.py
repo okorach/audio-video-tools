@@ -52,14 +52,12 @@ class VideoFile(media.MediaFile):
             self.duration = stream['duration']
         except KeyError as e:
             util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
-        try:
-            ar = stream['display_aspect_ratio']
-        except KeyError:
-            ar = reduce_aspect_ratio("%d:%d" % (self.width, self.height))
+        ar = stream.get('display_aspect_ratio', None)
+        if ar is None:
+            ar = "%d:%d" % (self.width, self.height)
         self.aspect = reduce_aspect_ratio(ar)
-        try:
-            par = stream['sample_aspect_ratio']
-        except KeyError:
+        par = stream.get('sample_aspect_ratio', None)
+        if par is None:
             par = reduce_aspect_ratio("%d:%d" % (self.width, self.height))
         self.pixel_aspect = reduce_aspect_ratio(par)
         return self.specs
@@ -431,18 +429,6 @@ def reduce_aspect_ratio(aspect_ratio, height = None):
             w = w // n
             h = h // n
     return "%d:%d" % (w, h)
-
-def get_audio_specs(stream):
-    specs = {}
-    specs['audio_codec'] = stream['codec_name']
-    specs['audio_sample_rate'] = stream['sample_rate']
-    try:
-        specs['duration'] = stream['duration']
-        specs['duration_hms'] = util.to_hms_str(stream['duration'])
-    except KeyError:
-        pass
-    specs['audio_bitrate'] = stream['bit_rate']
-    return specs
 
 def get_video_bitrate(stream):
     bitrate = None
