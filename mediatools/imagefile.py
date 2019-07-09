@@ -101,19 +101,33 @@ class ImageFile(media.MediaFile):
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
 
-    def slice(self, nbr_slices, direction = 'vertical', slice_pattern = 'slice'):
+    def slice_vertical(self, nbr_slices, round_to = 16, slice_pattern = 'slice'):
         w, h = self.get_dimensions()
-        slice_w = w // nbr_slices
-        slice_h = h // nbr_slices
+        slice_w = max(w // nbr_slices, round_to)
         slices = []
+        nbr_slices = min(nbr_slices, (w // slice_w)+1)
         for i in range(nbr_slices):
             slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
-            if direction == 'horizontal':
-                self.crop(w, slice_h, 0, i * slice_h, slicefile)
-            else:
-                self.crop(slice_w, h, i*slice_w, 0, slicefile)
+            self.crop(slice_w, h, i*slice_w, 0, slicefile)
             slices.append(slicefile)
         return slices
+
+    def slice_horizontal(self, nbr_slices, round_to = 16, slice_pattern = 'slice'):
+        w, h = self.get_dimensions()
+        slice_h = max(h // nbr_slices, round_to)
+        slices = []
+        nbr_slices = min(nbr_slices, (h // slice_h)+1)
+        for i in range(nbr_slices):
+            slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
+            self.crop(w, slice_h, 0, i * slice_h, slicefile)
+            slices.append(slicefile)
+        return slices
+
+    def slice(self, nbr_slices, direction = 'vertical', round_to = 16, slice_pattern = 'slice'):
+        if direction == 'horizontal':
+            return self.slice_horizontal(nbr_slices, round_to, slice_pattern)
+        else:
+            return self.slice_vertical(nbr_slices, round_to, slice_pattern)
 
     def crop_any(self, width_height_ratio = "1.5", align = "center", out_file = None):
         if re.match(r"^\d+:\d+$", width_height_ratio):
@@ -204,46 +218,70 @@ class ImageFile(media.MediaFile):
         os.remove(first_slice)
         os.remove(tmpbg)
 
-    def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    def shake_vertical(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
         w, h = self.get_dimensions()
-        w_jitter = w * shake_pct // 100
         h_jitter = h * shake_pct // 100
-        if direction == 'horizontal':
-            tmpbg = get_rectangle(background_color, w + w_jitter, h)
-        else:
-            tmpbg = get_rectangle(background_color, w, h + h_jitter)
-
-        slices = self.slice(nbr_slices, direction)
-        filelist = util.build_ffmpeg_file_list(slices)
-        filelist = filelist + ' -i "%s"' % tmpbg
+        slice_width = max(w // nbr_slices, 16)
+        slices = self.slice_vertical(nbr_slices)
+        tmpbg = get_rectangle(background_color, slice_width * (len(slices)+1), h + h_jitter)
+        filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
         step = 0
-        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (len(slices), step)
-        first_slice = slices.pop(0)
         n_slices = len(slices)
-        x = 0
-        y = 0
+        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (n_slices, step)
+        first_slice = slices.pop(0)
+
         for j in range(n_slices):
-            if direction == 'horizontal':
-                x = random.randint(1, w_jitter)
-                y = (j+1) * (h // nbr_slices)
-            else:
-                x = (j+1) * (w // nbr_slices)
-                y = random.randint(1, h_jitter)
+            x = (j+1) * slice_width
+            y = random.randint(1, h_jitter)
             cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
             if j < n_slices-1:
                 cmplx = cmplx + '[step%d]; ' % (j+1)
             j = j+1
-
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "shake")
+        out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
         for f in slices:
             os.remove(f)
         os.remove(first_slice)
         os.remove(tmpbg)
         return out_file
+
+    def shake_horizontal(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
+        w, h = self.get_dimensions()
+        w_jitter = w * shake_pct // 100
+        slice_height = max(h // nbr_slices, 16)
+        slices = self.slice_horizontal(nbr_slices)
+        tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * (len(slices)+1))
+        filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
+        cmplx = util.build_ffmpeg_complex_prep(slices)
+
+        step = 0
+        n_slices = len(slices)
+        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (n_slices, step)
+        first_slice = slices.pop(0)
+
+        for j in range(n_slices):
+            x = random.randint(1, w_jitter)
+            y = (j+1) * slice_height
+            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            if j < n_slices-1:
+                cmplx = cmplx + '[step%d]; ' % (j+1)
+            j = j+1
+
+        out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
+        util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
+        for f in slices:
+            os.remove(f)
+        os.remove(first_slice)
+        os.remove(tmpbg)
+        return out_file
+
+    def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+        if direction == 'horizontal':
+            return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
+        else:
+            return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
 def rescale(image_file, width, height, out_file = None):
     util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
