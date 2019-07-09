@@ -171,12 +171,12 @@ def run_ffmpeg(params):
 def build_ffmpeg_file_list(file_list):
     s = ''
     for f in file_list:
-        s = s + " -i %s" % f
+        s = s + ' -i "%s"' % f
     return s
 
 def build_ffmpeg_complex_prep(file_list):
     s = ''
-    for i in range(len(file_list)):
+    for i in range(len(file_list)+1):
         s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
     return s
 
@@ -219,7 +219,7 @@ def set_debug_level(level):
 def debug(level, string):
     global DEBUG_LEVEL
     if level <= DEBUG_LEVEL:
-        print(string)
+        print("DEBUG | %d | %s" % (level, string))
 
 def parse_common_args(desc):
     """Parses options common to all media encoding scripts"""

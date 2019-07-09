@@ -335,8 +335,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     min_h = max_height(files)
     min_w = max_width(files)
     util.debug(2, "Max W x H = %d x %d" % (min_w, min_h))
-    cmd = util.build_ffmpeg_file_list(files)
-    cmplx = util.build_ffmpeg_complex_prep(files)
+
 
     gap = (min_w * margin) // 100
     squares = []
@@ -366,13 +365,13 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
 
-    cmplx = cmplx + __build_filtercomplex(rows, cols, gap, min_w, min_h)
+    file_list = util.build_ffmpeg_file_list(files)
+
+    cmplx = util.build_ffmpeg_complex_prep(files)
+    cmplx = cmplx + __build_poster_fcomplex(rows, cols, gap, min_w, min_h)
 
     posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
-    util.run_ffmpeg('%s -i "%s" -filter_complex "%s" "%s"' % (cmd, tmpbg, cmplx, posterfile))
-    for i in range(len(files)):
-        os.remove("pip%d.tmp.jpg" % i)
-    os.remove(tmpbg)
+    util.run_ffmpeg('-i "%s" %s -filter_complex "%s" "%s"' % (tmpbg, file_list, cmplx, posterfile))
     return posterfile
 
 def posterize2(files, posterfile=None, **kwargs):
@@ -422,7 +421,7 @@ def posterize2(files, posterfile=None, **kwargs):
     rescale(bgfile, full_w, full_h, tmpbg)
     file_list = file_list + '-i "%s"' % tmpbg
 
-    cmplx = cmplx + __build_filtercomplex(rows, cols, gap, img_w, img_h)
+    cmplx = cmplx + __build_poster_fcomplex(rows, cols, gap, img_w, img_h)
 
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
@@ -433,15 +432,15 @@ def posterize2(files, posterfile=None, **kwargs):
     os.remove(tmpbg)
     return posterfile
 
-def __build_filtercomplex(rows, cols, gap, img_w, img_h):
-    i_photo = 0
+def __build_poster_fcomplex(rows, cols, gap, img_w, img_h):
+    i_photo = 1
     cmplx = ''
     for irow in range(rows):
         for icol in range(cols):
             x = gap+icol*(img_w+gap)
             y = gap+irow*(img_h+gap)
             if irow == 0 and icol == 0:
-                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
+                cmplx = cmplx + "[pip%d][pip%d]overlay=%d:%d[step%d] " % \
                     (0, i_photo, x, y, i_photo)
             elif irow == rows-1 and icol == cols-1:
                 cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
