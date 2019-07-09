@@ -37,7 +37,7 @@ class AudioFile(media.MediaFile):
 
     def get_tags(self):
         from mp3_tagger import MP3File
-        if util.get_file_extension(self.filename).lower() is not 'mp3':
+        if util.get_file_extension(self.filename).lower() != 'mp3':
             raise media.FileTypeError('File %s is not an mp3 file')
             # Create MP3File instance.
         mp3 = MP3File(self.filename)
@@ -112,3 +112,4 @@ def encode_album_art(source_file, album_art_file, **kwargs):
     os.remove(target_file)
     if delete_aa_file:
         os.remove(album_art_file)
+        

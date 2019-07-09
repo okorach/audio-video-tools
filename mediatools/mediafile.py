@@ -34,27 +34,27 @@ class Encoder:
         '''Set Encoder properties according to ffmpeg conventions'''
         params = util.get_cmdline_params(props)
         for param in params:
-            if param is util.FFMPEG_FORMAT_OPTION:
+            if param == util.FFMPEG_FORMAT_OPTION:
                 self.format = params[param]
-            elif param is util.FFMPEG_VBITRATE_OPTION:
+            elif param == util.FFMPEG_VBITRATE_OPTION:
                 self.vbitrate = params[param]
-            elif param is util.FFMPEG_VCODEC_OPTION:
+            elif param == util.FFMPEG_VCODEC_OPTION:
                 self.vcodec = params[param]
-            elif param is util.FFMPEG_ABITRATE_OPTION:
+            elif param == util.FFMPEG_ABITRATE_OPTION:
                 self.abitrate = params[param]
-            elif param is util.FFMPEG_ACODEC_OPTION:
+            elif param == util.FFMPEG_ACODEC_OPTION:
                 self.acodec = params[param]
-            elif param is util.FFMPEG_DEINTERLACE_OPTION:
+            elif param == util.FFMPEG_DEINTERLACE_OPTION:
                 self.deinterlace = ''
-            elif param is util.FFMPEG_FPS_OPTION:
+            elif param == util.FFMPEG_FPS_OPTION:
                 self.fps = params[param]
-            elif param is util.FFMPEG_SIZE_OPTION:
+            elif param == util.FFMPEG_SIZE_OPTION:
                 self.size = params[param]
-            elif param is util.FFMPEG_ASPECT_OPTION:
+            elif param == util.FFMPEG_ASPECT_OPTION:
                 self.aspect = params[param]
-            elif param is util.FFMPEG_ACHANNELS_OPTION:
+            elif param == util.FFMPEG_ACHANNEL_OPTION:
                 self.achannels = params[param]
-            elif param is util.FFMPEG_VFILTER_OPTION:
+            elif param == util.FFMPEG_VFILTER_OPTION:
                 self.vfilters.update({util.FFMPEG_VFILTER_OPTION:params[param]})
 
     def set_vcodec(self, vcodec):

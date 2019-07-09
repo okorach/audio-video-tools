@@ -153,6 +153,12 @@ def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
     return props['binaries.ffprobe']
 
+def get_first_value(a_dict, key_list):
+    for tag in key_list:
+        if tag in a_dict:
+            return a_dict[tag]
+    return None
+
 def run_os_cmd(cmd):
     if (DEBUG_LEVEL < 2):
         cmd = cmd + " 1>>mediatools.log 2>&1"
@@ -229,11 +235,11 @@ def parse_common_args(desc):
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
-    
+
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
     parser.add_argument('--start', required=False, help='Start time')
     parser.add_argument('--stop', required=False, help='Stop time')
-    
+
     parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
     parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
