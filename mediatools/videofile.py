@@ -67,18 +67,19 @@ class VideoFile(media.MediaFile):
     def get_audio_specs(self):
         '''Returns video file audio specs as dict'''
         for stream in self.specs['streams']:
-            if stream['codec_type'] == 'audio':
-                if 'codec_name' in stream:
-                    self.audio_codec = stream['codec_name']
-                if 'bit_rate' in stream:
-                    self.audio_bitrate = stream['bit_rate']
-                if 'sample_rate' in stream:
-                    self.audio_sample_rate = stream['sample_rate']
-                if 'tags' in stream and 'language' in stream['tags']:
-                    self.audio_language = stream['tags']['language']
-                    if self.audio_language in util.LANGUAGE_MAPPING:
-                        self.audio_language = util.LANGUAGE_MAPPING[self.audio_language]
-                break
+            if stream['codec_type'] != 'audio':
+                continue
+            if 'codec_name' in stream:
+                self.audio_codec = stream['codec_name']
+            if 'bit_rate' in stream:
+                self.audio_bitrate = stream['bit_rate']
+            if 'sample_rate' in stream:
+                self.audio_sample_rate = stream['sample_rate']
+            if 'tags' in stream and 'language' in stream['tags']:
+                self.audio_language = stream['tags']['language']
+                if self.audio_language in util.LANGUAGE_MAPPING:
+                    self.audio_language = util.LANGUAGE_MAPPING[self.audio_language]
+            break
         return self.specs
 
     def get_aspect_ratio(self):
@@ -160,26 +161,18 @@ class VideoFile(media.MediaFile):
 
     def get_dimensions(self, stream = None):
         util.debug(5, 'Getting video dimensions')
-        if self.width is None or self.height is None:
-            if stream == None:
-                stream = self.get_video_stream()
-                util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+        if self.width is None or self.height is None and stream == None:
+            stream = self.get_video_stream()
+            util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.width is None:
-            for tag in [ 'width', 'codec_width', 'coded_width']:
-                if tag in stream:
-                    self.width = stream[tag]
-                    break
+            self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
         if self.height is None:
-            for tag in [ 'height', 'codec_height', 'coded_height']:
-                if tag in stream:
-                    self.height = stream[tag]
-                    break
+            self.height == util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.debug(5, "Returning %s, %s" % (str(self.width), str(self.height)))
         return [self.width, self.height]
 
-        
     def get_audio_properties(self):
         if self.audio_codec is None:
             self.get_specs()
@@ -386,7 +379,7 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     util.debug(2, "Profile settings = %s" % str(parms))
     parms.update(media.cmdline_options(**kwargs))
     util.debug(2, "Cmd line settings = %s" % str(parms))
-    
+
     # Hack for channels selection
     if 'achannels' in kwargs and kwargs['achannels'] is not None:
         mapping = "-map 0:v:0"
@@ -394,7 +387,7 @@ def encodeoo(source_file, target_file, profile, **kwargs):
             mapping += " -map 0:a:%s" % channel
     else:
         mapping = ""
-    
+
     util.run_ffmpeg('-i "%s" %s %s "%s"' % (source_file, media.build_ffmpeg_options(parms), mapping, target_file))
 
 def get_crop_filter_options(width, height, top, left):

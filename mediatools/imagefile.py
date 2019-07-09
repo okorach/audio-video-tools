@@ -329,8 +329,6 @@ def avg_width(files):
     return sum(values)//len(values)
 
 def posterize(files, posterfile=None, background_color="black", margin=5):
-    cmd = util.get_ffmpeg()
-    i = 0
     min_h = max_height(files)
     min_w = max_width(files)
     util.debug(2, "Max W x H = %d x %d" % (min_w, min_h))
@@ -364,21 +362,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
 
-    i_photo = 0
-    for irow in range(rows):
-        for icol in range(cols):
-            x = gap+icol*(min_w+gap)
-            y = gap+irow*(min_h+gap)
-            if irow == 0 and icol == 0:
-                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
-                    (i, i_photo, x, y, i_photo)
-            elif irow == rows-1 and icol == cols-1:
-                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
-                    (i_photo-1, i_photo, x, y)
-            else:
-                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
-                    (i_photo-1, i_photo, x, y, i_photo)
-            i_photo = i_photo+1
+    cmplx = cmplx + __build_pip(rows, cols, gap, min_w, min_h)
 
     posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
     util.run_ffmpeg('%s -i "%s" -filter_complex "%s" "%s"' % (cmd, tmpbg, cmplx, posterfile))
@@ -388,7 +372,6 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     return posterfile
 
 def posterize2(files, posterfile=None, **kwargs):
-    i = 0
     try:
         rescaling = kwargs['rescaling']
     except KeyError:
@@ -444,21 +427,7 @@ def posterize2(files, posterfile=None, **kwargs):
     rescale(bgfile, full_w, full_h, tmpbg)
     file_list = file_list + '-i "%s"' % tmpbg
 
-    i_photo = 0
-    for irow in range(rows):
-        for icol in range(cols):
-            x = gap+icol*(img_w+gap)
-            y = gap+irow*(img_h+gap)
-            if irow == 0 and icol == 0:
-                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
-                    (i, i_photo, x, y, i_photo)
-            elif irow == rows-1 and icol == cols-1:
-                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
-                    (i_photo-1, i_photo, x, y)
-            else:
-                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
-                    (i_photo-1, i_photo, x, y, i_photo)
-            i_photo = i_photo+1
+    cmplx = cmplx + __build_pip(rows, cols, gap, img_w, img_h)
 
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
@@ -468,3 +437,22 @@ def posterize2(files, posterfile=None, **kwargs):
         os.remove("pip%d.tmp.jpg" % i)
     os.remove(tmpbg)
     return posterfile
+
+def __build_pip(rows, cols, gap, img_w, img_h):
+    i_photo = 0
+    cmplx = ''
+    for irow in range(rows):
+        for icol in range(cols):
+            x = gap+icol*(img_w+gap)
+            y = gap+irow*(img_h+gap)
+            if irow == 0 and icol == 0:
+                cmplx = cmplx + "[%d][pip%d]overlay=%d:%d[step%d] " % \
+                    (0, i_photo, x, y, i_photo)
+            elif irow == rows-1 and icol == cols-1:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d" % \
+                    (i_photo-1, i_photo, x, y)
+            else:
+                cmplx = cmplx + "; [step%d][pip%d]overlay=%d:%d[step%d]" % \
+                    (i_photo-1, i_photo, x, y, i_photo)
+            i_photo = i_photo+1
+    return cmplx
