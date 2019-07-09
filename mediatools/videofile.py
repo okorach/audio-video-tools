@@ -360,7 +360,7 @@ def encode(source_file, target_file, profile, **kwargs):
     try:
         ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
-        print(e.message) # , file=sys.stderr)
+        print(e.stderr, file=sys.stderr)
         sys.exit(1)
 
 def encodeoo(source_file, target_file, profile, **kwargs):

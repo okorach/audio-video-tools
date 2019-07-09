@@ -348,7 +348,6 @@ def concat(target_file, file_list):
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
 #  -map "[v]" -map "[a]" output.mkv
     util.debug(2, str(file_list))
-    count = 0
     cmd = util.build_ffmpeg_file_list(file_list)
     cmd = cmd + '-filter_complex "'
     for i in range(len(file_list)):
