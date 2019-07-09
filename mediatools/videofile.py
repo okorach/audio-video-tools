@@ -229,8 +229,7 @@ class VideoFile(media.MediaFile):
         clean_options = util.cleanup_options(kwargs)
         parms.update(media.cmdline_options(**clean_options))
         util.debug(1, "Cmd line settings = %s" % str(parms))
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
         if 'aspect' not in kwargs:
             aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
         else:
@@ -241,15 +240,14 @@ class VideoFile(media.MediaFile):
         util.run_os_cmd(cmd)
         return out_file
 
-    def cut(self, start, end, out_file = None, **kwargs):
+    def cut(self, start, stop, out_file = None, **kwargs):
         parms = self.get_ffmpeg_params()
+        kwargs['start'] = start
+        kwargs['stop'] = stop
         parms.update(media.cmdline_options(**kwargs))
-        parms['ss'] = start
-        parms['to'] = end
 
         util.debug(1, "Cmd line settings = %s" % str(parms))
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "cut")
+        out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
         cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), self.filename, \
             media.build_ffmpeg_options(parms), out_file)
         util.run_os_cmd(cmd)
