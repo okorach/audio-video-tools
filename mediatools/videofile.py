@@ -208,7 +208,7 @@ class VideoFile(media.MediaFile):
             parms.update(util.get_cmdline_params(kwargs['profile']))
         util.debug(1, "Profile settings = %s" % str(parms))
         clean_options = util.cleanup_options(**kwargs)
-        parms.update(cmdline_options(**clean_options))
+        parms.update(media.cmdline_options(**clean_options))
         util.debug(1, "Cmd line settings = %s" % str(parms))
 
     def get_ffmpeg_params(self):
@@ -227,17 +227,29 @@ class VideoFile(media.MediaFile):
         ''' Applies crop video filter for width x height pixels '''
         parms = self.get_ffmpeg_params()
         clean_options = util.cleanup_options(kwargs)
-        parms.update(cmdline_options(**clean_options))
+        parms.update(media.cmdline_options(**clean_options))
         util.debug(1, "Cmd line settings = %s" % str(parms))
-        if out_file is None:
-            out_file = util.add_postfix(self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
         if 'aspect' not in kwargs:
-            aw, ah = re.split(":", reduce_aspect_ratio(width, height))
+            aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
         else:
             aw, ah = re.split(":", kwargs['aspect'])
         cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
-            media.build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
+            media.build_ffmpeg_options(parms), media.get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
+        util.run_os_cmd(cmd)
+        return out_file
+
+    def cut(self, start, stop, out_file = None, **kwargs):
+        parms = self.get_ffmpeg_params()
+        kwargs['start'] = start
+        kwargs['stop'] = stop
+        parms.update(media.cmdline_options(**kwargs))
+
+        util.debug(1, "Cmd line settings = %s" % str(parms))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
+        cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), self.filename, \
+            media.build_ffmpeg_options(parms), out_file)
         util.run_os_cmd(cmd)
         return out_file
 
@@ -246,7 +258,7 @@ class VideoFile(media.MediaFile):
         parms = self.get_ffmpeg_params()
         clean_options = util.cleanup_options(kwargs)
         parms.update({'deinterlace':'', 'aspect':self.get_aspect_ratio()})
-        parms.update(cmdline_options(**clean_options))
+        parms.update(media.cmdline_options(**clean_options))
 
         if out_file is None or 'nocrop' in kwargs:
             output_file = util.add_postfix(self.filename, "deshake_%dx%d" % (width, height))
@@ -335,27 +347,6 @@ def build_target_file(source_file, profile, properties):
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
 
-def cmdline_options(**kwargs):
-    # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
-    util.debug(2, 'Building cmd line options from %s' % str(kwargs))
-    if kwargs is None:
-        return {}
-    params = {}
-    for key in util.OPTIONS_MAPPING:
-        util.debug(5, "Checking option %s" % key)
-        try:
-            if kwargs[key] is not None:
-                util.debug(5, "Found in cmd line with value %s" % kwargs[key])
-                params[util.OPTIONS_MAPPING[key]] = kwargs[key]
-        except KeyError:
-            pass
-    # Special for timerange
-    for key in util.OPTIONS_VERBATIM:
-        if key in kwargs:
-            params[key] = kwargs[key]
-
-    return params
-
 def encode(source_file, target_file, profile, **kwargs):
     properties = util.get_media_properties()
     if target_file is None:
@@ -363,7 +354,7 @@ def encode(source_file, target_file, profile, **kwargs):
 
     stream = ffmpeg.input(source_file)
     parms = util.get_profile_params(profile)
-    parms.update(cmdline_options(**kwargs))
+    parms.update(media.cmdline_options(**kwargs))
 
     # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
     # vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop),
@@ -393,7 +384,7 @@ def encodeoo(source_file, target_file, profile, **kwargs):
 
     parms.update(util.get_cmdline_params(profile_options))
     util.debug(2, "Profile settings = %s" % str(parms))
-    parms.update(cmdline_options(**kwargs))
+    parms.update(media.cmdline_options(**kwargs))
     util.debug(2, "Cmd line settings = %s" % str(parms))
     
     # Hack for channels selection
