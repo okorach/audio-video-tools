@@ -24,7 +24,7 @@ class ImageFile(media.MediaFile):
 
     def get_properties(self):
         self.get_specs()
-        # self.specs = media.get_file_specs(self.filename)
+        # NOSONAR self.specs = media.get_file_specs(self.filename)
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
         util.debug(1, "Returning image props %s" % str(all_props))
@@ -146,7 +146,12 @@ class ImageFile(media.MediaFile):
 
         self.crop(crop_w, crop_h, x, y, out_file)
 
-    def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    # def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    def blindify(self, out_file = None, **kwargs):
+        nbr_slices = kwargs.pop('slices', 10)
+        blinds_size_pct = kwargs.pop('blinds_ratio', 3)
+        background_color = kwargs.pop('background_color', 'black')
+        direction = kwargs.pop('direction', 'vertical')
         w, h = self.get_dimensions()
 
         w_gap = w * blinds_size_pct // 100
@@ -221,13 +226,11 @@ class ImageFile(media.MediaFile):
         y = 0
         for j in range(n_slices):
             if direction == 'horizontal':
-                # x = w_jitter - x
                 x = random.randint(1, w_jitter)
                 y = (j+1) * (h // nbr_slices)
             else:
                 x = (j+1) * (w // nbr_slices)
                 y = random.randint(1, h_jitter)
-                #y = h_jitter - y
             cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
             if j < n_slices-1:
                 cmplx = cmplx + '[step%d]; ' % (j+1)
@@ -362,7 +365,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
 
-    cmplx = cmplx + __build_pip(rows, cols, gap, min_w, min_h)
+    cmplx = cmplx + __build_filtercomplex(rows, cols, gap, min_w, min_h)
 
     posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
     util.run_ffmpeg('%s -i "%s" -filter_complex "%s" "%s"' % (cmd, tmpbg, cmplx, posterfile))
@@ -393,10 +396,7 @@ def posterize2(files, posterfile=None, **kwargs):
 
     file_list = util.build_ffmpeg_file_list(files)
     cmplx = util.build_ffmpeg_complex_prep(files)
-    try:
-        margin = kwargs['margin']
-    except KeyError:
-        margin = 5
+    margin = kwargs.pop('margin', 5)
 
     gap = (img_w * margin) // 100
     squares = []
@@ -419,15 +419,12 @@ def posterize2(files, posterfile=None, **kwargs):
     full_h = (rows*img_h) + (rows+1)*gap
 
     util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (img_w, img_h, gap, cols, rows, full_w, full_h))
-    if 'background_color' in kwargs and kwargs['background_color'] == "white":
-        bgfile = "white-square.jpg"
-    else:
-        bgfile = "black-square.jpg"
+    bgfile = "%s-square.jpg" % kwargs.pop('background_color', 'black')
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
     file_list = file_list + '-i "%s"' % tmpbg
 
-    cmplx = cmplx + __build_pip(rows, cols, gap, img_w, img_h)
+    cmplx = cmplx + __build_filtercomplex(rows, cols, gap, img_w, img_h)
 
     if posterfile is None:
         posterfile = util.add_postfix(files[0], "poster")
@@ -438,7 +435,7 @@ def posterize2(files, posterfile=None, **kwargs):
     os.remove(tmpbg)
     return posterfile
 
-def __build_pip(rows, cols, gap, img_w, img_h):
+def __build_filtercomplex(rows, cols, gap, img_w, img_h):
     i_photo = 0
     cmplx = ''
     for irow in range(rows):
