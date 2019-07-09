@@ -235,10 +235,10 @@ class VideoFile(media.MediaFile):
             aw, ah = re.split(":", reduce_aspect_ratio(width, height))
         else:
             aw, ah = re.split(":", kwargs['aspect'])
-        cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
+        cmd = '-i "%s" %s %s -aspect %d:%d "%s"' % (self.filename, \
             media.build_ffmpeg_options(parms), get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
-        util.run_os_cmd(cmd)
+        util.run_ffmpeg(cmd)
         return out_file
 
     def deshake(self, width, height, out_file, **kwargs):
@@ -252,9 +252,9 @@ class VideoFile(media.MediaFile):
             output_file = util.add_postfix(self.filename, "deshake_%dx%d" % (width, height))
         else:
             output_file = out_file
-        cmd = '%s -i "%s" %s %s "%s"' % (util.get_ffmpeg(), self.filename, \
+        cmd = '-i "%s" %s %s "%s"' % (self.filename, \
             media.build_ffmpeg_options(parms), get_deshake_filter_options(width, height), output_file)
-        util.run_os_cmd(cmd)
+        util.run_ffmpeg(cmd)
         if 'nocrop' not in kwargs:
             return output_file
 
@@ -404,9 +404,7 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     else:
         mapping = ""
     
-    cmd = '%s -i "%s" %s %s "%s"' % (util.get_ffmpeg(), source_file, media.build_ffmpeg_options(parms), mapping, target_file)
-    util.run_os_cmd(cmd)
-
+    util.run_ffmpeg('-i "%s" %s %s "%s"' % (source_file, media.build_ffmpeg_options(parms), mapping, target_file))
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
@@ -500,7 +498,7 @@ def get_mp3_tags(file):
 def concat(target_file, file_list):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
     util.debug(1, "%s = %s" % (target_file, ' + '.join(file_list)))
-    cmd = util.get_ffmpeg()
+    cmd = ''
     for file in file_list:
         cmd += (' -i "%s" ' % file)
     count = 0
@@ -509,4 +507,4 @@ def concat(target_file, file_list):
         cmd += ("[%d:v] [%d:a]" % (count, count))
         count += 1
     cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "%s"' % (count, target_file)
-    util.run_os_cmd(cmd)
+    util.run_ffmpeg(cmd)
