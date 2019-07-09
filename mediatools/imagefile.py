@@ -154,10 +154,11 @@ class ImageFile(media.MediaFile):
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.get_dimensions()
 
-        w_gap = w * blinds_size_pct // 100file_list h_gap = h * blinds_size_pct // 100
+        w_gap = w * blinds_size_pct // 100
+        h_gap = h * blinds_size_pct // 100
 
         if direction == 'horizontal':
-            tmpbg = get_rectangle(bafile_list_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
+            tmpbg = get_rectangle(background_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
         else:
             tmpbg = get_rectangle(background_color, (w//nbr_slices*nbr_slices) + w_gap*(nbr_slices-1), h)
 

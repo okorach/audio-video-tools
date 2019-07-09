@@ -223,6 +223,14 @@ def probe_file(file):
     else:
         raise FileTypeError('File %s is neither video, audio nor image file' % file)
 
+def compute_fps(rate):
+    ''' Simplifies the FPS calculation '''
+    util.debug(2, 'Calling compute_fps(%s)' % rate)
+    if re.match(r"^\d+\/\d+$", rate):
+        a, b = re.split(r'/', rate)
+        return str(round(int(a)/int(b), 1))
+    return rate
+
 def reduce_aspect_ratio(aspect_ratio, height=None):
     ''' Reduces the Aspect ratio calculation in prime factors '''
     if height is None:
