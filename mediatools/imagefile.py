@@ -223,7 +223,7 @@ class ImageFile(media.MediaFile):
         h_jitter = h * shake_pct // 100
         slice_width = max(w // nbr_slices, 16)
         slices = self.slice_vertical(nbr_slices)
-        tmpbg = get_rectangle(background_color, slice_width * (len(slices)+1), h + h_jitter)
+        tmpbg = get_rectangle(background_color, slice_width * len(slices), h + h_jitter)
         filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
@@ -252,7 +252,7 @@ class ImageFile(media.MediaFile):
         w_jitter = w * shake_pct // 100
         slice_height = max(h // nbr_slices, 16)
         slices = self.slice_horizontal(nbr_slices)
-        tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * (len(slices)+1))
+        tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * len(slices))
         filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
