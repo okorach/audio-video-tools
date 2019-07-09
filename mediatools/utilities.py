@@ -20,13 +20,16 @@ FFMPEG_ASPECT_OPTION = 'aspect'
 FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
 FFMPEG_ACHANNEL_OPTION = 'ac'
 FFMPEG_VFILTER_OPTION = 'vf'
+FFMPEG_START_OPTION = '-ss'
+FFMPEG_STOP_OPTION = '-to'
 
 OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
    'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
    'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
    'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'vsize':FFMPEG_SIZE_OPTION, \
    'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannel':FFMPEG_ACHANNEL_OPTION, \
-   'vfilter':FFMPEG_VFILTER_OPTION }
+   'vfilter':FFMPEG_VFILTER_OPTION,
+   'start': FFMPEG_START_OPTION, 'stop': FFMPEG_STOP_OPTION }
 
 LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
@@ -220,7 +223,11 @@ def parse_common_args(desc):
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
+    
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
+    parser.add_argument('--start', required=False, help='Start time')
+    parser.add_argument('--stop', required=False, help='Stop time')
+    
     parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
     parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
     parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
@@ -232,6 +239,15 @@ def parse_common_args(desc):
     parser.add_argument('--vwidth', required=False, help='Video width')
     parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
+
+    parser.add_argument('--croph', required=False, help='Horizontal cropping top and bottom')
+    parser.add_argument('--cropv', required=False, help='Vertical cropping left and right')
+
+    parser.add_argument('--croptop', required=False, help='Croptop')
+    parser.add_argument('--cropleft', required=False, help='Cropleft')
+    parser.add_argument('--cropbottom', required=False, help='Croptop')
+    parser.add_argument('--cropright', required=False, help='Cropleft')
+
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
     return parser
 
