@@ -111,11 +111,11 @@ def add_postfix(file, postfix, extension = None):
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
 
-def automatic_output_file_name(outfile, infile, postfix):
+def automatic_output_file_name(outfile, infile, postfix, extension = None):
     if outfile is not None:
         return outfile
     postfix.replace(':', '-')
-    return add_postfix(infile, postfix)
+    return add_postfix(infile, postfix, extension)
 
 def is_audio_file(file):
     """Returns whether the file has an extension corresponding to audio files"""
