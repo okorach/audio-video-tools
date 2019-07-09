@@ -266,22 +266,15 @@ def parse_common_args(desc):
 def cleanup_options(kwargs):
     new_options = kwargs.copy()
     for key in ['inputfile', 'outputfile', 'profile', 'debug']:
-        try:
-            del new_options[key]
-        except KeyError:
-            pass
+        new_options.pop(key, None)
     return new_options
 
 def get_profile_extension(profile, properties = None):
     if properties is None:
         properties = get_media_properties()
-    try:
-        extension = properties[profile + '.extension']
-    except KeyError:
-        try:
-            extension = properties['default.extension']
-        except KeyError:
-            extension = None
+    extension = properties.get(profile + '.extension', None)
+    if extension is None:
+        extension = properties.get('default.extension', None)
     return extension
 
 def get_profile_params(profile):
