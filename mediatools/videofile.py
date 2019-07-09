@@ -415,21 +415,6 @@ def compute_fps(rate):
         return str(round(int(a)/int(b), 1))
     return rate
 
-def reduce_aspect_ratio(aspect_ratio, height = None):
-    ''' Reduces the Aspect ratio calculation in prime factors '''
-    if height is None:
-        ws, hs = re.split("[:/x]", aspect_ratio)
-        w = int(ws)
-        h = int(hs)
-    else:
-        w = aspect_ratio
-        h = height
-    for n in [2, 3, 5, 7, 11, 13, 17]:
-        while w % n == 0 and h % n == 0:
-            w = w // n
-            h = h // n
-    return "%d:%d" % (w, h)
-
 def get_video_bitrate(stream):
     bitrate = None
     try:
