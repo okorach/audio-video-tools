@@ -375,11 +375,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     return posterfile
 
 def posterize2(files, posterfile=None, **kwargs):
-    try:
-        rescaling = kwargs['rescaling']
-    except KeyError:
-        rescaling = 'max'
-
+    rescaling = kwargs.pop('rescaling', 'max')
     if rescaling == 'min':
         img_h = min_height(files)
         img_w = min_width(files)
@@ -418,7 +414,8 @@ def posterize2(files, posterfile=None, **kwargs):
     full_w = (cols*img_w) + (cols+1)*gap
     full_h = (rows*img_h) + (rows+1)*gap
 
-    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % (img_w, img_h, gap, cols, rows, full_w, full_h))
+    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
+        (img_w, img_h, gap, cols, rows, full_w, full_h))
     bgfile = "%s-square.jpg" % kwargs.pop('background_color', 'black')
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)
