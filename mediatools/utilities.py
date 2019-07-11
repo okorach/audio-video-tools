@@ -7,6 +7,7 @@ import platform
 import jprops
 
 DEBUG_LEVEL = 0
+DRY_RUN = False
 
 FFMPEG_FORMAT_OPTION = 'f'
 FFMPEG_SIZE_OPTION = 's'
@@ -166,7 +167,11 @@ def run_os_cmd(cmd):
     os.system(cmd)
 
 def run_ffmpeg(params):
-    run_os_cmd("%s -y %s" % (get_ffmpeg(), params))
+    cmd = "%s -y %s" % (get_ffmpeg(), params)
+    if is_dry_run():
+        print(cmd, end='\n')
+    else:
+        run_os_cmd(cmd)
 
 def build_ffmpeg_file_list(file_list):
     s = ''
@@ -216,6 +221,21 @@ def set_debug_level(level):
     DEBUG_LEVEL = int(level)
     debug(1, "Set debug level to %d" % DEBUG_LEVEL)
 
+def set_dry_run(dry_run):
+    global DRY_RUN
+    DRY_RUN = dry_run
+    debug(1, "Set dry run to %s" % str(dry_run))
+
+def is_dry_run():
+    global DRY_RUN
+    return DRY_RUN
+
+def delete_files(*args):
+    if is_dry_run():
+        return
+    for f in args:
+        os.remove(f)
+
 def debug(level, string):
     global DEBUG_LEVEL
     if level <= DEBUG_LEVEL:
@@ -235,6 +255,7 @@ def parse_common_args(desc):
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
+    parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
 
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
     parser.add_argument('--start', required=False, help='Start time')
