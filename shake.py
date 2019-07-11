@@ -12,7 +12,10 @@ parser.add_argument('-d', '--direction', required=False, default='vertical', hel
 parser.add_argument('-c', '--color', required=False, default='black', help='Blinds color')
 parser.add_argument('-r', '--shake_ratio', required=False, default=3, help='Size of the shake')
 parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
+parser.add_argument('--dry_run', required=False, default='no', help='Dry run')
 args = parser.parse_args()
 
 util.set_debug_level(args.debug)
+if args.dry_run == 'yes' or args.dry_run == 'true':
+    util.set_dry_run(True)
 image.ImageFile(args.inputfile).shake(int(args.slices), float(args.shake_ratio), args.color, args.direction)
