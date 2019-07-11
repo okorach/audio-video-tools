@@ -162,8 +162,8 @@ class ImageFile(media.MediaFile):
 
     # def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
     def blindify(self, out_file = None, **kwargs):
-        nbr_slices = kwargs.pop('slices', 10)
-        blinds_size_pct = kwargs.pop('blinds_ratio', 3)
+        nbr_slices = int(kwargs.pop('blinds', 10))
+        blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
         background_color = kwargs.pop('background_color', 'black')
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.get_dimensions()
