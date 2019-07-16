@@ -1,8 +1,5 @@
 #!/usr/local/bin/python3
 
-import sys
-import os
-import re
 import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
