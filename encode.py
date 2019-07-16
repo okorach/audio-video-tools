@@ -56,6 +56,8 @@ def encode_dir(args, options):
     util.debug(0, '%05d/%05d : 100%% : Job finished' % (nbfiles, nbfiles))
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
+parser = video.add_video_args(parser)
+
 myargs = parser.parse_args()
 util.set_debug_level(myargs.debug)
 myoptions = util.cleanup_options(vars(myargs))
