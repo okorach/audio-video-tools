@@ -24,17 +24,19 @@ while len(sys.argv) > 0:
     arg = sys.argv.pop(0)
     if arg == "-g":
         util.set_debug_level(sys.argv.pop(0))
-    elif arg == "-background":
+    elif arg == "--background":
         bg = sys.argv.pop(0)
-    elif arg == "-bottom":
+    elif arg == "--dry_run":
+        util.set_dry_run(True)
+    elif arg == "--bottom":
         bottom = sys.argv.pop(0)
-    elif arg == "-top":
+    elif arg == "--top":
         top = sys.argv.pop(0)
-    elif arg == "-left":
+    elif arg == "--left":
         left = sys.argv.pop(0)
-    elif arg == "-right":
+    elif arg == "--right":
         left = sys.argv.pop(0)
-    elif arg == "-margin":
+    elif arg == "--margin":
         margin = int(sys.argv.pop(0))
     elif os.path.isdir(arg):
         dir_list.append(arg)

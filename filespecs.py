@@ -14,9 +14,11 @@ parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extra
 parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to probe')
 parser.add_argument('-f', '--format', required=False, default='txt', help='Output file format (txt or csv)')
 parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
+parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
 args = parser.parse_args()
-util.set_debug_level(int(args.debug))
-options = util.cleanup_options(vars(args))
+options = vars(args)
+util.check_environment(options)
+util.cleanup_options(options)
 
 if os.path.isdir(args.inputfile):
     filelist = util.filelist(args.inputfile)

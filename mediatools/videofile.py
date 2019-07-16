@@ -454,3 +454,30 @@ def concat(target_file, file_list):
         count += 1
     cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "%s"' % (count, target_file)
     util.run_ffmpeg(cmd)
+
+def add_video_args(parser):
+    """Parses options specific to video encoding scripts"""
+    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
+
+    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
+    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
+
+    parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
+    parser.add_argument('--abitrate', required=False, help='Audio bitrate eg 128k')
+
+    parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
+    parser.add_argument('--start', required=False, help='Start time')
+    parser.add_argument('--stop', required=False, help='Stop time')
+
+    parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
+    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
+
+
+    parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
+    parser.add_argument('--achannels', required=False, help='Audio channel to pick')
+
+    parser.add_argument('--vsize', required=False, help='Video size HxW')
+    parser.add_argument('--vwidth', required=False, help='Video width')
+    parser.add_argument('--vheight', required=False, help='Video height')
+
+    return parser

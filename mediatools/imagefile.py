@@ -213,10 +213,7 @@ class ImageFile(media.MediaFile):
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
-        for f in slices:
-            os.remove(f)
-        os.remove(first_slice)
-        os.remove(tmpbg)
+        util.delete_files(slices, first_slice, tmpbg)
 
     def shake_vertical(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
         w, h = self.get_dimensions()
@@ -240,11 +237,8 @@ class ImageFile(media.MediaFile):
                 cmplx = cmplx + '[step%d]; ' % (j+1)
             j = j+1
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
-        util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
-        for f in slices:
-            os.remove(f)
-        os.remove(first_slice)
-        os.remove(tmpbg)
+        util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
+        util.delete_files(slices, first_slice, tmpbg)
         return out_file
 
     def shake_horizontal(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
@@ -271,10 +265,7 @@ class ImageFile(media.MediaFile):
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
-        for f in slices:
-            os.remove(f)
-        os.remove(first_slice)
-        os.remove(tmpbg)
+        util.delete_files(slices, first_slice, tmpbg)
         return out_file
 
     def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
@@ -332,9 +323,9 @@ def stack(file1, file2, direction, out_file = None):
 
     util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter_name, out_file))
     if tmpfile1 is not file1:
-        os.remove(tmpfile1)
+        util.delete_files(tmpfile1)
     if tmpfile2 is not file2:
-        os.remove(tmpfile2)
+        util.delete_files(tmpfile2)
     return out_file
 
 def get_widths(files):
@@ -465,9 +456,10 @@ def posterize2(files, posterfile=None, **kwargs):
         posterfile = util.add_postfix(files[0], "poster")
     util.run_ffmpeg('%s -filter_complex "%s" "%s"' % (file_list, cmplx, posterfile))
 
-    for i in range(len(files)):
-        os.remove("pip%d.tmp.jpg" % i)
-    os.remove(tmpbg)
+    if not util.is_dry_run():
+        for i in range(len(files)):
+            os.remove("pip%d.tmp.jpg" % i)
+        os.remove(tmpbg)
     return posterfile
 
 def __build_poster_fcomplex(rows, cols, gap, img_w, img_h):

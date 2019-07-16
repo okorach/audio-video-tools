@@ -7,6 +7,7 @@ import platform
 import jprops
 
 DEBUG_LEVEL = 0
+DRY_RUN = False
 
 FFMPEG_FORMAT_OPTION = 'f'
 FFMPEG_SIZE_OPTION = 's'
@@ -166,7 +167,11 @@ def run_os_cmd(cmd):
     os.system(cmd)
 
 def run_ffmpeg(params):
-    run_os_cmd("%s -y %s" % (get_ffmpeg(), params))
+    cmd = "%s -y %s" % (get_ffmpeg(), params)
+    if is_dry_run():
+        print(cmd, end='\n')
+    else:
+        run_os_cmd(cmd)
 
 def build_ffmpeg_file_list(file_list):
     s = ''
@@ -216,6 +221,21 @@ def set_debug_level(level):
     DEBUG_LEVEL = int(level)
     debug(1, "Set debug level to %d" % DEBUG_LEVEL)
 
+def set_dry_run(dry_run):
+    global DRY_RUN
+    DRY_RUN = dry_run
+    debug(1, "Set dry run to %s" % str(dry_run))
+
+def is_dry_run():
+    global DRY_RUN
+    return DRY_RUN
+
+def delete_files(*args):
+    if is_dry_run():
+        return
+    for f in args:
+        os.remove(f)
+
 def debug(level, string):
     global DEBUG_LEVEL
     if level <= DEBUG_LEVEL:
@@ -234,22 +254,10 @@ def parse_common_args(desc):
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
-    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
 
-    parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('--start', required=False, help='Start time')
-    parser.add_argument('--stop', required=False, help='Stop time')
+    parser.add_argument('--framesize', required=False, help='Media size HxW for videos and images')
+    parser.add_argument('--framewidth', required=False, help='Media width for videos and images')
 
-    parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
-    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
-    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
-    parser.add_argument('--achannels', required=False, help='Audio channel to pick')
-    parser.add_argument('--abitrate', required=False, help='Audio bitrate eg 128k')
-    parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
-    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
-    parser.add_argument('--vsize', required=False, help='Video size HxW')
-    parser.add_argument('--vwidth', required=False, help='Video width')
-    parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
     parser.add_argument('--croph', required=False, help='Horizontal cropping top and bottom')
@@ -260,14 +268,20 @@ def parse_common_args(desc):
     parser.add_argument('--cropbottom', required=False, help='Croptop')
     parser.add_argument('--cropright', required=False, help='Cropleft')
 
+    parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
+
     return parser
 
 def cleanup_options(kwargs):
     new_options = kwargs.copy()
-    for key in ['inputfile', 'outputfile', 'profile', 'debug']:
+    for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
+
+def check_environment(kwargs):
+    set_debug_level(kwargs.pop('debug', 0))
+    set_dry_run(kwargs.pop('dry_run', 'false'))
 
 def get_profile_extension(profile, properties = None):
     if properties is None:
