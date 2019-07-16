@@ -11,6 +11,6 @@ parser.add_argument('-c', '--background_color', required=False, default='black',
 parser.add_argument('-r', '--blinds_ratio', required=False, default=3, help='Size of the blind')
 kwargs = vars(parser.parse_args())
 
-util.check_environment(**kwargs)
+util.check_environment(kwargs)
 inputfile = kwargs.pop('inputfile')
 image.ImageFile(inputfile).blindify(**kwargs)
