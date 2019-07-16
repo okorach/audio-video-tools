@@ -6,9 +6,9 @@ import mediatools.utilities as util
 
 parser = util.parse_common_args('Cuts a time window of the input video file')
 kwargs = vars(parser.parse_args())
-util.set_debug_level(dict.pop(kwargs, 'debug'))
-start = dict.pop(kwargs, 'start')
-stop = dict.pop(kwargs, 'stop')
-ifile = dict.pop(kwargs, 'inputfile')
+util.set_debug_level(kwargs.pop('debug', 0))
+start = kwargs.pop('start', None)
+stop = kwargs.pop('stop', None)
+ifile = kwargs.pop('inputfile')
 outputfile = video.VideoFile(ifile).cut(start, stop, **kwargs)
 util.debug(1, 'Generated %s' % outputfile)
