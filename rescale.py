@@ -11,7 +11,7 @@ parser = util.parse_common_args('Rescale image dimensions of a file or directory
 parser.add_argument('-s', '--scale', required=True, help='Dimensions to rescale widthxheight')
 
 args = parser.parse_args()
-util.set_debug_level(args.debug)
+util.check_environment(vars(args))
 width, height = args.scale.split("x")
 outputfile = image.rescale(args.inputfile, width, height, args.outputfile)
 

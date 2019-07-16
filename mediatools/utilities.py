@@ -254,7 +254,6 @@ def parse_common_args(desc):
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
-    parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
 
     parser.add_argument('--framesize', required=False, help='Media size HxW for videos and images')
     parser.add_argument('--framewidth', required=False, help='Media width for videos and images')
@@ -269,14 +268,20 @@ def parse_common_args(desc):
     parser.add_argument('--cropbottom', required=False, help='Croptop')
     parser.add_argument('--cropright', required=False, help='Cropleft')
 
+    parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
+
     return parser
 
 def cleanup_options(kwargs):
     new_options = kwargs.copy()
-    for key in ['inputfile', 'outputfile', 'profile', 'debug']:
+    for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
+
+def check_environment(kwargs):
+    set_debug_level(kwargs.pop('debug', 0))
+    set_dry_run(kwargs.pop('dry_run', 'false'))
 
 def get_profile_extension(profile, properties = None):
     if properties is None:
