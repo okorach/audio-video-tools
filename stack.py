@@ -1,8 +1,5 @@
 #!/usr/local/bin/python3
 
-import sys
-import os
-import re
 import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
@@ -14,7 +11,7 @@ parser.add_argument('-d', '--direction', required=False, default='vertical', \
     help='Stacking direction (horizontal or vertical)')
 
 args = parser.parse_args()
-util.set_debug_level(args.debug)
+util.check_environment(vars(args))
 
 outputfile = image.stack(args.inputfile1, args.inputfile2, args.direction, args.outputfile)
 

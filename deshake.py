@@ -14,8 +14,9 @@ def parse_args():
     return parser.parse_args()
 
 args = parse_args()
-util.set_debug_level(args.debug)
-kwargs = util.cleanup_options(vars(args))
+kwargs = vars(args)
+util.check_environment(kwargs)
+kwargs = util.cleanup_options(kwargs)
 del kwargs['width']
 del kwargs['height']
 if args.timeranges is not None:

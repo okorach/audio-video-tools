@@ -11,7 +11,5 @@ parser.add_argument('-c', '--color', required=False, default='black', help='Blin
 parser.add_argument('-r', '--shake_ratio', required=False, default=3, help='Size of the shake')
 args = parser.parse_args()
 
-util.set_debug_level(args.debug)
-if args.dry_run == 'yes' or args.dry_run == 'true':
-    util.set_dry_run(True)
+util.check_environment(vars(args))
 image.ImageFile(args.inputfile).shake(int(args.slices), float(args.shake_ratio), args.color, args.direction)
