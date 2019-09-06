@@ -142,7 +142,7 @@ class MediaFile:
         '''Returns media file general specs'''
         if self.specs is None:
             self.specs = self.probe2()
-            util.debug(1, \
+            util.logger.debug( \
                 json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         self.get_format_specs()
         return self.specs
@@ -176,9 +176,9 @@ class MediaFile:
             print (dir(ffmpeg))
 
     def get_stream_by_codec(self, field, value):
-        util.debug(5, 'Searching stream for codec %s = %s' % (field, value))
+        util.logger.debug('Searching stream for codec %s = %s', field, value)
         for stream in self.specs['streams']:
-            util.debug(5, 'Found codec %s' % stream[field])
+            util.logger.debug('Found codec %s', stream[field])
             if stream[field] == value:
                 return stream
         return None
@@ -191,15 +191,15 @@ def build_target_file(source_file, profile):
 
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
-    util.debug(2, 'Building cmd line options from %s' % str(kwargs))
+    util.logger.debug('Building cmd line options from %s', str(kwargs))
     if kwargs is None:
         return {}
     params = {}
     for key in util.OPTIONS_MAPPING:
-        util.debug(5, "Checking option %s" % key)
+        util.logger.debug("Checking option %s", key)
         try:
             if kwargs[key] is not None:
-                util.debug(5, "Found in cmd line with value %s" % kwargs[key])
+                util.logger.debug("Found in cmd line with value %s", kwargs[key])
                 params[util.OPTIONS_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
@@ -225,7 +225,7 @@ def probe_file(file):
 
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
-    util.debug(2, 'Calling compute_fps(%s)' % rate)
+    util.logger.debug('Calling compute_fps(%s)', rate)
     if re.match(r"^\d+\/\d+$", rate):
         a, b = re.split(r'/', rate)
         return str(round(int(a)/int(b), 1))
@@ -266,7 +266,7 @@ def get_video_bitrate(stream):
     return bitrate
 
 def get_video_specs(stream):
-    util.debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+    util.logger.debug("Getting stream data %s", json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
     specs = {}
     specs['type'] = 'video'
     specs['video_codec'] = stream['codec_name']
@@ -292,7 +292,7 @@ def get_image_specs(stream):
 
 def get_file_specs(file):
     probe_data = probe_file(file)
-    util.debug(2, json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
+    util.logger.debug(json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
     specs = {}
     specs['filename'] = probe_data['format']['filename']
     specs['filesize'] = probe_data['format']['size']
@@ -304,7 +304,7 @@ def get_file_specs(file):
     elif util.is_video_file(file):
         specs['format'] = util.get_file_extension(file)
 
-    util.debug(1, "File type %s" % specs['type'])
+    util.logger.debug("File type %s", specs['type'])
     for stream in probe_data['streams']:
         try:
             if specs['type'] == 'image':
@@ -314,8 +314,7 @@ def get_file_specs(file):
             elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
                 specs.update(get_audio_specs(stream))
         except KeyError as e:
-            util.debug(1, "Stream %s has no key %s" % (str(stream), e.args[0]))
-            util.debug(1, str(specs))
+            util.logger.error("Stream %s has no key %s", (str(stream), e.args[0]), "\n", str(specs))
     return specs
 
 def to_hms(seconds):
@@ -342,7 +341,7 @@ def concat(target_file, file_list):
 #    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
 #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
 #  -map "[v]" -map "[a]" output.mkv
-    util.debug(2, str(file_list))
+    util.logger.info("Concatenating %s", str(file_list))
     cmd = util.build_ffmpeg_file_list(file_list)
     cmd = cmd + '-filter_complex "'
     for i in range(len(file_list)):

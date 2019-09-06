@@ -145,7 +145,7 @@ def get_file_type(file):
         filetype = 'image'
     else:
         filetype = 'unknown'
-    debug(2, "Filetype of %s is %s" % (file, filetype))
+    logger.debug("Filetype of %s is %s", file, filetype)
     return filetype
 
 def get_ffmpeg(props_file = None):
@@ -165,7 +165,7 @@ def get_first_value(a_dict, key_list):
 def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
         cmd = cmd + " 1>>mediatools.log 2>&1"
-    debug(1, "Running: %s" % cmd)
+    logger.info("Running: %s", cmd)
     os.system(cmd)
 
 def run_ffmpeg(params):
@@ -236,12 +236,12 @@ def set_debug_level(level):
     DEBUG_LEVEL = int(level)
     global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
-    logger.info("Set debug level to %d" % DEBUG_LEVEL)
+    logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 def set_dry_run(dry_run):
     global DRY_RUN
     DRY_RUN = dry_run
-    debug(1, "Set dry run to %s" % str(dry_run))
+    logger.info("Set dry run to %s", str(dry_run))
 
 def is_dry_run():
     global DRY_RUN
