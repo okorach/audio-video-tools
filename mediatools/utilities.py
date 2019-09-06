@@ -3,11 +3,13 @@
 import os
 import sys
 import re
+import logging
 import platform
 import jprops
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
+logger = logging.getLogger('mediatools')
 
 FFMPEG_FORMAT_OPTION = 'f'
 FFMPEG_SIZE_OPTION = 's'
@@ -214,12 +216,27 @@ def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
+def get_logging_level(intlevel):
+    if intlevel >= 4:
+        lvl = logging.DEBUG
+    elif intlevel == 3:
+        lvl = logging.INFO
+    elif intlevel == 2:
+        lvl = logging.WARNING
+    elif intlevel == 1:
+        lvl = logging.ERROR
+    else:
+        lvl = logging.CRITICAL
+    return lvl
+
 def set_debug_level(level):
     global DEBUG_LEVEL
     if level is None:
         level = 0
     DEBUG_LEVEL = int(level)
-    debug(1, "Set debug level to %d" % DEBUG_LEVEL)
+    global logger
+    logger.setLevel(get_logging_level(DEBUG_LEVEL))
+    logger.info("Set debug level to %d" % DEBUG_LEVEL)
 
 def set_dry_run(dry_run):
     global DRY_RUN
@@ -237,9 +254,17 @@ def delete_files(*args):
         os.remove(f)
 
 def debug(level, string):
-    global DEBUG_LEVEL
-    if level <= DEBUG_LEVEL:
-        print("DEBUG | %d | %s" % (level, string))
+    global logger
+    if level >= 4:
+        logger.debug(string)
+    elif level == 3:
+        logger.info(string)
+    elif level == 2:
+        logger.warning(string)
+    elif level == 1:
+        logger.error(string)
+    else:
+        logger.critical(string)
 
 def parse_common_args(desc):
     """Parses options common to all media encoding scripts"""
