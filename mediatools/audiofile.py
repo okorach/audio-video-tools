@@ -32,7 +32,7 @@ class AudioFile(media.MediaFile):
                     self.audio_codec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
-                    util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+                    util.logger.error("Stream %s has no key %s\n%s" % str(stream), e.args[0], str(stream))
         return self.specs
 
     def get_tags(self):

@@ -27,8 +27,8 @@ class ImageFile(media.MediaFile):
         # NOSONAR self.specs = media.get_file_specs(self.filename)
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
-        util.debug(1, "Returning image props %s" % str(all_props))
-        util.debug(1, "Obj %s" % str(vars(self)))
+        util.logger.debug("Returning image props %s", str(all_props))
+        util.logger.debug("Obj %s" % str(vars(self)))
         return all_props
 
     def get_specs(self):
@@ -41,20 +41,20 @@ class ImageFile(media.MediaFile):
         if self.width is None:
             for tag in [ 'width', 'codec_width', 'coded_width']:
                 if tag in stream:
-                    util.debug(5, 'Tag %s found' % tag)
+                    util.logger.debug('Tag %s found', tag)
                     self.width = stream[tag]
                     break
-        util.debug(5, 'Returning image width %d' % self.width)
+        util.logger.debug('Returning image width %d', self.width)
         return self.width
 
     def find_height_from_stream(self, stream):
         if self.height is None:
             for tag in [ 'height', 'codec_height', 'coded_height']:
                 if tag in stream:
-                    util.debug(5, 'Tag %s found' % tag)
+                    util.logger.debug('Tag %s found', tag)
                     self.height = stream[tag]
                     break
-        util.debug(5, 'Returning image height %d' % self.height)
+        util.logger.debug('Returning image height %d', self.height)
         return self.height
 
     def get_dimensions(self):
@@ -65,13 +65,13 @@ class ImageFile(media.MediaFile):
             self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
-        util.debug(5, "Returning dimensions %d x %d" % (self.width, self.height))
+        util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
         return [self.width, self.height]
 
     def get_width(self):
         if self.width is None:
             _, _ = self.get_dimensions()
-        util.debug(5, "Returning image Width = %d" % self.width)
+        util.logger.debug("Returning image Width = %d", self.width)
         return self.width
 
     def get_height(self):
@@ -80,15 +80,15 @@ class ImageFile(media.MediaFile):
         return self.height
 
     def get_image_specs(self):
-        util.debug(5, "Getting image specs")
+        util.logger.debug("Getting image specs")
         _, _ = self.get_dimensions()
         for stream in self.specs['streams']:
             if stream['codec_name'] == 'mjpeg':
                 try:
-                    util.debug(5, "Found stream %s" % str(stream))
+                    util.logger.debug("Found stream %s", str(stream))
                     self.format = stream['codec_name']
                 except KeyError as e:
-                    util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+                    util.logger.error(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
 
     def get_image_properties(self):
         self.get_image_specs()
@@ -96,7 +96,7 @@ class ImageFile(media.MediaFile):
 
 
     def crop(self, w, h, x, y, out_file = None):
-        util.debug(3, "%s(->%s, %d, %d, %d, %d)" % ('crop', self.filename, w, h, x, y))
+        util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
@@ -268,14 +268,14 @@ class ImageFile(media.MediaFile):
         util.delete_files(slices, first_slice, tmpbg)
         return out_file
 
-    def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    def shake(self, nbr_slices=10, shake_pct=3, background_color="black", direction='vertical', out_file=None):
         if direction == 'horizontal':
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
 def rescale(image_file, width, height, out_file = None):
-    util.debug(5, "Rescaling %s to %d x %d into %s" % (image_file, width, height, out_file))
+    util.logger.debug("Rescaling %s to %d x %d into %s", image_file, width, height, out_file)
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
     out_file = util.automatic_output_file_name(out_file, image_file, "scale-%dx%d" % (width, height))
     util.run_ffmpeg('-i "%s" -vf scale=%d:%d "%s"' % (image_file, width, height, out_file))
@@ -291,7 +291,7 @@ def get_rectangle(color, w, h):
     return tmpbg
 
 def stack(file1, file2, direction, out_file = None):
-    util.debug(1, "stack(%s, %s, %s, _)" % (file1, file2, direction))
+    util.logger.debug("stack(%s, %s, %s, _)", file1, file2, direction)
     if not util.is_image_file(file1):
         raise media.FileTypeError('File %s is not an image file' % file1)
     if not util.is_image_file(file2):
@@ -301,7 +301,7 @@ def stack(file1, file2, direction, out_file = None):
     w2, h2 = ImageFile(file2).get_dimensions()
     tmpfile1 = file1
     tmpfile2 = file2
-    util.debug(5, "Images dimensions: %d x %d and %d x %d" % (w1, h1, w2, h2))
+    util.logger.debug("Images dimensions: %d x %d and %d x %d", w1, h1, w2, h2)
     if direction == 'horizontal':
         filter_name = 'hstack'
         if h1 > h2:
@@ -363,9 +363,7 @@ def avg_width(files):
 def posterize(files, posterfile=None, background_color="black", margin=5):
     min_h = max_height(files)
     min_w = max_width(files)
-    util.debug(2, "Max W x H = %d x %d" % (min_w, min_h))
-
-
+    util.logger.debug("Max W x H = %d x %d", min_w, min_h)
     gap = (min_w * margin) // 100
     squares = []
     n_minus_1 = []
@@ -385,8 +383,8 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     full_w = (cols*min_w) + (cols+1)*gap
     full_h = (rows*min_h) + (rows+1)*gap
 
-    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
-        (min_w, min_h, gap, cols, rows, full_w, full_h))
+    util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
+        min_w, min_h, gap, cols, rows, full_w, full_h)
     if background_color == "white":
         bgfile = "white-square.jpg"
     else:
@@ -417,7 +415,7 @@ def posterize2(files, posterfile=None, **kwargs):
     else:
         img_h = max_height(files)
         img_w = max_width(files)
-    util.debug(2, "Max W x H = %d x %d" % (img_w, img_h))
+    util.logger.debug("Max W x H = %d x %d", img_w, img_h)
 
     file_list = util.build_ffmpeg_file_list(files)
     cmplx = util.build_ffmpeg_complex_prep(files)
@@ -430,9 +428,9 @@ def posterize2(files, posterfile=None, **kwargs):
         n = k+2
         squares.append(n**2)
         n_minus_1.append(n**2-n)
-    util.debug(3, squares)
+    util.logger.debug(squares)
     nb_files = len(files)
-    util.debug(3, "%d files to posterize" % nb_files)
+    util.logger.debug("%d files to posterize", nb_files)
     if nb_files in squares:
         cols = int(math.sqrt(nb_files))
         rows = cols
@@ -443,8 +441,8 @@ def posterize2(files, posterfile=None, **kwargs):
     full_w = (cols*img_w) + (cols+1)*gap
     full_h = (rows*img_h) + (rows+1)*gap
 
-    util.debug(2, "W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
-        (img_w, img_h, gap, cols, rows, full_w, full_h))
+    util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d", \
+        img_w, img_h, gap, cols, rows, full_w, full_h)
     bgfile = "%s-square.jpg" % kwargs.pop('background_color', 'black')
     tmpbg = "bg.tmp.jpg"
     rescale(bgfile, full_w, full_h, tmpbg)

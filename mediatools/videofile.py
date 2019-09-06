@@ -52,7 +52,7 @@ class VideoFile(media.MediaFile):
                 self.video_bitrate = self.specs['format']['bit_rate']
             self.duration = stream['duration']
         except KeyError as e:
-            util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+            util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
         ar = stream.get('display_aspect_ratio', None)
         if ar is None:
             ar = "%d:%d" % (self.width, self.height)
@@ -95,11 +95,12 @@ class VideoFile(media.MediaFile):
 
     def get_video_codec(self, stream):
         '''Returns video file video codec'''
-        util.debug(5, 'Getting video codec')
+        util.logger.debug('Getting video codec')
         if self.video_codec is None:
             if stream is None:
                 stream = self.get_video_stream()
-                util.debug(2, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+                util.logger.debug('Video stream is %s', \
+                    json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
             self.video_codec = stream['codec_name']
         return self.video_codec
 
@@ -140,9 +141,9 @@ class VideoFile(media.MediaFile):
         return self.width
 
     def get_video_stream(self):
-        util.debug(5, 'Searching video stream')
+        util.logger.debug('Searching video stream')
         for stream in self.specs['streams']:
-            util.debug(5, 'Found codec %s / %s' % (stream['codec_type'], stream['codec_name']))
+            util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
             if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif':
                 return stream
         return None
@@ -151,7 +152,8 @@ class VideoFile(media.MediaFile):
         if self.video_fps is None:
             if stream is None:
                 stream = self.get_video_stream()
-                util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+                util.logger.debug('Video stream is %s', \
+                    json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
             for tag in [ 'avg_frame_rate', 'r_frame_rate']:
                 if tag in stream:
                     self.video_fps = media.compute_fps(stream[tag])
@@ -159,17 +161,18 @@ class VideoFile(media.MediaFile):
         return self.video_fps
 
     def get_dimensions(self, stream = None):
-        util.debug(5, 'Getting video dimensions')
+        util.logger.debug('Getting video dimensions')
         if self.width is None or self.height is None and stream is None:
             stream = self.get_video_stream()
-            util.debug(5, 'Video stream is %s' % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+            util.logger.debug('Video stream is %s', \
+                json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.width is None:
             self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
         if self.height is None:
             self.height = util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
-        util.debug(5, "Returning %s, %s" % (str(self.width), str(self.height)))
+        util.logger.debug("Returning %s, %s", str(self.width), str(self.height))
         return [self.width, self.height]
 
     def get_audio_properties(self):
@@ -195,13 +198,13 @@ class VideoFile(media.MediaFile):
 
     def build_encoding_options(self, **kwargs):
         parms = self.get_ffmpeg_params()
-        util.debug(1, "File settings = %s" % str(parms))
+        util.logger.info("File settings = %s", str(parms))
         if 'profile' in kwargs.keys():
             parms.update(util.get_cmdline_params(kwargs['profile']))
-        util.debug(1, "Profile settings = %s" % str(parms))
+        util.logger.info("Profile settings = %s", str(parms))
         clean_options = util.cleanup_options(**kwargs)
         parms.update(media.cmdline_options(**clean_options))
-        util.debug(1, "Cmd line settings = %s" % str(parms))
+        util.logger.info("Cmd line settings = %s", str(parms))
 
     def get_ffmpeg_params(self):
         mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
@@ -220,8 +223,9 @@ class VideoFile(media.MediaFile):
         parms = self.get_ffmpeg_params()
         clean_options = util.cleanup_options(kwargs)
         parms.update(media.cmdline_options(**clean_options))
-        util.debug(1, "Cmd line settings = %s" % str(parms))
-        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_%dx%d-%dx%d" % (width, height, top, left))
+        util.logger.info("Cmd line settings = %s", str(parms))
+        out_file = util.automatic_output_file_name(out_file, self.filename, \
+            "crop_%dx%d-%dx%d" % (width, height, top, left))
         if 'aspect' not in kwargs:
             aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
         else:
@@ -238,7 +242,7 @@ class VideoFile(media.MediaFile):
         kwargs['stop'] = stop
         parms.update(media.cmdline_options(**kwargs))
 
-        util.debug(1, "Cmd line settings = %s" % str(parms))
+        util.logger.info("Cmd line settings = %s", str(parms))
         out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
         cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), self.filename, \
             media.build_ffmpeg_options(parms), out_file)
@@ -354,8 +358,8 @@ def encode(source_file, target_file, profile, **kwargs):
     stream = ffmpeg.output(stream, target_file, **parms  )
     # -qscale:v 3  is **{'qscale:v': 3}
     stream = ffmpeg.overwrite_output(stream)
-    util.debug(2, ffmpeg.get_args(stream))
-    util.debug(1, "%s --> %s" % (source_file, target_file))
+    util.logger.info(ffmpeg.get_args(stream))
+    util.logger.info("%s --> %s", source_file, target_file)
     try:
         ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
     except ffmpeg.Error as e:
@@ -372,12 +376,12 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     parms = {}
     if util.is_video_file(source_file):
         parms = VideoFile(source_file).get_ffmpeg_params()
-        util.debug(2, "File settings = %s" % str(parms))
+        util.logger.info("File settings = %s", str(parms))
 
     parms.update(util.get_cmdline_params(profile_options))
-    util.debug(2, "Profile settings = %s" % str(parms))
+    util.logger.info("Profile settings = %s", str(parms))
     parms.update(media.cmdline_options(**kwargs))
-    util.debug(2, "Cmd line settings = %s" % str(parms))
+    util.logger.info("Cmd line settings = %s", str(parms))
 
     # Hack for channels selection
     if 'achannels' in kwargs and kwargs['achannels'] is not None:
@@ -415,7 +419,8 @@ def get_video_bitrate(stream):
     return bitrate
 
 def get_video_specs(stream):
-    util.debug(2, "Getting stream data %s" % json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+    util.logger.debug("Getting stream data %s", \
+        json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
     specs = {}
     specs['type'] = 'video'
     specs['video_codec'] = stream['codec_name']
@@ -443,7 +448,7 @@ def get_mp3_tags(file):
 
 def concat(target_file, file_list):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
-    util.debug(1, "%s = %s" % (target_file, ' + '.join(file_list)))
+    util.logger.info("%s = %s", target_file, ' + '.join(file_list))
     cmd = ''
     for file in file_list:
         cmd += (' -i "%s" ' % file)
