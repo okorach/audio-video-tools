@@ -268,7 +268,7 @@ class ImageFile(media.MediaFile):
         util.delete_files(slices, first_slice, tmpbg)
         return out_file
 
-    def shake(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
+    def shake(self, nbr_slices=10, shake_pct=3, background_color="black", direction='vertical', out_file=None):
         if direction == 'horizontal':
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
         else:
