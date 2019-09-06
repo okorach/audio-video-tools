@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"sonarlint.connectedMode.project": {
+			"serverId": "SQ LTS",
+			"projectKey": "audio-video-tools"
+		}
+	}
+}
