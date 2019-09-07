@@ -88,7 +88,7 @@ class ImageFile(media.MediaFile):
                     util.logger.debug("Found stream %s", str(stream))
                     self.format = stream['codec_name']
                 except KeyError as e:
-                    util.logger.error(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+                    util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
 
     def get_image_properties(self):
         self.get_image_specs()
