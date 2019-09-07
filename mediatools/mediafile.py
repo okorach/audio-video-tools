@@ -314,7 +314,7 @@ def get_file_specs(file):
             elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
                 specs.update(get_audio_specs(stream))
         except KeyError as e:
-            util.logger.error("Stream %s has no key %s", (str(stream), e.args[0]), "\n", str(specs))
+            util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(specs))
     return specs
 
 def to_hms(seconds):
