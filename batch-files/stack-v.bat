@@ -1,1 +1,1 @@
-stack.py -i1 %1 -i2 %2 -d vertical
+stack.py -i1 "%~1" -i2 "%~2" -d vertical
