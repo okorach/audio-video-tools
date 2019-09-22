@@ -377,11 +377,12 @@ def encodeoo(source_file, target_file, profile, **kwargs):
     if util.is_video_file(source_file):
         parms = VideoFile(source_file).get_ffmpeg_params()
         util.logger.info("File settings = %s", str(parms))
-
+        
     parms.update(util.get_cmdline_params(profile_options))
     util.logger.info("Profile settings = %s", str(parms))
     parms.update(media.cmdline_options(**kwargs))
     util.logger.info("Cmd line settings = %s", str(parms))
+    print("Cmd line settings = %s" % str(parms))
 
     # Hack for channels selection
     if 'achannels' in kwargs and kwargs['achannels'] is not None:

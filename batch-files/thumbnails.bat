@@ -1,3 +1,3 @@
 
 
-encode.py -i "%~1" -p thumbnails
+..\encode.py -i "%~1" -p thumbnails

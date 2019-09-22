@@ -166,6 +166,7 @@ def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
         cmd = cmd + " 1>>mediatools.log 2>&1"
     logger.info("Running: %s", cmd)
+    print("Running: %s" % cmd)
     os.system(cmd)
 
 def run_ffmpeg(params):
@@ -305,7 +306,8 @@ def cleanup_options(kwargs):
     return new_options
 
 def check_environment(kwargs):
-    set_debug_level(kwargs.pop('debug', 0))
+    #set_debug_level(kwargs.pop('debug', 0))
+    set_debug_level(5)
     set_dry_run(kwargs.pop('dry_run', 'false'))
 
 def get_profile_extension(profile, properties = None):
