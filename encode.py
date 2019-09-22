@@ -23,11 +23,15 @@ def encode_file(args, options):
     if args.outputfile is None:
         ext = util.get_profile_extension(args.profile)
     count = 0
+    filelist = []
     for video_range in re.split(',', args.timeranges):
         options['start'], options['stop'] = re.split('-', video_range)
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
+        filelist.append(target_file)
         video.encodeoo(args.inputfile, target_file, args.profile, **options)
+    target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, "combined", ext)
+    video.concat(target_file, filelist)
 
 def encode_dir(args, options):
     targetdir = args.inputfile + '.' + args.profile
