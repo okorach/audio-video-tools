@@ -24,7 +24,7 @@ def encode_file(args, options):
         ext = util.get_profile_extension(args.profile)
     count = 0
     for video_range in re.split(',', args.timeranges):
-        options['ss'], options['to'] = re.split('-', video_range)
+        options['start'], options['stop'] = re.split('-', video_range)
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         video.encodeoo(args.inputfile, target_file, args.profile, **options)
