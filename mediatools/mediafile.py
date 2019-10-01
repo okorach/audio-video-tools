@@ -144,7 +144,8 @@ class MediaFile:
             self.specs = self.probe2()
             util.logger.debug( \
                 json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
-        self.get_format_specs()
+        if self.specs is not None:
+            self.get_format_specs()
         return self.specs
 
     def get_format_specs(self):
@@ -171,9 +172,12 @@ class MediaFile:
     def probe2(self):
         ''' Returns file probe (media specs) '''
         try:
+            print('Probing %s' % self.filename)
             return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
         except AttributeError:
             print (dir(ffmpeg))
+        except ffmpeg.Error:
+            return None
 
     def get_stream_by_codec(self, field, value):
         util.logger.debug('Searching stream for codec %s = %s', field, value)
