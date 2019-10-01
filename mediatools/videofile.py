@@ -52,7 +52,7 @@ class VideoFile(media.MediaFile):
                 self.video_bitrate = self.specs['format']['bit_rate']
             self.duration = stream['duration']
         except KeyError as e:
-            util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
+            util.logger.error("Stream %s has no key %s\n", str(stream), e.args[0])
         ar = stream.get('display_aspect_ratio', None)
         if ar is None:
             ar = "%d:%d" % (self.width, self.height)

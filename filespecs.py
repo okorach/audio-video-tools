@@ -13,6 +13,7 @@ import mediatools.imagefile as img
 parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extractor')
 parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to probe')
 parser.add_argument('-f', '--format', required=False, default='txt', help='Output file format (txt or csv)')
+parser.add_argument('-t', '--types', required=False, default='', help='Types of files to include [audio,video,image]')
 parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
 parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
 args = parser.parse_args()
@@ -20,8 +21,18 @@ options = vars(args)
 util.check_environment(options)
 util.cleanup_options(options)
 
+filelist = []
 if os.path.isdir(args.inputfile):
-    filelist = util.filelist(args.inputfile)
+    if args.types == '':
+        types = ['video', 'audio', 'image']
+    else:
+        types = re.split(',', args.types.lower())
+    if 'video' in types:
+        filelist.extend(util.video_filelist(args.inputfile))
+    if 'audio' in types:
+        filelist.extend(util.audio_filelist(args.inputfile))
+    if 'image' in types:
+        filelist.extend(util.image_filelist(args.inputfile))
 else:
     filelist = [ args.inputfile ]
 
@@ -90,9 +101,9 @@ for file in filelist:
                 try:
                     print("%s;" % (str(specs[prop]) if specs[prop] is not None else ''), end='')
                     if prop == 'duration':
-                        print("%s;" % util.to_hms_str(specs[prop]))
+                        print("%s;" % util.to_hms_str(specs[prop]), end='')
                 except KeyError:
                     print("%s;" % '', end='')
-        print('')
+        print("")
     except media.FileTypeError as e:
         print ('ERROR: File %s type error' % file)
