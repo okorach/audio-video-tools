@@ -162,7 +162,7 @@ def get_ffmpeg(props_file = None):
 
 def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
-    return os.path.realpath(props['binaries.ffmpeg'] )
+    return os.path.realpath(props['binaries.ffprobe'] )
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
