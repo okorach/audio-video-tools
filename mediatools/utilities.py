@@ -38,10 +38,13 @@ LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
-if platform.system() == 'Windows':
-    DEFAULT_PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
-else:
-    DEFAULT_PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
+props_file = os.path.realpath(__file__).split(os.path.sep)
+props_file.pop()
+props_file.pop()
+props_file.append("VideoTools.properties")
+DEFAULT_PROPERTIES_FILE = os.path.sep.join(props_file)
+
+print("Default properties file = %s" % DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
@@ -49,41 +52,46 @@ PROPERTIES_VALUES = {}
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for fname in file_list:
-            fullfilelist.append(dir_name + r'\\' + fname)
-    return fullfilelist
+    files = []
+    # r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
+            files.append(os.path.join(r, file))
+    return files
 
 def audio_filelist(root_dir):
     """Returns and array of all audio files under a given root directory
     going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
+    files = []
+    # r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
             if is_audio_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+                files.append(os.path.join(r, file))
+    return files
 
 def video_filelist(root_dir):
     """Returns and array of all video files under a given root directory
     going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
+    files = []
+    # r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
             if is_video_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+                print("File: %s" % os.path.join(r,file).encode("utf-8"))
+                files.append(os.path.join(r, file))
+    return files
 
 def image_filelist(root_dir):
     """Returns and array of all audio files under a given root directory
     going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
+    files = []
+    # r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
             if is_image_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+                files.append(os.path.join(r, file))
+    return files
 
 def subdir_list(root_dir):
     """Returns and array of all audio files under a given root directory
@@ -207,11 +215,14 @@ def get_media_properties(props_file = None):
     return PROPERTIES_VALUES
 
 def to_hms(seconds):
-    s = float(seconds)
-    hours = int(s)//3600
-    minutes = int(s)//60 - hours*60
-    secs = s - hours*3600 - minutes*60
-    return (hours, minutes, secs)
+    try:
+        s = float(seconds)
+        hours = int(s)//3600
+        minutes = int(s)//60 - hours*60
+        secs = s - hours*3600 - minutes*60
+        return (hours, minutes, secs)
+    except TypeError:
+        return (0,0,0)
 
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
@@ -342,3 +353,4 @@ def get_cmdline_params(cmdline):
             else:
                 found = False
     return parms
+
