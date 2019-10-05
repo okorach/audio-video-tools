@@ -44,7 +44,7 @@ props_file.pop()
 props_file.append("VideoTools.properties")
 DEFAULT_PROPERTIES_FILE = os.path.sep.join(props_file)
 
-print("Default properties file = %s" % DEFAULT_PROPERTIES_FILE)
+logger.debug("Default properties file = %s" % DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
@@ -158,11 +158,11 @@ def get_file_type(file):
 
 def get_ffmpeg(props_file = None):
     props = get_media_properties(props_file)
-    return props['binaries.ffmpeg']
+    return os.path.realpath(props['binaries.ffmpeg'] )
 
 def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
-    return props['binaries.ffprobe']
+    return os.path.realpath(props['binaries.ffprobe'] )
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
