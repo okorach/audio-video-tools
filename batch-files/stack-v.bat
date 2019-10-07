@@ -1,1 +1,1 @@
-%~dp0\..\stack.py -i1 "%~1" -i2 "%~2" -d vertical
+%~dp0\..\stack.py -i "%~1" -i2 "%~2" -d vertical
