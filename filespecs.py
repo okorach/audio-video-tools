@@ -51,12 +51,14 @@ IMAGE_PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'pix
 UNITS = { 'filesize' : [1048576, 'MB'], 'duration':[1,'hms'], 'video_bitrate':[1024, 'kbits/s'], \
           'audio_bitrate':[1024, 'kbits/s'], 'audio_sample_rate':[1000, 'k'], 'pixels':[1000000, 'Mpix'] }
 
-all_props = VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS
+all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 
 if args.format == 'csv':
     print("# ")
     for prop in all_props:
         print("%s;" % prop, end='')
+        if prop == 'duration':
+            print("%s;" % "Duration HH:MM:SS", end='')
     print('')
 
 props = all_props
