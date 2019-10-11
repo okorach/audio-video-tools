@@ -38,13 +38,13 @@ LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
-props_file = os.path.realpath(__file__).split(os.path.sep)
-props_file.pop()
-props_file.pop()
-props_file.append("VideoTools.properties")
-DEFAULT_PROPERTIES_FILE = os.path.sep.join(props_file)
+props = os.path.realpath(__file__).split(os.path.sep)
+props.pop()
+props.pop()
+props.append("VideoTools.properties")
+DEFAULT_PROPERTIES_FILE = os.path.sep.join(props)
 
-logger.debug("Default properties file = %s" % DEFAULT_PROPERTIES_FILE)
+logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
@@ -53,7 +53,7 @@ def filelist(root_dir):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
     files = []
-    # r=root, _=directories, f = files
+    # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
             files.append(os.path.join(r, file))
@@ -63,7 +63,7 @@ def audio_filelist(root_dir):
     """Returns and array of all audio files under a given root directory
     going down into sub directories"""
     files = []
-    # r=root, _=directories, f = files
+    # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
             if is_audio_file(file):
@@ -74,11 +74,10 @@ def video_filelist(root_dir):
     """Returns and array of all video files under a given root directory
     going down into sub directories"""
     files = []
-    # r=root, _=directories, f = files
+    # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
             if is_video_file(file):
-                print("File: %s" % os.path.join(r,file).encode("utf-8"))
                 files.append(os.path.join(r, file))
     return files
 
@@ -86,7 +85,7 @@ def image_filelist(root_dir):
     """Returns and array of all audio files under a given root directory
     going down into sub directories"""
     files = []
-    # r=root, _=directories, f = files
+    # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
             if is_image_file(file):
@@ -339,18 +338,20 @@ def get_cmdline_params(cmdline):
     found = True
     parms = dict()
     while found:
-        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
-        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
+        # Remove heading spaces
+        cmdline = re.sub(r'^\s+', '', cmdline)
+        # Format -<option> <value>
+        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
             parms[m.group(1)] = m.group(2)
             #print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
-            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
+            # Format -<option>
+            m = re.search(r'^-(\S+)\s*', cmdline)
             if m:
                 parms[m.group(1)] = None
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
             else:
                 found = False
     return parms
-

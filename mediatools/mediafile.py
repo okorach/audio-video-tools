@@ -334,7 +334,7 @@ def to_hms_str(seconds):
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
-    if util.get_file_extension(file).lower() is not 'mp3':
+    if util.get_file_extension(file).lower() != 'mp3':
         raise FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
