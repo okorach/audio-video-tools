@@ -27,8 +27,7 @@ class ImageFile(media.MediaFile):
         # NOSONAR self.specs = media.get_file_specs(self.filename)
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
-        util.logger.debug("Returning image props %s", str(all_props))
-        util.logger.debug("Obj %s" % str(vars(self)))
+        util.logger.debug("Returning image props %s\nObject %s", str(all_props), str(vars(self)))
         return all_props
 
     def get_specs(self):
@@ -383,8 +382,8 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     full_w = (cols*min_w) + (cols+1)*gap
     full_h = (rows*min_h) + (rows+1)*gap
 
-    util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d" % \
-        min_w, min_h, gap, cols, rows, full_w, full_h)
+    util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
+                      min_w, min_h, gap, cols, rows, full_w, full_h)
     if background_color == "white":
         bgfile = "white-square.jpg"
     else:
