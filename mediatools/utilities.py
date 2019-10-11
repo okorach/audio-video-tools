@@ -11,6 +11,16 @@ DEBUG_LEVEL = 0
 DRY_RUN = False
 logger = logging.getLogger('mediatools')
 
+class MediaType:
+    AUDIO_FILE = 1
+    VIDEO_FILE = 2
+    IMAGE_FILE = 3
+    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$', 
+                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$',
+                        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
+
+
+
 FFMPEG_FORMAT_OPTION = 'f'
 FFMPEG_SIZE_OPTION = 's'
 FFMPEG_VCODEC_OPTION = 'vcodec'
@@ -59,38 +69,25 @@ def filelist(root_dir):
             files.append(os.path.join(r, file))
     return files
 
-def audio_filelist(root_dir):
+def file_list_by_type(root_dir, file_type):
     """Returns and array of all audio files under a given root directory
     going down into sub directories"""
     files = []
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
-            if is_audio_file(file):
+            if is_type_file(file, file_type):
                 files.append(os.path.join(r, file))
     return files
+
+def audio_filelist(root_dir):
+    return file_list_by_type(root_dir, MediaType.AUDIO_FILE)
 
 def video_filelist(root_dir):
-    """Returns and array of all video files under a given root directory
-    going down into sub directories"""
-    files = []
-    # 3 params are r=root, _=directories, f = files
-    for r, _, f in os.walk(root_dir):
-        for file in f:
-            if is_video_file(file):
-                files.append(os.path.join(r, file))
-    return files
+    return file_list_by_type(root_dir, MediaType.VIDEO_FILE)
 
 def image_filelist(root_dir):
-    """Returns and array of all audio files under a given root directory
-    going down into sub directories"""
-    files = []
-    # 3 params are r=root, _=directories, f = files
-    for r, _, f in os.walk(root_dir):
-        for file in f:
-            if is_image_file(file):
-                files.append(os.path.join(r, file))
-    return files
+    return file_list_by_type(root_dir, MediaType.IMAGE_FILE)
 
 def subdir_list(root_dir):
     """Returns and array of all audio files under a given root directory
@@ -127,17 +124,17 @@ def automatic_output_file_name(outfile, infile, postfix, extension = None):
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
 
+def is_type_file(file, type_of_media):
+    return match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
+
 def is_audio_file(file):
-    """Returns whether the file has an extension corresponding to audio files"""
-    return match_extension(file, r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$')
+    return is_type_file(file, MediaType.AUDIO_FILE)
 
 def is_video_file(file):
-    """Returns whether the file has an extension corresponding to video files"""
-    return match_extension(file, r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$')
+    return is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_image_file(file):
-    """Returns whether the file has an extension corresponding to images files"""
-    return match_extension(file, r'\.(jpg|jpeg|png|gif|svg|raw)$')
+    return is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""

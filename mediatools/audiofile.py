@@ -90,7 +90,7 @@ class AudioFile(media.MediaFile):
         return  all_specs
 
     def get_specs(self):
-        super(AudioFile, self).get_specs()
+        #super(AudioFile, self).get_specs()
         self.get_audio_specs()
 
 
