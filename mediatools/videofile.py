@@ -16,6 +16,8 @@ import mediatools.mediafile as media
 class VideoFile(media.MediaFile):
     '''Video file abstraction'''
     def __init__(self, filename):
+        if not util.is_video_file(filename):
+            raise media.FileTypeError('File {0} is not a video file'.format(filename))
         super(VideoFile, self).__init__(filename)
         self.aspect = None
         self.video_codec = None
@@ -293,6 +295,41 @@ class VideoFile(media.MediaFile):
     def get_copyright(self):
         return self.copyright
 
+    def encode(self, target_file, profile, **kwargs):
+        properties = util.get_media_properties()
+        profile_options = properties[profile + '.cmdline']
+        if target_file is None:
+            target_file = build_target_file(self.filename, profile, properties)
+
+        parms = {}
+        video_filters = []
+        if util.is_video_file(self.filename):
+            parms = self.get_ffmpeg_params()
+            util.logger.debug("File settings = %s", str(parms))
+
+        parms.update(util.get_cmdline_params(profile_options))
+        util.logger.debug("Profile settings = %s", str(parms))
+        parms.update(media.cmdline_options(**kwargs))
+        util.logger.debug("Cmd line settings = %s", str(parms))
+
+        # Hack for channels selection
+        if 'achannels' in kwargs and kwargs['achannels'] is not None:
+            mapping = "-map 0:v:0"
+            for channel in kwargs['achannels'].split(','):
+                mapping += " -map 0:a:%s" % channel
+        else:
+            mapping = ""
+
+        if 'fade' in kwargs and kwargs['fade'] is not None:
+            clip_duration = float(self.get_duration())
+            fade_duration = int(kwargs['fade'])
+            video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
+
+            # -vf "fade=type=in:duration=5,fade=type=out:duration=5:start_time=16"
+
+        util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), media.build_video_filters_options(video_filters), mapping, target_file))
+        util.logger.info("File {0} encoded".format(target_file))
+
 def get_size_option(cmdline):
     m = re.search(r'-s\s+(\S+)', cmdline)
     return m.group(1) if m else ''
@@ -342,57 +379,6 @@ def build_target_file(source_file, profile, properties):
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
-
-def encode(source_file, target_file, profile, **kwargs):
-    properties = util.get_media_properties()
-    if target_file is None:
-        target_file = build_target_file(source_file, profile, properties)
-
-    stream = ffmpeg.input(source_file)
-    parms = util.get_profile_params(profile)
-    parms.update(media.cmdline_options(**kwargs))
-
-    # NOSONAR stream = ffmpeg.output(stream, target_file, acodec=getAudioCodec(myprop), ac=2, an=None,
-    # vcodec=getVideoCodec(myprop),  f=getFormat(myprop), aspect=getAspectRatio(myprop),
-    # s=getSize(myprop), r=getFrameRate(myprop)  )
-    stream = ffmpeg.output(stream, target_file, **parms  )
-    # -qscale:v 3  is **{'qscale:v': 3}
-    stream = ffmpeg.overwrite_output(stream)
-    util.logger.info(ffmpeg.get_args(stream))
-    util.logger.info("%s --> %s", source_file, target_file)
-    try:
-        ffmpeg.run(stream, cmd=properties['binaries.ffmpeg'], capture_stdout=True, capture_stderr=True)
-    except ffmpeg.Error as e:
-        print(e.stderr, file=sys.stderr)
-        sys.exit(1)
-
-def encodeoo(source_file, target_file, profile, **kwargs):
-    properties = util.get_media_properties()
-
-    profile_options = properties[profile + '.cmdline']
-    if target_file is None:
-        target_file = build_target_file(source_file, profile, properties)
-
-    parms = {}
-    if util.is_video_file(source_file):
-        parms = VideoFile(source_file).get_ffmpeg_params()
-        util.logger.info("File settings = %s", str(parms))
-
-    parms.update(util.get_cmdline_params(profile_options))
-    util.logger.info("Profile settings = %s", str(parms))
-    parms.update(media.cmdline_options(**kwargs))
-    util.logger.info("Cmd line settings = %s", str(parms))
-    print("Cmd line settings = %s" % str(parms))
-
-    # Hack for channels selection
-    if 'achannels' in kwargs and kwargs['achannels'] is not None:
-        mapping = "-map 0:v:0"
-        for channel in kwargs['achannels'].split(','):
-            mapping += " -map 0:a:%s" % channel
-    else:
-        mapping = ""
-
-    util.run_ffmpeg('-i "%s" %s %s "%s"' % (source_file, media.build_ffmpeg_options(parms), mapping, target_file))
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
@@ -470,6 +456,8 @@ def add_video_args(parser):
 
     parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
     parser.add_argument('--abitrate', required=False, help='Audio bitrate eg 128k')
+
+    parser.add_argument('--fade', required=False, help='Fade in/out duration')
 
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
     parser.add_argument('--start', required=False, help='Start time')
