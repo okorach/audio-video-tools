@@ -359,3 +359,9 @@ def build_ffmpeg_options(options):
         if options[option] is not None:
             cmd = cmd + " -%s %s" % (option, options[option])
     return cmd
+
+def build_video_filters_options(filters):
+    cmd = ''
+    for f in filters:
+        cmd = cmd + '-vf "%s" ' % f
+    return cmd
