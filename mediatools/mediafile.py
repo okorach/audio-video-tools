@@ -172,7 +172,7 @@ class MediaFile:
     def probe2(self):
         ''' Returns file probe (media specs) '''
         try:
-            print('Probing %s' % self.filename)
+            util.logger.info('Probing %s', self.filename)
             return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
         except AttributeError:
             print (dir(ffmpeg))
