@@ -10,6 +10,15 @@ import jprops
 DEBUG_LEVEL = 0
 DRY_RUN = False
 logger = logging.getLogger('mediatools')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh = logging.FileHandler('mediatools.log')
+#fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+#ch.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+logger.addHandler(ch)
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
 
 class MediaType:
     AUDIO_FILE = 1
@@ -168,15 +177,15 @@ def get_first_value(a_dict, key_list):
 
 def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
-        cmd = cmd + " 1>>mediatools.log 2>&1"
+        cmd = cmd + " 1>>ffmpeg.log 2>&1"
     logger.info("Running: %s", cmd)
-    print("Running: %s" % cmd)
     os.system(cmd)
+    logger.info("Completed: %s", cmd)
 
 def run_ffmpeg(params):
     cmd = "%s -y %s" % (get_ffmpeg(), params)
     if is_dry_run():
-        print(cmd, end='\n')
+        logger.info("DRY RUN %s", cmd)
     else:
         run_os_cmd(cmd)
 
@@ -225,13 +234,11 @@ def to_hms_str(seconds):
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
 def get_logging_level(intlevel):
-    if intlevel >= 4:
+    if intlevel >= 2:
         lvl = logging.DEBUG
-    elif intlevel == 3:
+    elif intlevel >= 1:
         lvl = logging.INFO
-    elif intlevel == 2:
-        lvl = logging.WARNING
-    elif intlevel == 1:
+    elif intlevel >= 0:
         lvl = logging.ERROR
     else:
         lvl = logging.CRITICAL
@@ -313,8 +320,7 @@ def cleanup_options(kwargs):
     return new_options
 
 def check_environment(kwargs):
-    #set_debug_level(kwargs.pop('debug', 0))
-    set_debug_level(5)
+    set_debug_level(kwargs.pop('debug', 0))
     set_dry_run(kwargs.pop('dry_run', 'false'))
 
 def get_profile_extension(profile, properties = None):
