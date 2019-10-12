@@ -9,8 +9,8 @@ import mediatools.utilities as util
 import mediatools.mediafile as media
 
 def encode_file(args, options):
-    if util.is_video_file(args.inputfile) and args.vwidth is not None:
-        file_object = video.VideoFile(args.inputfile)
+    file_object = video.VideoFile(args.inputfile)
+    if args.vwidth is not None:
         specs = file_object.get_properties()
         w = int(specs['width'])
         h = int(specs['height'])
@@ -18,8 +18,9 @@ def encode_file(args, options):
         new_h = (int(h * new_w / w) // 8) * 8
         options['vsize'] = "%dx%d" % (new_w, new_h)
     if args.timeranges is None:
-        video.encodeoo(args.inputfile, args.outputfile, args.profile, **options)
+        file_object.encode(args.outputfile, args.profile, **options)
         return
+
     if args.outputfile is None:
         ext = util.get_profile_extension(args.profile)
     count = 0
@@ -30,7 +31,8 @@ def encode_file(args, options):
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         filelist.append(target_file)
-        video.encodeoo(args.inputfile, target_file, args.profile, **options)
+        outputfile = file_object.encode(target_file, args.profile, **options)
+        util.logger.info("File {0} generated".format(outputfile))
     if len(timeranges) > 1:
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, "combined", ext)
         video.concat(target_file, filelist)
@@ -54,10 +56,11 @@ def encode_dir(args, options):
             directory = os.path.dirname(targetfname)
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            video.encode(fname, targetfname, args.profile, **options)
+            outputfile = video.VideoFile(fname).encode(targetfname, args.profile, **options)
+            util.logger.info("File {0} generated".format(outputfile))
         else:
             copyfile(fname, targetfname)
-            util.debug(2, "Skipping/Plain Copy %s" % (fname))
+            util.logger.info("Skipping/Plain Copy file {0}".format(fname))
         i = i + 1
     util.debug(0, '%05d/%05d : 100%% : Job finished' % (nbfiles, nbfiles))
 
