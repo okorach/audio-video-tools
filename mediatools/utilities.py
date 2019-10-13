@@ -229,6 +229,18 @@ def to_hms(seconds):
     except TypeError:
         return (0,0,0)
 
+def to_seconds(hms):
+    a = hms.split(':')
+    seconds = 0
+    multiplier = 1
+    while a:
+        seconds = seconds + multiplier * float(a.pop())
+        multiplier = multiplier * 60
+    return seconds
+
+def difftime(start, stop):
+    return to_seconds(stop) - to_seconds(start)
+
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
