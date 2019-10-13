@@ -239,16 +239,23 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def cut(self, start, stop, out_file = None, **kwargs):
+        if out_file is None:
+            out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
+        util.logger("Cutting {0} from {1} to {2} into {3}".format(self.filename, start, stop, out_file))
         parms = self.get_ffmpeg_params()
         kwargs['start'] = start
         kwargs['stop'] = stop
         parms.update(media.cmdline_options(**kwargs))
 
-        util.logger.info("Cmd line settings = %s", str(parms))
-        out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
-        cmd = '%s -i "%s" %s "%s"' % (util.get_ffmpeg(), self.filename, \
-            media.build_ffmpeg_options(parms), out_file)
-        util.run_os_cmd(cmd)
+        video_filters = []
+        if 'fade' in kwargs and kwargs['fade'] is not None:
+            clip_duration = util.difftime(stop, start)
+            fade_duration = int(kwargs['fade'])
+            video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
+
+        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms),
+                        media.build_video_filters_options(video_filters), out_file))
+
         return out_file
 
     def deshake(self, width, height, out_file, **kwargs):
@@ -321,9 +328,13 @@ class VideoFile(media.MediaFile):
             mapping = ""
 
         if 'fade' in kwargs and kwargs['fade'] is not None:
-            clip_duration = float(self.get_duration())
             fade_duration = int(kwargs['fade'])
-            video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
+            if 'start' in kwargs and 'stop' in kwargs:
+                video_filters.append("fade=type=in:duration={0}:start_time={1},fade=type=out:duration={2}:start_time={3}".format(fade_duration, 
+                                    util.to_seconds(kwargs['start']), fade_duration, util.to_seconds(kwargs['stop'])-fade_duration))
+            else:
+                clip_duration = float(self.get_duration())
+                video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
 
             # -vf "fade=type=in:duration=5,fade=type=out:duration=5:start_time=16"
 
