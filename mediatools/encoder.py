@@ -74,17 +74,13 @@ class Encoder:
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
         self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}}".format(width, height))
 
-    def add_fade_filter(self, fade_duration, start, stop):
-        if start is None:
-            start = self.start
-        if stop is None:
-            stop = self.stop
-        if start is not None and stop is not None:
-            self.add_vfilter("fade=type=in:duration={0}:start_time={1},fade=type=out:duration={2}:start_time={3}". \
-                    format(fade_duration, util.to_seconds(start), fade_duration, util.to_seconds(stop)-fade_duration))
-        else:
-            self.add_vfilter("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}". \
-                    format(fade_duration, fade_duration, stop-fade_duration))
+    def add_fade_filter(self, fade_d, start, stop):
+        if start is None: start = self.start
+        if start is None: start = 0
+        if stop is None: stop = self.stop
+        fmt = "fade=type={0}:duration={1}:start_time={2}"
+        fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
+        self.add_vfilter(fader)
 
     def ffmpeg_opts(self):
         opts = ''
