@@ -34,6 +34,7 @@ class Encoder:
         self.audio_sample_rate = None
         self.start = None
         self.stop = None
+        self.vfilters = []
         self.add_settings(**kwargs)
 
     def add_settings(self, **kwargs):
@@ -64,17 +65,22 @@ class Encoder:
         self.format = fmt
 
     def add_vfilter(self, filter):
-        # -filter:v
         self.vfilters.append(filter)
+
+    def get_vfilters_string(self):
+        cmd = ''
+        for f in self.vfilters:
+            cmd = cmd + '-filter:v "%s" ' % f
+        return cmd.strip()
 
     def add_crop_filter(self, width, height, top, left):
         self.add_vfilter("crop={0}:{1}:{2}:{3}".format(width, height, top, left))
 
     def add_deshake_filter(self, width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
-        self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}}".format(width, height))
+        self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height))
 
-    def add_fade_filter(self, fade_d, start, stop):
+    def add_fade_filter(self, fade_d, start = None, stop = None):
         if start is None: start = self.start
         if start is None: start = 0
         if stop is None: stop = self.stop
@@ -102,4 +108,5 @@ class Encoder:
             opts = opts + '-{0} {1}'.format(FfmpegOpts.FPS_OPTION, self.video_fps)
         if self.format is not None:
             opts = opts + '-{0} {1}'.format(FfmpegOpts.FORMAT_OPTION, self.format)
+        opts = opts + self.get_vfilters_string()
 
