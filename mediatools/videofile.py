@@ -249,9 +249,10 @@ class VideoFile(media.MediaFile):
 
         video_filters = []
         if 'fade' in kwargs and kwargs['fade'] is not None:
-            clip_duration = util.difftime(stop, start)
-            fade_duration = int(kwargs['fade'])
-            video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
+            fade_d = int(kwargs['fade'])
+            fmt = "fade=type={0}:duration={1}:start_time={2}"
+            fader = fmt.format('in', start, fade_d) + ',' + fmt.format('in', stop - fade_d, fade_d)
+            video_filters.append(fader)
 
         util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms),
                         media.build_video_filters_options(video_filters), out_file))
@@ -328,17 +329,16 @@ class VideoFile(media.MediaFile):
             mapping = ""
 
         if 'fade' in kwargs and kwargs['fade'] is not None:
-            fade_duration = int(kwargs['fade'])
-            if 'start' in kwargs and 'stop' in kwargs:
-                video_filters.append("fade=type=in:duration={0}:start_time={1},fade=type=out:duration={2}:start_time={3}".format(fade_duration, 
-                                    util.to_seconds(kwargs['start']), fade_duration, util.to_seconds(kwargs['stop'])-fade_duration))
-            else:
-                clip_duration = float(self.get_duration())
-                video_filters.append("fade=type=in:duration={0},fade=type=out:duration={1}:start_time={2}".format(fade_duration, fade_duration, clip_duration-fade_duration))
-
+            fade_d = int(kwargs['fade'])
+            start = util.to_seconds(kwargs['start']) if 'start' in kwargs else 0
+            stop = util.to_seconds(kwargs['stop']) if 'stop' in kwargs else float(self.get_duration())
+            fmt = "fade=type={0}:duration={1}:start_time={2}"
+            fader = fmt.format('in', start, fade_d) + ',' + fmt.format('in', stop - fade_d, fade_d)
+            video_filters.append(fader)
             # -vf "fade=type=in:duration=5,fade=type=out:duration=5:start_time=16"
 
-        util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), media.build_video_filters_options(video_filters), mapping, target_file))
+        util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
+                        media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File {0} encoded".format(target_file))
 
 def get_size_option(cmdline):
