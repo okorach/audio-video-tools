@@ -111,6 +111,7 @@ class MediaFile:
         self.size = None
         self.bitrate = None
         self.duration = None
+        self.probe()
 
     def get_filename(self):
         '''Returns file name'''
@@ -140,26 +141,31 @@ class MediaFile:
 
     def probe(self):
         '''Returns media file general specs'''
-        if self.specs is None:
-            self.specs = self.probe2()
-            util.logger.debug( \
-                json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.specs is not None:
-            self.get_format_specs()
+            return self.specs
+        try:
+            util.logger.info('Probing %s', self.filename)
+            self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
+        except AttributeError:
+            print (dir(ffmpeg))
+        except ffmpeg.Error:
+            return None
+        util.logger.debug( \
+                json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         return self.specs
 
     def get_format_specs(self):
         '''Reads file format specs'''
         self.format = self.specs['format']['format_name']
         self.format_long = self.specs['format']['format_long_name']
-        self.nb_streams = self.specs['format']['nb_streams']
-        self.size = self.specs['format']['size']
+        self.nb_streams = int(self.specs['format']['nb_streams'])
+        self.size = int(self.specs['format']['size'])
         try:
-            self.bitrate = self.specs['format']['bit_rate']
+            self.bitrate = int(self.specs['format']['bit_rate'])
         except KeyError:
             pass
         try:
-            self.duration = self.specs['format']['duration']
+            self.duration = float(self.specs['format']['duration'])
         except KeyError:
             pass
 
@@ -168,16 +174,6 @@ class MediaFile:
         return {'filename':self.filename, 'type':self.type, 'format':self.format, \
         'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, \
         'bitrate':self.bitrate}
-
-    def probe2(self):
-        ''' Returns file probe (media specs) '''
-        try:
-            util.logger.info('Probing %s', self.filename)
-            return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-        except AttributeError:
-            print (dir(ffmpeg))
-        except ffmpeg.Error:
-            return None
 
     def get_stream_by_codec(self, field, value):
         util.logger.debug('Searching stream for codec %s = %s', field, value)
@@ -216,16 +212,6 @@ def get_crop_filter_options(width, height, top, left):
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
-
-def probe_file(file):
-    ''' Returns file probe (media specs) '''
-    if util.is_media_file(file):
-        try:
-            return ffmpeg.probe(file, cmd=util.get_ffprobe())
-        except AttributeError:
-            print(dir(ffmpeg))
-    else:
-        raise FileTypeError('File %s is neither video, audio nor image file' % file)
 
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
