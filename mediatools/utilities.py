@@ -257,8 +257,8 @@ def get_logging_level(intlevel):
         lvl = logging.CRITICAL
     return lvl
 
-def log_json(json_data):
-    logger.debug(json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': ')))
+def json_fmt(json_data):
+    return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': ')))
 
 def set_debug_level(level):
     global DEBUG_LEVEL
