@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import re
 import logging
 import platform
@@ -24,7 +25,7 @@ class MediaType:
     AUDIO_FILE = 1
     VIDEO_FILE = 2
     IMAGE_FILE = 3
-    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$', 
+    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
                         VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$',
                         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
 
@@ -256,11 +257,12 @@ def get_logging_level(intlevel):
         lvl = logging.CRITICAL
     return lvl
 
+def log_json(json_data):
+    logger.debug(json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': ')))
+
 def set_debug_level(level):
     global DEBUG_LEVEL
-    if level is None:
-        level = 0
-    DEBUG_LEVEL = int(level)
+    DEBUG_LEVEL = 0 if level is None else int(level)
     global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
