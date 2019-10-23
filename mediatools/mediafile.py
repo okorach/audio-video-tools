@@ -111,6 +111,7 @@ class MediaFile:
         self.size = None
         self.bitrate = None
         self.duration = None
+        self.probe()
 
     def get_filename(self):
         '''Returns file name'''
@@ -140,51 +141,73 @@ class MediaFile:
 
     def probe(self):
         '''Returns media file general specs'''
-        if self.specs is None:
-            self.specs = self.probe2()
-            util.logger.debug( \
-                json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.specs is not None:
-            self.get_format_specs()
+            return self.specs
+        try:
+            util.logger.info('Probing %s with %s', self.filename, util.get_ffprobe())
+            self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
+        except ffmpeg.Error as e:
+            util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
+            return None
+        self.decode_specs()
+        util.logger.debug(util.json_fmt(self.specs))
         return self.specs
 
-    def get_format_specs(self):
+    def decode_specs(self):
+        self.get_file_specs()
+
+    def get_file_specs(self):
         '''Reads file format specs'''
         self.format = self.specs['format']['format_name']
         self.format_long = self.specs['format']['format_long_name']
-        self.nb_streams = self.specs['format']['nb_streams']
-        self.size = self.specs['format']['size']
+        self.nb_streams = int(self.specs['format']['nb_streams'])
+        self.size = int(self.specs['format']['size'])
         try:
-            self.bitrate = self.specs['format']['bit_rate']
-        except KeyError:
-            pass
+            self.bitrate = int(self.specs['format']['bit_rate'])
+        except KeyError as e:
+            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
         try:
-            self.duration = self.specs['format']['duration']
-        except KeyError:
-            pass
+            self.duration = float(self.specs['format']['duration'])
+        except KeyError as e:
+            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
 
     def get_file_properties(self):
         '''Returns file properties as dict'''
+        self.get_file_specs()
         return {'filename':self.filename, 'type':self.type, 'format':self.format, \
         'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, \
         'bitrate':self.bitrate}
 
-    def probe2(self):
-        ''' Returns file probe (media specs) '''
-        try:
-            util.logger.info('Probing %s', self.filename)
-            return ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-        except AttributeError:
-            print (dir(ffmpeg))
-        except ffmpeg.Error:
-            return None
+    def __get_first_video_stream__(self):
+        util.logger.debug('Searching first video stream')
+        for stream in self.specs['streams']:
+            util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
+            if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif': return stream
+        return None
 
-    def get_stream_by_codec(self, field, value):
+    def __get_first_audio_stream__(self):
+        util.logger.debug('Searching first audio stream')
+        return self.__get_stream_by_codec('codec_type', 'audio')
+
+    def __get_audio_stream_attribute__(self, attr, stream = None):
+        if stream is None: stream = self.__get_first_audio_stream__()
+        try:
+            return stream[attr]
+        except KeyError as e:
+            util.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+
+    def __get_video_stream_attribute__(self, attr, stream = None):
+        if stream is None: stream = self.__get_first_video_stream__()
+        try:
+            return stream[attr]
+        except KeyError as e:
+            util.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+
+    def __get_stream_by_codec(self, field, value):
         util.logger.debug('Searching stream for codec %s = %s', field, value)
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s', stream[field])
-            if stream[field] == value:
-                return stream
+            if stream[field] == value: return stream
         return None
 
 def build_target_file(source_file, profile):
@@ -217,16 +240,6 @@ def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
 
-def probe_file(file):
-    ''' Returns file probe (media specs) '''
-    if util.is_media_file(file):
-        try:
-            return ffmpeg.probe(file, cmd=util.get_ffprobe())
-        except AttributeError:
-            print(dir(ffmpeg))
-    else:
-        raise FileTypeError('File %s is neither video, audio nor image file' % file)
-
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
     util.logger.debug('Calling compute_fps(%s)', rate)
@@ -249,88 +262,6 @@ def reduce_aspect_ratio(aspect_ratio, height=None):
             w = w // n
             h = h // n
     return "%d:%d" % (w, h)
-
-def get_audio_specs(stream):
-    specs = {}
-    specs['audio_codec'] = stream['codec_name']
-    specs['audio_sample_rate'] = stream['sample_rate']
-    try:
-        specs['duration'] = stream['duration']
-        specs['duration_hms'] = to_hms_str(stream['duration'])
-    except KeyError:
-        pass
-    specs['audio_bitrate'] = stream['bit_rate']
-    return specs
-
-def get_video_bitrate(stream):
-    bitrate = None
-    bitrate = stream.get('bit_rate', None)
-    if bitrate is None:
-        bitrate = stream.get('duration_ts', None)
-    return bitrate
-
-def get_video_specs(stream):
-    util.logger.debug("Getting stream data %s", json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
-    specs = {}
-    specs['type'] = 'video'
-    specs['video_codec'] = stream['codec_name']
-    specs['video_bitrate'] = get_video_bitrate(stream)
-    specs['width'] = stream['width']
-    specs['height'] = stream['height']
-    specs['duration'] = stream['duration']
-    specs['duration_hms'] = to_hms_str(stream['duration'])
-    raw_fps = stream['avg_frame_rate'] if 'avg_frame_rate' in stream.keys() else stream['r_frame_rate']
-    specs['video_fps'] = compute_fps(raw_fps)
-    specs['video_aspect_ratio'] = stream.get('display_aspect_ratio', None)
-    if specs['video_aspect_ratio'] is None:
-        specs['video_aspect_ratio'] = reduce_aspect_ratio(specs['width'], specs['height'])
-    return specs
-
-def get_image_specs(stream):
-    specs = {}
-    specs['image_codec'] = stream['codec_name']
-    specs['width'] = stream['width']
-    specs['height'] = stream['height']
-    specs['format'] = stream['codec_name']
-    return specs
-
-def get_file_specs(file):
-    probe_data = probe_file(file)
-    util.logger.debug(json.dumps(probe_data, sort_keys=True, indent=3, separators=(',', ': ')))
-    specs = {}
-    specs['filename'] = probe_data['format']['filename']
-    specs['filesize'] = probe_data['format']['size']
-    #if file_type == 'image2':
-    specs['type'] = util.get_file_type(file)
-    if util.is_audio_file(file):
-        specs['format'] = probe_data['streams'][0]['codec_name']
-    #elif re.search(r'mp4', file_type) is not None:
-    elif util.is_video_file(file):
-        specs['format'] = util.get_file_extension(file)
-
-    util.logger.debug("File type %s", specs['type'])
-    for stream in probe_data['streams']:
-        try:
-            if specs['type'] == 'image':
-                specs.update(get_image_specs(stream))
-            elif specs['type'] == 'video' and stream['codec_type'] == 'video':
-                specs.update(get_video_specs(stream))
-            elif (specs['type'] == 'audio' or specs['type'] == 'video') and stream['codec_type'] == 'audio':
-                specs.update(get_audio_specs(stream))
-        except KeyError as e:
-            util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(specs))
-    return specs
-
-def to_hms(seconds):
-    s = float(seconds)
-    hours = int(s)//3600
-    minutes = int(s)//60 - hours*60
-    secs = s - hours*3600 - minutes*60
-    return (hours, minutes, secs)
-
-def to_hms_str(seconds):
-    hours, minutes, secs = to_hms(seconds)
-    return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
