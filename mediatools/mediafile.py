@@ -55,7 +55,7 @@ class MediaFile:
         '''Returns media file general specs'''
         if self.specs is None:
             self.specs = self.probe2()
-            util.json_log(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
+            json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': '))
         if self.specs is not None:
             self.get_format_specs()
         return self.specs

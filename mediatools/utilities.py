@@ -24,7 +24,7 @@ class MediaType:
     AUDIO_FILE = 1
     VIDEO_FILE = 2
     IMAGE_FILE = 3
-    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$', 
+    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
                         VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$',
                         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
 
