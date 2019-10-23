@@ -18,7 +18,7 @@ class VideoFile(media.MediaFile):
     def __init__(self, filename):
         if not util.is_video_file(filename):
             raise media.FileTypeError('File {0} is not a video file'.format(filename))
-        super(VideoFile, self).__init__(filename)
+
         self.aspect = None
         self.video_codec = None
         self.video_bitrate = None
@@ -33,6 +33,7 @@ class VideoFile(media.MediaFile):
         self.audio_language = None
         self.audio_sample_rate = None
         self.stream = None
+        super(VideoFile, self).__init__(filename)
         self.get_specs()
 
     def get_specs(self):
