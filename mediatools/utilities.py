@@ -26,7 +26,7 @@ class MediaType:
     VIDEO_FILE = 2
     IMAGE_FILE = 3
     FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
-                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$',
+                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
                         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
 
 
@@ -86,7 +86,7 @@ def file_list_by_type(root_dir, file_type):
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
-            if is_type_file(file, file_type):
+            if __is_type_file(file, file_type):
                 files.append(os.path.join(r, file))
     return files
 
@@ -134,17 +134,17 @@ def automatic_output_file_name(outfile, infile, postfix, extension = None):
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
 
-def is_type_file(file, type_of_media):
+def __is_type_file(file, type_of_media):
     return match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
 
 def is_audio_file(file):
-    return is_type_file(file, MediaType.AUDIO_FILE)
+    return __is_type_file(file, MediaType.AUDIO_FILE)
 
 def is_video_file(file):
-    return is_type_file(file, MediaType.VIDEO_FILE)
+    return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_image_file(file):
-    return is_type_file(file, MediaType.VIDEO_FILE)
+    return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
@@ -258,7 +258,7 @@ def get_logging_level(intlevel):
     return lvl
 
 def json_fmt(json_data):
-    return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': ')))
+    return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
 
 def set_debug_level(level):
     global DEBUG_LEVEL

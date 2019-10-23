@@ -64,9 +64,9 @@ if args.format == 'csv':
 props = all_props
 nb_files = len(filelist)
 for file in filelist:
-    if not util.is_media_file(file):
-        continue
     try:
+        if not util.is_media_file(file):
+            raise media.FileTypeError("File %s is not a supported file format" % file)
         if util.is_video_file(file):
             file_object = video.VideoFile(file)
             if nb_files == 1:
@@ -79,9 +79,9 @@ for file in filelist:
             file_object = img.ImageFile(file)
             if nb_files == 1:
                 props = IMAGE_PROPS
-        else:
-            file_object = media.MediaFile(file)
+
         specs = file_object.get_properties()
+        util.logger.debug("Specs = %s", util.json_fmt(specs))
         for prop in props:
             if args.format != "csv":
                 try:

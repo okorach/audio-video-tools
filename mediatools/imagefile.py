@@ -59,7 +59,7 @@ class ImageFile(media.MediaFile):
     def get_dimensions(self):
         self.get_specs()
         if self.width is None or self.height is None:
-            stream = self.get_stream_by_codec('codec_name', 'mjpeg')
+            stream = self.__get_stream_by_codec('codec_name', 'mjpeg')
             self.width = self.find_width_from_stream(stream)
             self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:

@@ -144,16 +144,21 @@ class MediaFile:
         if self.specs is not None:
             return self.specs
         try:
-            util.logger.info('Probing %s', self.filename)
+            util.logger.info('Probing %s with %s', self.filename, util.get_ffprobe())
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
+            self.decode_specs()
         except AttributeError:
             print (dir(ffmpeg))
-        except ffmpeg.Error:
+        except ffmpeg.Error as e:
+            util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
             return None
         util.logger.debug(util.json_fmt(self.specs))
         return self.specs
 
-    def get_format_specs(self):
+    def decode_specs(self):
+        self.get_file_specs()
+
+    def get_file_specs(self):
         '''Reads file format specs'''
         self.format = self.specs['format']['format_name']
         self.format_long = self.specs['format']['format_long_name']
@@ -161,25 +166,50 @@ class MediaFile:
         self.size = int(self.specs['format']['size'])
         try:
             self.bitrate = int(self.specs['format']['bit_rate'])
-        except KeyError:
-            pass
+        except KeyError as e:
+            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
         try:
             self.duration = float(self.specs['format']['duration'])
-        except KeyError:
-            pass
+        except KeyError as e:
+            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
 
     def get_file_properties(self):
         '''Returns file properties as dict'''
+        self.get_file_specs()
         return {'filename':self.filename, 'type':self.type, 'format':self.format, \
         'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, \
         'bitrate':self.bitrate}
 
-    def get_stream_by_codec(self, field, value):
+    def __get_first_video_stream__(self):
+        util.logger.debug('Searching first video stream')
+        for stream in self.specs['streams']:
+            util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
+            if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif': return stream
+        return None
+
+    def __get_first_audio_stream__(self):
+        util.logger.debug('Searching first audio stream')
+        return self.__get_stream_by_codec('codec_type', 'audio')
+
+    def __get_audio_stream_attribute__(self, attr, stream = None):
+        if stream is None: stream = self.__get_first_audio_stream__()
+        try:
+            return stream[attr]
+        except KeyError as e:
+            util.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+
+    def __get_video_stream_attribute__(self, attr, stream = None):
+        if stream is None: stream = self.__get_first_video_stream__()
+        try:
+            return stream[attr]
+        except KeyError as e:
+            util.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+
+    def __get_stream_by_codec(self, field, value):
         util.logger.debug('Searching stream for codec %s = %s', field, value)
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s', stream[field])
-            if stream[field] == value:
-                return stream
+            if stream[field] == value: return stream
         return None
 
 def build_target_file(source_file, profile):
