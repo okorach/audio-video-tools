@@ -13,87 +13,6 @@ import mediatools.utilities as util
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
     pass
-
-class Encoder:
-    '''Encoder abstraction'''
-    def __init__(self):
-        self.format = None
-        self.vcodec = None # 'libx264'
-        self.acodec = None # 'libvo_aacenc'
-        self.vbitrate = None # '2048k'
-        self.abitrate = None # '128k'
-        self.fps = None
-        self.aspect = None
-        self.size = None
-        self.deinterlace = None
-        self.achannels = None
-        self.vfilters = {}
-        self.other_options = {}
-
-    def set_ffmpeg_properties(self, props):
-        '''Set Encoder properties according to ffmpeg conventions'''
-        params = util.get_cmdline_params(props)
-        for param in params:
-            if param == util.FFMPEG_FORMAT_OPTION:
-                self.format = params[param]
-            elif param == util.FFMPEG_VBITRATE_OPTION:
-                self.vbitrate = params[param]
-            elif param == util.FFMPEG_VCODEC_OPTION:
-                self.vcodec = params[param]
-            elif param == util.FFMPEG_ABITRATE_OPTION:
-                self.abitrate = params[param]
-            elif param == util.FFMPEG_ACODEC_OPTION:
-                self.acodec = params[param]
-            elif param == util.FFMPEG_DEINTERLACE_OPTION:
-                self.deinterlace = ''
-            elif param == util.FFMPEG_FPS_OPTION:
-                self.fps = params[param]
-            elif param == util.FFMPEG_SIZE_OPTION:
-                self.size = params[param]
-            elif param == util.FFMPEG_ASPECT_OPTION:
-                self.aspect = params[param]
-            elif param == util.FFMPEG_ACHANNEL_OPTION:
-                self.achannels = params[param]
-            elif param == util.FFMPEG_VFILTER_OPTION:
-                self.vfilters.update({util.FFMPEG_VFILTER_OPTION:params[param]})
-
-    def set_vcodec(self, vcodec):
-        '''Set vcodec'''
-        self.vcodec = vcodec
-
-    def set_size(self, size):
-        '''Set video size'''
-        self.size = size
-
-    def set_acodec(self, acodec):
-        '''Set audio codec'''
-        self.acodec = acodec
-
-    def set_vbitrate(self, bitrate):
-        '''Set video bitrate'''
-        self.vbitrate = bitrate
-
-    def set_abitrate(self, bitrate):
-        '''Set audio bitrate'''
-        self.abitrate = bitrate
-
-    def set_deinterlace(self):
-        '''Apply deinterlace'''
-        self.deinterlace = ''
-
-    def set_format(self, fmt):
-        '''Set video file format'''
-        self.format = fmt
-
-    def build_ffmpeg_options(self):
-        '''Builds string corresponding to ffmpeg conventions'''
-        options = vars(self)
-        cmd = ''
-        for option in options.keys():
-            if options[option] is not None:
-                cmd = cmd + " -%s %s" % (util.OPTIONS_MAPPING[option], options[option])
-        return cmd
-
 class MediaFile:
     '''Media file abstraction'''
     def __init__(self, filename):
@@ -118,8 +37,6 @@ class MediaFile:
 
     def get_author(self):
         '''Returns file author'''
-        if self.author is None:
-            self.probe()
         return self.author
 
     def get_filetype(self):
@@ -128,22 +45,17 @@ class MediaFile:
 
     def get_year(self):
         '''Returns file year'''
-        if self.year is None:
-            self.probe()
         return self.year
 
     def get_copyright(self):
         '''Returns file copyright'''
-        if self.copyright is None:
-            self.probe()
         return self.copyright
 
     def probe(self):
         '''Returns media file general specs'''
         if self.specs is None:
             self.specs = self.probe2()
-            util.logger.debug( \
-                json.dumps(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
+            util.json_log(self.specs, sort_keys=True, indent=3, separators=(',', ': ')))
         if self.specs is not None:
             self.get_format_specs()
         return self.specs

@@ -17,6 +17,16 @@ class FfmpegOpts:
     START_OPTION = 'ss'
     STOP_OPTION = 'to'
 
+OPTIONS_MAPPING = { 'format':FfmpegOpts.FORMAT_OPTION, \
+   'vcodec':FfmpegOpts.VCODEC_OPTION, 'vbitrate':FfmpegOpts.VBITRATE_OPTION, \
+   'acodec':FfmpegOpts.ACODEC_OPTION, 'abitrate':FfmpegOpts.ABITRATE_OPTION, \
+   'fps':FfmpegOpts.FPS_OPTION, 'aspect':FfmpegOpts.ASPECT_OPTION, 'vsize':FfmpegOpts.SIZE_OPTION, \
+   'deinterlace':FfmpegOpts.DEINTERLACE_OPTION, 'achannel':FfmpegOpts.ACHANNEL_OPTION, \
+   'vfilter':FfmpegOpts.VFILTER_OPTION, \
+   'start': FfmpegOpts.START_OPTION, 'stop': FfmpegOpts.STOP_OPTION }
+
+LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
+
 class Encoder:
     '''Encoder abstraction'''
     SETTINGS = ['format', 'vcodec', 'vbitrate', 'acodec', 'abitrate', 'fps', 'aspect', \
@@ -25,6 +35,7 @@ class Encoder:
     def __init__(self, **kwargs):
         self.format = None
         self.aspect = None
+        self.size = None
         self.video_codec = 'copy'
         self.video_bitrate = None
         self.video_fps = None
@@ -36,6 +47,7 @@ class Encoder:
         self.stop = None
         self.vfilters = []
         self.add_settings(**kwargs)
+        self.other_options = {}
 
     def add_settings(self, **kwargs):
         kwsettings = {}
@@ -89,24 +101,12 @@ class Encoder:
         self.add_vfilter(fader)
 
     def ffmpeg_opts(self):
-        opts = ''
-        if self.start is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.START_OPTION, self.start)
-        if self.stop is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.STOP_OPTION, self.start)
-        if self.size is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.SIZE_OPTION, self.size)
-        if self.video_codec is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.VCODEC_OPTION, self.video_codec)
-        if self.video_bitrate is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.VBITRATE_OPTION, self.video_bitrate)
-        if self.audio_codec is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.ACODEC_OPTION, self.audio_codec)
-        if self.audio_bitrate is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.ABITRATE_OPTION, self.audio_bitrate)
-        if self.video_fps is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.FPS_OPTION, self.video_fps)
-        if self.format is not None:
-            opts = opts + '-{0} {1}'.format(FfmpegOpts.FORMAT_OPTION, self.format)
-        opts = opts + self.get_vfilters_string()
+        '''Builds string corresponding to ffmpeg conventions'''
+        options = vars(self)
+        cmd = ''
+        for option in options.keys():
+            if options[option] is not None and not isinstance(options[option], list):
+                cmd = cmd + " -{0} {1}".format(OPTIONS_MAPPING[option], options[option])
+        cmd = cmd + ' ' + self.get_vfilters_string()
+        return cmd.strip()
 
