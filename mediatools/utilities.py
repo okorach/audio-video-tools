@@ -172,8 +172,7 @@ def get_ffprobe(props_file = None):
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
-        if tag in a_dict:
-            return a_dict[tag]
+        if tag in a_dict: return a_dict[tag]
     return None
 
 def run_os_cmd(cmd):
@@ -361,7 +360,6 @@ def get_cmdline_params(cmdline):
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
             parms[m.group(1)] = m.group(2)
-            #print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             # Format -<option>
