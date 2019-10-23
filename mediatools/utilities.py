@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import re
 import logging
 import platform
@@ -25,7 +26,7 @@ class MediaType:
     VIDEO_FILE = 2
     IMAGE_FILE = 3
     FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
-                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$',
+                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
                         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
 
 
@@ -85,7 +86,7 @@ def file_list_by_type(root_dir, file_type):
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
-            if is_type_file(file, file_type):
+            if __is_type_file(file, file_type):
                 files.append(os.path.join(r, file))
     return files
 
@@ -133,17 +134,17 @@ def automatic_output_file_name(outfile, infile, postfix, extension = None):
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
 
-def is_type_file(file, type_of_media):
+def __is_type_file(file, type_of_media):
     return match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
 
 def is_audio_file(file):
-    return is_type_file(file, MediaType.AUDIO_FILE)
+    return __is_type_file(file, MediaType.AUDIO_FILE)
 
 def is_video_file(file):
-    return is_type_file(file, MediaType.VIDEO_FILE)
+    return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_image_file(file):
-    return is_type_file(file, MediaType.VIDEO_FILE)
+    return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
@@ -171,8 +172,7 @@ def get_ffprobe(props_file = None):
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
-        if tag in a_dict:
-            return a_dict[tag]
+        if tag in a_dict: return a_dict[tag]
     return None
 
 def run_os_cmd(cmd):
@@ -256,11 +256,12 @@ def get_logging_level(intlevel):
         lvl = logging.CRITICAL
     return lvl
 
+def json_fmt(json_data):
+    return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
+
 def set_debug_level(level):
     global DEBUG_LEVEL
-    if level is None:
-        level = 0
-    DEBUG_LEVEL = int(level)
+    DEBUG_LEVEL = 0 if level is None else int(level)
     global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
@@ -359,7 +360,6 @@ def get_cmdline_params(cmdline):
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
             parms[m.group(1)] = m.group(2)
-            #print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             # Format -<option>

@@ -18,7 +18,7 @@ class VideoFile(media.MediaFile):
     def __init__(self, filename):
         if not util.is_video_file(filename):
             raise media.FileTypeError('File {0} is not a video file'.format(filename))
-        super(VideoFile, self).__init__(filename)
+
         self.aspect = None
         self.video_codec = None
         self.video_bitrate = None
@@ -33,21 +33,27 @@ class VideoFile(media.MediaFile):
         self.audio_language = None
         self.audio_sample_rate = None
         self.stream = None
+        super(VideoFile, self).__init__(filename)
         self.get_specs()
 
     def get_specs(self):
         '''Returns video file complete specs as dict'''
         if self.specs is None:
             self.probe()
-            self.get_video_specs()
-            self.get_audio_specs()
+        self.decode_specs()
+
+    def decode_specs(self):
+        self.get_file_specs()
+        self.get_video_specs()
+        self.get_audio_specs()
 
     def get_video_specs(self):
         '''Returns video file video specs as dict'''
-        stream = self.get_video_stream()
+        stream = self.__get_first_video_stream__()
         _, _ = self.get_dimensions(stream)
         _ = self.get_fps(stream)
         _ = self.get_video_codec(stream)
+        _ = self.get_pixel_aspect_ratio(stream)
         try:
             self.video_bitrate = get_video_bitrate(stream)
             if self.video_bitrate is None:
@@ -55,14 +61,7 @@ class VideoFile(media.MediaFile):
             self.duration = stream['duration']
         except KeyError as e:
             util.logger.error("Stream %s has no key %s\n", str(stream), e.args[0])
-        ar = stream.get('display_aspect_ratio', None)
-        if ar is None:
-            ar = "%d:%d" % (self.width, self.height)
-        self.aspect = media.reduce_aspect_ratio(ar)
-        par = stream.get('sample_aspect_ratio', None)
-        if par is None:
-            par = media.reduce_aspect_ratio("%d:%d" % (self.width, self.height))
-        self.pixel_aspect = media.reduce_aspect_ratio(par)
+
         return self.specs
 
     def get_audio_specs(self):
@@ -70,12 +69,9 @@ class VideoFile(media.MediaFile):
         for stream in self.specs['streams']:
             if stream['codec_type'] != 'audio':
                 continue
-            if 'codec_name' in stream:
-                self.audio_codec = stream['codec_name']
-            if 'bit_rate' in stream:
-                self.audio_bitrate = stream['bit_rate']
-            if 'sample_rate' in stream:
-                self.audio_sample_rate = stream['sample_rate']
+            self.audio_codec = self.__get_audio_stream_attribute__('codec_name')
+            self.audio_bitrate = self.__get_audio_stream_attribute__('bit_rate')
+            self.audio_sample_rate = self.__get_audio_stream_attribute__('sample_rate')
             if 'tags' in stream and 'language' in stream['tags']:
                 self.audio_language = stream['tags']['language']
                 if self.audio_language in util.LANGUAGE_MAPPING:
@@ -89,28 +85,41 @@ class VideoFile(media.MediaFile):
             self.get_specs()
         return self.aspect
 
-    def get_pixel_aspect_ratio(self):
+    def get_pixel_aspect_ratio(self, stream = None):
         '''Returns video file pixel aspect ratio'''
         if self.pixel_aspect is None:
-            self.get_specs()
+            ar = stream.get('display_aspect_ratio', None)
+            if ar is None: ar = "%d:%d" % (self.width, self.height)
+            self.aspect = media.reduce_aspect_ratio(ar)
+            par = stream.get('sample_aspect_ratio', None)
+            if par is None: par = media.reduce_aspect_ratio("%d:%d" % (self.width, self.height))
+            self.pixel_aspect = media.reduce_aspect_ratio(par)
         return self.pixel_aspect
 
     def get_video_codec(self, stream):
         '''Returns video file video codec'''
         util.logger.debug('Getting video codec')
-        if self.video_codec is None:
-            if stream is None:
-                stream = self.get_video_stream()
-                util.logger.debug('Video stream is %s', \
-                    json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+        if self.video_codec is not None: return self.video_codec
+        if stream is None: stream = self.__get_first_video_stream__()
+        try:
             self.video_codec = stream['codec_name']
+        except KeyError as e:
+            util.logger.error("Stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
         return self.video_codec
+
 
     def get_video_bitrate(self):
         '''Returns video file video bitrate'''
         if self.video_bitrate is None:
-            self.get_specs()
-        return self.video_bitrate
+            try:
+                self.video_bitrate = self.specs['format']['bit_rate']
+            except KeyError as e:
+                util.logger.error("Format %s has no key %s\n", util.json_fmt(self.specs['format']), e.args[0])
+
+    def get_video_duration(self, stream = None):
+        if self.duration is None:
+            self.duration = self.__get_video_stream_attribute__('duration')
+        return self.duration
 
     def get_audio_codec(self):
         '''Returns video file audio codec'''
@@ -142,20 +151,12 @@ class VideoFile(media.MediaFile):
             self.get_specs()
         return self.width
 
-    def get_video_stream(self):
-        util.logger.debug('Searching video stream')
-        for stream in self.specs['streams']:
-            util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
-            if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif':
-                return stream
-        return None
 
     def get_fps(self, stream = None):
         if self.video_fps is None:
             if stream is None:
-                stream = self.get_video_stream()
-                util.logger.debug('Video stream is %s', \
-                    json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
+                stream = self.__get_first_video_stream__()
+                util.logger.debug('Video stream is %s', util.json_fmt(stream))
             for tag in [ 'avg_frame_rate', 'r_frame_rate']:
                 if tag in stream:
                     self.video_fps = media.compute_fps(stream[tag])
@@ -164,28 +165,21 @@ class VideoFile(media.MediaFile):
 
     def get_dimensions(self, stream = None):
         util.logger.debug('Getting video dimensions')
-        if self.width is None or self.height is None and stream is None:
-            stream = self.get_video_stream()
-            util.logger.debug('Video stream is %s', \
-                json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
-        if self.width is None:
-            self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
-        if self.height is None:
-            self.height = util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
-        if self.width is not None and self.height is not None:
-            self.pixels = self.width * self.height
-        util.logger.debug("Returning %s, %s", str(self.width), str(self.height))
+        if self.width is None or self.height is None:
+            if stream is None: stream = self.__get_first_video_stream__()
+            if self.width is None: self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
+            if self.height is None: self.height = util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
+            if self.width is not None and self.height is not None: self.pixels = self.width * self.height
+        util.logger.debug("Returning [%s, %s]", str(self.width), str(self.height))
         return [self.width, self.height]
 
     def get_audio_properties(self):
-        if self.audio_codec is None:
-            self.get_specs()
+        if self.audio_codec is None: self.get_specs()
         return {'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
-        'audio_language': self.audio_language, 'audio_sample_rate':self.audio_sample_rate }
+        'audio_language': self.audio_language, 'audio_sample_rate': self.audio_sample_rate }
 
     def get_video_properties(self):
-        if self.video_codec is None:
-            self.get_specs()
+        if self.video_codec is None: self.get_specs()
         return {'file_size':self.size, 'file_format': self.format, 'video_bitrate': self.video_bitrate, \
         'video_codec': self.video_codec, 'video_fps':self.video_fps, \
         'width':self.width, 'height': self.height, 'aspect_ratio': self.aspect, \
@@ -335,12 +329,12 @@ class VideoFile(media.MediaFile):
             fmt = "fade=type={0}:duration={1}:start_time={2}"
             fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop-fade_d)
             video_filters.append(fader)
-
             # -vf "fade=type=in:duration=5,fade=type=out:duration=5:start_time=16"
 
         util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
+
 
 def get_size_option(cmdline):
     m = re.search(r'-s\s+(\S+)', cmdline)
@@ -416,25 +410,6 @@ def get_video_bitrate(stream):
     except KeyError:
         pass
     return bitrate
-
-def get_video_specs(stream):
-    util.logger.debug("Getting stream data %s", \
-        json.dumps(stream, sort_keys=True, indent=3, separators=(',', ': ')))
-    specs = {}
-    specs['type'] = 'video'
-    specs['video_codec'] = stream['codec_name']
-    specs['video_bitrate'] = get_video_bitrate(stream)
-    specs['width'] = stream['width']
-    specs['height'] = stream['height']
-    specs['duration'] = stream['duration']
-    specs['duration_hms'] = util.to_hms_str(stream['duration'])
-    raw_fps = stream['avg_frame_rate'] if 'avg_frame_rate' in stream.keys() else stream['r_frame_rate']
-    specs['video_fps'] = media.compute_fps(raw_fps)
-    try:
-        specs['video_aspect_ratio'] = stream['display_aspect_ratio']
-    except KeyError:
-        specs['video_aspect_ratio'] = media.reduce_aspect_ratio(specs['width'], specs['height'])
-    return specs
 
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
