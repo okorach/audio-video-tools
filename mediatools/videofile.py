@@ -235,7 +235,7 @@ class VideoFile(media.MediaFile):
     def cut(self, start, stop, out_file = None, **kwargs):
         if out_file is None:
             out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
-        util.logger("Cutting {0} from {1} to {2} into {3}".format(self.filename, start, stop, out_file))
+        util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
         parms = self.get_ffmpeg_params()
         kwargs['start'] = start
         kwargs['stop'] = stop
@@ -245,7 +245,7 @@ class VideoFile(media.MediaFile):
         if 'fade' in kwargs and kwargs['fade'] is not None:
             fade_d = int(kwargs['fade'])
             fmt = "fade=type={0}:duration={1}:start_time={2}"
-            fader = fmt.format('in', start, fade_d) + ',' + fmt.format('in', stop - fade_d, fade_d)
+            fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
             video_filters.append(fader)
 
         util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms),
@@ -327,13 +327,14 @@ class VideoFile(media.MediaFile):
             start = util.to_seconds(kwargs['start']) if 'start' in kwargs else 0
             stop = util.to_seconds(kwargs['stop']) if 'stop' in kwargs else float(self.get_duration())
             fmt = "fade=type={0}:duration={1}:start_time={2}"
-            fader = fmt.format('in', start, fade_d) + ',' + fmt.format('in', stop - fade_d, fade_d)
+            fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop-fade_d)
             video_filters.append(fader)
             # -vf "fade=type=in:duration=5,fade=type=out:duration=5:start_time=16"
 
         util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
-        util.logger.info("File {0} encoded".format(target_file))
+        util.logger.info("File %s encoded", target_file)
+
 
 def get_size_option(cmdline):
     m = re.search(r'-s\s+(\S+)', cmdline)
