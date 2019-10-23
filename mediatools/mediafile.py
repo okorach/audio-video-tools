@@ -146,12 +146,10 @@ class MediaFile:
         try:
             util.logger.info('Probing %s with %s', self.filename, util.get_ffprobe())
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            self.decode_specs()
-        except AttributeError:
-            print (dir(ffmpeg))
         except ffmpeg.Error as e:
             util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
             return None
+        self.decode_specs()
         util.logger.debug(util.json_fmt(self.specs))
         return self.specs
 
