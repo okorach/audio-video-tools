@@ -32,14 +32,14 @@ def encode_file(args, options):
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, args.profile, **options)
-        util.logger.info("File {0} generated".format(outputfile))
+        util.logger.info("File %s generated", outputfile)
     if len(timeranges) > 1:
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, "combined", ext)
         video.concat(target_file, filelist)
 
 def encode_dir(args, options):
     targetdir = args.inputfile + '.' + args.profile
-    util.debug(1, "%s ==> %s" % (args.inputfile, targetdir))
+    util.logger.debug("%s ==> %s", args.inputfile, targetdir)
     try:
         os.mkdir(targetdir)
     except FileExistsError:
@@ -49,7 +49,7 @@ def encode_dir(args, options):
     nbfiles = len(filelist)
     i = 0
     for fname in filelist:
-        util.debug(0, "%5d/%5d : %3d%% : %s" % (i, nbfiles, round(i * 100 / nbfiles), fname))
+        util.logger.info("%5d/%5d : %3d%% : %s", i, nbfiles, round(i * 100 / nbfiles), fname)
         targetfname = fname.replace(args.inputfile, targetdir, 1)
         if util.is_audio_file(fname) or util.is_video_file(fname):
             targetfname = util.strip_file_extension(targetfname) + r'.' + ext
@@ -62,7 +62,7 @@ def encode_dir(args, options):
             copyfile(fname, targetfname)
             util.logger.info("Skipping/Plain Copy file {0}".format(fname))
         i = i + 1
-    util.debug(0, '%05d/%05d : 100%% : Job finished' % (nbfiles, nbfiles))
+    util.logger.info('%05d/%05d : 100%% : Job finished', nbfiles, nbfiles)
 
 parser = util.parse_common_args('Audio and Video file (re)encoder')
 parser = video.add_video_args(parser)
