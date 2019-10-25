@@ -222,11 +222,11 @@ class VideoFile(media.MediaFile):
         util.logger.info("Cmd line settings = %s", str(parms))
         out_file = util.automatic_output_file_name(out_file, self.filename, \
             "crop_%dx%d-%dx%d" % (width, height, top, left))
-        if 'aspect' not in kwargs:
+        if 'aspect' not in kwargs or kwargs['aspect'] is None:
             aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
         else:
             aw, ah = re.split(":", kwargs['aspect'])
-        cmd = '%s -i "%s" %s %s -aspect %d:%d "%s"' % (util.get_ffmpeg(), self.filename, \
+        cmd = '-i "%s" %s %s -aspect %d:%d "%s"' % (self.filename, \
             media.build_ffmpeg_options(parms), media.get_crop_filter_options(width, height, top, left), \
             int(aw), int(ah), out_file)
         util.run_ffmpeg(cmd)
@@ -429,10 +429,10 @@ def concat(target_file, file_list):
     count = 0
     cmd += '-filter_complex "'
     for file in file_list:
-        cmd += ("[%d:v] [%d:a]" % (count, count))
+        cmd += ("[%d:v][%d:a]" % (count, count))
         count += 1
-    cmd += 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" "%s"' % (count, target_file)
-    util.run_ffmpeg(cmd)
+    cmd += 'concat=n=%d:v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" "%s"' % (count, target_file)
+    util.run_ffmpeg(cmd.strip())
 
 def add_video_args(parser):
     """Parses options specific to video encoding scripts"""
