@@ -100,7 +100,7 @@ class MediaFile:
 
     def __get_first_audio_stream__(self):
         util.logger.debug('Searching first audio stream')
-        return self.__get_stream_by_codec('codec_type', 'audio')
+        return self.__get_stream_by_codec__('codec_type', 'audio')
 
     def __get_audio_stream_attribute__(self, attr, stream = None):
         if stream is None: stream = self.__get_first_audio_stream__()
@@ -116,7 +116,7 @@ class MediaFile:
         except KeyError as e:
             util.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
-    def __get_stream_by_codec(self, field, value):
+    def __get_stream_by_codec__(self, field, value):
         util.logger.debug('Searching stream for codec %s = %s', field, value)
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s', stream[field])
@@ -147,7 +147,7 @@ def cmdline_options(**kwargs):
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
-    return "-filter:v crop=%d:%d:%d:%d" % (width, height, top, left)
+    return '-filter:v "crop={0}:{1}:{2}:{3}"'.format(width, height, top, left)
 
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
