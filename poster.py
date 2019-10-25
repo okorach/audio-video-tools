@@ -41,7 +41,7 @@ while sys.argv:
     elif os.path.isdir(arg):
         dir_list.append(arg)
     else:
-        util.debug(1, "Appending file %s" % arg)
+        util.logger.info("Adding file %s to poster", arg)
         file_list.append(arg)
 
 for directory in dir_list:
