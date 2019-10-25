@@ -20,4 +20,4 @@ for key in ['inputfile', 'outputfile', 'box', 'left', 'top']:
 
 outputfile = video.crop(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
     args.outputfile, **kwargs)
-util.debug(1, 'Generated %s' % outputfile)
+util.logger.info('Generated %s', outputfile)
