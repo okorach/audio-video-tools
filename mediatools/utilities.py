@@ -144,7 +144,7 @@ def is_video_file(file):
     return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_image_file(file):
-    return __is_type_file(file, MediaType.VIDEO_FILE)
+    return __is_type_file(file, MediaType.IMAGE_FILE)
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
@@ -172,7 +172,8 @@ def get_ffprobe(props_file = None):
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
-        if tag in a_dict: return a_dict[tag]
+        if tag in a_dict:
+            return a_dict[tag]
     return None
 
 def run_os_cmd(cmd):
@@ -180,12 +181,13 @@ def run_os_cmd(cmd):
         cmd = cmd + " 1>>ffmpeg.log 2>&1"
     logger.info("Running: %s", cmd)
     os.system(cmd)
+    # TODO Check return status of the OS command
     logger.info("Completed: %s", cmd)
 
 def run_ffmpeg(params):
     cmd = "%s -y %s" % (get_ffmpeg(), params)
     if is_dry_run():
-        logger.info("DRY RUN %s", cmd)
+        logger.info("DRY RUN: %s", cmd)
     else:
         run_os_cmd(cmd)
 
@@ -279,6 +281,7 @@ def delete_files(*args):
     if is_dry_run():
         return
     for f in args:
+        logger.debug("Deleting file %s", f)
         os.remove(f)
 
 def debug(level, string):
