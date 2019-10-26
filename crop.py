@@ -24,6 +24,6 @@ width, height = args.box.split("x")
 for key in ['inputfile', 'outputfile', 'box', 'left', 'top']:
     kwargs.pop(key, None)
 
-outputfile = video.crop(args.inputfile, int(width), int(height), int(args.top), int(args.left), \
+outputfile = video.VideoFile(args.inputfile).crop(int(width), int(height), int(args.top), int(args.left), \
     args.outputfile, **kwargs)
 util.logger.info('Generated %s', outputfile)
