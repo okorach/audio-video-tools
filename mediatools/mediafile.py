@@ -95,7 +95,8 @@ class MediaFile:
         util.logger.debug('Searching first video stream')
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
-            if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif': return stream
+            if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif':
+                return stream
         return None
 
     def __get_first_audio_stream__(self):
@@ -103,14 +104,16 @@ class MediaFile:
         return self.__get_stream_by_codec__('codec_type', 'audio')
 
     def __get_audio_stream_attribute__(self, attr, stream = None):
-        if stream is None: stream = self.__get_first_audio_stream__()
+        if stream is None:
+            stream = self.__get_first_audio_stream__()
         try:
             return stream[attr]
         except KeyError as e:
             util.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
     def __get_video_stream_attribute__(self, attr, stream = None):
-        if stream is None: stream = self.__get_first_video_stream__()
+        if stream is None:
+            stream = self.__get_first_video_stream__()
         try:
             return stream[attr]
         except KeyError as e:
@@ -120,7 +123,8 @@ class MediaFile:
         util.logger.debug('Searching stream for codec %s = %s', field, value)
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s', stream[field])
-            if stream[field] == value: return stream
+            if stream[field] == value:
+                return stream
         return None
 
 def build_target_file(source_file, profile):
@@ -207,5 +211,6 @@ def build_ffmpeg_options(options):
 def build_video_filters_options(filters):
     cmd = ''
     for f in filters:
-        cmd = cmd + '-vf "%s" ' % f
-    return cmd
+        if f is not None:
+            cmd += '-vf "%s" ' % f
+    return cmd.strip()
