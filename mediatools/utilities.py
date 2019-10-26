@@ -172,7 +172,8 @@ def get_ffprobe(props_file = None):
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
-        if tag in a_dict: return a_dict[tag]
+        if tag in a_dict:
+            return a_dict[tag]
     return None
 
 def run_os_cmd(cmd):
@@ -277,7 +278,8 @@ def is_dry_run():
     return DRY_RUN
 
 def delete_files(*args):
-    if is_dry_run(): return
+    if is_dry_run():
+        return
     for f in args:
         logger.debug("Deleting file %s", f)
         os.remove(f)
