@@ -9,6 +9,7 @@ import mediatools.utilities as util
 import mediatools.mediafile as media
 
 def encode_file(args, options):
+    '''Encodes a single file'''
     file_object = video.VideoFile(args.inputfile)
     if args.vwidth is not None:
         specs = file_object.get_properties()
@@ -34,10 +35,12 @@ def encode_file(args, options):
         outputfile = file_object.encode(target_file, args.profile, **options)
         util.logger.info("File %s generated", outputfile)
     if len(timeranges) > 1:
+        # If more than 1 file generated, concatenate all generated files
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, "combined", ext)
         video.concat(target_file, filelist)
 
 def encode_dir(args, options):
+    '''Encodes a whole directory'''
     targetdir = args.inputfile + '.' + args.profile
     util.logger.debug("%s ==> %s", args.inputfile, targetdir)
     try:
@@ -57,10 +60,11 @@ def encode_dir(args, options):
             if not os.path.exists(directory):
                 os.makedirs(directory)
             outputfile = video.VideoFile(fname).encode(targetfname, args.profile, **options)
-            util.logger.info("File {0} generated".format(outputfile))
+            util.logger.info("File %s generated", outputfile)
         else:
+            # Simply copy non media files
             copyfile(fname, targetfname)
-            util.logger.info("Skipping/Plain Copy file {0}".format(fname))
+            util.logger.info("Skipping/Plain Copy file %s", fname)
         i = i + 1
     util.logger.info('%05d/%05d : 100%% : Job finished', nbfiles, nbfiles)
 
