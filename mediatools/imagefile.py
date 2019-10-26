@@ -159,7 +159,6 @@ class ImageFile(media.MediaFile):
 
         self.crop(crop_w, crop_h, x, y, out_file)
 
-    # def blindify(self, nbr_slices = 10 , blinds_size_pct = 3, background_color = "black", direction = 'vertical', out_file = None):
     def blindify(self, out_file = None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
@@ -318,8 +317,10 @@ def stack(file1, file2, direction, out_file = None):
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
     util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter_name, out_file))
-    if tmpfile1 is not file1: util.delete_files(tmpfile1)
-    if tmpfile2 is not file2: util.delete_files(tmpfile2)
+    if tmpfile1 is not file1:
+        util.delete_files(tmpfile1)
+    if tmpfile2 is not file2:
+        util.delete_files(tmpfile2)
     return out_file
 
 def get_widths(files):
@@ -359,11 +360,12 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     min_w = max_width(files)
     util.logger.debug("Max W x H = %d x %d", min_w, min_h)
     gap = (min_w * margin) // 100
-    
+
     nb_files = len(files)
     root = math.sqrt(nb_files)
     rows = int(round(root))
-    if rows < root: rows += 1
+    if rows < root:
+        rows += 1
     cols = (nb_files + rows-1) // rows
 
     full_w = (cols*min_w) + (cols+1)*gap
@@ -386,18 +388,20 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     util.delete_files(tmpbg)
     return posterfile
 
-def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max = 10000):
+def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images = 10000):
     i_photo = 1
     cmplx = "[pip0][pip1]overlay=%d:%d[step1] " % (gap, gap)
     for irow in range(rows):
         for icol in range(cols):
-            if irow == 0 and icol == 0: continue
-            if i_photo >= max: continue
+            if irow == 0 and icol == 0:
+                continue
+            if i_photo >= max_images:
+                continue
             i_photo += 1
             x = gap+icol*(img_w+gap)
             y = gap+irow*(img_h+gap)
             cmplx += "; [step%d][pip%d]overlay=%d:%d" % (i_photo-1, i_photo, x, y)
-            if i_photo < max:
+            if i_photo < max_images:
                 cmplx += "[step%d]" % i_photo
 
     return cmplx
