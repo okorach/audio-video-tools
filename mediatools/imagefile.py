@@ -23,6 +23,7 @@ class ImageFile(media.MediaFile):
         super(ImageFile, self).__init__(filename)
 
     def get_properties(self):
+        '''Returns file media properties as a dict'''
         self.get_specs()
         # NOSONAR self.specs = media.get_file_specs(self.filename)
         all_props = self.get_file_properties()
@@ -31,6 +32,7 @@ class ImageFile(media.MediaFile):
         return all_props
 
     def get_specs(self):
+        '''Reads file media properties. Probes file if not yet probed'''
         if self.specs is None:
             self.probe()
             self.get_image_specs()
