@@ -1,5 +1,13 @@
 #!/usr/local/bin/python3
-
+#
+# Script to resize an image
+# Parameters:
+# -i / --inputfile: Image file to resize
+# --width: Desired width of the target. If height is not specified, it is calculated to keep image aspect ratio
+# --height: Desired height of the target. If width is not specified, it is calculated to keep image aspect ratio
+# --size: Desired width x height of the target (format WxH).
+# --size parameter is exclusive to --width and/or --height
+#
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
