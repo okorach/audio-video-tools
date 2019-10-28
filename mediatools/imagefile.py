@@ -108,10 +108,10 @@ class ImageFile(media.MediaFile):
             width = int(width)
         if isinstance(height, str):
             height = int(height)
-        if width == None:
+        if width is None:
             w, h = self.get_dimensions()
             width = w * height // h
-        elif height == None:
+        elif height is None:
             w, h = self.get_dimensions()
             height = h * width // w
         util.logger.debug("Resizing %s to %d x %d into %s", self.filename, width, height, out_file)
