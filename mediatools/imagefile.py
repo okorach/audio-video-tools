@@ -103,6 +103,9 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
 
     def resize(self, width = None, height = None, out_file = None):
+        '''Resizes an image file
+        If one of width or height is None, then it is calculated to
+        preserve the image aspect ratio'''
         if width is None and height is None:
             util.logger.error("Resize requested with neither width not height")
             return None
