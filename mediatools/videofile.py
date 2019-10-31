@@ -262,15 +262,15 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def add_audio_tracks(self, *audio_files):
-        inputs = '-i {0}'.format(self.filename)
+        inputs = '-i "{0}"'.format(self.filename)
         maps = '-map 0'
         i = 1
         for audio_file in audio_files:
-            inputs += ' -i {0}'.format(audio_file)
+            inputs += ' -i "{0}"'.format(audio_file)
             maps += ' -map {0}'.format(i)
             i += 1
         output_file = util.add_postfix(self.filename, "muxed")
-        util.run_ffmpeg('{0} {1} -codec copy {2}'.format(inputs, maps, output_file))
+        util.run_ffmpeg('{0} {1} -codec copy "{2}"'.format(inputs, maps, output_file))
         return output_file
 
     def deshake(self, width, height, out_file, **kwargs):
