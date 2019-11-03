@@ -212,14 +212,6 @@ class VideoFile(media.MediaFile):
         parms.update(media.cmdline_options(**clean_options))
         util.logger.info("Cmd line settings = %s", str(parms))
 
-    def get_ffmpeg_params(self):
-        mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
-        props = self.get_properties()
-        ffmpeg_parms = {}
-        for key in mapping:
-            if props[key] is not None and props[key] != '':
-                ffmpeg_parms[mapping[key]] = props[key]
-        return ffmpeg_parms
 
     def scale(self, scale):
         self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
@@ -365,7 +357,7 @@ class VideoFile(media.MediaFile):
         properties = util.get_media_properties()
         profile_options = properties[profile + '.cmdline']
         if target_file is None:
-            target_file = build_target_file(self.filename, profile, properties)
+            target_file = media.build_target_file(self.filename, profile, properties)
 
         parms = {}
         video_filters = []
@@ -385,6 +377,7 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
+        return target_file
 
     #------------------ Private methods ------------------------------------------
 
@@ -443,11 +436,6 @@ def get_frame_rate_option(cmdline):
     m = re.search(r'-r\s+(\S+)', cmdline)
     return m.group(1) if m else ''
 
-def build_target_file(source_file, profile, properties):
-    extension = util.get_profile_extension(profile, properties)
-    if extension is None:
-        extension = util.get_file_extension(source_file)
-    return util.add_postfix(source_file, profile, extension)
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4

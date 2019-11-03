@@ -5,12 +5,19 @@ import os
 import re
 from shutil import copyfile
 import mediatools.videofile as video
+import mediatools.audiofile as audio
+import mediatools.imagefile as img
 import mediatools.utilities as util
 import mediatools.mediafile as media
 
 def encode_file(args, options):
     '''Encodes a single file'''
-    file_object = video.VideoFile(args.inputfile)
+    if util.is_audio_file(args.inputfile):
+        file_object = audio.AudioFile(args.inputfile)
+    elif util.is_image_file(args.inputfile):
+        file_object = img.ImageFile(args.inputfile)
+    else:
+        file_object = video.VideoFile(args.inputfile)
     if args.vwidth is not None:
         specs = file_object.get_properties()
         w = int(specs['width'])

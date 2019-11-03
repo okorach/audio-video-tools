@@ -127,11 +127,27 @@ class MediaFile:
                 return stream
         return None
 
-def build_target_file(source_file, profile):
-    extension = util.get_profile_extension(profile)
+    def get_properties(self):
+        all_props = self.get_file_properties()
+        return all_props
+
+    def get_ffmpeg_params(self):
+        mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
+        props = self.get_properties()
+        ffmpeg_parms = {}
+        for key in mapping:
+            if key in props and props[key] is not None and props[key] != '':
+                ffmpeg_parms[mapping[key]] = props[key]
+        return ffmpeg_parms
+
+def build_target_file(source_file, profile, properties):
+    extension = util.get_profile_extension(profile, properties)
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
+
+
+
 
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
