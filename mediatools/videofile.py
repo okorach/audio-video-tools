@@ -262,8 +262,12 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def add_metadata(self, **metadatas):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year> -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach" -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique" -metadata:s:a:1 language=fre -metadata:s:a:1 title="Sans musique" -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
-        util.logger.debug("Add metadata: ", str(metadatas))
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
+        # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
+        # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
+        # -metadata:s:a:1 language=fre -metadata:s:a:1 title="Sans musique"
+        # -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
+        util.logger.debug("Add metadata: %s", str(metadatas))
         opts = '-vcodec copy -c:a copy -map 0 '
         for key, value in metadatas.items():
             opts += '-metadata {0}="{1}" '.format(key, value)
@@ -277,13 +281,13 @@ class VideoFile(media.MediaFile):
             year = datetime.datetime.now().year
         return self.add_metadata(**{'copyright': '© {0} {1}'.format(copyr ,year)})
 
-    def add_stream_property(self, stream_index, property, value = None):
+    def add_stream_property(self, stream_index, prop, value = None):
         direct_copy = '-vcodec copy -c:a copy -map 0'
         output_file = util.add_postfix(self.filename, "meta")
         if value is None:
             stream_index, value = stream_index.split(':')
-        util.run_ffmpeg('-i "{0}" -metadata:s:a:{1} {2}="{3}" "{4}"'.format( \
-            self.filename, direct_copy, stream_index, property, value, output_file))
+        util.run_ffmpeg('-i "{0}" {1} -metadata:s:a:{2} {3}="{4}" "{5}"'.format( \
+            self.filename, direct_copy, stream_index, prop, value, output_file))
         return output_file
 
     def add_stream_language(self, stream_index, language = None):
