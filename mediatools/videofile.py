@@ -257,7 +257,6 @@ class VideoFile(media.MediaFile):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
-        # -metadata:s:a:1 language=fre -metadata:s:a:1 title="Sans musique"
         # -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
         util.logger.debug("Add metadata: %s", str(metadatas))
         opts = '-vcodec copy -c:a copy -map 0 '
@@ -266,6 +265,37 @@ class VideoFile(media.MediaFile):
         output_file = util.add_postfix(self.filename, "meta")
         util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, opts.strip(), output_file))
         return output_file
+
+    def set_default_track(self, track):
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # -disposition:a:0 default -disposition:a:1 none out.mp4
+        util.logger.debug("Set default track: {0}".format(track))
+        disp = '-vcodec copy -c:a copy -map 0 '
+        for i in range(self.__get_number_of_audio_tracks()):
+            is_default = "default" if i == track else "none"
+            disp += "-disposition:a:{0} {1} ".format(i, is_default)
+        output_file = util.add_postfix(self.filename, "meta")        
+        util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, disp.strip(), output_file))
+        return output_file
+
+    def set_tracks_property(self, prop, **props):
+        util.logger.debug("Set tracks properties: {0}-->{1}".format(prop, str(props)))
+        meta = '-vcodec copy -c:a copy -map 0 '
+        for idx, propval in props.items():
+            meta += "-metadata:s:a:{0} {1}={2} ".format(idx, prop, propval)
+        output_file = util.add_postfix(self.filename, "meta")
+        util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, meta.strip(), output_file))
+        return output_file
+
+    def set_tracks_language(self, **langs):
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # -metadata:s:a:0 language=fre -metadata:s:a:1 language=eng out.mp4
+        return self.set_tracks_property("language", **langs)
+
+    def set_tracks_title(self, **titles):
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # -metadata:s:a:0 title="Avec musique" -metadata:s:a:1 title="Anglais" out.mp4
+        return self.set_tracks_property("title", **titles)
 
     def add_copyright(self, copyr, year = None):
         if year is None:
@@ -287,7 +317,6 @@ class VideoFile(media.MediaFile):
 
     def add_stream_title(self, stream_index, title = None):
         return self.add_stream_property(stream_index, 'title', title)
-
 
     def add_author(self, author):
         return self.add_metadata(**{'author': author})
@@ -390,6 +419,14 @@ class VideoFile(media.MediaFile):
             fmt = "fade=type={0}:duration={1}:start_time={2}"
             return fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop-fade_d)
         return None
+
+
+    def __get_number_of_audio_tracks(self):
+        n = 0
+        for stream in self.specs['streams']:
+            if stream['codec_type'] != 'audio':
+                n += 1
+        return n
 
 #---------------- Class methods ---------------------------------
 def get_size_option(cmdline):
