@@ -66,7 +66,11 @@ def encode_dir(args, options):
             directory = os.path.dirname(targetfname)
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            outputfile = video.VideoFile(fname).encode(targetfname, args.profile, **options)
+            if util.is_audio_file(fname):
+                o_file = audio.AudioFile(fname)
+            else:
+                o_file = video.VideoFile(fname)
+            outputfile = o_file.encode(targetfname, args.profile, **options)
             util.logger.info("File %s generated", outputfile)
         else:
             # Simply copy non media files
