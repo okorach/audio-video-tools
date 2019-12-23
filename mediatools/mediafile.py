@@ -207,7 +207,7 @@ def cmdline_options(**kwargs):
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
-    return "-filter:v crop=%d:%d:%d:%d" % (width, height, top, left)
+    return "-filter:v crop=%d:%d:%d:%d" % (width, height, left, top)
 
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
