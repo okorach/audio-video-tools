@@ -4,5 +4,10 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"sonarlint.connectedMode.project": {
+			"serverId": "SQ LTS",
+			"projectKey": "audio-video-tools"
+		}
+	}
 }

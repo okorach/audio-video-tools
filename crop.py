@@ -1,4 +1,9 @@
 #!/usr/local/bin/python3
+# This scripts crops a region of a video file
+# You have to pass:
+# --box <width>x<height> : The size of the video to crop
+# --top <y>/ --left <x>: Coordinates of the top left corner of the video crop
+
 
 import argparse
 import mediatools.videofile as video
@@ -24,9 +29,10 @@ else:
     top = int(args.top)
     left = int(args.left)
 
-
+# Remove the explicitly passed arguments
 for key in ['inputfile', 'outputfile', 'box', 'left', 'top', 'center']:
     kwargs.pop(key, None)
 
-outputfile = file_o.crop(width, height, left, top, args.outputfile, **kwargs)
-util.debug(1, 'Generated %s' % outputfile)
+outputfile = video.VideoFile(args.inputfile).crop(int(width), int(height), int(args.top), int(args.left), \
+    args.outputfile, **kwargs)
+util.logger.info('Generated %s', outputfile)

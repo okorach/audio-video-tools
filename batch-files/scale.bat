@@ -1,2 +1,5 @@
+setlocal enabledelayedexpansion
 set /p scale=Max size ?:
-E:\Tools\ffmpeg\bin\ffmpeg -i %1 -vf scale=%scale%:-1 %1-%scale%.jpg
+for %%F in (%*) do (
+    E:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -vf scale=%scale%:-1 "%%~F-%scale%.jpg"
+)

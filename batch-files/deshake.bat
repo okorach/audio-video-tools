@@ -1,1 +1,1 @@
-video_recode.pl -i %1 -p deshake -P 1
+%~dp0\..\video_recode.pl -i "%~1" -p deshake -P 1

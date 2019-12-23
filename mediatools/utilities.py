@@ -2,12 +2,34 @@
 
 import os
 import sys
+import json
 import re
+import logging
 import platform
 import jprops
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
+logger = logging.getLogger('mediatools')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh = logging.FileHandler('mediatools.log')
+#fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+#ch.setLevel(logging.DEBUG)
+logger.addHandler(fh)
+logger.addHandler(ch)
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+
+class MediaType:
+    AUDIO_FILE = 1
+    VIDEO_FILE = 2
+    IMAGE_FILE = 3
+    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
+                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
+                        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
+
+
 
 FFMPEG_FORMAT_OPTION = 'f'
 FFMPEG_SIZE_OPTION = 's'
@@ -36,10 +58,13 @@ LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
-if platform.system() == 'Windows':
-    DEFAULT_PROPERTIES_FILE = r'E:\Tools\VideoTools.properties'
-else:
-    DEFAULT_PROPERTIES_FILE = '/Users/Olivier/GitHub/audio-video-tools/VideoTools.properties'
+props = os.path.realpath(__file__).split(os.path.sep)
+props.pop()
+props.pop()
+props.append("VideoTools.properties")
+DEFAULT_PROPERTIES_FILE = os.path.sep.join(props)
+
+logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
@@ -47,41 +72,32 @@ PROPERTIES_VALUES = {}
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for fname in file_list:
-            fullfilelist.append(dir_name + r'\\' + fname)
-    return fullfilelist
+    files = []
+    # 3 params are r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
+            files.append(os.path.join(r, file))
+    return files
+
+def file_list_by_type(root_dir, file_type):
+    """Returns and array of all audio files under a given root directory
+    going down into sub directories"""
+    files = []
+    # 3 params are r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
+            if __is_type_file(file, file_type):
+                files.append(os.path.join(r, file))
+    return files
 
 def audio_filelist(root_dir):
-    """Returns and array of all audio files under a given root directory
-    going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
-            if is_audio_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+    return file_list_by_type(root_dir, MediaType.AUDIO_FILE)
 
 def video_filelist(root_dir):
-    """Returns and array of all video files under a given root directory
-    going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
-            if is_video_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+    return file_list_by_type(root_dir, MediaType.VIDEO_FILE)
 
 def image_filelist(root_dir):
-    """Returns and array of all audio files under a given root directory
-    going down into sub directories"""
-    fullfilelist = []
-    for dir_name, _, file_list in os.walk(root_dir):
-        for file in file_list:
-            if is_image_file(file):
-                fullfilelist.append(dir_name + r'\\' + file)
-    return fullfilelist
+    return file_list_by_type(root_dir, MediaType.IMAGE_FILE)
 
 def subdir_list(root_dir):
     """Returns and array of all audio files under a given root directory
@@ -118,17 +134,17 @@ def automatic_output_file_name(outfile, infile, postfix, extension = None):
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
 
+def __is_type_file(file, type_of_media):
+    return match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
+
 def is_audio_file(file):
-    """Returns whether the file has an extension corresponding to audio files"""
-    return match_extension(file, r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$')
+    return __is_type_file(file, MediaType.AUDIO_FILE)
 
 def is_video_file(file):
-    """Returns whether the file has an extension corresponding to video files"""
-    return match_extension(file, r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts)$')
+    return __is_type_file(file, MediaType.VIDEO_FILE)
 
 def is_image_file(file):
-    """Returns whether the file has an extension corresponding to images files"""
-    return match_extension(file, r'\.(jpg|jpeg|png|gif|svg|raw)$')
+    return __is_type_file(file, MediaType.IMAGE_FILE)
 
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
@@ -143,16 +159,16 @@ def get_file_type(file):
         filetype = 'image'
     else:
         filetype = 'unknown'
-    debug(2, "Filetype of %s is %s" % (file, filetype))
+    logger.debug("Filetype of %s is %s", file, filetype)
     return filetype
 
 def get_ffmpeg(props_file = None):
     props = get_media_properties(props_file)
-    return props['binaries.ffmpeg']
+    return os.path.realpath(props['binaries.ffmpeg'] )
 
 def get_ffprobe(props_file = None):
     props = get_media_properties(props_file)
-    return props['binaries.ffprobe']
+    return os.path.realpath(props['binaries.ffprobe'] )
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
@@ -162,14 +178,16 @@ def get_first_value(a_dict, key_list):
 
 def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
-        cmd = cmd + " 1>>mediatools.log 2>&1"
-    debug(1, "Running: %s" % cmd)
+        cmd = cmd + " 1>>ffmpeg.log 2>&1"
+    logger.info("Running: %s", cmd)
     os.system(cmd)
+    # TODO Check return status of the OS command
+    logger.info("Completed: %s", cmd)
 
 def run_ffmpeg(params):
     cmd = "%s -y %s" % (get_ffmpeg(), params)
     if is_dry_run():
-        print(cmd, end='\n')
+        logger.info("DRY RUN: %s", cmd)
     else:
         run_os_cmd(cmd)
 
@@ -204,27 +222,56 @@ def get_media_properties(props_file = None):
     return PROPERTIES_VALUES
 
 def to_hms(seconds):
-    s = float(seconds)
-    hours = int(s)//3600
-    minutes = int(s)//60 - hours*60
-    secs = s - hours*3600 - minutes*60
-    return (hours, minutes, secs)
+    try:
+        s = float(seconds)
+        hours = int(s)//3600
+        minutes = int(s)//60 - hours*60
+        secs = s - hours*3600 - minutes*60
+        return (hours, minutes, secs)
+    except TypeError:
+        return (0,0,0)
+
+def to_seconds(hms):
+    a = hms.split(':')
+    seconds = 0
+    multiplier = 1
+    while a:
+        seconds = seconds + multiplier * float(a.pop())
+        multiplier = multiplier * 60
+    return seconds
+
+def difftime(start, stop):
+    return to_seconds(stop) - to_seconds(start)
 
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
+def get_logging_level(intlevel):
+    if intlevel >= 2:
+        lvl = logging.DEBUG
+    elif intlevel >= 1:
+        lvl = logging.INFO
+    elif intlevel >= 0:
+        lvl = logging.ERROR
+    else:
+        lvl = logging.CRITICAL
+    return lvl
+
+def json_fmt(json_data):
+    return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
+
 def set_debug_level(level):
     global DEBUG_LEVEL
-    if level is None:
-        level = 0
-    DEBUG_LEVEL = int(level)
-    debug(1, "Set debug level to %d" % DEBUG_LEVEL)
+    DEBUG_LEVEL = 0 if level is None else int(level)
+    global logger
+    logger.setLevel(get_logging_level(DEBUG_LEVEL))
+    logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 def set_dry_run(dry_run):
     global DRY_RUN
     DRY_RUN = dry_run
-    debug(1, "Set dry run to %s" % str(dry_run))
+    logger.info("Set dry run to %s", str(dry_run))
 
 def is_dry_run():
     global DRY_RUN
@@ -234,12 +281,21 @@ def delete_files(*args):
     if is_dry_run():
         return
     for f in args:
+        logger.debug("Deleting file %s", f)
         os.remove(f)
 
 def debug(level, string):
-    global DEBUG_LEVEL
-    if level <= DEBUG_LEVEL:
-        print("DEBUG | %d | %s" % (level, string))
+    global logger
+    if level >= 4:
+        logger.debug(string)
+    elif level == 3:
+        logger.info(string)
+    elif level == 2:
+        logger.warning(string)
+    elif level == 1:
+        logger.error(string)
+    else:
+        logger.critical(string)
 
 def parse_common_args(desc):
     """Parses options common to all media encoding scripts"""
@@ -301,14 +357,16 @@ def get_cmdline_params(cmdline):
     found = True
     parms = dict()
     while found:
-        cmdline = re.sub(r'^\s+', '', cmdline) # Remove heading spaces
-        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline) # Format -<option> <value>
+        # Remove heading spaces
+        cmdline = re.sub(r'^\s+', '', cmdline)
+        # Format -<option> <value>
+        m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
             parms[m.group(1)] = m.group(2)
-            #print("Found " + m.group(1) + " --> " + m.group(2))
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
-            m = re.search(r'^-(\S+)\s*', cmdline)  # Format -<option>
+            # Format -<option>
+            m = re.search(r'^-(\S+)\s*', cmdline)
             if m:
                 parms[m.group(1)] = None
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)

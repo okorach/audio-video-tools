@@ -1,2 +1,7 @@
 
-video_concat.pl %1 %2 %3 %4 %5 %6 %7 %8 %9 concat.mp4 
+%~dp0\..\concat.py %* "%~1.concat.mp4"
+
+rem Echo Launch dir: "%~dp0"
+rem Echo Current dir: "%CD%"
+
+Pause

@@ -13,6 +13,7 @@ import mediatools.imagefile as img
 parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extractor')
 parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to probe')
 parser.add_argument('-f', '--format', required=False, default='txt', help='Output file format (txt or csv)')
+parser.add_argument('-t', '--types', required=False, default='', help='Types of files to include [audio,video,image]')
 parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
 parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
 args = parser.parse_args()
@@ -20,8 +21,18 @@ options = vars(args)
 util.check_environment(options)
 util.cleanup_options(options)
 
+filelist = []
 if os.path.isdir(args.inputfile):
-    filelist = util.filelist(args.inputfile)
+    if args.types == '':
+        types = ['video', 'audio', 'image']
+    else:
+        types = re.split(',', args.types.lower())
+    if 'video' in types:
+        filelist.extend(util.video_filelist(args.inputfile))
+    if 'audio' in types:
+        filelist.extend(util.audio_filelist(args.inputfile))
+    if 'image' in types:
+        filelist.extend(util.image_filelist(args.inputfile))
 else:
     filelist = [ args.inputfile ]
 
@@ -40,20 +51,22 @@ IMAGE_PROPS = ['filename', 'filesize', 'type', 'format', 'width', 'height', 'pix
 UNITS = { 'filesize' : [1048576, 'MB'], 'duration':[1,'hms'], 'video_bitrate':[1024, 'kbits/s'], \
           'audio_bitrate':[1024, 'kbits/s'], 'audio_sample_rate':[1000, 'k'], 'pixels':[1000000, 'Mpix'] }
 
-all_props = VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS
+all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 
 if args.format == 'csv':
     print("# ")
     for prop in all_props:
         print("%s;" % prop, end='')
+        if prop == 'duration':
+            print("%s;" % "Duration HH:MM:SS", end='')
     print('')
 
 props = all_props
 nb_files = len(filelist)
 for file in filelist:
-    if not util.is_media_file(file):
-        continue
     try:
+        if not util.is_media_file(file):
+            raise media.FileTypeError("File %s is not a supported file format" % file)
         if util.is_video_file(file):
             file_object = video.VideoFile(file)
             if nb_files == 1:
@@ -66,9 +79,9 @@ for file in filelist:
             file_object = img.ImageFile(file)
             if nb_files == 1:
                 props = IMAGE_PROPS
-        else:
-            file_object = media.MediaFile(file)
+
         specs = file_object.get_properties()
+        util.logger.debug("Specs = %s", util.json_fmt(specs))
         for prop in props:
             if args.format != "csv":
                 try:
@@ -90,9 +103,9 @@ for file in filelist:
                 try:
                     print("%s;" % (str(specs[prop]) if specs[prop] is not None else ''), end='')
                     if prop == 'duration':
-                        print("%s;" % util.to_hms_str(specs[prop]))
+                        print("%s;" % util.to_hms_str(specs[prop]), end='')
                 except KeyError:
                     print("%s;" % '', end='')
-        print('')
+        print("")
     except media.FileTypeError as e:
         print ('ERROR: File %s type error' % file)

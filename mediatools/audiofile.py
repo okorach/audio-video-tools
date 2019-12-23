@@ -32,7 +32,7 @@ class AudioFile(media.MediaFile):
                     self.audio_codec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
-                    util.debug(1, "Stream %s has no key %s\n%s" % (str(stream), e.args[0], str(stream)))
+                    util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
         return self.specs
 
     def get_tags(self):
@@ -79,7 +79,7 @@ class AudioFile(media.MediaFile):
             self.get_tags()
         return self.genre
 
-    def get_properties(self):
+    def get_properties2(self):
         if self.audio_codec is None:
             self.get_specs()
         all_specs = self.get_file_properties()
@@ -90,9 +90,42 @@ class AudioFile(media.MediaFile):
         return  all_specs
 
     def get_specs(self):
-        super(AudioFile, self).get_specs()
+        #super(AudioFile, self).get_specs()
         self.get_audio_specs()
 
+    def get_audio_properties(self):
+        if self.audio_codec is None:
+            self.get_specs()
+        return {'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
+                'audio_sample_rate': self.audio_sample_rate }
+
+    def get_properties(self):
+        all_props = self.get_file_properties()
+        all_props.update(self.get_audio_properties())
+        return all_props
+
+    def encode(self, target_file, profile, **kwargs):
+        '''Encodes a file
+        - target_file is the name of the output file. Optional
+        - Profile is the encoding profile as per the VideoTools.properties config file
+        - **kwargs accepts at large panel of other ptional options'''
+        properties = util.get_media_properties()
+        profile_options = properties[profile + '.cmdline']
+        if target_file is None:
+            target_file = media.build_target_file(self.filename, profile, properties)
+
+        parms = {}
+        parms = self.get_ffmpeg_params()
+        util.logger.debug("File settings = %s", str(parms))
+
+        parms.update(util.get_cmdline_params(profile_options))
+        util.logger.debug("Profile settings = %s", str(parms))
+        parms.update(media.cmdline_options(**kwargs))
+        util.logger.debug("Cmd line settings = %s", str(parms))
+
+        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), target_file))
+        util.logger.info("File %s encoded", target_file)
+        return target_file
 
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
