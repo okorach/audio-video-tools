@@ -32,9 +32,13 @@ def encode_file(args, options):
     if args.outputfile is None:
         ext = util.get_profile_extension(args.profile)
     count = 0
+<<<<<<< HEAD
+    for video_range in re.split(',', args.timeranges):
+=======
     filelist = []
     timeranges = re.split(',', args.timeranges)
     for video_range in timeranges:
+>>>>>>> 9726d35859784e0a2fa2b0c7080a53456566da4a
         options['start'], options['stop'] = re.split('-', video_range)
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
@@ -66,7 +70,11 @@ def encode_dir(args, options):
             directory = os.path.dirname(targetfname)
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            outputfile = video.VideoFile(fname).encode(targetfname, args.profile, **options)
+            if util.is_audio_file(fname):
+                o_file = audio.AudioFile(fname)
+            else:
+                o_file = video.VideoFile(fname)
+            outputfile = o_file.encode(targetfname, args.profile, **options)
             util.logger.info("File %s generated", outputfile)
         else:
             # Simply copy non media files
