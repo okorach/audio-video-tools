@@ -146,9 +146,6 @@ def build_target_file(source_file, profile, properties):
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
 
-
-
-
 def cmdline_options(**kwargs):
     # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
     util.logger.debug('Building cmd line options from %s', str(kwargs))
