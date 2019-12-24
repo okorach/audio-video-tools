@@ -271,10 +271,11 @@ class VideoFile(media.MediaFile):
         # -disposition:a:0 default -disposition:a:1 none out.mp4
         util.logger.debug("Set default track: {0}".format(track))
         disp = '-vcodec copy -c:a copy -map 0 '
-        for i in range(self.__get_number_of_audio_tracks()):
+        for i in range(self.__get_number_of_audio_tracks()+1):
+            util.logger.debug("i = %d, nb tracks = %d", i, self.__get_number_of_audio_tracks())
             is_default = "default" if i == track else "none"
             disp += "-disposition:a:{0} {1} ".format(i, is_default)
-        output_file = util.add_postfix(self.filename, "meta")        
+        output_file = util.add_postfix(self.filename, "track")        
         util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, disp.strip(), output_file))
         return output_file
 
@@ -282,8 +283,8 @@ class VideoFile(media.MediaFile):
         util.logger.debug("Set tracks properties: {0}-->{1}".format(prop, str(props)))
         meta = '-vcodec copy -c:a copy -map 0 '
         for idx, propval in props.items():
-            meta += "-metadata:s:a:{0} {1}={2} ".format(idx, prop, propval)
-        output_file = util.add_postfix(self.filename, "meta")
+            meta += '-metadata:s:a:{0} {1}="{2}" '.format(idx, prop, propval)
+        output_file = util.add_postfix(self.filename, prop)
         util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, meta.strip(), output_file))
         return output_file
 
