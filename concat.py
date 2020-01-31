@@ -9,7 +9,7 @@ util.set_debug_level(2)
 sys.argv.pop(0)
 target_file = sys.argv.pop()
 
-// FIXME - Add selective audio/video concat
+# FIXME - Add selective audio/video concat
 filelist = []
 for file in sys.argv:
     filelist.append(file)
