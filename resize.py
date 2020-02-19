@@ -8,6 +8,7 @@
 # --size: Desired width x height of the target (format WxH).
 # --size parameter is exclusive to --width and/or --height
 #
+import sys
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
@@ -26,7 +27,7 @@ if width is None and height is None:
     size = kwargs.pop('size', None)
     if size is None:
         util.logger.error("You must specify either size, or width or height")
-        exit(1)
+        sys.exit(1)
     width, height = size.split("x")
 
 newfile = image.ImageFile(kwargs.pop('inputfile')).resize(width, height)

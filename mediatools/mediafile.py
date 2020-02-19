@@ -12,7 +12,7 @@ import mediatools.utilities as util
 
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
-    pass
+
 class MediaFile:
     '''Media file abstraction'''
     def __init__(self, filename):

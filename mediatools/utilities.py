@@ -58,11 +58,11 @@ LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
-props = os.path.realpath(__file__).split(os.path.sep)
-props.pop()
-props.pop()
-props.append("VideoTools.properties")
-DEFAULT_PROPERTIES_FILE = os.path.sep.join(props)
+config_props = os.path.realpath(__file__).split(os.path.sep)
+config_props.pop()
+config_props.pop()
+config_props.append("VideoTools.properties")
+DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
 
 logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
@@ -120,7 +120,7 @@ def strip_file_extension(filename):
 def match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     p = re.compile(regex, re.IGNORECASE)
-    return False if re.search(p, file) is None else True
+    return not (re.search(p, file) is None)
 
 def add_postfix(file, postfix, extension = None):
     """Adds a postfix to a file before the file extension"""
@@ -205,9 +205,6 @@ def build_ffmpeg_complex_prep(file_list):
 
 def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
-    global DEFAULT_PROPERTIES_FILE
-    global PROPERTIES_FILE
-    global PROPERTIES_VALUES
     if props_file is None:
         props_file = DEFAULT_PROPERTIES_FILE
     if props_file == PROPERTIES_FILE and PROPERTIES_VALUES != {}:
@@ -264,17 +261,15 @@ def json_fmt(json_data):
 def set_debug_level(level):
     global DEBUG_LEVEL
     DEBUG_LEVEL = 0 if level is None else int(level)
-    global logger
+    # global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 def set_dry_run(dry_run):
-    global DRY_RUN
     DRY_RUN = dry_run
     logger.info("Set dry run to %s", str(dry_run))
 
 def is_dry_run():
-    global DRY_RUN
     return DRY_RUN
 
 def delete_files(*args):

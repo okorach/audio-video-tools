@@ -205,7 +205,7 @@ class VideoFile(media.MediaFile):
     def build_encoding_options(self, **kwargs):
         parms = self.get_ffmpeg_params()
         util.logger.info("File settings = %s", str(parms))
-        if 'profile' in kwargs.keys():
+        if 'profile' in kwargs:
             parms.update(util.get_cmdline_params(kwargs['profile']))
         util.logger.info("Profile settings = %s", str(parms))
         clean_options = util.cleanup_options(**kwargs)
@@ -267,7 +267,7 @@ class VideoFile(media.MediaFile):
         return output_file
 
     def set_default_track(self, track):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
         # -disposition:a:0 default -disposition:a:1 none out.mp4
         util.logger.debug("Set default track: {0}".format(track))
         disp = '-vcodec copy -c:a copy -map 0 '
@@ -275,7 +275,7 @@ class VideoFile(media.MediaFile):
             util.logger.debug("i = %d, nb tracks = %d", i, self.__get_number_of_audio_tracks())
             is_default = "default" if i == track else "none"
             disp += "-disposition:a:{0} {1} ".format(i, is_default)
-        output_file = util.add_postfix(self.filename, "track")        
+        output_file = util.add_postfix(self.filename, "track")
         util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, disp.strip(), output_file))
         return output_file
 
@@ -289,12 +289,12 @@ class VideoFile(media.MediaFile):
         return output_file
 
     def set_tracks_language(self, **langs):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
         # -metadata:s:a:0 language=fre -metadata:s:a:1 language=eng out.mp4
         return self.set_tracks_property("language", **langs)
 
     def set_tracks_title(self, **titles):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 
+        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
         # -metadata:s:a:0 title="Avec musique" -metadata:s:a:1 title="Anglais" out.mp4
         return self.set_tracks_property("title", **titles)
 
