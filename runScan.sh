@@ -1,10 +1,5 @@
 #!/bin/bash
 
-branchOpt=""
-if [ "$1" != "" ]; then
-  branchOpt="-Dsonar.branch.name=$1"
-fi
-
 key="audio-video-tools"
 orgOpt=""
 token=$SQ_TOKEN
@@ -28,5 +23,5 @@ sonar-scanner \
   -Dsonar.projectKey=$key \
   -Dsonar.host.url=$SQ_URL \
   -Dsonar.login=$token \
-  -Dsonar.python.pylint.reportPath=$pylintReport
-  $orgOpt $branchOpt
+  -Dsonar.python.pylint.reportPath=$pylintReport \
+  $orgOpt $*
