@@ -50,10 +50,8 @@ def encode_dir(args, options):
     '''Encodes a whole directory'''
     targetdir = args.inputfile + '.' + args.profile
     util.logger.debug("%s ==> %s", args.inputfile, targetdir)
-    try:
-        os.mkdir(targetdir)
-    except FileExistsError:
-        pass
+    os.makedirs(targetdir, exist_ok=True)
+
     ext = util.get_profile_extension(args.profile)
     filelist = util.filelist(args.inputfile)
     nbfiles = len(filelist)

@@ -47,5 +47,5 @@ while sys.argv:
 for directory in dir_list:
     dir_poster(directory, background, margin)
 
-if file_list != False:
+if file_list:
     filelist_poster(file_list, background, margin)

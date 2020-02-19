@@ -76,8 +76,8 @@ class Encoder:
     def set_format(self, fmt):
         self.format = fmt
 
-    def add_vfilter(self, filter):
-        self.vfilters.append(filter)
+    def add_vfilter(self, vfilter):
+        self.vfilters.append(vfilter)
 
     def get_vfilters_string(self):
         cmd = ''
