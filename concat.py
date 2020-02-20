@@ -14,5 +14,3 @@ for file in sys.argv:
     filelist.append(file)
 
 video.concat(target_file, filelist)
-
-sys.exit(0) # FIXME
