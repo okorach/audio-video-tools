@@ -1,1 +1,4 @@
-%~dp0\..\video_recode.pl -i "%~1" -p rotate-90 -P 1
+E:\Tools\ffmpeg\bin\ffmpeg -i "%~1" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 10000k -vf "transpose=1" "%~1.rotate90.mp4"
+
+pause
+pause
