@@ -205,6 +205,9 @@ def build_ffmpeg_complex_prep(file_list):
 
 def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
+    global PROPERTIES_FILE
+    global DEFAULT_PROPERTIES_FILE
+    global PROPERTIES_VALUES
     if props_file is None:
         props_file = DEFAULT_PROPERTIES_FILE
     if props_file == PROPERTIES_FILE and PROPERTIES_VALUES != {}:
