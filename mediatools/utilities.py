@@ -120,7 +120,7 @@ def strip_file_extension(filename):
 def match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     p = re.compile(regex, re.IGNORECASE)
-    return not re.search(p, file) is None
+    return not (re.search(p, file) is None)
 
 def add_postfix(file, postfix, extension = None):
     """Adds a postfix to a file before the file extension"""
@@ -261,6 +261,7 @@ def json_fmt(json_data):
 def set_debug_level(level):
     global DEBUG_LEVEL
     DEBUG_LEVEL = 0 if level is None else int(level)
+    # global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
 
