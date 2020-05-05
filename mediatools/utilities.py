@@ -221,6 +221,12 @@ def get_media_properties(props_file = None):
         PROPERTIES_VALUES['binaries.ffprobe'] = 'ffprobe'
     return PROPERTIES_VALUES
 
+def get_conf_property(prop):
+    global PROPERTIES_VALUES
+    if len(PROPERTIES_VALUES) == 0:
+        get_media_properties()
+    return PROPERTIES_VALUES[prop]
+
 def to_hms(seconds):
     try:
         s = float(seconds)
@@ -371,3 +377,7 @@ def get_cmdline_params(cmdline):
             else:
                 found = False
     return parms
+
+def int_split(string, separator):
+    a, b = string.split(separator)
+    return [int(a), int(b)]
