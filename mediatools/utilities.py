@@ -381,3 +381,54 @@ def get_cmdline_params(cmdline):
 def int_split(string, separator):
     a, b = string.split(separator)
     return [int(a), int(b)]
+
+def get_ffmpeg_cmdline_param(cmdline, param):
+    m = re.search(r'\b{param}\s+(\S+)', cmdline)
+    if m:
+        return m.group(2)
+    return None
+
+def get_ffmpeg_cmdline_switch(cmdline, param):
+    m = re.search(r'\b{param}\b', cmdline)
+    if m:
+        return True
+    return False
+
+def get_ffmpeg_cmdline_vbitrate(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-b:v')
+
+def get_ffmpeg_cmdline_abitrate(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-b:a')
+
+def get_ffmpeg_cmdline_vcodec(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '(-c:v|-vcodec)')
+
+def get_ffmpeg_cmdline_acodec(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '(-c:a|-acodec)')
+
+def get_ffmpeg_cmdline_framesize(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-s')
+
+def get_ffmpeg_cmdline_framerate(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-r')
+
+def get_ffmpeg_cmdline_aspect_ratio(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-aspect')
+
+def get_ffmpeg_cmdline_vfilter(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-vf')
+
+def get_ffmpeg_cmdline_achannels(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-ac')
+
+def get_ffmpeg_cmdline_format(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-f')
+
+def get_ffmpeg_cmdline_deinterlace(cmdline):
+    return get_ffmpeg_cmdline_switch(cmdline, '-deinterlace')
+
+def get_ffmpeg_cmdline_amute(cmdline):
+    return get_ffmpeg_cmdline_switch(cmdline, '-an')
+
+def get_ffmpeg_cmdline_vmute(cmdline):
+    return get_ffmpeg_cmdline_switch(cmdline, '-vn')
