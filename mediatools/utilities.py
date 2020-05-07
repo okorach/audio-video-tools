@@ -433,10 +433,13 @@ def get_ffmpeg_cmdline_amute(cmdline):
 def get_ffmpeg_cmdline_vmute(cmdline):
     return get_ffmpeg_cmdline_switch(cmdline, '-vn')
 
+def get_audio_sample_rate(cmdline):
+    return get_ffmpeg_cmdline_param(cmdline, '-ar')
+    
 def get_ffmpeg_cmdline_params(cmdline):
     p = {}
-    p['abitrate'] = get_ffmpeg_cmdline_abitrate(cmdline)
-    p['vbitrate'] = get_ffmpeg_cmdline_vbitrate(cmdline)
+    p['audio_bitrate'] = get_ffmpeg_cmdline_abitrate(cmdline)
+    p['video_bitrate'] = get_ffmpeg_cmdline_vbitrate(cmdline)
     p['acodec'] = get_ffmpeg_cmdline_acodec(cmdline)
     p['vcodec'] = get_ffmpeg_cmdline_vcodec(cmdline)
     p['framesize'] = get_ffmpeg_cmdline_framesize(cmdline)
@@ -444,7 +447,7 @@ def get_ffmpeg_cmdline_params(cmdline):
     p['aspect_ratio'] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
     p['vfilter'] = get_ffmpeg_cmdline_vfilter(cmdline)
     p['achannels'] = get_ffmpeg_cmdline_achannels(cmdline)
-    p['format'] = get_ffmpeg_cmdline_format(cmdline)
+    p['file_format'] = get_ffmpeg_cmdline_format(cmdline)
     p['deinterlace'] = get_ffmpeg_cmdline_deinterlace(cmdline)
     p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
     p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
