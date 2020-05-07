@@ -191,7 +191,7 @@ class VideoFile(media.MediaFile):
         if self.video_codec is None:
             self.get_specs()
         return {'file_size':self.size, 'file_format': self.format, 'video_bitrate': self.video_bitrate, \
-        'video_codec': self.video_codec, 'video_fps':self.video_fps, \
+        'video_codec': self.video_codec, 'framerate':self.video_fps, \
         'width':self.width, 'height': self.height, 'aspect_ratio': self.aspect, \
         'pixel_aspect_ratio': self.pixel_aspect,'author': self.author, \
         'copyright': self.copyright, 'year':self.year }
@@ -384,27 +384,33 @@ class VideoFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        properties = util.get_media_properties()
-        profile_options = properties[profile + '.cmdline']
+
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile, properties)
+            target_file = media.build_target_file(self.filename, profile)
 
-        parms = {}
+        encoding_params = {}
         video_filters = []
-        parms = self.get_ffmpeg_params()
-        util.logger.debug("File settings = %s", str(parms))
+        encoding_parameters = self.get_properties()
+        util.logger.debug("File settings = %s", str(encoding_params))
+        encoding_parameters.update(util.get_conf_property(profile + '.cmdline'))
+        util.logger.debug("Profile settings = %s", str(encoding_params))
+        encoding_parameters.update(media.cmdline_options(**kwargs))
+        util.logger.debug("Cmd line settings = %s", str(encoding_params))
 
-        parms.update(util.get_cmdline_params(profile_options))
-        util.logger.debug("Profile settings = %s", str(parms))
-        parms.update(media.cmdline_options(**kwargs))
-        util.logger.debug("Cmd line settings = %s", str(parms))
+        encoding_parameters['input_params'] = ''
+        if kwargs['hw_accel'] is not None and re.match(r'(x|h)264', encoding_parameters['video_codec']):
+            encoding_parameters['video_codec'] = 'h264_nvenc'
+            encoding_parameters['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
+            if encoding_parameters['framesize'] is not None:
+                encoding_parameters['input_params'] += ' -resize ' + encoding_parameters['framesize']
+                encoding_parameters['framesize'] = None    
 
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
         video_filters.append(self.__get_fader_filter__(**kwargs))
 
-        util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
+        util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (encoding_parameters['input_params'], self.filename, media.build_ffmpeg_options(encoding_params), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
