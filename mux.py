@@ -6,6 +6,15 @@ import mediatools.videofile as video
 import mediatools.utilities as util
 
 util.set_debug_level(5)
-sys.argv.pop(0)
-videofile = video.VideoFile(sys.argv.pop(0))
-videofile.add_audio_tracks(*sys.argv)
+afiles = []
+for i in range (0, len(sys.argv)):
+    file = sys.argv[i]
+    if util.is_video_file(file):
+        vfile = file
+        util.logger.info("Video file %s will be muxed", file)
+    elif util.is_audio_file(file):
+        util.logger.info("Audio file %s will be muxed", file)
+        afiles.append(file)
+
+videofile = video.VideoFile(vfile)
+videofile.add_audio_tracks(*afiles)
