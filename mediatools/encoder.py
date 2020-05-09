@@ -1,29 +1,8 @@
 
 import mediatools.utilities as util
+import mediatools.options as opt
 
-class FfmpegOpts:
-    FORMAT_OPTION = 'f'
-    SIZE_OPTION = 's'
-    VCODEC_OPTION = 'vcodec'
-    ACODEC_OPTION = 'acodec'
-    VBITRATE_OPTION = 'b:v'
-    ABITRATE_OPTION = 'b:a'
-    SIZE_OPTION = 's'
-    FPS_OPTION = 'r'
-    ASPECT_OPTION = 'aspect'
-    DEINTERLACE_OPTION = 'deinterlace'
-    ACHANNEL_OPTION = 'ac'
-    VFILTER_OPTION = 'vf'
-    START_OPTION = 'ss'
-    STOP_OPTION = 'to'
 
-OPTIONS_MAPPING = { 'format':FfmpegOpts.FORMAT_OPTION, \
-   'vcodec':FfmpegOpts.VCODEC_OPTION, 'vbitrate':FfmpegOpts.VBITRATE_OPTION, \
-   'acodec':FfmpegOpts.ACODEC_OPTION, 'abitrate':FfmpegOpts.ABITRATE_OPTION, \
-   'fps':FfmpegOpts.FPS_OPTION, 'aspect':FfmpegOpts.ASPECT_OPTION, 'vsize':FfmpegOpts.SIZE_OPTION, \
-   'deinterlace':FfmpegOpts.DEINTERLACE_OPTION, 'achannel':FfmpegOpts.ACHANNEL_OPTION, \
-   'vfilter':FfmpegOpts.VFILTER_OPTION, \
-   'start': FfmpegOpts.START_OPTION, 'stop': FfmpegOpts.STOP_OPTION }
 
 LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
@@ -36,18 +15,18 @@ class Encoder:
         self.format = None
         self.aspect = None
         self.size = None
-        self.video_codec = 'copy'
-        self.video_bitrate = None
+        self.vcodec = 'copy'
+        self.vbitrate = None
         self.video_fps = None
-        self.audio_bitrate = None
-        self.audio_codec = 'copy'
+        self.abitrate = None
+        self.acodec = 'copy'
         self.audio_language = None
         self.audio_sample_rate = None
         self.start = None
         self.stop = None
         self.vfilters = []
         self.add_settings(**kwargs)
-        self.other_options = {}
+        self.others = {}
 
     def add_settings(self, **kwargs):
         kwsettings = {}
@@ -55,23 +34,23 @@ class Encoder:
             if k in SETTINGS and kwargs[k] is not None:
                 kwsettings[k] = kwargs[k]
         if 'vcodec' in kwsettings:
-            self.vcodec = kwsettings['vcodec']
+            self.vcodec = kwsettings[opt.media.VCODEC]
         if 'vbitrate' in kwsettings:
-            self.video_bitrate = kwsettings['vbitrate']
+            self.vbitrate = kwsettings[opt.media.VBITRATE]
         if 'acodec' in kwsettings:
-            self.audio_codec = kwsettings['audio_codec']
+            self.acodec = kwsettings[opt.media.ACODEC]
         if 'abitrate' in kwsettings:
-            self.audio_bitrate = kwsettings['audio_bitrate']
+            self.abitrate = kwsettings[opt.media.ABITRATE]
         if 'aspect' in kwsettings:
-            self.aspect = kwsettings['aspect']
+            self.aspect = kwsettings[opt.media.ASPECT]
         if 'size' in kwsettings:
-            self.size = kwsettings['size']
+            self.size = kwsettings[opt.media.SIZE]
         if 'start' in kwsettings:
-            self.start = kwsettings['start']
+            self.start = kwsettings[opt.media.START]
         if 'stop' in kwsettings:
-            self.start = kwsettings['stop']
+            self.start = kwsettings[opt.media.STOP]
         if 'format' in kwsettings:
-            self.format = kwsettings['format']
+            self.format = kwsettings[opt.media.FORMAT]
 
     def set_format(self, fmt):
         self.format = fmt
@@ -106,7 +85,7 @@ class Encoder:
         cmd = ''
         for option in options.keys():
             if options[option] is not None and not isinstance(options[option], list):
-                cmd = cmd + " -{0} {1}".format(OPTIONS_MAPPING[option], options[option])
+                cmd = cmd + " -{0} {1}".format(opt.M2F_MAPPING[option], options[option])
         cmd = cmd + ' ' + self.get_vfilters_string()
         return cmd.strip()
 

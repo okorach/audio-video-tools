@@ -7,6 +7,7 @@ import re
 import logging
 import platform
 import jprops
+import mediatools.options as opt
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
@@ -30,29 +31,6 @@ class MediaType:
                         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
 
 
-
-FFMPEG_FORMAT_OPTION = 'f'
-FFMPEG_SIZE_OPTION = 's'
-FFMPEG_VCODEC_OPTION = 'vcodec'
-FFMPEG_ACODEC_OPTION = 'acodec'
-FFMPEG_VBITRATE_OPTION = 'b:v'
-FFMPEG_ABITRATE_OPTION = 'b:a'
-FFMPEG_SIZE_OPTION = 's'
-FFMPEG_FPS_OPTION = 'r'
-FFMPEG_ASPECT_OPTION = 'aspect'
-FFMPEG_DEINTERLACE_OPTION = 'deinterlace'
-FFMPEG_ACHANNEL_OPTION = 'ac'
-FFMPEG_VFILTER_OPTION = 'vf'
-FFMPEG_START_OPTION = 'ss'
-FFMPEG_STOP_OPTION = 'to'
-
-OPTIONS_MAPPING = { 'format':FFMPEG_FORMAT_OPTION, \
-   'vcodec':FFMPEG_VCODEC_OPTION, 'vbitrate':FFMPEG_VBITRATE_OPTION, \
-   'acodec':FFMPEG_ACODEC_OPTION, 'abitrate':FFMPEG_ABITRATE_OPTION, \
-   'fps':FFMPEG_FPS_OPTION, 'aspect':FFMPEG_ASPECT_OPTION, 'vsize':FFMPEG_SIZE_OPTION, \
-   'deinterlace':FFMPEG_DEINTERLACE_OPTION, 'achannel':FFMPEG_ACHANNEL_OPTION, \
-   'vfilter':FFMPEG_VFILTER_OPTION, \
-   'start': FFMPEG_START_OPTION, 'stop': FFMPEG_STOP_OPTION }
 
 LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
@@ -335,6 +313,9 @@ def parse_common_args(desc):
 
 def cleanup_options(kwargs):
     new_options = kwargs.copy()
+    for key in kwargs:
+        if kwargs[key] is None:
+            del(new_options[key])
     for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
@@ -395,10 +376,10 @@ def get_ffmpeg_cmdline_switch(cmdline, param):
     return False
 
 def get_ffmpeg_cmdline_vbitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-b:v')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.VBITRATE)
 
 def get_ffmpeg_cmdline_abitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-b:a')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ABITRATE)
 
 def get_ffmpeg_cmdline_vcodec(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '(-c:v|-vcodec)')
@@ -407,25 +388,25 @@ def get_ffmpeg_cmdline_acodec(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '(-c:a|-acodec)')
 
 def get_ffmpeg_cmdline_framesize(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-s')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.SIZE)
 
 def get_ffmpeg_cmdline_framerate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-r')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FPS)
 
 def get_ffmpeg_cmdline_aspect_ratio(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-aspect')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ASPECT)
 
 def get_ffmpeg_cmdline_vfilter(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-vf')
 
 def get_ffmpeg_cmdline_achannels(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-ac')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ACHANNEL)
 
 def get_ffmpeg_cmdline_format(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-f')
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FORMAT)
 
 def get_ffmpeg_cmdline_deinterlace(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-deinterlace')
+    return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.ff.DEINTERLACE)
 
 def get_ffmpeg_cmdline_amute(cmdline):
     return get_ffmpeg_cmdline_switch(cmdline, '-an')
@@ -438,18 +419,22 @@ def get_audio_sample_rate(cmdline):
     
 def get_ffmpeg_cmdline_params(cmdline):
     p = {}
-    p['audio_bitrate'] = get_ffmpeg_cmdline_abitrate(cmdline)
-    p['video_bitrate'] = get_ffmpeg_cmdline_vbitrate(cmdline)
-    p['acodec'] = get_ffmpeg_cmdline_acodec(cmdline)
-    p['vcodec'] = get_ffmpeg_cmdline_vcodec(cmdline)
-    p['framesize'] = get_ffmpeg_cmdline_framesize(cmdline)
-    p['framerate'] = get_ffmpeg_cmdline_framerate(cmdline)
-    p['aspect_ratio'] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
-    p['vfilter'] = get_ffmpeg_cmdline_vfilter(cmdline)
-    p['achannels'] = get_ffmpeg_cmdline_achannels(cmdline)
-    p['file_format'] = get_ffmpeg_cmdline_format(cmdline)
-    p['deinterlace'] = get_ffmpeg_cmdline_deinterlace(cmdline)
+    p[opt.media.ABITRATE] = get_ffmpeg_cmdline_abitrate(cmdline)
+    p[opt.media.VBITRATE] = get_ffmpeg_cmdline_vbitrate(cmdline)
+    p[opt.media.ACODEC] = get_ffmpeg_cmdline_acodec(cmdline)
+    p[opt.media.VCODEC] = get_ffmpeg_cmdline_vcodec(cmdline)
+    p[opt.media.SIZE] = get_ffmpeg_cmdline_framesize(cmdline)
+    p[opt.media.FPS] = get_ffmpeg_cmdline_framerate(cmdline)
+    p[opt.media.ASPECT] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
+    p[opt.media.VFILTER] = get_ffmpeg_cmdline_vfilter(cmdline)
+    p[opt.media.ACHANNEL] = get_ffmpeg_cmdline_achannels(cmdline)
+    p[opt.media.FORMAT] = get_ffmpeg_cmdline_format(cmdline)
+    p[opt.media.DEINTERLACE] = get_ffmpeg_cmdline_deinterlace(cmdline)
     p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
     p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
-    return p
+    q = {}
+    for k in p:
+        if p[k] is not None:
+           q[k] = p[k]
+    return q
 

@@ -9,6 +9,7 @@ import shutil
 import jprops
 import ffmpeg
 import mediatools.utilities as util
+import mediatools.options as opt
 
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
@@ -132,7 +133,12 @@ class MediaFile:
         return all_props
 
     def get_ffmpeg_params(self):
-        mapping = { 'audio_bitrate':'b:a', 'audio_codec':'acodec', 'video_bitrate':'b:v', 'video_codec':'vcodec'}
+        mapping = { \
+            opt.media.ABITRATE:opt.ff.ABITRATE, \
+            opt.media.ACODEC:opt.ff.ACODEC, \
+            opt.media.VBITRATE:opt.ff.VBITRATE, \
+            opt.media.VCODEC:opt.ff.VCODEC \
+            }
         props = self.get_properties()
         ffmpeg_parms = {}
         for key in mapping:
@@ -140,8 +146,8 @@ class MediaFile:
                 ffmpeg_parms[mapping[key]] = props[key]
         return ffmpeg_parms
 
-def build_target_file(source_file, profile, properties):
-    extension = util.get_profile_extension(profile, properties)
+def build_target_file(source_file, profile):
+    extension = util.get_profile_extension(profile)
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
@@ -152,15 +158,20 @@ def cmdline_options(**kwargs):
     if kwargs is None:
         return {}
     params = {}
-    for key in util.OPTIONS_MAPPING:
+    for key in opt.M2F_MAPPING:
         util.logger.debug("Checking option %s", key)
         try:
             if kwargs[key] is not None:
                 util.logger.debug("Found in cmd line with value %s", kwargs[key])
-                params[util.OPTIONS_MAPPING[key]] = kwargs[key]
+                params[opt.M2F_MAPPING[key]] = kwargs[key]
         except KeyError:
             pass
-    return params
+
+    q = {}
+    for k in params:
+        if params[k] is not None:
+            q[k] = params[k]
+    return q
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
@@ -216,9 +227,16 @@ def concat(target_file, file_list):
 
 def build_ffmpeg_options(options):
     cmd = ''
-    for option in options.keys():
-        if options[option] is not None:
-            cmd = cmd + " -%s %s" % (option, options[option])
+    for k, v in options.items():
+        if options[k] is None or k not in opt.M2F_MAPPING:
+            continue
+        if options[k] is False:
+            continue
+        if options[k] is True:
+            cmd = cmd + " -%s" % (opt.M2F_MAPPING[k])
+        else:
+            cmd = cmd + " -%s %s" % (opt.M2F_MAPPING[k], v)
+    util.logger.debug("ffmpeg options = %s", cmd)
     return cmd
 
 def build_video_filters_options(filters):

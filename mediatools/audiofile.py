@@ -6,10 +6,11 @@ import shutil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
+import mediatools.options as opt
 
 class AudioFile(media.MediaFile):
     def __init__(self, filename):
-        self.audio_codec = None
+        self.acodec = None
         self.artist = None
         self.title = None
         self.author = None
@@ -18,7 +19,7 @@ class AudioFile(media.MediaFile):
         self.track = None
         self.genre = None
         self.comment = None
-        self.audio_bitrate = None
+        self.abitrate = None
         self.duration = None
         self.audio_sample_rate = None
         super(AudioFile, self).__init__(filename)
@@ -27,9 +28,9 @@ class AudioFile(media.MediaFile):
         for stream in self.specs['streams']:
             if stream['codec_type'] == 'audio':
                 try:
-                    self.audio_bitrate = stream['bit_rate']
+                    self.abitrate = stream['bit_rate']
                     self.duration = stream['duration']
-                    self.audio_codec = stream['codec_name']
+                    self.acodec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
@@ -80,11 +81,11 @@ class AudioFile(media.MediaFile):
         return self.genre
 
     def get_properties2(self):
-        if self.audio_codec is None:
+        if self.acodec is None:
             self.get_specs()
         all_specs = self.get_file_properties()
         all_specs.update({'file_size':self.size, 'file_format':self.format, \
-            'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
+            opt.media.ABITRATE: self.abitrate, opt.media.ACODEC: self.acodec, \
             'audio_sample_rate':self.audio_sample_rate, 'author': self.author, 'year': self.year, \
             'title':self.title, 'track':self.track, 'genre':self.genre, 'album':self.album })
         return  all_specs
@@ -94,9 +95,9 @@ class AudioFile(media.MediaFile):
         self.get_audio_specs()
 
     def get_audio_properties(self):
-        if self.audio_codec is None:
+        if self.acodec is None:
             self.get_specs()
-        return {'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
+        return {opt.media.ABITRATE: self.abitrate, opt.media.ACODEC: self.acodec, \
                 'audio_sample_rate': self.audio_sample_rate }
 
     def get_properties(self):
@@ -112,7 +113,7 @@ class AudioFile(media.MediaFile):
         properties = util.get_media_properties()
         profile_options = properties[profile + '.cmdline']
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile, properties)
+            target_file = media.build_target_file(self.filename, profile)
 
         parms = {}
         parms = self.get_ffmpeg_params()

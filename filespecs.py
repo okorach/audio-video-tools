@@ -20,7 +20,7 @@ parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
 args = parser.parse_args()
 options = vars(args)
 util.check_environment(options)
-util.cleanups(options)
+util.cleanup_options(options)
 
 filelist = []
 if os.path.isdir(args.inputfile):
