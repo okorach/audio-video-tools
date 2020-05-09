@@ -12,6 +12,7 @@ import ffmpeg
 import jprops
 import mediatools.utilities as util
 import mediatools.mediafile as media
+import mediatools.options as opt
 
 class VideoFile(media.MediaFile):
     '''Video file abstraction'''
@@ -184,22 +185,25 @@ class VideoFile(media.MediaFile):
     def get_audio_properties(self):
         if self.audio_codec is None:
             self.get_specs()
-        return {'audio_bitrate': self.audio_bitrate, 'audio_codec': self.audio_codec, \
+        return {opt.media.ABITRATE: self.audio_bitrate, opt.media.ACODEC: self.audio_codec, \
         'audio_language': self.audio_language, 'audio_sample_rate': self.audio_sample_rate }
 
     def get_video_properties(self):
         if self.video_codec is None:
             self.get_specs()
-        return {'file_size':self.size, 'file_format': self.format, 'video_bitrate': self.video_bitrate, \
-        'video_codec': self.video_codec, 'video_fps':self.video_fps, \
-        'width':self.width, 'height': self.height, 'aspect_ratio': self.aspect, \
+        return {'file_size':self.size, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate, \
+        opt.media.VCODEC: self.video_codec, opt.media.FPS:self.video_fps, \
+        'width':self.width, 'height': self.height, opt.media.ASPECT: self.aspect, \
         'pixel_aspect_ratio': self.pixel_aspect,'author': self.author, \
         'copyright': self.copyright, 'year':self.year }
 
     def get_properties(self):
         all_props = self.get_file_properties()
+        util.logger.debug("File properties(%s) = %s", self.filename, str(all_props))
         all_props.update(self.get_audio_properties())
+        util.logger.debug("After audio properties(%s) = %s", self.filename, str(all_props))
         all_props.update(self.get_video_properties())
+        util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
     def build_encoding_options(self, **kwargs):
@@ -384,27 +388,44 @@ class VideoFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        properties = util.get_media_properties()
-        profile_options = properties[profile + '.cmdline']
+
+        util.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile, properties)
+            target_file = media.build_target_file(self.filename, profile)
 
-        parms = {}
+        encoding_params = {}
         video_filters = []
-        parms = self.get_ffmpeg_params()
-        util.logger.debug("File settings = %s", str(parms))
+        encoding_params = self.get_properties()
 
-        parms.update(util.get_cmdline_params(profile_options))
-        util.logger.debug("Profile settings = %s", str(parms))
-        parms.update(media.cmdline_options(**kwargs))
-        util.logger.debug("Cmd line settings = %s", str(parms))
+        util.logger.debug("File settings(%s) = %s", self.filename, str(encoding_params))
+        # TODO: fix format problem
+        del(encoding_params[opt.media.FORMAT])
+
+        encoding_params.update(util.get_ffmpeg_cmdline_params(profile + '.cmdline'))
+        util.logger.debug("After profile settings(%s) = %s", profile, str(encoding_params))
+        encoding_params.update(kwargs)
+        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(encoding_params))
+
+        encoding_params['input_params'] = ''
+        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.match(r'(x|h)264', encoding_params['vcodec']):
+            util.logger.debug("Patching settings for hw acceleration")
+            encoding_params['vcodec'] = 'h264_nvenc'
+            encoding_params['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
+            if 'vsize' in encoding_params and encoding_params['vsize'] is not None:
+                encoding_params['input_params'] += ' -resize ' + encoding_params['vsize']
+                del(encoding_params['vsize'])  
+
+        util.logger.debug("After hw acceleration = %s", str(encoding_params))
+
+        encoding_params.update(media.cmdline_options(**encoding_params))
+        util.logger.debug("After converting to ffmpeg params = %s", str(encoding_params))
 
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
         video_filters.append(self.__get_fader_filter__(**kwargs))
 
-        util.run_ffmpeg('-i "%s" %s %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), \
+        util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (encoding_params['input_params'], self.filename, media.build_ffmpeg_options(encoding_params), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
@@ -522,26 +543,28 @@ def add_video_args(parser):
     """Parses options specific to video encoding scripts"""
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
 
-    parser.add_argument('--vcodec', required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
-    parser.add_argument('--acodec', required=False, help='Audio codec (mp3, aac, ac3...)')
+    parser.add_argument('--' + opt.media.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
+    parser.add_argument('--' + opt.media.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
-    parser.add_argument('--vbitrate', required=False, help='Video bitrate eg 1024k')
-    parser.add_argument('--abitrate', required=False, help='Audio bitrate eg 128k')
+    parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true', help='Use Nvidia HW acceleration')
+
+    parser.add_argument('--' + opt.media.VBITRATE, required=False, help='Video bitrate eg 1024k')
+    parser.add_argument('--' + opt.media.ABITRATE, required=False, help='Audio bitrate eg 128k')
 
     parser.add_argument('--fade', required=False, help='Fade in/out duration')
 
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('--start', required=False, help='Start time')
-    parser.add_argument('--stop', required=False, help='Stop time')
+    parser.add_argument('--' + opt.media.START, required=False, help='Start time')
+    parser.add_argument('--' + opt.media.STOP, required=False, help='Stop time')
 
-    parser.add_argument('-f', '--format', required=False, help='Output file format eg mp4')
-    parser.add_argument('-r', '--fps', required=False, help='Video framerate of the output eg 25')
+    parser.add_argument('-f', '--' + opt.media.FORMAT, required=False, help='Output file format eg mp4')
+    parser.add_argument('-r', '--' + opt.media.FPS, required=False, help='Video framerate of the output eg 25')
 
 
     parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
-    parser.add_argument('--achannels', required=False, help='Audio channel to pick')
+    parser.add_argument('--' + opt.media.ACHANNEL, required=False, help='Audio channel to pick')
 
-    parser.add_argument('--vsize', required=False, help='Video size HxW')
+    parser.add_argument('--' + opt.media.SIZE, required=False, help='Video size HxW')
     parser.add_argument('--vwidth', required=False, help='Video width')
     parser.add_argument('--vheight', required=False, help='Video height')
 
