@@ -9,6 +9,7 @@ import mediatools.audiofile as audio
 import mediatools.imagefile as img
 import mediatools.utilities as util
 import mediatools.mediafile as media
+import mediatools.options as opt
 
 def encode_file(args, options):
     '''Encodes a single file'''
@@ -20,8 +21,8 @@ def encode_file(args, options):
         file_object = video.VideoFile(args.inputfile)
     if args.vwidth is not None:
         specs = file_object.get_properties()
-        w = int(specs['width'])
-        h = int(specs['height'])
+        w = int(specs[opt.media.WIDTH])
+        h = int(specs[opt.media.HEIGHT])
         new_w = int(args.vwidth)
         new_h = (int(h * new_w / w) // 8) * 8
         options['vsize'] = "%dx%d" % (new_w, new_h)
@@ -35,7 +36,7 @@ def encode_file(args, options):
     filelist = []
     timeranges = re.split(',', args.timeranges)
     for video_range in timeranges:
-        options['start'], options['stop'] = re.split('-', video_range)
+        options[opt.media.START], options[opt.media.STOP] = re.split('-', video_range)
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         filelist.append(target_file)
