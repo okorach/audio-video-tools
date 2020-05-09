@@ -338,7 +338,7 @@ class VideoFile(media.MediaFile):
             maps += ' -map {0}'.format(i)
             i += 1
         output_file = util.add_postfix(self.filename, "muxed")
-        util.run_ffmpeg('{0} {1} -codec copy "{2}"'.format(inputs, maps, output_file))
+        util.run_ffmpeg('{0} {1} -dn -codec copy "{2}"'.format(inputs, maps, output_file))
         return output_file
 
     def deshake(self, width, height, out_file, **kwargs):
