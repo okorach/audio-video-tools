@@ -1,3 +1,3 @@
-%~dp0\..\mux.py  "%~1" "%~2"
+%~dp0\..\mux.py  %*
 
 pause
