@@ -312,10 +312,7 @@ def parse_common_args(desc):
     return parser
 
 def cleanup_options(kwargs):
-    new_options = kwargs.copy()
-    for key in kwargs:
-        if kwargs[key] is None:
-            del(new_options[key])
+    new_options = remove_nones(kwargs)
     for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
@@ -432,9 +429,23 @@ def get_ffmpeg_cmdline_params(cmdline):
     p[opt.media.DEINTERLACE] = get_ffmpeg_cmdline_deinterlace(cmdline)
     p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
     p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
-    q = {}
-    for k in p:
-        if p[k] is not None:
-           q[k] = p[k]
-    return q
+    return remove_nones(p)
 
+def remove_nones(p):
+    return dict((k, v) for k, v in p.items() if v is not None)
+
+def swap_keys_values(p):
+    return dict([(v, k) for k, v in p.items()]) 
+
+def dict2str(options):
+    cmd = ''
+    for k in options:
+        if options[k] is None or options[k] is False:
+            continue
+        if options[k] is True:
+            fmt = " -{0}".format(k)
+        else:
+            fmt = " -{0} {1}".format(k, options[k])
+        cmd += fmt
+    logger.debug("cmd options = %s", cmd)
+    return cmd
