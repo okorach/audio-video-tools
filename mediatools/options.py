@@ -1,3 +1,5 @@
+import mediatools.utilities as util
+
 class ff:
     FORMAT = 'f'
     SIZE = 's'
@@ -53,9 +55,29 @@ M2F_MAPPING = { \
     media.ACHANNEL:ff.ACHANNEL, \
     media.VFILTER:ff.VFILTER, \
     media.START:ff.START, \
-    media.START:ff.STOP \
+    media.STOP:ff.STOP \
     }
 
 F2M_MAPPING = {}
 for k, v in M2F_MAPPING.items():
     F2M_MAPPING[v] = k
+
+def media2ffmpeg(options):
+    # Returns ffmpeg cmd options dict from media options dict
+    if options is None:
+        return {}
+    ffopts = {}
+    for key in M2F_MAPPING:
+        if key in options and options[key] is not None:
+            ffopts[M2F_MAPPING[key]] = options[key]
+    return util.remove_nones(ffopts)
+
+def ffmpeg2media(options):
+    # Returns ffmpeg cmd options dict from media options dict
+    if options is None:
+        return {}
+    mopts = {}
+    for key in M2F_MAPPING:
+        if key in options and options[key] is not None:
+            mopts[M2F_MAPPING[key]] = options[key]
+    return util.remove_nones(mopts)

@@ -4,10 +4,11 @@
 # --box <width>x<height> : The size of the video to crop
 # --top <y>/ --left <x>: Coordinates of the top left corner of the video crop
 
-
+import re
 import argparse
 import mediatools.videofile as video
 import mediatools.utilities as util
+import mediatools.options as opt
 
 parser = util.parse_common_args('Crops a region of the input video file')
 parser = video.add_video_args(parser)
@@ -18,6 +19,16 @@ parser.add_argument('--left', required=False, help='Video left origin')
 args = parser.parse_args()
 kwargs = vars(args).copy()
 util.check_environment(kwargs)
+
+if args.box == '720p':
+    args.box = '1280x720'
+elif args.box == '540p':
+    args.box = '960x540'
+elif args.box == '1080p':
+    args.box = '1920x1080'
+
+if args.timeranges is not None:
+    kwargs[opt.media.START], kwargs[opt.media.STOP] = re.split('-', args.timeranges)
 
 width, height = util.int_split(args.box, "x")
 file_o = video.VideoFile(args.inputfile)

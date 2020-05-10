@@ -73,6 +73,11 @@ class MediaFile:
     def get_file_specs(self):
         '''Reads file format specs'''
         self.format = self.specs['format']['format_name']
+        if self.format == 'mov,mp4,m4a,3gp,3g2,mj2':
+            ext = util.get_file_extension(self.filename)
+            if re.match('^(mp4|mov)', ext, re.IGNORECASE):
+                self.format = ext.lower()
+
         self.format_long = self.specs['format']['format_long_name']
         self.nb_streams = int(self.specs['format']['nb_streams'])
         self.size = int(self.specs['format']['size'])
@@ -132,46 +137,11 @@ class MediaFile:
         all_props = self.get_file_properties()
         return all_props
 
-    def get_ffmpeg_params(self):
-        mapping = { \
-            opt.media.ABITRATE:opt.ff.ABITRATE, \
-            opt.media.ACODEC:opt.ff.ACODEC, \
-            opt.media.VBITRATE:opt.ff.VBITRATE, \
-            opt.media.VCODEC:opt.ff.VCODEC \
-            }
-        props = self.get_properties()
-        ffmpeg_parms = {}
-        for key in mapping:
-            if key in props and props[key] is not None and props[key] != '':
-                ffmpeg_parms[mapping[key]] = props[key]
-        return ffmpeg_parms
-
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
-
-def cmdline_options(**kwargs):
-    # Returns ffmpeg cmd line options converted from clear options to ffmpeg format
-    util.logger.debug('Building cmd line options from %s', str(kwargs))
-    if kwargs is None:
-        return {}
-    params = {}
-    for key in opt.M2F_MAPPING:
-        util.logger.debug("Checking option %s", key)
-        try:
-            if kwargs[key] is not None:
-                util.logger.debug("Found in cmd line with value %s", kwargs[key])
-                params[opt.M2F_MAPPING[key]] = kwargs[key]
-        except KeyError:
-            pass
-
-    q = {}
-    for k in params:
-        if params[k] is not None:
-            q[k] = params[k]
-    return q
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
@@ -225,6 +195,22 @@ def concat(target_file, file_list):
     cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (len(file_list), target_file)
     util.run_ffmpeg(cmd)
 
+def strip_media_options(options):
+    strip = {}
+    for k in options:
+        if k not in opt.M2F_MAPPING:
+            strip[k] = options[k] 
+    util.logger.debug("stripped media options = %s", str(strip))
+    return strip
+
+def strip_ffmpeg_options(options):
+    strip = {}
+    for k in options:
+        if k not in opt.F2M_MAPPING:
+            strip[k] = options[k] 
+    util.logger.debug("stripped ffmpeg options = %s", str(strip))
+    return strip
+
 def build_ffmpeg_options(options):
     cmd = ''
     for k, v in options.items():
@@ -238,6 +224,7 @@ def build_ffmpeg_options(options):
             cmd = cmd + " -%s %s" % (opt.M2F_MAPPING[k], v)
     util.logger.debug("ffmpeg options = %s", cmd)
     return cmd
+
 
 def build_video_filters_options(filters):
     cmd = ''

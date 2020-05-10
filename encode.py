@@ -19,13 +19,13 @@ def encode_file(args, options):
         file_object = img.ImageFile(args.inputfile)
     else:
         file_object = video.VideoFile(args.inputfile)
-    if args.vwidth is not None:
+    if args.width is not None:
         specs = file_object.get_properties()
         w = int(specs[opt.media.WIDTH])
         h = int(specs[opt.media.HEIGHT])
-        new_w = int(args.vwidth)
+        new_w = int(args.width)
         new_h = (int(h * new_w / w) // 8) * 8
-        options['vsize'] = "%dx%d" % (new_w, new_h)
+        options[opt.media.SIZE] = "%dx%d" % (new_w, new_h)
     if args.timeranges is None:
         file_object.encode(args.outputfile, args.profile, **options)
         return
