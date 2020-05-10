@@ -58,7 +58,7 @@ class VideoFile(media.MediaFile):
         try:
             self.video_bitrate = get_video_bitrate(stream)
             if self.video_bitrate is None:
-                self.video_bitrate = self.specs['format']['bit_rate']
+                self.video_bitrate = int(self.specs['format']['bit_rate'])
             self.duration = stream['duration']
         except KeyError as e:
             util.logger.error("Stream %s has no key %s\n", str(stream), e.args[0])
@@ -117,9 +117,10 @@ class VideoFile(media.MediaFile):
         '''Returns video file video bitrate'''
         if self.video_bitrate is None:
             try:
-                self.video_bitrate = self.specs['format']['bit_rate']
+                self.video_bitrate = int(self.specs['format']['bit_rate'])
             except KeyError as e:
                 util.logger.error("Format %s has no key %s\n", util.json_fmt(self.specs['format']), e.args[0])
+        return self.video_bitrate
 
     def get_video_duration(self, stream = None):
         if self.duration is None:
@@ -174,9 +175,9 @@ class VideoFile(media.MediaFile):
             if stream is None:
                 stream = self.__get_first_video_stream__()
             if self.width is None:
-                self.width = util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width'])
+                self.width = int(util.get_first_value(stream, [ 'width', 'codec_width', 'coded_width']))
             if self.height is None:
-                self.height = util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height'])
+                self.height = int(util.get_first_value(stream, [ 'height', 'codec_height', 'coded_height']))
             if self.width is not None and self.height is not None:
                 self.pixels = self.width * self.height
         util.logger.debug("Returning [%s, %s]", str(self.width), str(self.height))
@@ -206,32 +207,32 @@ class VideoFile(media.MediaFile):
         util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
-    def build_encoding_options(self, **kwargs):
-        parms = self.get_ffmpeg_params()
-        util.logger.info("File settings = %s", str(parms))
-        if 'profile' in kwargs:
-            parms.update(util.get_cmdline_params(kwargs['profile']))
-        util.logger.info("Profile settings = %s", str(parms))
-        clean_options = util.cleanup_options(**kwargs)
-        parms.update(media.cmdline_options(**clean_options))
-        util.logger.info("Cmd line settings = %s", str(parms))
-
-
     def scale(self, scale):
         self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
 
     def crop(self, width, height, top, left, out_file, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
-        parms = self.get_ffmpeg_params()
-        clean_options = util.cleanup_options(kwargs)
-        parms.update(media.cmdline_options(**clean_options))
-        util.logger.info("Cmd line settings = %s", str(parms))
+        
+        if width is str:
+            width = int(width)
+        if height is str:
+            height = int(height)
+        i_bitrate = self.get_video_bitrate()
+        i_w, i_h = self.get_dimensions()
+        media_opts = self.get_properties()
+        media_opts[opt.media.ACODEC] = 'copy'
+        # Target bitrate proportional to crop level (+ 20%)
+        media_opts[opt.media.VBITRATE] = int(int(i_bitrate) * (width * height) / (int(i_w) * int(i_h)) * 1.2)
+        
+        media_opts.update(util.cleanup_options(kwargs))
+        util.logger.info("Cmd line settings = %s", str(media_opts))
         out_file = util.automatic_output_file_name(out_file, self.filename, \
             "crop_{0}x{1}-{2}x{3}".format(width, height, top, left))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
 
+
         cmd = '-i "%s" %s %s -aspect %s "%s"' % (self.filename, \
-            media.build_ffmpeg_options(parms), media.get_crop_filter_options(width, height, top, left), \
+            media.build_ffmpeg_options(media_opts), media.get_crop_filter_options(width, height, top, left), \
             aspect, out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -240,10 +241,9 @@ class VideoFile(media.MediaFile):
         if out_file is None:
             out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
-        parms = self.get_ffmpeg_params()
+        media_opts = self.get_properties()
         kwargs['start'] = start
         kwargs['stop'] = stop
-        parms.update(media.cmdline_options(**kwargs))
 
         video_filters = []
         if 'fade' in kwargs and kwargs['fade'] is not None:
@@ -252,7 +252,7 @@ class VideoFile(media.MediaFile):
             fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
             video_filters.append(fader)
 
-        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(parms),
+        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, opt.media2ffmpeg(media_opts),
                                                 media.build_video_filters_options(video_filters), out_file))
 
         return out_file
@@ -343,17 +343,18 @@ class VideoFile(media.MediaFile):
 
     def deshake(self, width, height, out_file, **kwargs):
         ''' Applies deshake video filter for width x height pixels '''
-        parms = self.get_ffmpeg_params()
-        clean_options = util.cleanup_options(kwargs)
-        parms.update({'deinterlace':'', 'aspect':self.get_aspect_ratio()})
-        parms.update(media.cmdline_options(**clean_options))
+        media_opts = self.get_properties()
+        media_opts.update({opt.media.DEINTERLACE:None, opt.media.ASPECT:self.get_aspect_ratio()})
+        media_opts.update(util.cleanup_options(kwargs))
 
         if out_file is None or 'nocrop' in kwargs:
             output_file = util.add_postfix(self.filename, "deshake_%dx%d" % (width, height))
         else:
             output_file = out_file
+
+        ffopts = opt.media2ffmpeg(media_opts)
         cmd = '-i "%s" %s %s "%s"' % (self.filename, \
-            media.build_ffmpeg_options(parms), get_deshake_filter_options(width, height), output_file)
+            util.dict2str(ffopts), get_deshake_filter_options(width, height), output_file)
         util.run_ffmpeg(cmd)
 
         if 'nocrop' not in kwargs:
@@ -366,7 +367,7 @@ class VideoFile(media.MediaFile):
         else:
             output_file2 = out_file
         deshake_file_o = VideoFile(output_file)
-        kwargs.update({'aspect': self.get_aspect_ratio()})
+        kwargs.update({opt.media.ASPECT: self.get_aspect_ratio()})
         deshake_file_o.crop(new_w, new_h, width//2, height//2, output_file2, **kwargs)
         os.remove(output_file)
         return output_file2
@@ -393,39 +394,39 @@ class VideoFile(media.MediaFile):
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        encoding_params = {}
+        media_opts = {}
         video_filters = []
-        encoding_params = self.get_properties()
+        media_opts = self.get_properties()
 
-        util.logger.debug("File settings(%s) = %s", self.filename, str(encoding_params))
+        util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
         # TODO: fix format problem
-        del(encoding_params[opt.media.FORMAT])
+        # del(media_opts[opt.media.FORMAT])
 
-        encoding_params.update(util.get_ffmpeg_cmdline_params(profile + '.cmdline'))
-        util.logger.debug("After profile settings(%s) = %s", profile, str(encoding_params))
-        encoding_params.update(kwargs)
-        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(encoding_params))
+        media_opts.update(opt.ffmpeg2media(util.get_ffmpeg_cmdline_params(profile + '.cmdline')))
+        util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
+        media_opts.update(kwargs)
+        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
 
-        encoding_params['input_params'] = ''
-        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.match(r'(x|h)264', encoding_params['vcodec']):
+        media_opts['input_params'] = ''
+        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.match(r'(x|h)264', media_opts['vcodec']):
             util.logger.debug("Patching settings for hw acceleration")
-            encoding_params['vcodec'] = 'h264_nvenc'
-            encoding_params['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            if 'vsize' in encoding_params and encoding_params['vsize'] is not None:
-                encoding_params['input_params'] += ' -resize ' + encoding_params['vsize']
-                del(encoding_params['vsize'])  
+            media_opts[opt.media.VCODEC] = 'h264_nvenc'
+            media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
+            if opt.media.SIZE in media_opts and media_opts[opt.media.SIZE] is not None:
+                media_opts['input_params'] += ' -resize ' + media_opts[opt.media.SIZE]
+                del(media_opts[opt.media.SIZE])
 
-        util.logger.debug("After hw acceleration = %s", str(encoding_params))
+        util.logger.debug("After hw acceleration = %s", str(media_opts))
 
-        encoding_params.update(media.cmdline_options(**encoding_params))
-        util.logger.debug("After converting to ffmpeg params = %s", str(encoding_params))
+        ffopts = opt.media2ffmpeg(media_opts)
+        util.logger.debug("After converting to ffmpeg params = %s", str(ffopts))
 
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
         video_filters.append(self.__get_fader_filter__(**kwargs))
 
-        util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (encoding_params['input_params'], self.filename, media.build_ffmpeg_options(encoding_params), \
+        util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (media_opts['input_params'], self.filename, util.dict2str(ffopts), \
                         media.build_video_filters_options(video_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
@@ -565,7 +566,7 @@ def add_video_args(parser):
     parser.add_argument('--' + opt.media.ACHANNEL, required=False, help='Audio channel to pick')
 
     parser.add_argument('--' + opt.media.SIZE, required=False, help='Video size HxW')
-    parser.add_argument('--vwidth', required=False, help='Video width')
+    parser.add_argument('--' + opt.media.WIDTH, required=False, help='Video width')
     parser.add_argument('--vheight', required=False, help='Video height')
 
     return parser
