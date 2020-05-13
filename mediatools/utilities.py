@@ -98,7 +98,7 @@ def strip_file_extension(filename):
 def match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     p = re.compile(regex, re.IGNORECASE)
-    return not (re.search(p, file) is None)
+    return not re.search(p, file) is None
 
 def add_postfix(file, postfix, extension = None):
     """Adds a postfix to a file before the file extension"""
@@ -201,7 +201,7 @@ def get_media_properties(props_file = None):
 
 def get_conf_property(prop):
     global PROPERTIES_VALUES
-    if len(PROPERTIES_VALUES) == 0:
+    if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]
 
@@ -248,11 +248,11 @@ def json_fmt(json_data):
 def set_debug_level(level):
     global DEBUG_LEVEL
     DEBUG_LEVEL = 0 if level is None else int(level)
-    # global logger
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 def set_dry_run(dry_run):
+    global DRY_RUN
     DRY_RUN = dry_run
     logger.info("Set dry run to %s", str(dry_run))
 
@@ -361,13 +361,13 @@ def int_split(string, separator):
     return [int(a), int(b)]
 
 def get_ffmpeg_cmdline_param(cmdline, param):
-    m = re.search(r'\b{param}\s+(\S+)', cmdline)
+    m = re.search(r'\b' + f'{param}' +r'\s+(\S+)', cmdline)
     if m:
         return m.group(2)
     return None
 
 def get_ffmpeg_cmdline_switch(cmdline, param):
-    m = re.search(r'\b{param}\b', cmdline)
+    m = re.search(r'\b' + f'{param}' + r'\b', cmdline)
     if m:
         return True
     return False
@@ -413,7 +413,7 @@ def get_ffmpeg_cmdline_vmute(cmdline):
 
 def get_audio_sample_rate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-ar')
-    
+
 def get_ffmpeg_cmdline_params(cmdline):
     p = {}
     p[opt.media.ABITRATE] = get_ffmpeg_cmdline_abitrate(cmdline)
@@ -435,7 +435,7 @@ def remove_nones(p):
     return dict((k, v) for k, v in p.items() if v is not None)
 
 def swap_keys_values(p):
-    return dict([(v, k) for k, v in p.items()]) 
+    return dict([(v, k) for k, v in p.items()])
 
 def dict2str(options):
     cmd = ''
