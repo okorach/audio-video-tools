@@ -1,5 +1,10 @@
 #!/usr/local/bin/python3
 
+# This script encodes a video file according to (by order of precedence):
+# - Script command line options
+# - Profile specs (from config file)
+# - Original file specs (audio/video codec and bitrate)
+
 import sys
 import os
 import re

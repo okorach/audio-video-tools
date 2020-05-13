@@ -9,7 +9,12 @@ if [ "$SQ_URL" == "https://sonarcloud.io" ]; then
   token=$SCLOUD_TOKEN_AV_TOOLS
 fi
 
-pylintReport="pylint-report.out"
+buildDir="build"
+[ ! -d $buildDir ] && mkdir $buildDir
+pylintReport="$buildDir/pylint-report.out"
+banditReport="$buildDir/bandit-report.json"
+flake8Report="$buildDir/flake8-report.out"
+
 echo "Running pylint"
 rm -f $pylintReport
 pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" | tee $pylintReport
@@ -19,9 +24,18 @@ if [ "$re" == "32" ]; then
   exit $re
 fi
 
+echo "Running flake8"
+rm -f $flake8Report
+flake8 . >$flake8Report
+
+echo "Running bandit"
+rm -f $banditReport
+bandit -f json -r . >$banditReport
+
 sonar-scanner \
   -Dsonar.projectKey=$key \
   -Dsonar.host.url=$SQ_URL \
   -Dsonar.login=$token \
   -Dsonar.python.pylint.reportPath=$pylintReport \
+  -Dsonar.python.bandit.reportPaths=$banditReport \
   $orgOpt $*

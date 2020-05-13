@@ -1,5 +1,8 @@
 #!/usr/local/bin/python3
 
+# This script concatenate 2 video files
+# They should have the same video and audio codecs and bitrates
+
 import sys
 import mediatools.utilities as util
 import mediatools.videofile as video

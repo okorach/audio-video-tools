@@ -1,6 +1,16 @@
 import mediatools.utilities as util
 
+'''
+This file encapsulates
+- various constants
+- data structures and
+- translation functions
+used in several places
+in mediatools library
+'''
+
 class ff:
+    '''Documents supported ffmpeg options'''
     FORMAT = 'f'
     SIZE = 's'
     VCODEC = 'vcodec'
@@ -17,6 +27,7 @@ class ff:
     STOP = 'to'
 
 class media:
+    '''Documents supported audio-video-tools encoding options'''
     FORMAT = 'format'
     SIZE = 'vsize'
     VCODEC = 'vcodec'

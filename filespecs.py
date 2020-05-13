@@ -39,7 +39,8 @@ else:
 
 is_first = True
 
-VIDEO_PROPS = ['filename', 'filesize', 'type', opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, opt.media.DURATION, \
+VIDEO_PROPS = ['filename', 'filesize', 'type', \
+    opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, opt.media.DURATION, \
     opt.media.VCODEC, opt.media.VBITRATE, opt.media.ASPECT, 'pixel_aspect_ratio', opt.media.FPS, \
     opt.media.ACODEC, opt.media.ABITRATE, opt.media.LANGUAGE, opt.media.ASAMPLING,  opt.media.AUTHOR]
 
@@ -47,7 +48,8 @@ AUDIO_PROPS = ['filename', 'filesize', 'type', opt.media.FORMAT, opt.media.DURAT
     opt.media.ACODEC, opt.media.ABITRATE, opt.media.ASAMPLING,  \
     opt.media.AUTHOR, opt.media.TITLE, opt.media.ALBUM, opt.media.YEAR, opt.media.TRACK, opt.media.GENRE]
 
-IMAGE_PROPS = ['filename', 'filesize', 'type', opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, 'pixels', opt.media.AUTHOR, opt.media.TITLE]
+IMAGE_PROPS = ['filename', 'filesize', 'type', \
+    opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, 'pixels', opt.media.AUTHOR, opt.media.TITLE]
 
 UNITS = { 'filesize' : [1048576, 'MB'], opt.media.DURATION:[1,'hms'], opt.media.VBITRATE:[1024, 'kbits/s'], \
           opt.media.ABITRATE:[1024, 'kbits/s'], opt.media.ASAMPLING:[1000, 'k'], 'pixels':[1000000, 'Mpix'] }

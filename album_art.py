@@ -1,5 +1,10 @@
 #!/usr/local/bin/python3
 
+# This script encodes an album art image
+# in an MP3 file
+# or a set of MP3 files (an album)
+# The image is rescaled to 512x512 if too big
+
 import sys
 import os
 import mediatools.utilities as util

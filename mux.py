@@ -1,5 +1,8 @@
 #!/usr/local/bin/python3
 
+# This script multiplexes an extra audio track
+# in a video file with already one audio track
+
 import sys
 import os
 import mediatools.videofile as video
