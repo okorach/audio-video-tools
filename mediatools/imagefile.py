@@ -9,6 +9,7 @@ import ffmpeg
 import mediatools.utilities as util
 import mediatools.mediafile as media
 
+# ET blah blah blah et bla bla bli
 class ImageFile(media.MediaFile):
     def __init__(self, filename):
         self.width = None
@@ -31,12 +32,16 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Returning image props %s\nObject %s", str(all_props), str(vars(self)))
         return all_props
 
+# ET blah blah blah et bla bla bli
+
     def get_specs(self):
         '''Reads file media properties. Probes file if not yet probed'''
         if self.specs is None:
             self.probe()
             self.get_image_specs()
         return self.specs
+
+# ET blah blah blah et bla bla bli
 
     def find_width_from_stream(self, stream):
         if self.width is None:
@@ -58,6 +63,13 @@ class ImageFile(media.MediaFile):
         util.logger.debug('Returning image height %d', self.height)
         return self.height
 
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+
+
     def get_dimensions(self):
         self.get_specs()
         if self.width is None or self.height is None:
@@ -69,16 +81,34 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
         return [self.width, self.height]
 
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+
     def get_width(self):
         if self.width is None:
             _, _ = self.get_dimensions()
         util.logger.debug("Returning image Width = %d", self.width)
         return self.width
 
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+
     def get_height(self):
         if self.height is None:
             _, _ = self.get_dimensions()
         return self.height
+
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
 
     def get_image_specs(self):
         util.logger.debug("Getting image specs")
@@ -91,16 +121,33 @@ class ImageFile(media.MediaFile):
                 except KeyError as e:
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
 
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+
     def get_image_properties(self):
         self.get_image_specs()
         return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
 
     def crop(self, w, h, x, y, out_file = None):
         util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
+
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
+# ET blah blah blah et bla bla bli
 
     def resize(self, width = None, height = None, out_file = None):
         '''Resizes an image file
