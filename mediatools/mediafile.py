@@ -15,7 +15,11 @@ class FileTypeError(Exception):
     '''Error when passing a non media file'''
 
 class MediaFile:
-    '''Media file abstraction'''
+    '''Media file abstraction
+    A media file can be:
+    - A video file
+    - An audio file
+    - An image file'''
     def __init__(self, filename):
         if not util.is_media_file(filename):
             raise FileTypeError('File %s is neither video, audio nor image file' % filename)
@@ -199,7 +203,7 @@ def strip_media_options(options):
     strip = {}
     for k in options:
         if k not in opt.M2F_MAPPING:
-            strip[k] = options[k] 
+            strip[k] = options[k]
     util.logger.debug("stripped media options = %s", str(strip))
     return strip
 
@@ -207,7 +211,7 @@ def strip_ffmpeg_options(options):
     strip = {}
     for k in options:
         if k not in opt.F2M_MAPPING:
-            strip[k] = options[k] 
+            strip[k] = options[k]
     util.logger.debug("stripped ffmpeg options = %s", str(strip))
     return strip
 
