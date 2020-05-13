@@ -31,7 +31,7 @@ class Encoder:
     def add_settings(self, **kwargs):
         kwsettings = {}
         for k in kwargs:
-            if k in SETTINGS and kwargs[k] is not None:
+            if k in Encoder.SETTINGS and kwargs[k] is not None:
                 kwsettings[k] = kwargs[k]
         if 'vcodec' in kwsettings:
             self.vcodec = kwsettings[opt.media.VCODEC]
@@ -72,9 +72,12 @@ class Encoder:
         self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height))
 
     def add_fade_filter(self, fade_d, start = None, stop = None):
-        if start is None: start = self.start
-        if start is None: start = 0
-        if stop is None: stop = self.stop
+        if start is None:
+            start = self.start
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = self.stop
         fmt = "fade=type={0}:duration={1}:start_time={2}"
         fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
         self.add_vfilter(fader)
@@ -88,4 +91,3 @@ class Encoder:
                 cmd = cmd + " -{0} {1}".format(opt.M2F_MAPPING[option], options[option])
         cmd = cmd + ' ' + self.get_vfilters_string()
         return cmd.strip()
-
