@@ -1,5 +1,9 @@
 #!/usr/local/bin/python3
 
+# This script build an image composed of
+# 2 input images that can be glued
+# horizontally or vertically
+
 import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
