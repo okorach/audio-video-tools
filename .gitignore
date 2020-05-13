@@ -26,4 +26,4 @@ nytprof.out
 *.log
 .scannerwork/
 test/pip_test.sh
-pylint-report.out
+build/*
