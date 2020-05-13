@@ -9,6 +9,7 @@ import mediatools.utilities as util
 import mediatools.options as opt
 
 class AudioFile(media.MediaFile):
+    # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename):
         self.acodec = None
         self.artist = None
@@ -37,6 +38,7 @@ class AudioFile(media.MediaFile):
         return self.specs
 
     def get_tags(self):
+        """Returns all file MP3 tags"""
         from mp3_tagger import MP3File
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise media.FileTypeError('File %s is not an mp3 file')
@@ -110,21 +112,20 @@ class AudioFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        properties = util.get_media_properties()
-        profile_options = properties[profile + '.cmdline']
+
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        parms = {}
-        parms = self.get_ffmpeg_params()
-        util.logger.debug("File settings = %s", str(parms))
+        media_opts = self.get_properties()
+        util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
+        media_opts.update(opt.ffmpeg2media(util.get_ffmpeg_cmdline_params(profile + '.cmdline')))
+        util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
+        media_opts.update(kwargs)
+        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
 
-        parms.update(util.get_cmdline_params(profile_options))
-        util.logger.debug("Profile settings = %s", str(parms))
-        parms.update(media.cmdline_options(**kwargs))
-        util.logger.debug("Cmd line settings = %s", str(parms))
-
-        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, media.build_ffmpeg_options(parms), target_file))
+        ffopts = opt.media2ffmpeg(media_opts)
+        util.logger.debug("After converting to ffmpeg params = %s", str(ffopts))
+        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, util.dict2str(ffopts), target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
 
