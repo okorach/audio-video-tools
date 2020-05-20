@@ -399,16 +399,13 @@ class VideoFile(media.MediaFile):
         media_opts = self.get_properties()
 
         util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
-        # TODO: fix format problem
-        # del(media_opts[opt.media.FORMAT])
-
-        media_opts.update(opt.ffmpeg2media(util.get_ffmpeg_cmdline_params(profile + '.cmdline')))
+        media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
         util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
         media_opts.update(kwargs)
         util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
 
         media_opts['input_params'] = ''
-        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.match(r'(x|h)264', media_opts['vcodec']):
+        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.search(r'[xh]264', media_opts[opt.media.VCODEC]):
             util.logger.debug("Patching settings for hw acceleration")
             media_opts[opt.media.VCODEC] = 'h264_nvenc'
             media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
