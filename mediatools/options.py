@@ -4,7 +4,11 @@ class ff:
     FORMAT = 'f'
     SIZE = 's'
     VCODEC = 'vcodec'
+    VCODEC2 = 'c:v'
+    VCODEC3 = 'codec:v'
     ACODEC = 'acodec'
+    ACODEC2 = 'c:a'
+    ACODEC3 = 'codec:a'
     VBITRATE = 'b:v'
     ABITRATE = 'b:a'
     SIZE = 's'
@@ -61,6 +65,10 @@ M2F_MAPPING = { \
 F2M_MAPPING = {}
 for k, v in M2F_MAPPING.items():
     F2M_MAPPING[v] = k
+F2M_MAPPING[ff.ACODEC2] = media.ACODEC
+F2M_MAPPING[ff.ACODEC3] = media.ACODEC
+F2M_MAPPING[ff.VCODEC2] = media.VCODEC
+F2M_MAPPING[ff.VCODEC3] = media.VCODEC
 
 def media2ffmpeg(options):
     # Returns ffmpeg cmd options dict from media options dict
