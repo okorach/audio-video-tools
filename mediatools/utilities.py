@@ -361,13 +361,13 @@ def int_split(string, separator):
     return [int(a), int(b)]
 
 def get_ffmpeg_cmdline_param(cmdline, param):
-    m = re.search(r'\b{param}\s+(\S+)', cmdline)
+    m = re.search(rf"{param}\s+(\S+)", cmdline)
     if m:
-        return m.group(2)
+        return m.group(1)
     return None
 
 def get_ffmpeg_cmdline_switch(cmdline, param):
-    m = re.search(r'\b{param}\b', cmdline)
+    m = re.search(rf'{param}\s', cmdline)
     if m:
         return True
     return False
@@ -379,10 +379,19 @@ def get_ffmpeg_cmdline_abitrate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ABITRATE)
 
 def get_ffmpeg_cmdline_vcodec(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '(-c:v|-vcodec)')
+    for option in [opt.ff.VCODEC, opt.ff.VCODEC2, opt.ff.VCODEC3]:
+        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
+        if v is not None:
+            return v
+    return None
+
 
 def get_ffmpeg_cmdline_acodec(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '(-c:a|-acodec)')
+    for option in [opt.ff.ACODEC, opt.ff.ACODEC2, opt.ff.ACODEC3]:
+        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
+        if v is not None:
+            return v
+    return None
 
 def get_ffmpeg_cmdline_framesize(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.SIZE)
