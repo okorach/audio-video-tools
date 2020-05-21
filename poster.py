@@ -1,5 +1,11 @@
 #!/usr/local/bin/python3
 
+# This script builds a poster of several input images
+# Arranged automatically in n columns m rows
+# With configurable padding between images
+# And with configurable margin padding
+# It requires availability of ffmpeg
+
 import sys
 import os
 import mediatools.utilities as util

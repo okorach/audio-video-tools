@@ -9,6 +9,7 @@ import mediatools.utilities as util
 import mediatools.options as opt
 
 class AudioFile(media.MediaFile):
+    # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename):
         self.acodec = None
         self.artist = None
@@ -37,6 +38,7 @@ class AudioFile(media.MediaFile):
         return self.specs
 
     def get_tags(self):
+        """Returns all file MP3 tags"""
         from mp3_tagger import MP3File
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise media.FileTypeError('File %s is not an mp3 file')
@@ -102,7 +104,6 @@ class AudioFile(media.MediaFile):
         - **kwargs accepts at large panel of other ptional options'''
 
         util.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
-
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 

@@ -1,5 +1,8 @@
 #!/usr/local/bin/python3
 
+# This script applies the ffmpeg deshake filter on a video file
+# to improve image stabilization
+
 import re
 import argparse
 import mediatools.utilities as util

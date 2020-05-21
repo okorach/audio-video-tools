@@ -15,6 +15,8 @@ import mediatools.mediafile as media
 import mediatools.options as opt
 
 class VideoFile(media.MediaFile):
+    AV_PASSTHROUGH = '{0} copy {1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
+
     '''Video file abstraction'''
     def __init__(self, filename):
         if not util.is_video_file(filename):
@@ -212,7 +214,7 @@ class VideoFile(media.MediaFile):
 
     def crop(self, width, height, top, left, out_file, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
-        
+
         if width is str:
             width = int(width)
         if height is str:
@@ -223,7 +225,7 @@ class VideoFile(media.MediaFile):
         media_opts[opt.media.ACODEC] = 'copy'
         # Target bitrate proportional to crop level (+ 20%)
         media_opts[opt.media.VBITRATE] = int(int(i_bitrate) * (width * height) / (int(i_w) * int(i_h)) * 1.2)
-        
+
         media_opts.update(util.cleanup_options(kwargs))
         util.logger.info("Cmd line settings = %s", str(media_opts))
         out_file = util.automatic_output_file_name(out_file, self.filename, \
@@ -263,7 +265,7 @@ class VideoFile(media.MediaFile):
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
         # -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
         util.logger.debug("Add metadata: %s", str(metadatas))
-        opts = '-vcodec copy -c:a copy -map 0 '
+        opts = VideoFile.AV_PASSTHROUGH
         for key, value in metadatas.items():
             opts += '-metadata {0}="{1}" '.format(key, value)
         output_file = util.add_postfix(self.filename, "meta")
@@ -273,8 +275,8 @@ class VideoFile(media.MediaFile):
     def set_default_track(self, track):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
         # -disposition:a:0 default -disposition:a:1 none out.mp4
-        util.logger.debug("Set default track: {0}".format(track))
-        disp = '-vcodec copy -c:a copy -map 0 '
+        util.logger.debug("Set default track: %s", track)
+        disp = VideoFile.AV_PASSTHROUGH
         for i in range(self.__get_number_of_audio_tracks()+1):
             util.logger.debug("i = %d, nb tracks = %d", i, self.__get_number_of_audio_tracks())
             is_default = "default" if i == track else "none"
@@ -284,8 +286,8 @@ class VideoFile(media.MediaFile):
         return output_file
 
     def set_tracks_property(self, prop, **props):
-        util.logger.debug("Set tracks properties: {0}-->{1}".format(prop, str(props)))
-        meta = '-vcodec copy -c:a copy -map 0 '
+        util.logger.debug("Set tracks properties: %s-->%s", prop, str(props))
+        meta = VideoFile.AV_PASSTHROUGH
         for idx, propval in props.items():
             meta += '-metadata:s:a:{0} {1}="{2}" '.format(idx, prop, propval)
         output_file = util.add_postfix(self.filename, prop)
@@ -397,7 +399,6 @@ class VideoFile(media.MediaFile):
         media_opts = {}
         video_filters = []
         media_opts = self.get_properties()
-
         util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
         media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
         util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
@@ -411,7 +412,7 @@ class VideoFile(media.MediaFile):
             media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
             if opt.media.SIZE in media_opts and media_opts[opt.media.SIZE] is not None:
                 media_opts['input_params'] += ' -resize ' + media_opts[opt.media.SIZE]
-                del(media_opts[opt.media.SIZE])
+                del media_opts[opt.media.SIZE]
 
         util.logger.debug("After hw acceleration = %s", str(media_opts))
 
@@ -496,7 +497,7 @@ def get_frame_rate_option(cmdline):
 
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
-    return "-filter:v crop={0}:{1}:{2}:{3}".format_map(width, height, top, left)
+    return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
 
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
@@ -544,7 +545,8 @@ def add_video_args(parser):
     parser.add_argument('--' + opt.media.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
     parser.add_argument('--' + opt.media.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
-    parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true', help='Use Nvidia HW acceleration')
+    parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true', \
+                        help='Use Nvidia HW acceleration')
 
     parser.add_argument('--' + opt.media.VBITRATE, required=False, help='Video bitrate eg 1024k')
     parser.add_argument('--' + opt.media.ABITRATE, required=False, help='Audio bitrate eg 128k')

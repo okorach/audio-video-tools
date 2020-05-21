@@ -1,5 +1,10 @@
 #!/usr/local/bin/python3
 
+'''
+This script cuts a video
+It will be improved soon
+'''
+
 import argparse
 import mediatools.videofile as video
 import mediatools.utilities as util

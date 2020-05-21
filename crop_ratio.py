@@ -1,5 +1,7 @@
 #!/usr/local/bin/python3
 
+# This script crops an image file
+
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
