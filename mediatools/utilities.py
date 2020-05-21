@@ -156,7 +156,13 @@ def get_first_value(a_dict, key_list):
 
 def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
-        cmd = cmd + " 1>>ffmpeg.log 2>&1"
+        m = re.search(r'(\w+)[\.\s]', cmd)
+        if m:
+            executable = m.group(1)
+        else:
+            executable = 'ffmpeg'
+        outfile = '{0}.{1}.log'.format(executable, os.getpid())
+        cmd = cmd + " 1>>" + outfile + " 2>&1"
     logger.info("Running: %s", cmd)
     os.system(cmd)
     # TODO Check return status of the OS command
