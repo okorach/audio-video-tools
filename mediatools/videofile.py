@@ -15,7 +15,7 @@ import mediatools.mediafile as media
 import mediatools.options as opt
 
 class VideoFile(media.MediaFile):
-    AV_PASSTHROUGH = '{0} copy {1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
+    AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
 
     '''Video file abstraction'''
     def __init__(self, filename):
@@ -406,11 +406,16 @@ class VideoFile(media.MediaFile):
         util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
 
         media_opts['input_params'] = ''
-        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True and re.search(r'[xh]264', media_opts[opt.media.VCODEC]):
-            util.logger.debug("Patching settings for hw acceleration")
-            media_opts[opt.media.VCODEC] = 'h264_nvenc'
-            media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            if opt.media.SIZE in media_opts and media_opts[opt.media.SIZE] is not None:
+        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True:
+            if re.search(r'[xh]264', media_opts[opt.media.VCODEC]):
+                util.logger.debug("Patching settings for H264 hw acceleration")
+                media_opts[opt.media.VCODEC] = 'h264_nvenc'
+                media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
+            elif re.search(r'[xh]265', media_opts[opt.media.VCODEC]):
+                util.logger.debug("Patching settings for H265 hw acceleration")
+                media_opts[opt.media.VCODEC] = 'hevc_nvenc'
+                media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
+            if media_opts['input_params'] != '' and opt.media.SIZE in media_opts and media_opts[opt.media.SIZE] is not None:
                 media_opts['input_params'] += ' -resize ' + media_opts[opt.media.SIZE]
                 del media_opts[opt.media.SIZE]
 
