@@ -27,3 +27,4 @@ nytprof.out
 .scannerwork/
 test/pip_test.sh
 build/*
+/.idea
