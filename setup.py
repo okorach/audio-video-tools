@@ -61,6 +61,7 @@ setuptools.setup(
             'image-blinds = mediatools.blindy:main',
             'image-shake = mediatools.shake:main',
             'image-scale = mediatools.rescale:main',
+            'image-stack = mediatools.stack:main',
             'video-mux = mediatools.mux:main',
             'video-concat = mediatools.concat:main',
             'video-stabilize = mediatools.deshake:main'
