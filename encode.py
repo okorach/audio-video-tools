@@ -83,15 +83,20 @@ def encode_dir(args, options):
         i = i + 1
     util.logger.info('%05d/%05d : 100%% : Job finished', nbfiles, nbfiles)
 
-parser = util.parse_common_args('Audio and Video file (re)encoder')
-parser = video.add_video_args(parser)
+def main():
+    parser = util.parse_common_args('Audio and Video file (re)encoder')
+    parser = video.add_video_args(parser)
 
-myargs = parser.parse_args()
-myoptions = vars(myargs)
-util.check_environment(myoptions)
-myoptions = util.cleanup_options(myoptions)
+    myargs = parser.parse_args()
+    myoptions = vars(myargs)
+    util.check_environment(myoptions)
+    myoptions = util.cleanup_options(myoptions)
 
-if os.path.isdir(myargs.inputfile):
-    encode_dir(myargs, myoptions)
-else:
-    encode_file(myargs, myoptions)
+    if os.path.isdir(myargs.inputfile):
+        encode_dir(myargs, myoptions)
+    else:
+        encode_file(myargs, myoptions)
+
+
+if __name__ == "__main__":
+    main()
