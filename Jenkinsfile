@@ -1,25 +1,34 @@
 pipeline {
   agent any
   stages {
-    stage('Build') {
-      steps {
-        withSonarQubeEnv('SQ Latest') {
-          withMaven(maven: 'Maven') {
-            script {
-              //sh "printenv"
-              // fetch master from origin so sonar scanner comparison works
-              sh "git fetch --no-tags ${GIT_URL} +refs/heads/master:refs/remotes/origin/master"
-              if (env.CHANGE_ID) {
-                // build like a pull request
-                sh "mvn -Dmaven.test.failure.ignore clean verify sonar:sonar -Dsonar.pullrequest.branch=${CHANGE_BRANCH} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=master"
-              } else if (env.BRANCH_NAME=="master") {
-                sh "mvn -Dmaven.test.failure.ignore clean verify sonar:sonar"
-              } else {
-                // build like a branch
-                sh "mvn -Dmaven.test.failure.ignore clean verify sonar:sonar -Dsonar.branch.name=${BRANCH_NAME}"
-              }
-            }
-          }
+    stage('SCM') {
+      git 'https://github.com/okorach/audio-video-tools.git'
+    }
+    stage('SonarQube LTS analysis') {
+      def scannerHome = tool 'SonarScanner';
+      withSonarQubeEnv('SQ LTS') { // If you have configured more than one global server connection, you can specify its name
+        sh "${scannerHome}/bin/sonar-scanner"
+      }
+    }
+    stage("SonarQube LTS Quality Gate"){
+      timeout(time: 1, unit: 'HOURS') { // Just in case something goes wrong, pipeline will be killed after a timeout
+        def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
+        if (qg.status != 'OK') {
+          echo "Quality gate failed: ${qg.status}, proceeding anyway"
+        }
+      }
+    }
+    stage('SonarQube LATEST analysis') {
+      def scannerHome = tool 'SonarScanner';
+      withSonarQubeEnv('SQ Latest') { // If you have configured more than one global server connection, you can specify its name
+        sh "${scannerHome}/bin/sonar-scanner"
+      }
+    }
+    stage("SonarQube LATEST Quality Gate"){
+      timeout(time: 1, unit: 'HOURS') { // Just in case something goes wrong, pipeline will be killed after a timeout
+        def qg = waitForQualityGate() // Reuse taskId previously collected by withSonarQubeEnv
+        if (qg.status != 'OK') {
+          echo "Quality gate failed: ${qg.status}, proceeding anyway"
         }
       }
     }
