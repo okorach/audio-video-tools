@@ -1,5 +1,3 @@
-import mediatools.utilities as util
-
 '''
 This file encapsulates
 - various constants
@@ -83,6 +81,7 @@ F2M_MAPPING[ff.VCODEC3] = media.VCODEC
 
 def media2ffmpeg(options):
     # Returns ffmpeg cmd options dict from media options dict
+    import mediatools.utilities as util
     if options is None:
         return {}
     ffopts = {}
@@ -93,6 +92,7 @@ def media2ffmpeg(options):
 
 def ffmpeg2media(options):
     # Returns ffmpeg cmd options dict from media options dict
+    import mediatools.utilities as util
     if options is None:
         return {}
     mopts = {}
