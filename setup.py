@@ -45,10 +45,6 @@ setuptools.setup(
     install_requires=[
         'argparse',
         'datetime',
-        'math',
-        'logging',
-        'random',
-        'shutil',
         'mp3_tagger',
         'jprops'
     ],
