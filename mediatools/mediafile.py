@@ -1,7 +1,6 @@
 #!/usr/local/bin/python3
 
 import sys
-import platform
 import re
 import os
 import json
