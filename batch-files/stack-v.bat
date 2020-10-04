@@ -1,1 +1,1 @@
-%~dp0\..\stack.py -i "%~1" -i2 "%~2" -d vertical
+image-stack -i "%~1" -i2 "%~2" -d vertical

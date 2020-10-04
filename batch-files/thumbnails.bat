@@ -1,3 +1,3 @@
 
 
-%~dp0\..\encode.py -i "%~1" -p thumbnails
+video-encode -i "%~1" -p thumbnails

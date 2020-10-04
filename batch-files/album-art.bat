@@ -1,2 +1,2 @@
-%~dp0\..\album_art.py %*
+audio-album-art %*
 pause

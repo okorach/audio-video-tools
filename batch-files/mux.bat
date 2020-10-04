@@ -1,1 +1,1 @@
-%~dp0\..\mux.py  %*
+video-mux  %*

@@ -1,4 +1,4 @@
 
-%~dp0\..\concat.py %* "%~1.concat.mp4"
+video-concat %* "%~1.concat.mp4"
 
 Pause

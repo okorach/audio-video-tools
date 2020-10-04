@@ -1,2 +1,2 @@
-%~dp0\..\poster.py %* -g 3
+image-poster %* -g 3
 pause
