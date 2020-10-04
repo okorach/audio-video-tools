@@ -28,3 +28,5 @@ nytprof.out
 test/pip_test.sh
 build/*
 .idea/*
+dist/*
+media_tools.egg-info/*
