@@ -55,7 +55,15 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            'media-encode = mediatools.encode:main'
+            'media-encode = mediatools.encode:main',
+            'media-specs = mediatools.filespecs:main',
+            'image-poster = mediatools.poster:main',
+            'image-blinds = mediatools.blindy:main',
+            'image-shake = mediatools.shake:main',
+            'image-scale = mediatools.rescale:main',
+            'video-mux = mediatools.mux:main',
+            'video-concat = mediatools.concat:main',
+            'video-stabilize = mediatools.deshake:main'
         ]
     },
     python_requires='>=3.6',
