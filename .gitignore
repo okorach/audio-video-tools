@@ -26,5 +26,7 @@ nytprof.out
 *.log
 .scannerwork/
 test/pip_test.sh
-build/*
-/.idea
+build/
+.idea/
+dist/
+media_tools.egg-info/

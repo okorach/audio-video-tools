@@ -16,14 +16,21 @@ def parse_args():
     parser.add_argument('--nocrop', required=False, help='Do not crop video after deshaking')
     return parser.parse_args()
 
-args = parse_args()
-kwargs = vars(args)
-util.check_environment(kwargs)
-kwargs = util.cleanup_options(kwargs)
-del kwargs['width']
-del kwargs['height']
-if args.timeranges is not None:
-    for video_range in re.split(',', args.timeranges):
-        kwargs['ss'], kwargs['to'] = re.split('-', video_range)
-outputfile = video.deshake(args.inputfile, int(args.width), int(args.height), args.outputfile, **kwargs)
-util.debug(1, 'Generated %s' % outputfile)
+
+def main():
+    args = parse_args()
+    kwargs = vars(args)
+    util.check_environment(kwargs)
+    kwargs = util.cleanup_options(kwargs)
+    del kwargs['width']
+    del kwargs['height']
+    if args.timeranges is not None:
+        for video_range in re.split(',', args.timeranges):
+            kwargs['ss'], kwargs['to'] = re.split('-', video_range)
+    outputfile = video.deshake(args.inputfile, int(args.width), int(args.height), args.outputfile, **kwargs)
+    util.debug(1, 'Generated %s' % outputfile)
+
+
+if __name__ == "__main__":
+    main()
+

@@ -5,7 +5,6 @@ import sys
 import json
 import re
 import logging
-import platform
 import jprops
 import mediatools.options as opt
 

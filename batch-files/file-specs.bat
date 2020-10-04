@@ -1,3 +1,3 @@
-%~dp0\..\filespecs.py -i "%~1" -f txt -g 1
+media-specs -i "%~1" -f txt -g 1
 
 pause
