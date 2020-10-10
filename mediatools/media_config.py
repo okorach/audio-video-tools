@@ -3,6 +3,7 @@ import jprops
 
 def load(config_file=None):
     import pathlib
+    import mediatools.utilities as util
     global CONFIG_SETTINGS
     file_to_load = config_file
     if file_to_load is None:
