@@ -243,12 +243,13 @@ class VideoFile(media.MediaFile):
         if out_file is None:
             out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
-        media_opts = [] # self.get_properties()
-        media_opts[opt.media.START] = start
-        media_opts[opt.media.STOP] = stop
-        media_opts[opt.media.VCODEC] = 'copy'
-        media_opts[opt.media.ACODEC] = 'copy'
-
+        # media_opts = self.get_properties()
+        media_opts = {
+            opt.media.START: start,
+            opt.media.STOP: stop,
+            opt.media.VCODEC: 'copy',
+            opt.media.ACODEC: 'copy'
+        }
         video_filters = []
         if 'fade' in kwargs and kwargs['fade'] is not None:
             fade_d = int(kwargs['fade'])
