@@ -12,6 +12,7 @@ import mediatools.utilities as util
 
 def main():
     parser = util.parse_common_args('Cuts a time window of the input video file')
+    parser = video.add_video_args(parser)
     kwargs = vars(parser.parse_args())
     util.check_environment(kwargs)
     start = kwargs.pop('start', None)
