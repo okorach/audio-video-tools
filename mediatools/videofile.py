@@ -14,6 +14,9 @@ import mediatools.utilities as util
 import mediatools.mediafile as media
 import mediatools.options as opt
 
+FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
+
+
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
 
@@ -269,7 +272,7 @@ class VideoFile(media.MediaFile):
         for key, value in metadatas.items():
             opts += '-metadata {0}="{1}" '.format(key, value)
         output_file = util.add_postfix(self.filename, "meta")
-        util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, opts.strip(), output_file))
+        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, opts.strip(), output_file))
         return output_file
 
     def set_default_track(self, track):
@@ -282,7 +285,7 @@ class VideoFile(media.MediaFile):
             is_default = "default" if i == track else "none"
             disp += "-disposition:a:{0} {1} ".format(i, is_default)
         output_file = util.add_postfix(self.filename, "track")
-        util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, disp.strip(), output_file))
+        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, disp.strip(), output_file))
         return output_file
 
     def set_tracks_property(self, prop, **props):
@@ -291,7 +294,7 @@ class VideoFile(media.MediaFile):
         for idx, propval in props.items():
             meta += '-metadata:s:a:{0} {1}="{2}" '.format(idx, prop, propval)
         output_file = util.add_postfix(self.filename, prop)
-        util.run_ffmpeg('-i "{0}" {1} "{2}"'.format(self.filename, meta.strip(), output_file))
+        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, meta.strip(), output_file))
         return output_file
 
     def set_tracks_language(self, **langs):

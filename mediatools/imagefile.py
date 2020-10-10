@@ -9,6 +9,11 @@ import ffmpeg
 import mediatools.utilities as util
 import mediatools.mediafile as media
 
+INPUT_FILE_FMT =  ' -i "%s"'
+STEP_FMT = "[step%d]; "
+OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
+OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
+
 # ET blah blah blah et bla bla bli
 class ImageFile(media.MediaFile):
     def __init__(self, filename):
@@ -141,7 +146,7 @@ class ImageFile(media.MediaFile):
         util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
-        util.run_ffmpeg('-y -i "%s" -vf crop=%d:%d:%d:%d "%s"' % (self.filename, w, h, x, y, out_file))
+        util.run_ffmpeg(('-y ' + INPUT_FILE_FMT + ' -vf crop=%d:%d:%d:%d "%s"') % (self.filename, w, h, x, y, out_file))
 
 # ET blah blah blah et bla bla bli
 # ET blah blah blah et bla bla bli
@@ -168,7 +173,7 @@ class ImageFile(media.MediaFile):
             height = h * width // w
         util.logger.debug("Resizing %s to %d x %d into %s", self.filename, width, height, out_file)
         out_file = util.automatic_output_file_name(out_file, self.filename, "resized-%dx%d" % (width, height))
-        util.run_ffmpeg('-i "%s" -vf scale=%d:%d "%s"' % (self.filename, width, height, out_file))
+        util.run_ffmpeg((INPUT_FILE_FMT+ ' -vf scale=%d:%d "%s"') % (self.filename, width, height, out_file))
         return out_file
 
     def slice_vertical(self, nbr_slices, round_to = 16, slice_pattern = 'slice'):
@@ -255,17 +260,17 @@ class ImageFile(media.MediaFile):
 
         slices = self.slice(nbr_slices, direction)
         filelist = util.build_ffmpeg_file_list(slices)
-        filelist = filelist + ' -i "%s"' % tmpbg
+        filelist = filelist + INPUT_FILE_FMT % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
-        i = 0
-        cmplx = ''
-        for slicefile in slices:
-            cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
-            i = i + 1
-
+        #i = 0
+        #cmplx = ''
+        #for slicefile in slices:
+        #    cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+        #    i = i + 1
+        
         step = 0
-        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (i, step)
+        cmplx = cmplx + OVERLAY_0_FMT % (len(slices), step)
         first_slice = slices.pop(0)
         j = 0
         x = 0
@@ -275,9 +280,9 @@ class ImageFile(media.MediaFile):
                 y = (j+1) * (h // nbr_slices + h_gap)
             else:
                 x = (j+1) * (w // nbr_slices + w_gap)
-            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
             if slicefile != slices[len(slices)-1]:
-                cmplx = cmplx + '[step%d]; ' % (j+1)
+                cmplx = cmplx + STEP_FMT % (j+1)
             j = j+1
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
@@ -290,20 +295,20 @@ class ImageFile(media.MediaFile):
         slice_width = max(w // nbr_slices, 16)
         slices = self.slice_vertical(nbr_slices)
         tmpbg = get_rectangle(background_color, slice_width * len(slices), h + h_jitter)
-        filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
+        filelist = util.build_ffmpeg_file_list(slices) + INPUT_FILE_FMT % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
         step = 0
         n_slices = len(slices)
-        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (n_slices, step)
+        cmplx = cmplx + OVERLAY_0_FMT % (n_slices, step)
         first_slice = slices.pop(0)
 
         for j in range(n_slices):
             x = (j+1) * slice_width
             y = random.randint(1, h_jitter)
-            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
             if j < n_slices-1:
-                cmplx = cmplx + '[step%d]; ' % (j+1)
+                cmplx = cmplx + STEP_FMT % (j+1)
             j = j+1
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
@@ -316,20 +321,20 @@ class ImageFile(media.MediaFile):
         slice_height = max(h // nbr_slices, 16)
         slices = self.slice_horizontal(nbr_slices)
         tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * len(slices))
-        filelist = util.build_ffmpeg_file_list(slices) + ' -i "%s"' % tmpbg
+        filelist = util.build_ffmpeg_file_list(slices) + INPUT_FILE_FMT % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
         step = 0
         n_slices = len(slices)
-        cmplx = cmplx + "[%d][pip0]overlay=0:0[step%d]; " % (n_slices, step)
+        cmplx = cmplx + OVERLAY_0_FMT % (n_slices, step)
         first_slice = slices.pop(0)
 
         for j in range(n_slices):
             x = random.randint(1, w_jitter)
             y = (j+1) * slice_height
-            cmplx = cmplx + "[step%d][pip%d]overlay=%d:%d" % (j, j+1, x, y)
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
             if j < n_slices-1:
-                cmplx = cmplx + '[step%d]; ' % (j+1)
+                cmplx = cmplx + STEP_FMT % (j+1)
             j = j+1
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
@@ -347,7 +352,7 @@ def rescale(image_file, width, height, out_file = None):
     util.logger.debug("Rescaling %s to %d x %d into %s", image_file, width, height, out_file)
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
     out_file = util.automatic_output_file_name(out_file, image_file, "scale-%dx%d" % (width, height))
-    util.run_ffmpeg('-i "%s" -vf scale=%d:%d "%s"' % (image_file, width, height, out_file))
+    util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (image_file, width, height, out_file))
     return out_file
 
 def get_rectangle(color, w, h):
@@ -387,7 +392,7 @@ def stack(file1, file2, direction, out_file = None):
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
-    util.run_ffmpeg('-i "%s" -i "%s" -filter_complex %s "%s"' % (tmpfile1, tmpfile2, filter_name, out_file))
+    util.run_ffmpeg((INPUT_FILE_FMT + INPUT_FILE_FMT + '-filter_complex %s "%s"') % (tmpfile1, tmpfile2, filter_name, out_file))
     if tmpfile1 is not file1:
         util.delete_files(tmpfile1)
     if tmpfile2 is not file2:
@@ -454,7 +459,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     cmplx = cmplx + __build_poster_fcomplex(rows, cols, gap, min_w, min_h, len(files))
 
     posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
-    util.run_ffmpeg('-i "%s" %s -filter_complex "%s" "%s"' % (tmpbg, file_list, cmplx, posterfile))
+    util.run_ffmpeg((INPUT_FILE_FMT + ' %s -filter_complex "%s" "%s"') % (tmpbg, file_list, cmplx, posterfile))
     util.logger.info("Generated %s", posterfile)
     util.delete_files(tmpbg)
     return posterfile

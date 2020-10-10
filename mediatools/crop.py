@@ -46,7 +46,7 @@ def main():
     for key in ['inputfile', 'outputfile', 'box', 'left', 'top', 'center']:
         kwargs.pop(key, None)
 
-    outputfile = video.VideoFile(args.inputfile).crop(int(width), int(height), int(args.top), int(args.left), \
+    outputfile = video.VideoFile(args.inputfile).crop(int(width), int(height), top, left, \
         args.outputfile, **kwargs)
     util.logger.info('Generated %s', outputfile)
 

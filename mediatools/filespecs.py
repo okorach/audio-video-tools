@@ -11,6 +11,8 @@ import mediatools.mediafile as media
 import mediatools.imagefile as img
 import mediatools.options as opt
 
+STD_FMT = "%-20s : %s"
+
 
 def main():
     parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extractor')
@@ -38,8 +40,6 @@ def main():
             filelist.extend(util.image_filelist(args.inputfile))
     else:
         filelist = [ args.inputfile ]
-
-    is_first = True
 
     VIDEO_PROPS = ['filename', 'filesize', 'type', \
         opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, opt.media.DURATION, \
@@ -94,15 +94,15 @@ def main():
                             divider = UNITS[prop][0]
                             unit = UNITS[prop][1]
                             if unit == 'hms':
-                                print("%-20s : %s" % (prop, util.to_hms_str(specs[prop])))
+                                print(STD_FMT % (prop, util.to_hms_str(specs[prop])))
                             else:
                                 print("%-20s : %.1f %s" % (prop, (int(specs[prop])/divider), unit))
                         else:
-                            print("%-20s : %s" % (prop, str(specs[prop]) if specs[prop] is not None else ''))
+                            print(STD_FMT % (prop, str(specs[prop]) if specs[prop] is not None else ''))
                     except KeyError:
-                        print("%-20s : %s" % (prop, ""))
+                        print(STD_FMT % (prop, ""))
                     except TypeError:
-                        print("%-20s : %s" % (prop, "Wrong type"))
+                        print(STD_FMT % (prop, "Wrong type"))
                 else:
                     # CSV format
                     try:
@@ -113,7 +113,7 @@ def main():
                         print("%s;" % '', end='')
             print("")
         except media.FileTypeError as e:
-            print ('ERROR: File %s type error' % file)
+            print ('ERROR: File %s type error %s' % (file, str(e)))
 
 
 if __name__ == "__main__":
