@@ -64,6 +64,7 @@ setuptools.setup(
             'image-stack = mediatools.stack:main',
             'video-mux = mediatools.mux:main',
             'video-concat = mediatools.concat:main',
+            'video-crop = mediatools.crop:main',
             'video-stabilize = mediatools.deshake:main'
         ]
     },
