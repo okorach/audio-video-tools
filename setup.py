@@ -55,7 +55,7 @@ setuptools.setup(
     ],
     entry_points={
         'console_scripts': [
-            'media-encode = mediatools.encode:main',
+            'video-encode = mediatools.encode:main',
             'media-specs = mediatools.filespecs:main',
             'image-poster = mediatools.poster:main',
             'image-blinds = mediatools.blindy:main',
