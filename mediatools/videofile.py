@@ -239,13 +239,13 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def cut(self, start, stop, out_file = None, **kwargs):
+    def cut(self, start, stop, fade=None, out_file=None, **kwargs):
         if out_file is None:
             out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
         media_opts = self.get_properties()
-        kwargs['start'] = start
-        kwargs['stop'] = stop
+        media_opts[opt.media.START] = start
+        media_opts[opt.media.STOP] = stop
 
         video_filters = []
         if 'fade' in kwargs and kwargs['fade'] is not None:
