@@ -15,10 +15,11 @@ def main():
     parser = video.add_video_args(parser)
     kwargs = vars(parser.parse_args())
     util.check_environment(kwargs)
+    #util.set_logger('video-cut')
     start = kwargs.pop('start', None)
     stop = kwargs.pop('stop', None)
     ifile = kwargs.pop('inputfile')
-    outputfile = video.VideoFile(ifile).cut(start=start, stop=stop, fade=2, **kwargs)
+    outputfile = video.VideoFile(ifile).cut(start=start, stop=stop)
     util.logger.info('Generated file %s', outputfile)
 
 
