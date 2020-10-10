@@ -17,14 +17,18 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-rm -rf build dist
-python3 setup.py bdist_wheel
+del build/*
+del dist/*
+
+python setup.py sdist bdist_wheel
 
 :: Deploy locally for tests
-python3 -m pip uninstall media-tools
-echo "y" | python3 -m pip install dist/*-py3-*.whl
+python -m pip uninstall media-tools
+for %%a in (dist\*.whl) do (
+    echo "y" | python -m pip install %%a
+)
 
 :: Deploy on pypi.org once released
 if "%1"=="pypi" (
-    python3 -m twine upload dist/*
+    python -m twine upload dist/*
 )

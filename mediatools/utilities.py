@@ -38,13 +38,22 @@ OPTIONS_VERBATIM = ['ss', 'to']
 config_props = os.path.realpath(__file__).split(os.path.sep)
 config_props.pop()
 config_props.pop()
-config_props.append("VideoTools.properties")
+config_props.append("media-tools.properties")
 DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
-
 logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
+
+def set_logger(name):
+    global logger
+    logger = logging.getLogger(name)
+    new_fh = logging.FileHandler(name + '.log')
+    new_ch = logging.StreamHandler()
+    logger.addHandler(new_fh)
+    logger.addHandler(new_ch)
+    new_fh.setFormatter(formatter)
+    new_ch.setFormatter(formatter)
 
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
@@ -188,20 +197,9 @@ def build_ffmpeg_complex_prep(file_list):
 
 def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
-    global PROPERTIES_FILE
-    global DEFAULT_PROPERTIES_FILE
+    import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
-    if props_file is None:
-        props_file = DEFAULT_PROPERTIES_FILE
-    if props_file == PROPERTIES_FILE and PROPERTIES_VALUES != {}:
-        return PROPERTIES_VALUES
-    PROPERTIES_FILE = props_file
-    try:
-        with open(props_file) as fp:
-            PROPERTIES_VALUES = jprops.load_properties(fp)
-    except FileNotFoundError:
-        PROPERTIES_VALUES['binaries.ffmpeg'] = 'ffmpeg'
-        PROPERTIES_VALUES['binaries.ffprobe'] = 'ffprobe'
+    PROPERTIES_VALUES = mediaconf.load()
     return PROPERTIES_VALUES
 
 def get_conf_property(prop):
