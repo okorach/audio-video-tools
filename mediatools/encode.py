@@ -85,6 +85,7 @@ def encode_dir(args, options):
 
 def main():
     parser = util.parse_common_args('Audio and Video file (re)encoder')
+    util.set_logger('video-encode')
     parser = video.add_video_args(parser)
 
     myargs = parser.parse_args()
