@@ -40,7 +40,7 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     package_data={
-        "mediatools": ["LICENSE"]
+        "mediatools": ["LICENSE", "media-tools.properties"]
     },
     install_requires=[
         'argparse',

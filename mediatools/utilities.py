@@ -38,7 +38,7 @@ OPTIONS_VERBATIM = ['ss', 'to']
 config_props = os.path.realpath(__file__).split(os.path.sep)
 config_props.pop()
 config_props.pop()
-config_props.append("VideoTools.properties")
+config_props.append("media-tools.properties")
 DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
 
 logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
