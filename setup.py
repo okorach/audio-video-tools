@@ -1,5 +1,5 @@
 #
-# sonar-tools
+# media-tools
 # Copyright (C) 2019-2020 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
@@ -65,6 +65,7 @@ setuptools.setup(
             'video-mux = mediatools.mux:main',
             'video-concat = mediatools.concat:main',
             'video-crop = mediatools.crop:main',
+            'video-cut = mediatools.cut:main',
             'video-stabilize = mediatools.deshake:main'
         ]
     },
