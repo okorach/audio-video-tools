@@ -242,22 +242,25 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def cut(self, start, stop, out_file = None, **kwargs):
+    def cut(self, start, stop, fade=None, out_file=None):
         if out_file is None:
-            out_file = util.automatic_output_file_name(out_file, self.filename, "cut_%s-to-%s" % (start, stop))
+            out_file = util.automatic_output_file_name(
+                out_file, self.filename,
+                "cut_%s_to_%s" % (start.replace(':','-'), stop.replace(':','-')))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
-        media_opts = self.get_properties()
-        kwargs['start'] = start
-        kwargs['stop'] = stop
-
+        # media_opts = self.get_properties()
+        media_opts = {
+            opt.media.START: start,
+            opt.media.STOP: stop,
+            opt.media.VCODEC: 'copy',
+            opt.media.ACODEC: 'copy'
+        }
         video_filters = []
-        if 'fade' in kwargs and kwargs['fade'] is not None:
-            fade_d = int(kwargs['fade'])
+        if fade is not None:
             fmt = "fade=type={0}:duration={1}:start_time={2}"
-            fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
+            fader = fmt.format('in', fade, util.to_seconds(start)) + "," + fmt.format('out', fade, util.to_seconds(stop) - fade)
             video_filters.append(fader)
-
-        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, opt.media2ffmpeg(media_opts),
+        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(media_opts),
                                                 media.build_video_filters_options(video_filters), out_file))
 
         return out_file
