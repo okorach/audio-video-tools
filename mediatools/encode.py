@@ -29,7 +29,10 @@ def encode_file(args, options):
         w = int(specs[opt.media.WIDTH])
         h = int(specs[opt.media.HEIGHT])
         new_w = int(args.width)
-        new_h = (int(h * new_w / w) // 8) * 8
+        if args.vheight is not None:
+            new_h = int(args.vheight)
+        else:
+            new_h = (int(h * new_w / w) // 8) * 8
         options[opt.media.SIZE] = "%dx%d" % (new_w, new_h)
     if args.timeranges is None:
         file_object.encode(args.outputfile, args.profile, **options)
