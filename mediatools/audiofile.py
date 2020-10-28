@@ -110,6 +110,7 @@ class AudioFile(media.MediaFile):
         media_opts = self.get_properties()
         util.logger.debug("Input file settings = %s", str(media_opts))
         media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
+        media_opts.update({opt.media.FORMAT: util.get_conf_property(profile + '.format')})
         util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
         media_opts.update(kwargs)
         util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
