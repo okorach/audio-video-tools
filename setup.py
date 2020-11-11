@@ -66,7 +66,8 @@ setuptools.setup(
             'video-concat = mediatools.concat:main',
             'video-crop = mediatools.crop:main',
             'video-cut = mediatools.cut:main',
-            'video-stabilize = mediatools.deshake:main'
+            'video-stabilize = mediatools.deshake:main',
+            'audio-album-art = mediatools.album_art:main',
         ]
     },
     python_requires='>=3.6',
