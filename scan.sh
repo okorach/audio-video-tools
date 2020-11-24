@@ -49,7 +49,6 @@ version=`cat sonarqube/utilities.py | grep SONAR_TOOLS_VERSION | cut -d "=" -f 2
 
 sonar-scanner \
   -Dsonar.projectVersion=$version \
-  -Dsonar.host.url=$SQ_URL \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
   -Dsonar.python.pylint.reportPath=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \

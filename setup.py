@@ -59,7 +59,7 @@ setuptools.setup(
             'video-encode = mediatools.encode:main',
             'media-specs = mediatools.filespecs:main',
             'image-poster = mediatools.poster:main',
-            'image-blinds = mediatools.blindy:main',
+            'image-blinds = mediatools.blindify:main',
             'image-shake = mediatools.shake:main',
             'image-scale = mediatools.rescale:main',
             'image-stack = mediatools.stack:main',
@@ -70,6 +70,7 @@ setuptools.setup(
             'video-cut = mediatools.cut:main',
             'video-stabilize = mediatools.deshake:main',
             'audio-album-art = mediatools.album_art:main',
+            'video-metadata = mediatools.metadata:main'
         ]
     },
     python_requires='>=3.6',
