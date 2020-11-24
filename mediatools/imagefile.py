@@ -4,7 +4,6 @@ import os
 import math
 import re
 import random
-import ffmpeg
 
 import mediatools.utilities as util
 import mediatools.mediafile as media
@@ -268,7 +267,7 @@ class ImageFile(media.MediaFile):
         #for slicefile in slices:
         #    cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
         #    i = i + 1
-        
+
         step = 0
         cmplx = cmplx + OVERLAY_0_FMT % (len(slices), step)
         first_slice = slices.pop(0)

@@ -46,6 +46,7 @@ setuptools.setup(
         'argparse',
         'datetime',
         'mp3_tagger',
+        'ffmpeg-python',
         'jprops'
     ],
     classifiers=[
@@ -62,6 +63,7 @@ setuptools.setup(
             'image-shake = mediatools.shake:main',
             'image-scale = mediatools.rescale:main',
             'image-stack = mediatools.stack:main',
+            'image-resize = mediatools.resize:main',
             'video-mux = mediatools.mux:main',
             'video-concat = mediatools.concat:main',
             'video-crop = mediatools.crop:main',
