@@ -8,7 +8,6 @@ import mediatools.imagefile as image
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Image cropper')
     parser = util.parse_common_args('Image cropper')
     parser.add_argument('--align', required=False, default='center', help='How to crop')
     parser.add_argument('--ratio', required=True, help='W/H ratio of picture like 2, 1.5')
