@@ -199,7 +199,7 @@ def get_media_properties(props_file = None):
     """Returns all properties found in the properties file as dictionary"""
     import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
-    PROPERTIES_VALUES = mediaconf.load()
+    PROPERTIES_VALUES = mediaconf.load()  # FIXME
     return PROPERTIES_VALUES
 
 def get_conf_property(prop):
