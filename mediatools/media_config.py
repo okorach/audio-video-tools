@@ -6,7 +6,7 @@ def load(config_file=None):
     import mediatools.utilities as util
     global CONFIG_SETTINGS
     file_to_load = config_file
-    # FIXME - Not working
+    # FIXME - Not working - That what I need to do
     if file_to_load is None:
         file_to_load = pathlib.Path(__file__).parent / 'media-tools.properties'
 
