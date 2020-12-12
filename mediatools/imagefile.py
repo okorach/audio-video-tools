@@ -347,6 +347,24 @@ class ImageFile(media.MediaFile):
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
+    def zoom_in(self, out_file=None, initial_zoom=1, final_zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom_in', extension="mp4")
+        (iw, ih) = self.get_dimensions()
+        #if (iw / ih) < (16 / 9):
+        #    h = (iw *  9) // 16
+        #    w = iw
+        #else:
+        #    w = (ih * 16 // 9)
+        #    h = ih
+        (width, height) = resolution.split("x")
+        scaling = "[0:v]scale=7680:-1,crop=7680:4320" # .format(width, width, height)
+        x = "iw/2-(iw/zoom/2)"
+        y = "ih/2-(ih/zoom/2)"
+        cmd = "-i \"{}\" -filter_complex \"{},zoompan=z='min(zoom+0.0015,{})':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} -y \"{}\"".format(
+            self.filename, scaling, final_zoom, x, y, duration, resolution, out_file)
+        util.run_ffmpeg(cmd)
+        return out_file
+
 def rescale(image_file, width, height, out_file = None):
     util.logger.debug("Rescaling %s to %d x %d into %s", image_file, width, height, out_file)
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
