@@ -360,8 +360,16 @@ class ImageFile(media.MediaFile):
         scaling = "[0:v]scale=7680:-1,crop=7680:4320" # .format(width, width, height)
         x = "iw/2-(iw/zoom/2)"
         y = "ih/2-(ih/zoom/2)"
-        cmd = "-i \"{}\" -filter_complex \"{},zoompan=z='min(zoom+0.0015,{})':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} -y \"{}\"".format(
-            self.filename, scaling, final_zoom, x, y, duration, resolution, out_file)
+        cmd = "-i \"{}\" -framerate {} -filter_complex \"{},zoompan=z='min(zoom+0.0015,{})':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} \"{}\"".format(
+            self.filename, framerate, scaling, final_zoom, x, y, duration, resolution, out_file)
+        util.run_ffmpeg(cmd)
+        return out_file
+
+    def panorama(self, out_file=None, direction="left", duration=5, framerate=50, resolution="3840x2160"):
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
+        scaling = "[0:v]scale=4992:-1,crop=iw:2160:0:(in_h-out_h)/2" # .format(width, width, height)
+        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:'min((iw-out_w)*t/{},iw-out_w)':0\" -t {} \"{}\"".format(
+            framerate, self.filename, scaling, duration, duration, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
