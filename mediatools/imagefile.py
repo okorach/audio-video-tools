@@ -371,18 +371,16 @@ class ImageFile(media.MediaFile):
         scaling = "[0:v]scale=4992:-1"
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan-' + direction, extension="mp4")
-        if (direction == 'top-to-bottom' or direction == 'bottom-to-top'):
+        if direction in ('top-to-bottom', 'bottom-to-top'):
             x_formula = "iw-ow/2"
-        elif (direction == 'right-to-left' or direction == 'top-right-to-bottom-left' or
-            direction == 'bottom-right-to-top-left'):
+        elif direction in ('right-to-left', 'top-right-to-bottom-left','bottom-right-to-top-left'):
             x_formula = "'max((iw-out_w)*({}-t)/{},0)'".format(duration, duration)
         else:
             x_formula = "'min((iw-ow)*t/{},iw-ow)'".format(duration)
 
-        if (direction == 'left-to-right' or direction == 'right-to-left'):
+        if direction in ('left-to-right', 'right-to-left'):
             y_formula = "ih-oh/2"
-        elif (direction == 'bottom-to-top' or direction == 'bottom-left-to-top-right' or
-            direction == 'bottom-right-to-top-left'):
+        elif direction in ('bottom-to-top', 'bottom-left-to-top-right', 'bottom-right-to-top-left'):
             y_formula = "'max((ih-oh)*({}-t)/{},0)'".format(duration, duration)
         else:
             y_formula = "'min((ih-oh)*t/{},ih-oh)'".format(duration)
