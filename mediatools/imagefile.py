@@ -347,21 +347,25 @@ class ImageFile(media.MediaFile):
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
-    def zoom_in(self, out_file=None, initial_zoom=1, final_zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom_in', extension="mp4")
+    def zoom(self, out_file=None, initial_zoom=1, zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom' + str(zoom), extension="mp4")
+        zoom_f = float(zoom)
         (iw, ih) = self.get_dimensions()
-        #if (iw / ih) < (16 / 9):
-        #    h = (iw *  9) // 16
-        #    w = iw
-        #else:
-        #    w = (ih * 16 // 9)
-        #    h = ih
+        util.logger.debug("Width = %d, Height = %d, ratio = %4.3f", iw, ih, iw/ih)
+        if (iw / ih) > (16 / 9):
+            scaling = "[0:v]scale=-1:3240,crop=5760:3240"
+        else:
+            scaling = "[0:v]scale=5760:-1,crop=5760:3240"
         (width, height) = resolution.split("x")
-        scaling = "[0:v]scale=7680:-1,crop=7680:4320" # .format(width, width, height)
+        step = (abs(zoom_f) - 1) / float(duration) / float(framerate)
+        if zoom_f < 0:
+            zpan_formula = "if(lte(zoom,1.0),{},max(1.001,zoom-{}))".format(-zoom_f, step)
+        else:
+            zpan_formula = "min(zoom+{},{})".format(step, zoom_f)
         x = "iw/2-(iw/zoom/2)"
         y = "ih/2-(ih/zoom/2)"
-        cmd = "-i \"{}\" -framerate {} -filter_complex \"{},zoompan=z='min(zoom+0.0015,{})':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} \"{}\"".format(
-            self.filename, framerate, scaling, final_zoom, x, y, duration, resolution, out_file)
+        cmd = "-i \"{}\" -framerate {} -filter_complex \"{},zoompan=z='{}':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} \"{}\"".format(
+            self.filename, framerate, scaling, zpan_formula, x, y, duration, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 

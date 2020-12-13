@@ -20,7 +20,8 @@ def main():
         image.ImageFile(inputfile).panorama(resolution=kwargs['framesize'], duration=kwargs['duration'],
             direction=kwargs['direction'])
     else:
-        image.ImageFile(inputfile).zoom_in(final_zoom=kwargs['zoom_level'], resolution=kwargs['framesize'])
+        image.ImageFile(inputfile).zoom(resolution=kwargs['framesize'], duration=kwargs['duration'],
+            zoom=kwargs['zoom_level'])
 
 
 if __name__ == "__main__":
