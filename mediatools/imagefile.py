@@ -85,6 +85,10 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
         return [self.width, self.height]
 
+    def get_ratio(self):
+        (w, h) = self.get_dimensions()
+        return float(w)/float(h)
+
 # ET blah blah blah et bla bla bli
 # ET blah blah blah et bla bla bli
 # ET blah blah blah et bla bla bli
@@ -347,12 +351,10 @@ class ImageFile(media.MediaFile):
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
-    def zoom(self, out_file=None, initial_zoom=1, zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
+    def zoom(self, out_file=None, zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
         out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom' + str(zoom), extension="mp4")
         zoom_f = float(zoom)
-        (iw, ih) = self.get_dimensions()
-        util.logger.debug("Width = %d, Height = %d, ratio = %4.3f", iw, ih, iw/ih)
-        if (iw / ih) > (16 / 9):
+        if self.get_ratio() > (16 / 9):
             scaling = "[0:v]scale=-1:3240,crop=5760:3240"
         else:
             scaling = "[0:v]scale=5760:-1,crop=5760:3240"
