@@ -378,14 +378,14 @@ class ImageFile(media.MediaFile):
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan-' + direction, extension="mp4")
         if direction in ('top-to-bottom', 'bottom-to-top'):
-            x_formula = "iw-ow/2"
+            x_formula = "(iw-ow)/2"
         elif direction in ('right-to-left', 'top-right-to-bottom-left','bottom-right-to-top-left'):
             x_formula = "'max((iw-out_w)*({0}-t)/{0},0)'".format(duration)
         else:
             x_formula = "'min((iw-ow)*t/{},iw-ow)'".format(duration)
 
         if direction in ('left-to-right', 'right-to-left'):
-            y_formula = "ih-oh/2"
+            y_formula = "(ih-oh)/2"
         elif direction in ('bottom-to-top', 'bottom-left-to-top-right', 'bottom-right-to-top-left'):
             y_formula = "'max((ih-oh)*({0}-t)/{0},0)'".format(duration)
         else:
