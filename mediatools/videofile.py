@@ -623,7 +623,8 @@ def build_slideshow(video_files):
         nb_files, (duration-transition_duration)*nb_files+transition_duration)
     inputs += '-i "{}" -filter_complex '.format(video_files[0])
 
-    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] -s {} slideshow.mp4".format(nb_files))
+    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] -s {} slideshow.mp4".format(
+        nb_files, size))
     return "slideshow.mp4"
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
