@@ -6,12 +6,14 @@ from __future__ import print_function
 import sys
 import re
 import os
+import random
 import json
 import shutil
 import ffmpeg
 import jprops
 import mediatools.utilities as util
 import mediatools.mediafile as media
+import mediatools.imagefile as image
 import mediatools.options as opt
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
@@ -596,3 +598,58 @@ def __get_audio_channel_mapping__(**kwargs):
         for channel in kwargs['achannels'].split(','):
             mapping += " -map 0:a:{0}".format(channel)
     return mapping
+
+
+def build_slideshow(video_files):
+    duration = 5
+    transition_duration = 0.5
+    inputs = ''
+    size = "3840x2160"
+    fade_in = "fade=t=in:st=0:d={}:alpha=1".format(transition_duration)
+    fade_out = "fade=t=out:st={}:d={}:alpha=1".format(duration-transition_duration, duration)
+    nb_files = len(video_files)
+    faders = ''
+    for i in range(nb_files):
+        f = video_files[i]
+        inputs += '-i "{}" '.format(f)
+        if i == 0:
+            overlays = '[over][va0]overlay[over1]'
+        else:
+            overlays += ';[over{0}][va{0}]overlay[over{1}]'.format(i, i+1)
+        pts = "PTS-STARTPTS+{}/TB".format(i*(duration-transition_duration))
+        faders += "[{0}:v]format=pix_fmts=yuva420p,{1},{2},setpts={3}[va{0}];".format(i, fade_in, fade_out, pts)
+
+    scaling = "[{}:v]trim=duration={}[over];".format(
+        nb_files, (duration-transition_duration)*nb_files+transition_duration)
+    inputs += '-i "{}" -filter_complex '.format(video_files[0])
+
+    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] -s {} slideshow.mp4".format(nb_files))
+    return "slideshow.mp4"
+
+#            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
+#[0:v]format=pix_fmts=yuva420p,fade=t=out:st=4:d=1:alpha=1,setpts=PTS-STARTPTS[va0];\
+#[1:v]format=pix_fmts=yuva420p,fade=t=in:st=0:d=1:alpha=1,setpts=PTS-STARTPTS+4/TB[va1];\
+#[2:v]scale=960x720,trim=duration=9[over];\
+#[over][va0]overlay[over1];\
+#[over1][va1]overlay=format=yuv420[outv]" \
+#-vcodec libx264 -map [outv] out.mp4
+
+def slideshow(image_files):
+
+    directions = [ 'left-to-right', 'right-to-left', 'top-to-bottom', 'bottom-to-top',
+        'top-right-to-bottom-left', 'top-left-to-bottom-right', 'bottom-right-to-top-left', 'bottom-left-to-top-right']
+    dir_len = len(directions)
+
+    video_files = []
+    for imgfile in image_files:
+        if random.randint(0, 2) >= 1:
+            video_files.append(
+                image.ImageFile(imgfile).panorama(
+                    resolution="3840x2160", duration=5, direction=directions[random.randint(0, dir_len-1)]))
+        else:
+            zoom = 1.3
+            if random.randint(0,1) == 0:
+                zoom = -zoom
+            video_files.append(
+                image.ImageFile(imgfile).zoom(resolution="3840x2160", duration=5, zoom=zoom))
+    return build_slideshow(video_files)

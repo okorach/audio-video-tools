@@ -71,6 +71,7 @@ setuptools.setup(
             'video-stabilize = mediatools.deshake:main',
             'audio-album-art = mediatools.album_art:main',
             'image-to-video = mediatools.image2video:main',
+            'video-slideshow = mediatools.slideshow:main',
             'video-metadata = mediatools.metadata:main'
         ]
     },
