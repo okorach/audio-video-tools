@@ -368,8 +368,12 @@ class ImageFile(media.MediaFile):
     def panorama(self, out_file=None, direction="left", duration=5, framerate=50, resolution="3840x2160"):
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
         scaling = "[0:v]scale=4992:-1,crop=iw:2160:0:(in_h-out_h)/2" # .format(width, width, height)
-        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:'min((iw-out_w)*t/{},iw-out_w)':0\" -t {} \"{}\"".format(
-            framerate, self.filename, scaling, duration, duration, out_file)
+        if direction == 'right':
+            x_formula = "'max((iw-out_w)*({}-t)/{},0)'".format(duration, duration)
+        else:
+            x_formula = "'min((iw-out_w)*t/{},iw-out_w)'".format(duration)
+        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:0\" -t {} \"{}\"".format(
+            framerate, self.filename, scaling, x_formula, duration, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
