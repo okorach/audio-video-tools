@@ -7,7 +7,7 @@ import mediatools.videofile as video
 
 
 def main():
-    util.set_logger('video-encode')
+    util.set_logger('video-slideshow')
     util.set_debug_level(5)
     sys.argv.pop(0)
     output = video.slideshow(sys.argv)
