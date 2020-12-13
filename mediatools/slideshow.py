@@ -1,7 +1,6 @@
 #!/usr/local/bin/python3
 
 import sys
-import random
 import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.videofile as video
