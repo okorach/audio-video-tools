@@ -25,7 +25,7 @@ nytprof.out
 *.mp4
 *.log
 .scannerwork/
-test/pip_test.sh
+test/
 build/
 .idea/
 dist/
