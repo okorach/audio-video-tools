@@ -635,22 +635,50 @@ def build_slideshow(video_files):
 #[over1][va1]overlay=format=yuv420[outv]" \
 #-vcodec libx264 -map [outv] out.mp4
 
+
+
+def get_random_pan_effect():
+    xstart = 0
+    xstop = 0
+    r = random.randint(0, 4)
+    if r == 0:
+        (ystart, ystop) = (0.1, 0.9)
+    elif r == 1:
+        (ystart, ystop) = (0.9, 0.1)
+    else:
+        (ystart, ystop) = (0.5, 0.5)
+    r = random.randint(0, 4)
+    if r == 0 and ystart != 0.5:
+        (xstart, xstop) = (0.5, 0.5)
+    elif r in (1, 2):
+        (xstart, xstop) = (0.9, 0.1)
+    else:
+        (xstart, xstop) = (0.1, 0.9)
+
+    return (xstart, xstop, ystart, ystop)
+
+def get_random_zoom(zmin = 100, zmax = 150):
+    rand1 = zmin + 10 * random.randint(0, 2)
+    rand2 = zmax - 10 * random.randint(0, 2)
+    if random.randint(0, 1) == 0:
+        return (rand1, rand2)
+    else:
+        return (rand2, rand1)
+
+# out_file = kwargs.get('out_file', None)
+# xstart = kwargs.get('xstart', 0)
+# xend = kwargs.get('xend', 1)
+# ystart = kwargs.get('xstart', 0)
+# yend = kwargs.get('xend', 1)
+# framerate = kwargs.get('framerate', 50)
+# duration = kwargs.get('duration', 5)
+# resolution = kwargs.get('resolution', '3840x2160')
+
 def slideshow(image_files):
-
-    directions = [ 'left-to-right', 'right-to-left', 'top-to-bottom', 'bottom-to-top',
-        'top-right-to-bottom-left', 'top-left-to-bottom-right', 'bottom-right-to-top-left', 'bottom-left-to-top-right']
-    dir_len = len(directions)
-
     video_files = []
     for imgfile in image_files:
-        if random.randint(0, 2) >= 1:
-            video_files.append(
-                image.ImageFile(imgfile).panorama(
-                    resolution="3840x2160", duration=5, direction=directions[random.randint(0, dir_len-1)]))
+        if random.randint(0, 1) >= 1:
+            video_files.append(image.ImageFile(imgfile).panorama(effect=get_random_pan_effect()))
         else:
-            zoom = 1.3
-            if random.randint(0,1) == 0:
-                zoom = -zoom
-            video_files.append(
-                image.ImageFile(imgfile).zoom(resolution="3840x2160", duration=5, zoom=zoom))
+            video_files.append(image.ImageFile(imgfile).zoom(zoom=get_random_zoom()))
     return build_slideshow(video_files)
