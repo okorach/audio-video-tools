@@ -658,12 +658,16 @@ def get_random_pan_effect():
     return (xstart, xstop, ystart, ystop)
 
 def get_random_zoom(zmin = 100, zmax = 150):
-    rand1 = zmin + 10 * random.randint(0, 2)
-    rand2 = zmax - 10 * random.randint(0, 2)
+    rmin = zmin + 10 * random.randint(0, 2)
+    rmax = zmax - 10 * random.randint(0, 2)
+    if rmax - rmin < 20:
+        rmin -= 10
+        rmax += 10
+
     if random.randint(0, 1) == 0:
-        return (rand1, rand2)
+        return (rmin, rmax)
     else:
-        return (rand2, rand1)
+        return (rmax, rmin)
 
 # out_file = kwargs.get('out_file', None)
 # xstart = kwargs.get('xstart', 0)
