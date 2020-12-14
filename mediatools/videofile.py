@@ -637,7 +637,7 @@ def build_slideshow(video_files):
 
 
 
-def get_random_pan_effect():
+def __get_random_panorama__():
     xstart = 0
     xstop = 0
     r = random.randint(0, 4)
@@ -657,7 +657,7 @@ def get_random_pan_effect():
 
     return (xstart, xstop, ystart, ystop)
 
-def get_random_zoom(zmin = 100, zmax = 150):
+def __get_random_zoom__(zmin = 100, zmax = 150):
     rmin = zmin + 10 * random.randint(0, 2)
     rmax = zmax - 10 * random.randint(0, 2)
     if rmax - rmin < 20:
@@ -666,23 +666,14 @@ def get_random_zoom(zmin = 100, zmax = 150):
 
     if random.randint(0, 1) == 0:
         return (rmin, rmax)
-    else:
-        return (rmax, rmin)
+    return (rmax, rmin)
 
-# out_file = kwargs.get('out_file', None)
-# xstart = kwargs.get('xstart', 0)
-# xend = kwargs.get('xend', 1)
-# ystart = kwargs.get('xstart', 0)
-# yend = kwargs.get('xend', 1)
-# framerate = kwargs.get('framerate', 50)
-# duration = kwargs.get('duration', 5)
-# resolution = kwargs.get('resolution', '3840x2160')
 
 def slideshow(image_files):
     video_files = []
     for imgfile in image_files:
         if random.randint(0, 1) >= 1:
-            video_files.append(image.ImageFile(imgfile).panorama(effect=get_random_pan_effect()))
+            video_files.append(image.ImageFile(imgfile).panorama(effect=__get_random_panorama__()))
         else:
-            video_files.append(image.ImageFile(imgfile).zoom(zoom=get_random_zoom()))
+            video_files.append(image.ImageFile(imgfile).zoom(zoom=__get_random_zoom__()))
     return build_slideshow(video_files)
