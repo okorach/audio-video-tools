@@ -635,22 +635,45 @@ def build_slideshow(video_files):
 #[over1][va1]overlay=format=yuv420[outv]" \
 #-vcodec libx264 -map [outv] out.mp4
 
+
+
+def __get_random_panorama__():
+    xstart = 0
+    xstop = 0
+    r = random.randint(0, 4)
+    if r == 0:
+        (ystart, ystop) = (0.1, 0.9)
+    elif r == 1:
+        (ystart, ystop) = (0.9, 0.1)
+    else:
+        (ystart, ystop) = (0.5, 0.5)
+    r = random.randint(0, 4)
+    if r == 0 and ystart != 0.5:
+        (xstart, xstop) = (0.5, 0.5)
+    elif r in (1, 2):
+        (xstart, xstop) = (0.9, 0.1)
+    else:
+        (xstart, xstop) = (0.1, 0.9)
+
+    return (xstart, xstop, ystart, ystop)
+
+def __get_random_zoom__(zmin = 100, zmax = 150):
+    rmin = zmin + 10 * random.randint(0, 2)
+    rmax = zmax - 10 * random.randint(0, 2)
+    if rmax - rmin < 20:
+        rmin -= 10
+        rmax += 10
+
+    if random.randint(0, 1) == 0:
+        return (rmin, rmax)
+    return (rmax, rmin)
+
+
 def slideshow(image_files):
-
-    directions = [ 'left-to-right', 'right-to-left', 'top-to-bottom', 'bottom-to-top',
-        'top-right-to-bottom-left', 'top-left-to-bottom-right', 'bottom-right-to-top-left', 'bottom-left-to-top-right']
-    dir_len = len(directions)
-
     video_files = []
     for imgfile in image_files:
-        if random.randint(0, 2) >= 1:
-            video_files.append(
-                image.ImageFile(imgfile).panorama(
-                    resolution="3840x2160", duration=5, direction=directions[random.randint(0, dir_len-1)]))
+        if random.randint(0, 1) >= 1:
+            video_files.append(image.ImageFile(imgfile).panorama(effect=__get_random_panorama__()))
         else:
-            zoom = 1.3
-            if random.randint(0,1) == 0:
-                zoom = -zoom
-            video_files.append(
-                image.ImageFile(imgfile).zoom(resolution="3840x2160", duration=5, zoom=zoom))
+            video_files.append(image.ImageFile(imgfile).zoom(zoom=__get_random_zoom__()))
     return build_slideshow(video_files)

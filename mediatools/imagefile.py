@@ -351,46 +351,48 @@ class ImageFile(media.MediaFile):
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
-    def zoom(self, out_file=None, zoom=1.3, duration=5, framerate=50, resolution="3840x2160"):
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom' + str(zoom), extension="mp4")
-        zoom_f = float(zoom)
+    def zoom(self, **kwargs):
+        (zstart, zstop) = kwargs.get('zoom', (100, 130))
+        zstart = max(zstart, 100)
+        zstop = max(zstop, 100)
+        framerate = kwargs.get('framerate', 50)
+        duration = kwargs.get('duration', 5)
+        resolution = kwargs.get('resolution', '3840x2160')
+        out_file = kwargs.get('out_file', None)
+        out_file = util.automatic_output_file_name(out_file, self.filename,
+            'zoom-{}-{}'.format(zstart, zstop), extension="mp4")
+        util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
+
         if self.get_ratio() > (16 / 9):
             scaling = "[0:v]scale=-1:3240,crop=5760:3240"
         else:
             scaling = "[0:v]scale=5760:-1,crop=5760:3240"
-        (width, height) = resolution.split("x")
-        step = (abs(zoom_f) - 1) / float(duration) / float(framerate)
-        if zoom_f < 0:
-            zpan_formula = "if(lte(zoom,1.0),{},max(1.001,zoom-{}))".format(-zoom_f, step)
+
+        step = abs(zstop - zstart) / 100 / float(duration) / float(framerate)
+        if zstop < zstart:
+            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart/100, zstop/100, step)
         else:
-            zpan_formula = "min(zoom+{},{})".format(step, zoom_f)
+            zformula = "min(zoom+{},{})".format(step, zstop/100)
         x = "iw/2-(iw/zoom/2)"
         y = "ih/2-(ih/zoom/2)"
         cmd = "-i \"{}\" -framerate {} -filter_complex \"{},zoompan=z='{}':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} \"{}\"".format(
-            self.filename, framerate, scaling, zpan_formula, x, y, duration, resolution, out_file)
+            self.filename, framerate, scaling, zformula, x, y, duration, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
-    def panorama(self, out_file=None, direction="left-to-right", duration=5, framerate=50, resolution="3840x2160"):
-
+    def panorama(self, **kwargs):
+        out_file = kwargs.get('out_file', None)
+        (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
+        framerate = kwargs.get('framerate', 50)
+        duration = kwargs.get('duration', 5)
+        resolution = kwargs.get('resolution', '3840x2160')
+        util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
          # .format(width, width, height)
         scaling = "[0:v]scale=4992:-1"
 
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'pan-' + direction, extension="mp4")
-        if direction in ('top-to-bottom', 'bottom-to-top'):
-            x_formula = "(iw-ow)/2"
-        elif direction in ('right-to-left', 'top-right-to-bottom-left','bottom-right-to-top-left'):
-            x_formula = "'max((iw-out_w)*({0}-t)/{0},0)'".format(duration)
-        else:
-            x_formula = "'min((iw-ow)*t/{},iw-ow)'".format(duration)
-
-        if direction in ('left-to-right', 'right-to-left'):
-            y_formula = "(ih-oh)/2"
-        elif direction in ('bottom-to-top', 'bottom-left-to-top-right', 'bottom-right-to-top-left'):
-            y_formula = "'max((ih-oh)*({0}-t)/{0},0)'".format(duration)
-        else:
-            y_formula = "'min((ih-oh)*t/{},ih-oh)'".format(duration)
-
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
+        x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
+        y_formula = "'(ih-oh)*({0}+({1}-{0})*t/{2})'".format(ystart, ystop, duration)
 
         cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} -s {} \"{}\"".format(
             framerate, self.filename, scaling, x_formula, y_formula, duration, resolution, out_file)
