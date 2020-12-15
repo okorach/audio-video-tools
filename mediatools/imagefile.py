@@ -403,7 +403,7 @@ class ImageFile(media.MediaFile):
 def rescale(image_file, width, height, out_file = None):
     util.logger.debug("Rescaling %s to %d x %d into %s", image_file, width, height, out_file)
     # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
-    out_file = util.automatic_output_file_name(out_file, image_file, "scale-%dx%d" % (width, height))
+    out_file = util.automatic_output_file_name(out_file, image_file, "scale-{}x{}".format(width, height))
     util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (image_file, width, height, out_file))
     return out_file
 
