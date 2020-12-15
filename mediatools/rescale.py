@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     util.check_environment(vars(args))
     width, height = args.scale.split("x")
-    outputfile = image.rescale(args.inputfile, int(width), int(height), args.outputfile)
+    outputfile = image.ImageFile(args.inputfile).scale(int(width), int(height), args.outputfile)
 
     print('Generated', outputfile)
 
