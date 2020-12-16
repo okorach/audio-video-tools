@@ -78,12 +78,16 @@ class ImageFile(media.MediaFile):
         self.get_specs()
         if self.width is None or self.height is None:
             stream = self.__get_stream_by_codec__('codec_name', 'mjpeg')
+            if stream is None:
+                stream = self.__get_stream_by_codec__('codec_name', 'png')
+            if stream is None:
+                stream = self.__get_stream_by_codec__('codec_name', 'gif')
             self.width = self.find_width_from_stream(stream)
             self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
-        return [self.width, self.height]
+        return (self.width, self.height)
 
     def get_ratio(self):
         (w, h) = self.get_dimensions()
