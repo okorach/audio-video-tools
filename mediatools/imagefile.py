@@ -52,7 +52,7 @@ class ImageFile(media.MediaFile):
             for tag in [ 'width', 'codec_width', 'coded_width']:
                 if tag in stream:
                     util.logger.debug('Tag %s found', tag)
-                    self.width = stream[tag]
+                    self.width = int(stream[tag])
                     break
         util.logger.debug('Returning image width %d', self.width)
         return self.width
@@ -62,7 +62,7 @@ class ImageFile(media.MediaFile):
             for tag in [ 'height', 'codec_height', 'coded_height']:
                 if tag in stream:
                     util.logger.debug('Tag %s found', tag)
-                    self.height = stream[tag]
+                    self.height = int(stream[tag])
                     break
         util.logger.debug('Returning image height %d', self.height)
         return self.height
@@ -367,10 +367,13 @@ class ImageFile(media.MediaFile):
             'zoom-{}-{}'.format(zstart, zstop), extension="mp4")
         util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
 
+        (xres, yres) = resolution.split("x")
+        (ixres, iyres) = (int(xres), int(xres))
+
         if self.get_ratio() > (16 / 9):
-            scaling = "[0:v]scale=-1:3240,crop=5760:3240"
+            scaling = "[0:v]scale=-1:{1},crop={0}:{1}".format((ixres * 3) // 2, (iyres * 3) // 2)
         else:
-            scaling = "[0:v]scale=5760:-1,crop=5760:3240"
+            scaling = "[0:v]scale={0}:-1,crop={0}:{1}".format((ixres * 3) // 2, (iyres * 3) // 2)
 
         step = abs(zstop - zstart) / 100 / float(duration) / float(framerate)
         if zstop < zstart:
@@ -390,35 +393,45 @@ class ImageFile(media.MediaFile):
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
+
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
          # .format(width, width, height)
-        scaling = "[0:v]scale=4992:-1"
+
+        (xres, yres) = resolution.split("x")
+        (ixres, iyres) = (int(xres), int(xres))
+        self.get_dimensions()
+        if self.width > self.height:
+            scaling = "[0:v]scale={}:-1".format((ixres * 3) // 2)
+        else:
+            scaling = "[0:v]scale=-1:{}".format((iyres * 3) // 2)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
         x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
         y_formula = "'(ih-oh)*({0}+({1}-{0})*t/{2})'".format(ystart, ystop, duration)
 
-        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} -s {} \"{}\"".format(
-            framerate, self.filename, scaling, x_formula, y_formula, duration, resolution, out_file)
+        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop={}:{}:{}:{}\" -t {} -s {} \"{}\"".format(
+            framerate, self.filename, scaling, xres, yres, x_formula, y_formula, duration, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
-    def scale(self, w, h, scale_method="keepratio", out_file=None):
-        final_ratio = w / h
+    def scale(self, w, h, scale_method="keep-ratio", out_file=None):
         (iw, ih) = self.get_dimensions()
+        if ih > iw and scale_method == "keep-ratio":
+            w, h = h, w
+        final_ratio = w / h
         x = w
         y = h
         if scale_method == 'stretch':
             pass
-        elif iw / ih > final_ratio:
-            y = -1
-            h = ih * iw / w
-        else:
+        elif (iw / ih) > final_ratio:
             x = -1
-            w = iw * ih / h
+            w = (iw * h + (ih // 2)) // ih
+        else:
+            y = -1
+            h = (ih * w + (iw // 2)) // iw
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
-        util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
+        util.logger.info("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
 
         util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (self.filename, x, y, out_file))
         return out_file
