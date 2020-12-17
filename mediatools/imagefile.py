@@ -78,12 +78,16 @@ class ImageFile(media.MediaFile):
         self.get_specs()
         if self.width is None or self.height is None:
             stream = self.__get_stream_by_codec__('codec_name', 'mjpeg')
+            if stream is None:
+                stream = self.__get_stream_by_codec__('codec_name', 'png')
+            if stream is None:
+                stream = self.__get_stream_by_codec__('codec_name', 'gif')
             self.width = self.find_width_from_stream(stream)
             self.height = self.find_height_from_stream(stream)
         if self.width is not None and self.height is not None:
             self.pixels = self.width * self.height
         util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
-        return [self.width, self.height]
+        return (self.width, self.height)
 
     def get_ratio(self):
         (w, h) = self.get_dimensions()
@@ -399,19 +403,30 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
+    def scale(self, w, h, scale_method="keepratio", out_file=None):
+        final_ratio = w / h
+        (iw, ih) = self.get_dimensions()
+        x = w
+        y = h
+        if scale_method == 'stretch':
+            pass
+        elif iw / ih > final_ratio:
+            y = -1
+            h = ih * iw / w
+        else:
+            x = -1
+            w = iw * ih / h
 
-def rescale(image_file, width, height, out_file = None):
-    util.logger.debug("Rescaling %s to %d x %d into %s", image_file, width, height, out_file)
-    # ffmpeg -i input.jpg -vf scale=320:240 output_320x240.png
-    out_file = util.automatic_output_file_name(out_file, image_file, "scale-%dx%d" % (width, height))
-    util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (image_file, width, height, out_file))
-    return out_file
+        out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
+        util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
+
+        util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (self.filename, x, y, out_file))
+        return out_file
+
 
 def get_rectangle(color, w, h):
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
-    tmpbg = "bg.tmp.jpg"
-    rescale(bgfile, w, h, tmpbg)
-    return tmpbg
+    return ImageFile(bgfile).scale(w, h, out_file="bg.tmp.jpg")
 
 def stack(file1, file2, direction, out_file = None):
     util.logger.debug("stack(%s, %s, %s, _)", file1, file2, direction)
@@ -429,18 +444,18 @@ def stack(file1, file2, direction, out_file = None):
         filter_name = 'hstack'
         if h1 > h2:
             new_w2 = w2 * h1 // h2
-            tmpfile2 = rescale(file2, new_w2, h1)
+            tmpfile2 = ImageFile(file2).scale(new_w2, h1)
         elif h2 > h1:
             new_w1 = w1 * h2 // h1
-            tmpfile1 = rescale(file1, new_w1, h2)
+            tmpfile1 = ImageFile(file1).scale(new_w1, h2)
     else:
         filter_name = 'vstack'
         if w1 > w2:
             new_h2 = h2 * w1 // w2
-            tmpfile2 = rescale(file2, w1, new_h2)
+            tmpfile2 = ImageFile(file2).scale(w1, new_h2)
         elif w2 > w1:
             new_h1 = h1 * w2 // w1
-            tmpfile1 = rescale(file1, w2, new_h1)
+            tmpfile1 = ImageFile(file1).scale(w2, new_h1)
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
@@ -503,7 +518,7 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
                       min_w, min_h, gap, cols, rows, full_w, full_h)
     bgfile = "white-square.jpg" if background_color == "white" else "black-square.jpg"
     tmpbg = "bg.tmp.jpg"
-    rescale(bgfile, full_w, full_h, tmpbg)
+    ImageFile(bgfile).scale(full_w, full_h, tmpbg)
 
     file_list = util.build_ffmpeg_file_list(files)
 
