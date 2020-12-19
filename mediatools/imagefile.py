@@ -363,6 +363,7 @@ class ImageFile(media.MediaFile):
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
         out_file = kwargs.get('out_file', None)
+        util.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename,
             'zoom-{}-{}'.format(zstart, zstop), extension="mp4")
         util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
@@ -390,6 +391,9 @@ class ImageFile(media.MediaFile):
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
+        # hw_accel = kwargs.get('hw_accel', True)
+        hw_accel = False
+
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         (x, y) = self.get_dimensions()
         upscaling = int(max(1.5, x / y) * 3840) + 64
@@ -399,12 +403,18 @@ class ImageFile(media.MediaFile):
         x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
         y_formula = "'(ih-oh)*({0}+({1}-{0})*t/{2})'".format(ystart, ystop, duration)
 
-        cmd = "-framerate {} -loop 1 -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} -s {} \"{}\"".format(
-            framerate, self.filename, scaling, x_formula, y_formula, duration, resolution, out_file)
+        inputs = ''
+        vcodec = ''
+        if hw_accel:
+            inputs += ' -hwaccel cuvid -c:v h264_cuvid'
+            vcodec = '-c:v h264_nvenc'
+        
+        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} {} -s {} \"{}\"".format(
+            framerate, inputs, self.filename, scaling, x_formula, y_formula, duration, vcodec, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
-    def to_video(self, with_effect=True, resolution="3840x2160"):
+    def to_video(self, with_effect=True, resolution="3840x2160", hw_accel=True):
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
 
@@ -413,7 +423,7 @@ class ImageFile(media.MediaFile):
             r = random.randint(0, 1)
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
-            return self.panorama(effect=(0.5, 0.5, r, 1 - r), resolution=resolution)
+            return self.panorama(effect=(0.5, 0.5, r, 1 - r), resolution=resolution, hw_accel=hw_accel)
         elif w / h >= (16 / 9 + 0.00001):
             r = random.randint(0, 1)
             # Allow up to 20% crop if image ratio < 9 / 16
@@ -421,11 +431,11 @@ class ImageFile(media.MediaFile):
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift), resolution=resolution)
-        elif random.randint(0, 1) >= 1:
-            return self.panorama(effect=__get_random_panorama__(), resolution=resolution)
+            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift), resolution=resolution, hw_accel=hw_accel)
+        elif random.randint(0, 2) >= 2:
+            return self.panorama(effect=__get_random_panorama__(), resolution=resolution, hw_accel=hw_accel)
         else:
-            return self.zoom(zoom=__get_random_zoom__(), resolution=resolution)
+            return self.zoom(zoom=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
 
     def scale(self, w, h, scale_method="keepratio", out_file=None):
         final_ratio = w / h

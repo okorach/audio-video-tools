@@ -600,14 +600,19 @@ def __get_audio_channel_mapping__(**kwargs):
     return mapping
 
 
-def build_slideshow(video_files, resolution="3840x2160"):
+def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
     duration = 5
     transition_duration = 0.5
-    inputs = ''
     fade_in = "fade=t=in:st=0:d={}:alpha=1".format(transition_duration)
     fade_out = "fade=t=out:st={}:d={}:alpha=1".format(duration-transition_duration, duration)
     nb_files = len(video_files)
     faders = ''
+    inputs = ''
+    vcodec = ''
+    hw_accel = False
+    if hw_accel:
+        inputs += ' -hwaccel cuvid -c:v h264_cuvid '
+        vcodec = '-c:v h264_nvenc'
     for i in range(nb_files):
         f = video_files[i]
         inputs += '-i "{}" '.format(f)
@@ -620,10 +625,13 @@ def build_slideshow(video_files, resolution="3840x2160"):
 
     scaling = "[{}:v]trim=duration={}[over];".format(
         nb_files, (duration-transition_duration)*nb_files+transition_duration)
-    inputs += '-i "{}" -filter_complex '.format(video_files[0])
+    
 
-    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] -s {} slideshow.mp4".format(
-        nb_files, resolution))
+
+    inputs += ' -i "{}" -filter_complex '.format(video_files[0])
+
+    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] {} -s {} slideshow.mp4".format(
+        nb_files, vcodec, resolution))
     return "slideshow.mp4"
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
