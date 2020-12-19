@@ -394,6 +394,19 @@ class VideoFile(media.MediaFile):
     def get_copyright(self):
         return self.copyright
 
+    def reverse(self, out_file=None, with_audio=False, **kwargs):
+        (w, _) = self.get_dimensions()
+        if w >= 1920:
+            profile = "1080p"
+        elif w >= 1280:
+            profile = "720p"
+        else:
+            profile = "540p"
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'reverse', extension="mp4")
+        kwargs.pop('hw_accel', None)
+        return self.encode(out_file, profile, reverse=True, audio_reverse=False, **kwargs)
+
+
     def encode(self, target_file, profile, **kwargs):
         '''Encodes a file
         - target_file is the name of the output file. Optional
@@ -406,6 +419,7 @@ class VideoFile(media.MediaFile):
 
         media_opts = {}
         video_filters = []
+        audio_filters = []
         media_opts = self.get_properties()
         util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
         media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
@@ -435,15 +449,27 @@ class VideoFile(media.MediaFile):
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
+        video_filters.append(self.__get_reverse_filter__(**kwargs))
+        audio_filters.append(self.__get_reverse_audio_filter__(**kwargs))
         video_filters.append(self.__get_fader_filter__(**kwargs))
 
         util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (media_opts['input_params'], self.filename, util.dict2str(ffopts), \
-                        media.build_video_filters_options(video_filters), mapping, target_file))
+                        media.build_video_filters_options(video_filters, audio_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
 
     #------------------ Private methods ------------------------------------------
 
+
+    def __get_reverse_filter__(self, **kwargs):
+        if kwargs.get('reverse', False):
+            return 'reverse'
+        return None
+
+    def __get_reverse_audio_filter__(self, **kwargs):
+        if kwargs.get('audio_reverse', False):
+            return 'areverse'
+        return None
 
     def __get_fader_filter__(self, **kwargs):
         if 'fade' in kwargs and kwargs['fade'] is not None:
@@ -453,7 +479,6 @@ class VideoFile(media.MediaFile):
             fmt = "fade=type={0}:duration={1}:start_time={2}"
             return fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop-fade_d)
         return None
-
 
     def __get_number_of_audio_tracks(self):
         n = 0

@@ -229,9 +229,12 @@ def build_ffmpeg_options(options):
     return cmd
 
 
-def build_video_filters_options(filters):
+def build_video_filters_options(vfilters, afilters=[]):
     cmd = ''
-    for f in filters:
+    for f in vfilters:
         if f is not None:
-            cmd += '-vf "%s" ' % f
+            cmd += '-vf "{}" '.format(f)
+    for f in afilters:
+        if f is not None:
+            cmd += '-af "{}" '.format(f)
     return cmd.strip()
