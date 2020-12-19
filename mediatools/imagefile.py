@@ -391,8 +391,9 @@ class ImageFile(media.MediaFile):
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-         # .format(width, width, height)
-        scaling = "[0:v]scale=4992:-1"
+        (x, y) = self.get_dimensions()
+        upscaling = int(max(1.5, x / y) * 3840) + 64
+        scaling = "[0:v]scale={}:-1".format(upscaling)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
         x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
@@ -402,6 +403,29 @@ class ImageFile(media.MediaFile):
             framerate, self.filename, scaling, x_formula, y_formula, duration, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
+
+    def to_video(self, with_effect=True):
+        if not with_effect:
+            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5))
+
+        (w, h) = self.get_dimensions()
+        if w / h <= (3 / 4 + 0.00001):
+            r = random.randint(0, 1)
+            offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
+            r = r + offset if r == 0 else r - offset
+            return self.panorama(effect=(0.5, 0.5, r, 1 - r))
+        elif w / h >= (16 / 9 + 0.00001):
+            r = random.randint(0, 1)
+            # Allow up to 20% crop if image ratio < 9 / 16
+            offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
+            r = r + offset if r == 0 else r - offset
+            # Allow up to 10% vertical drift
+            drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
+            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift))
+        elif random.randint(0, 1) >= 1:
+            return self.panorama(effect=__get_random_panorama__())
+        else:
+            return self.zoom(zoom=__get_random_zoom__())
 
     def scale(self, w, h, scale_method="keepratio", out_file=None):
         final_ratio = w / h
@@ -548,3 +572,35 @@ def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images = 10000):
                 cmplx += "[step%d]" % i_photo
 
     return cmplx
+
+
+def __get_random_panorama__():
+    xstart = 0
+    xstop = 0
+    r = random.randint(0, 4)
+    if r == 0:
+        (ystart, ystop) = (0.1, 0.9)
+    elif r == 1:
+        (ystart, ystop) = (0.9, 0.1)
+    else:
+        (ystart, ystop) = (0.5, 0.5)
+    r = random.randint(0, 4)
+    if r == 0 and ystart != 0.5:
+        (xstart, xstop) = (0.5, 0.5)
+    elif r in (1, 2):
+        (xstart, xstop) = (0.9, 0.1)
+    else:
+        (xstart, xstop) = (0.1, 0.9)
+
+    return (xstart, xstop, ystart, ystop)
+
+def __get_random_zoom__(zmin = 100, zmax = 150):
+    rmin = zmin + 10 * random.randint(0, 2)
+    rmax = zmax - 10 * random.randint(0, 2)
+    if rmax - rmin < 20:
+        rmin -= 10
+        rmax += 10
+
+    if random.randint(0, 1) == 0:
+        return (rmin, rmax)
+    return (rmax, rmin)
