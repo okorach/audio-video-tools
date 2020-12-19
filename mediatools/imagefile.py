@@ -403,6 +403,21 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
+    def to_video(self, with_effect=True):
+        if not with_effect:
+            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5))
+
+        (w, h) = self.get_dimensions()
+        if w / h <= (3 / 4 + 0.00001):
+            r = random.randint(0, 1)
+            offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
+            r = r + offset if r == 0 else r - offset
+            return self.panorama(effect=(0.5, 0.5, r, 1 - r))
+        elif random.randint(0, 1) >= 1:
+            return self.panorama(effect=__get_random_panorama__())
+        else:
+            return self.zoom(zoom=__get_random_zoom__())
+
     def scale(self, w, h, scale_method="keepratio", out_file=None):
         final_ratio = w / h
         (iw, ih) = self.get_dimensions()
@@ -548,3 +563,35 @@ def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images = 10000):
                 cmplx += "[step%d]" % i_photo
 
     return cmplx
+
+
+def __get_random_panorama__():
+    xstart = 0
+    xstop = 0
+    r = random.randint(0, 4)
+    if r == 0:
+        (ystart, ystop) = (0.1, 0.9)
+    elif r == 1:
+        (ystart, ystop) = (0.9, 0.1)
+    else:
+        (ystart, ystop) = (0.5, 0.5)
+    r = random.randint(0, 4)
+    if r == 0 and ystart != 0.5:
+        (xstart, xstop) = (0.5, 0.5)
+    elif r in (1, 2):
+        (xstart, xstop) = (0.9, 0.1)
+    else:
+        (xstart, xstop) = (0.1, 0.9)
+
+    return (xstart, xstop, ystart, ystop)
+
+def __get_random_zoom__(zmin = 100, zmax = 150):
+    rmin = zmin + 10 * random.randint(0, 2)
+    rmax = zmax - 10 * random.randint(0, 2)
+    if rmax - rmin < 20:
+        rmin -= 10
+        rmax += 10
+
+    if random.randint(0, 1) == 0:
+        return (rmin, rmax)
+    return (rmax, rmin)
