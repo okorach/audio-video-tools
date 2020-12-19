@@ -600,11 +600,10 @@ def __get_audio_channel_mapping__(**kwargs):
     return mapping
 
 
-def build_slideshow(video_files):
+def build_slideshow(video_files, resolution="3840x2160"):
     duration = 5
     transition_duration = 0.5
     inputs = ''
-    size = "3840x2160"
     fade_in = "fade=t=in:st=0:d={}:alpha=1".format(transition_duration)
     fade_out = "fade=t=out:st={}:d={}:alpha=1".format(duration-transition_duration, duration)
     nb_files = len(video_files)
@@ -624,7 +623,7 @@ def build_slideshow(video_files):
     inputs += '-i "{}" -filter_complex '.format(video_files[0])
 
     util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] -s {} slideshow.mp4".format(
-        nb_files, size))
+        nb_files, resolution))
     return "slideshow.mp4"
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
@@ -636,8 +635,8 @@ def build_slideshow(video_files):
 #-vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(image_files):
+def slideshow(image_files, resolution="1920x1080"):
     video_files = []
     for imgfile in image_files:
-        video_files.append(image.ImageFile(imgfile).to_video(with_effect=True))
-    return build_slideshow(video_files)
+        video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
+    return build_slideshow(video_files, resolution=resolution)
