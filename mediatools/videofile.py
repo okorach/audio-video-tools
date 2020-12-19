@@ -639,4 +639,4 @@ def slideshow(image_files, resolution="1920x1080"):
     video_files = []
     for imgfile in image_files:
         video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
-    return build_slideshow(video_files)
+    return build_slideshow(video_files, resolution=resolution)
