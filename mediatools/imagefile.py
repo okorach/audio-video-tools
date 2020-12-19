@@ -413,6 +413,15 @@ class ImageFile(media.MediaFile):
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
             return self.panorama(effect=(0.5, 0.5, r, 1 - r))
+        elif w / h >= (16 / 9 + 0.00001):
+            r = random.randint(0, 1)
+            # Allow up to 20% crop if image ratio < 9 / 16
+            offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
+            r = r + offset if r == 0 else r - offset
+            # Allow up to 10% vertical drift
+            drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
+            ry = ry + offset if r == 0 else r - offset
+            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift))
         elif random.randint(0, 1) >= 1:
             return self.panorama(effect=__get_random_panorama__())
         else:
