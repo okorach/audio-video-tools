@@ -391,8 +391,9 @@ class ImageFile(media.MediaFile):
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-         # .format(width, width, height)
-        scaling = "[0:v]scale=4992:-1"
+        (x, y) = self.get_dimensions()
+        upscaling = int(max(1.5, x / y) * 3840) + 64
+        scaling = "[0:v]scale={}:-1".format(upscaling)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
         x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
