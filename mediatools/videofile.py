@@ -636,44 +636,8 @@ def build_slideshow(video_files):
 #-vcodec libx264 -map [outv] out.mp4
 
 
-
-def __get_random_panorama__():
-    xstart = 0
-    xstop = 0
-    r = random.randint(0, 4)
-    if r == 0:
-        (ystart, ystop) = (0.1, 0.9)
-    elif r == 1:
-        (ystart, ystop) = (0.9, 0.1)
-    else:
-        (ystart, ystop) = (0.5, 0.5)
-    r = random.randint(0, 4)
-    if r == 0 and ystart != 0.5:
-        (xstart, xstop) = (0.5, 0.5)
-    elif r in (1, 2):
-        (xstart, xstop) = (0.9, 0.1)
-    else:
-        (xstart, xstop) = (0.1, 0.9)
-
-    return (xstart, xstop, ystart, ystop)
-
-def __get_random_zoom__(zmin = 100, zmax = 150):
-    rmin = zmin + 10 * random.randint(0, 2)
-    rmax = zmax - 10 * random.randint(0, 2)
-    if rmax - rmin < 20:
-        rmin -= 10
-        rmax += 10
-
-    if random.randint(0, 1) == 0:
-        return (rmin, rmax)
-    return (rmax, rmin)
-
-
 def slideshow(image_files):
     video_files = []
     for imgfile in image_files:
-        if random.randint(0, 1) >= 1:
-            video_files.append(image.ImageFile(imgfile).panorama(effect=__get_random_panorama__()))
-        else:
-            video_files.append(image.ImageFile(imgfile).zoom(zoom=__get_random_zoom__()))
+        video_files.append(image.ImageFile(imgfile).to_video(with_effect=True))
     return build_slideshow(video_files)
