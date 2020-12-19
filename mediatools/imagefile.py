@@ -404,16 +404,16 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def to_video(self, with_effect=True):
+    def to_video(self, with_effect=True, resolution="3840x2160"):
         if not with_effect:
-            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5))
+            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
 
         (w, h) = self.get_dimensions()
         if w / h <= (3 / 4 + 0.00001):
             r = random.randint(0, 1)
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
-            return self.panorama(effect=(0.5, 0.5, r, 1 - r))
+            return self.panorama(effect=(0.5, 0.5, r, 1 - r), resolution=resolution)
         elif w / h >= (16 / 9 + 0.00001):
             r = random.randint(0, 1)
             # Allow up to 20% crop if image ratio < 9 / 16
@@ -421,11 +421,11 @@ class ImageFile(media.MediaFile):
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift))
+            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift), resolution=resolution)
         elif random.randint(0, 1) >= 1:
-            return self.panorama(effect=__get_random_panorama__())
+            return self.panorama(effect=__get_random_panorama__(), resolution=resolution)
         else:
-            return self.zoom(zoom=__get_random_zoom__())
+            return self.zoom(zoom=__get_random_zoom__(), resolution=resolution)
 
     def scale(self, w, h, scale_method="keepratio", out_file=None):
         final_ratio = w / h
