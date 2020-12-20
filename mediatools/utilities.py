@@ -97,16 +97,19 @@ def subdir_list(root_dir):
 
 def get_file_extension(filename):
     """Returns a file extension"""
-    return re.sub(r'^.*\.', '', filename)
+    return filename.split('.').pop()
 
 def strip_file_extension(filename):
     """Removes the file extension and returns the string"""
-    return re.sub(r'\.[^.]+$', '', filename)
+    s = filename.split('.')
+    s.pop()
+    return '.'.join(s)
 
 def match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
+    ext = '.' + get_file_extension(file)
     p = re.compile(regex, re.IGNORECASE)
-    return not re.search(p, file) is None
+    return not re.search(p, ext) is None
 
 def add_postfix(file, postfix, extension = None):
     """Adds a postfix to a file before the file extension"""
@@ -465,3 +468,13 @@ def dict2str(options):
         cmd += fmt
     logger.debug("cmd options = %s", cmd)
     return cmd
+
+
+def find_key(hashlist, keylist):
+    for key in keylist:
+        if key not in hashlist:
+            continue
+        return hashlist[key]
+
+    logger.warning("No key %s found in %s", str(keylist), str(hashlist))
+    return None
