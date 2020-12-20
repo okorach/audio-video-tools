@@ -41,9 +41,9 @@ class Resolution:
         elif 'resolution' in kwargs:
             r = kwargs['resolution']
             if re.search('x', r):
-                (w, h) = kwargs['resolution'].split('x', maxsplit=2)
-            elif re.search('x', r):
-                (w, h) = kwargs['resolution'].split(':', maxsplit=2)
+                (w, h) = r.split('x', maxsplit=2)
+            elif re.search(':', r):
+                (w, h) = r.split(':', maxsplit=2)
         self.width = int(w)
         self.height = int(h)
         self.ratio = self.width / self.height
@@ -63,6 +63,11 @@ class Resolution:
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
+    def __str__(self):
+        return "{}x{}".format(self.width, self.height)
+
+    def to_string(self, separator="x"):
+        return "{}{}{}".format(self.width, separator, self.height)
 
 class MediaFile:
     '''Media file abstraction
