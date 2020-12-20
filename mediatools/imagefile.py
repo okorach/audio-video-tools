@@ -40,10 +40,11 @@ class ImageFile(media.MediaFile):
             return
         super(ImageFile, self).probe()
         stream = self.__get_stream_by_codec__('codec_name', ImageFile.SUPPORTED_IMG_CODECS)
+        self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
-        self.format = util.find_key(stream, ('codec_name'))
         self.pixels = self.width * self.height
+        util.logger.debug("Image = %s", str(vars(self)))
 
     def get_dimensions(self):
         return (self.width, self.height)
@@ -314,12 +315,12 @@ class ImageFile(media.MediaFile):
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         
-        if (self.width / self.height) > 1.2 * v_res.ratio:
+        if self.get_ratio() > 1.2 * v_res.ratio:
             upscaling = 3840
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
-            cropfilter = "crop={}:{}".format(int(self.width * upscaling * 16 / 9), int(self.height * upscaling))
-
+            cropfilter = "crop={}:{}".format(int(upscaling * v_res.ratio / self.get_ratio()), int(upscaling / self.get_ratio()))
+            # Compute left/right bound to allow video to move only +/-2% per second of video
             bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
 
             if xstart < ystart:
@@ -341,7 +342,7 @@ class ImageFile(media.MediaFile):
             vcodec = '-c:v h264_nvenc'
         
         cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}:{}:{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, scaling, cropfilter, x_formula, y_formula, duration, vcodec, v_res, out_file)
+            framerate, inputs, self.filename, scaling, cropfilter, x_formula, y_formula, duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
