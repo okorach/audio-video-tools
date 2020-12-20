@@ -40,7 +40,6 @@ class VideoFile(media.MediaFile):
         self.audio_codec = None
         self.audio_language = None
         self.audio_sample_rate = None
-        self.stream = None
         super(VideoFile, self).__init__(filename)
         self.get_specs()
 
@@ -199,7 +198,7 @@ class VideoFile(media.MediaFile):
     def get_video_properties(self):
         if self.video_codec is None:
             self.get_specs()
-        return {'file_size':self.size, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate, \
+        return {'file_size':self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate, \
         opt.media.VCODEC: self.video_codec, opt.media.FPS:self.video_fps, \
         'width':self.width, 'height': self.height, opt.media.ASPECT: self.aspect, \
         'pixel_aspect_ratio': self.pixel_aspect,'author': self.author, \
@@ -213,9 +212,6 @@ class VideoFile(media.MediaFile):
         all_props.update(self.get_video_properties())
         util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
         return all_props
-
-    def scale(self, scale):
-        self.stream = ffmpeg.filter_(self.stream, 'scale', size=scale)
 
     def crop(self, width, height, top, left, out_file, **kwargs):
         ''' Applies crop video filter for width x height pixels '''

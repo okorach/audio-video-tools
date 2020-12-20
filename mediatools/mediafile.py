@@ -10,8 +10,64 @@ import ffmpeg
 import mediatools.utilities as util
 import mediatools.options as opt
 
+
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
+
+
+class Resolution:
+    RES_8K = "7680x4320"
+    RES_4K = "3840x2160"
+    RES_1080P = "1920x1080"
+    RES_720P = "1280x720"
+    RES_HD = RES_1080P
+    RES_540P = "960x540"
+    RES_400P = "720x400"
+    RES_360P = "640x360"
+    RES_VGA = "640x480"
+    RES_XGA = "1024x768"
+
+    RATIO_16_9 = 16 / 9
+    RATIO_15_10 = 15 / 10
+    RATIO_4_3 = 4 / 3
+
+    def __init__(self, **kwargs):
+        self.width = 0
+        self.height = 0
+        self.ratio = None
+        if 'width' in kwargs and 'height' in kwargs:
+            w = kwargs['width']
+            h = kwargs['height']
+        elif 'resolution' in kwargs:
+            r = kwargs['resolution']
+            if re.search('x', r):
+                (w, h) = r.split('x', maxsplit=2)
+            elif re.search(':', r):
+                (w, h) = r.split(':', maxsplit=2)
+        self.width = int(w)
+        self.height = int(h)
+        self.ratio = self.width / self.height
+
+    def w(self):
+        return self.width
+
+    def x(self):
+        return self.width
+
+    def h(self):
+        return self.height
+
+    def y(self):
+        return self.height
+    
+    def is_ratio(self, ratio):
+        return abs(ratio - self.ratio) < 0.02
+
+    def __str__(self):
+        return "{}x{}".format(self.width, self.height)
+
+    def to_string(self, separator="x"):
+        return "{}{}{}".format(self.width, separator, self.height)
 
 class MediaFile:
     '''Media file abstraction
@@ -19,6 +75,7 @@ class MediaFile:
     - A video file
     - An audio file
     - An image file'''
+
     def __init__(self, filename):
         if not util.is_media_file(filename):
             raise FileTypeError('File %s is neither video, audio nor image file' % filename)
@@ -26,35 +83,18 @@ class MediaFile:
         self.filename = filename
         self.specs = None
         self.author = None
-        self.year =  None
+        self.year = None
         self.copyright = None
         self.format = None
         self.format_long = None
         self.nb_streams = None
-        self.size = None
+        self.filesize = None
+        self.title = None
         self.bitrate = None
-        self.duration = None
+        self.date_created = None
+        self.date_modified = None
+        self.comment = None
         self.probe()
-
-    def get_filename(self):
-        '''Returns file name'''
-        return self.filename
-
-    def get_author(self):
-        '''Returns file author'''
-        return self.author
-
-    def get_filetype(self):
-        '''Returns filetype'''
-        return self.type
-
-    def get_year(self):
-        '''Returns file year'''
-        return self.year
-
-    def get_copyright(self):
-        '''Returns file copyright'''
-        return self.copyright
 
     def probe(self):
         '''Returns media file general specs'''
@@ -67,7 +107,6 @@ class MediaFile:
             util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
             return None
         self.decode_specs()
-        util.logger.debug(util.json_fmt(self.specs))
         return self.specs
 
     def decode_specs(self):
@@ -83,7 +122,7 @@ class MediaFile:
 
         self.format_long = self.specs['format']['format_long_name']
         self.nb_streams = int(self.specs['format']['nb_streams'])
-        self.size = int(self.specs['format']['size'])
+        self.filesize = int(self.specs['format']['size'])
         try:
             self.bitrate = int(self.specs['format']['bit_rate'])
         except KeyError as e:
@@ -95,10 +134,10 @@ class MediaFile:
 
     def get_file_properties(self):
         '''Returns file properties as dict'''
-        self.get_file_specs()
-        return {'filename':self.filename, 'type':self.type, 'format':self.format, \
-        'nb_streams':self.nb_streams, 'filesize':self.size, 'duration': self.duration, \
-        'bitrate':self.bitrate}
+        return vars(self)
+
+    def get_file_extension(self):
+        return self.filename.split('.').pop()
 
     def __get_first_video_stream__(self):
         util.logger.debug('Searching first video stream')
@@ -110,7 +149,7 @@ class MediaFile:
 
     def __get_first_audio_stream__(self):
         util.logger.debug('Searching first audio stream')
-        return self.__get_stream_by_codec__('codec_type', 'audio')
+        return self.__get_stream_by_codec__('codec_type', ('audio'))
 
     def __get_audio_stream_attribute__(self, attr, stream = None):
         if stream is None:
@@ -128,11 +167,11 @@ class MediaFile:
         except KeyError as e:
             util.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
-    def __get_stream_by_codec__(self, field, value):
-        util.logger.debug('Searching stream for codec %s = %s', field, value)
+    def __get_stream_by_codec__(self, field, codec_list):
+        util.logger.debug('Searching stream for codec %s = %s', field, codec_list)
         for stream in self.specs['streams']:
             util.logger.debug('Found codec %s', stream[field])
-            if stream[field] == value:
+            if stream[field] in codec_list:
                 return stream
         return None
 

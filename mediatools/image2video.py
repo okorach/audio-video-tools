@@ -12,10 +12,11 @@ def main():
     parser.add_argument('--panorama', required=False, default="left", help='Type of panorama')
     parser.add_argument('--duration', required=False, default=5, help='Duration of video')
     parser.add_argument('--direction', required=False, default="left", help='Direction of the panorama')
-    kwargs = vars(parser.parse_args())
+    kwargs = util.remove_nones(vars(parser.parse_args()))
 
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
+
     if kwargs['effect'] == "panorama":
         image.ImageFile(inputfile).panorama(resolution=kwargs['framesize'], duration=kwargs['duration'],
             direction=kwargs['direction'])

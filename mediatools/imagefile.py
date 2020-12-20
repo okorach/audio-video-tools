@@ -15,22 +15,20 @@ OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
 # ET blah blah blah et bla bla bli
 class ImageFile(media.MediaFile):
+
+    SUPPORTED_IMG_CODECS = ('mjpeg', 'png', 'gif')
+
     def __init__(self, filename):
         self.width = None
         self.height = None
         self.pixels = None
-        self.title = None
-        self.author = None
-        self.year = None
-        self.date_created = None
-        self.date_modified = None
-        self.comment = None
+        self.ratio = None
+
         super(ImageFile, self).__init__(filename)
+        self.probe()
 
     def get_properties(self):
         '''Returns file media properties as a dict'''
-        self.get_specs()
-        # NOSONAR self.specs = media.get_file_specs(self.filename)
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
         util.logger.debug("Returning image props %s\nObject %s", str(all_props), str(vars(self)))
@@ -38,100 +36,24 @@ class ImageFile(media.MediaFile):
 
 # ET blah blah blah et bla bla bli
 
-    def get_specs(self):
-        '''Reads file media properties. Probes file if not yet probed'''
-        if self.specs is None:
-            self.probe()
-            self.get_image_specs()
-        return self.specs
-
-# ET blah blah blah et bla bla bli
-
-    def find_width_from_stream(self, stream):
-        if self.width is None:
-            for tag in [ 'width', 'codec_width', 'coded_width']:
-                if tag in stream:
-                    util.logger.debug('Tag %s found', tag)
-                    self.width = stream[tag]
-                    break
-        util.logger.debug('Returning image width %d', self.width)
-        return self.width
-
-    def find_height_from_stream(self, stream):
-        if self.height is None:
-            for tag in [ 'height', 'codec_height', 'coded_height']:
-                if tag in stream:
-                    util.logger.debug('Tag %s found', tag)
-                    self.height = stream[tag]
-                    break
-        util.logger.debug('Returning image height %d', self.height)
-        return self.height
-
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
+    def probe(self):
+        if self.specs is not None:
+            return
+        super(ImageFile, self).probe()
+        stream = self.__get_stream_by_codec__('codec_name', ImageFile.SUPPORTED_IMG_CODECS)
+        self.format = stream['codec_name']
+        self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
+        self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
+        self.pixels = self.width * self.height
+        self.ratio = self.width / self.height
+        util.logger.debug("Image = %s", str(vars(self)))
 
     def get_dimensions(self):
-        self.get_specs()
-        if self.width is None or self.height is None:
-            stream = self.__get_stream_by_codec__('codec_name', 'mjpeg')
-            if stream is None:
-                stream = self.__get_stream_by_codec__('codec_name', 'png')
-            if stream is None:
-                stream = self.__get_stream_by_codec__('codec_name', 'gif')
-            self.width = self.find_width_from_stream(stream)
-            self.height = self.find_height_from_stream(stream)
-        if self.width is not None and self.height is not None:
-            self.pixels = self.width * self.height
-        util.logger.debug("Returning dimensions %d x %d" , self.width, self.height)
         return (self.width, self.height)
 
     def get_ratio(self):
-        (w, h) = self.get_dimensions()
-        return float(w)/float(h)
+        return self.width / self.height
 
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
-    def get_width(self):
-        if self.width is None:
-            _, _ = self.get_dimensions()
-        util.logger.debug("Returning image Width = %d", self.width)
-        return self.width
-
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
-    def get_height(self):
-        if self.height is None:
-            _, _ = self.get_dimensions()
-        return self.height
-
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
-    def get_image_specs(self):
-        util.logger.debug("Getting image specs")
-        _, _ = self.get_dimensions()
-        for stream in self.specs['streams']:
-            if stream['codec_name'] == 'mjpeg':
-                try:
-                    util.logger.debug("Found stream %s", str(stream))
-                    self.format = stream['codec_name']
-                except KeyError as e:
-                    util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
 
 # ET blah blah blah et bla bla bli
 # ET blah blah blah et bla bla bli
@@ -140,7 +62,6 @@ class ImageFile(media.MediaFile):
 # ET blah blah blah et bla bla bli
 
     def get_image_properties(self):
-        self.get_image_specs()
         return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
 
 # ET blah blah blah et bla bla bli
@@ -390,18 +311,54 @@ class ImageFile(media.MediaFile):
         (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
-        resolution = kwargs.get('resolution', '3840x2160')
+        v_res = media.Resolution(resolution=kwargs.get('resolution', '3840x2160'))
         # hw_accel = kwargs.get('hw_accel', True)
         hw_accel = False
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-        (x, y) = self.get_dimensions()
-        upscaling = int(max(1.5, x / y) * 3840) + 64
-        scaling = "[0:v]scale={}:-1".format(upscaling)
+        
+        if self.ratio >= v_res.ratio * 1.2:
+            upscaling_y = 2160
+            upscaling_x = int(upscaling_y * self.ratio)
+        elif self.ratio >= v_res.ratio:
+            upscaling_y = int(2160 * 1.1)
+            upscaling_x = int(upscaling_y * self.ratio)
+        elif self.ratio >= v_res.ratio / 1.3:
+            upscaling_x = int(3840 * 1.5)
+            upscaling_y = int(upscaling_x / self.ratio)
+        else:
+            upscaling_x = 3840
+            upscaling_y = int(upscaling_x / self.ratio)
+        scaling = "[0:v]scale={}:{}".format(upscaling_x, upscaling_y)
+
+
+        if self.ratio > 1.2 * v_res.ratio:
+            # if img ratio > video ratio + 20%, no vertical drift
+            (ystart, ystop) = (0.5, 0.5)
+            # Compute left/right bound to allow video to move only +/-2% per second of video
+            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
+            bound = max(0, (upscaling_x - 3840 * (1 + duration * 0.02)) / 2 / upscaling_x)
+            util.logger.debug("Bound for x panorama is %5.2f", bound)
+            if xstart < xstop:
+                (xstart, xstop) = (bound, 1 - bound)
+            else:
+                (xstart, xstop) = (1 - bound, bound)
+        elif self.ratio < v_res.ratio / 1.3:
+            # if img ratio > video ratio - 20%, no horizontal drift
+            (xstart, xstop) = (0.5, 0.5)
+            # Compute left/right bound to allow video to move only +/-2% per second of video
+            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
+            bound = max(0, (upscaling_y - 2160 * (1 + duration * 0.04)) / 2 / upscaling_y)
+            util.logger.debug("Bound for x panorama is %5.2f", bound)
+            if ystart < ystop:
+                (ystart, ystop) = (bound, 1 - bound)
+            else:
+                (ystart, ystop) = (1 - bound, bound)
+        x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
+        y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
+        cropfilter = "crop={}:{}:{}:{}".format(3840, 2160, x_formula, y_formula)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
-        x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
-        y_formula = "'(ih-oh)*({0}+({1}-{0})*t/{2})'".format(ystart, ystop, duration)
 
         inputs = ''
         vcodec = ''
@@ -409,8 +366,8 @@ class ImageFile(media.MediaFile):
             inputs += ' -hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
         
-        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, scaling, x_formula, y_formula, duration, vcodec, resolution, out_file)
+        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}\" -t {} {} -s {} \"{}\"".format(
+            framerate, inputs, self.filename, scaling, cropfilter, duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -503,13 +460,13 @@ def stack(file1, file2, direction, out_file = None):
 def get_widths(files):
     values = []
     for file in files:
-        values.append(ImageFile(file).get_width())
+        values.append(ImageFile(file).width)
     return values
 
 def get_heights(files):
     values = []
     for file in files:
-        values.append(ImageFile(file).get_height())
+        values.append(ImageFile(file).height)
     return values
 
 def min_height(files):
@@ -614,3 +571,17 @@ def __get_random_zoom__(zmin = 100, zmax = 150):
     if random.randint(0, 1) == 0:
         return (rmin, rmax)
     return (rmax, rmin)
+
+def __panorama_bounds__(img_x, img_y, video_x, video_y, duration):
+    bound = 0
+    if (img_x / img_y) > 1.2 * (video_x / video_y):
+        bound = (1 - (video_x * (1 + duration * 0.02)) / img_x) / 2
+    return bound
+
+
+def __find_tag__(stream, taglist):
+    for tag in stream:
+        if tag not in taglist:
+            continue
+        return stream[tag]
+    return None
