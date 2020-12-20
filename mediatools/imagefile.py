@@ -22,6 +22,7 @@ class ImageFile(media.MediaFile):
         self.width = None
         self.height = None
         self.pixels = None
+        self.ratio = None
 
         super(ImageFile, self).__init__(filename)
         self.probe()
@@ -44,6 +45,7 @@ class ImageFile(media.MediaFile):
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
         self.pixels = self.width * self.height
+        self.ratio = self.width / self.height
         util.logger.debug("Image = %s", str(vars(self)))
 
     def get_dimensions(self):
@@ -315,25 +317,48 @@ class ImageFile(media.MediaFile):
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         
-        if self.get_ratio() > 1.2 * v_res.ratio:
-            upscaling = 3840
+        if self.ratio >= v_res.ratio * 1.2:
+            upscaling_y = 2160
+            upscaling_x = int(upscaling_y * self.ratio)
+        elif self.ratio >= v_res.ratio:
+            upscaling_y = int(2160 * 1.1)
+            upscaling_x = int(upscaling_y * self.ratio)
+        elif self.ratio >= v_res.ratio / 1.3:
+            upscaling_x = int(3840 * 1.5)
+            upscaling_y = int(upscaling_x / self.ratio)
+        else:
+            upscaling_x = 3840
+            upscaling_y = int(upscaling_x / self.ratio)
+        scaling = "[0:v]scale={}:{}".format(upscaling_x, upscaling_y)
+
+
+        if self.ratio > 1.2 * v_res.ratio:
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
-            cropfilter = "crop={}:{}".format(int(upscaling * v_res.ratio / self.get_ratio()), int(upscaling / self.get_ratio()))
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
-
-            if xstart < ystart:
-                (xstart, ystart) = (bound_x, 1 - bound_x)
+            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
+            bound = max(0, (upscaling_x - 3840 * (1 + duration * 0.02)) / 2 / upscaling_x)
+            util.logger.debug("Bound for x panorama is %5.2f", bound)
+            if xstart < xstop:
+                (xstart, xstop) = (bound, 1 - bound)
             else:
-                (xstart, ystart) = (1 - bound_x, bound_x)
-        else:
-            cropfilter = "crop={}:{}".format(3840, 2160)
-        scaling = "[0:v]scale={}:-1".format(upscaling)
+                (xstart, xstop) = (1 - bound, bound)
+        elif self.ratio < v_res.ratio / 1.3:
+            # if img ratio > video ratio - 20%, no horizontal drift
+            (xstart, xstop) = (0.5, 0.5)
+            # Compute left/right bound to allow video to move only +/-2% per second of video
+            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
+            bound = max(0, (upscaling_y - 2160 * (1 + duration * 0.04)) / 2 / upscaling_y)
+            util.logger.debug("Bound for x panorama is %5.2f", bound)
+            if ystart < ystop:
+                (ystart, ystop) = (bound, 1 - bound)
+            else:
+                (ystart, ystop) = (1 - bound, bound)
+        x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
+        y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
+        cropfilter = "crop={}:{}:{}:{}".format(3840, 2160, x_formula, y_formula)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
-        x_formula = "'(iw-ow)*({0}+({1}-{0})*t/{2})'".format(xstart, xstop, duration)
-        y_formula = "'(ih-oh)*({0}+({1}-{0})*t/{2})'".format(ystart, ystop, duration)
 
         inputs = ''
         vcodec = ''
@@ -341,8 +366,8 @@ class ImageFile(media.MediaFile):
             inputs += ' -hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
         
-        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}:{}:{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, scaling, cropfilter, x_formula, y_formula, duration, vcodec, str(v_res), out_file)
+        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}\" -t {} {} -s {} \"{}\"".format(
+            framerate, inputs, self.filename, scaling, cropfilter, duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
