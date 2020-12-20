@@ -172,9 +172,13 @@ def run_os_cmd(cmd):
         outfile = '{0}.{1}.log'.format(executable, os.getpid())
         cmd = cmd + " 1>>" + outfile + " 2>&1"
     logger.info("Running: %s", cmd)
-    os.system(cmd)
-    # TODO Check return status of the OS command
-    logger.info("Completed: %s", cmd)
+    retcode = os.system(cmd)
+    if retcode == 0:
+        logger.info("Sucessfully completed: %s", cmd)
+    else:
+        logger.critical("Error %d - cmd: %s", retcode, cmd)
+        raise OSError(retcode)
+    return retcode
 
 def run_ffmpeg(params):
     cmd = "%s -y %s" % (get_ffmpeg(), params)
