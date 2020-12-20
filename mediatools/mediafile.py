@@ -10,8 +10,59 @@ import ffmpeg
 import mediatools.utilities as util
 import mediatools.options as opt
 
+
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
+
+
+class Resolution:
+    RES_8K = "7680x4320"
+    RES_4K = "3840x2160"
+    RES_1080P = "1920x1080"
+    RES_720P = "1280x720"
+    RES_HD = RES_1080P
+    RES_540P = "960x540"
+    RES_400P = "720x400"
+    RES_360P = "640x360"
+    RES_VGA = "640x480"
+    RES_XGA = "1024x768"
+
+    RATIO_16_9 = 16 / 9
+    RATIO_15_10 = 15 / 10
+    RATIO_4_3 = 4 / 3
+
+    def __init__(self, **kwargs):
+        self.width = 0
+        self.height = 0
+        self.ratio = None
+        if 'width' in kwargs and 'height' in kwargs:
+            w = kwargs['width']
+            h = kwargs['height']
+        elif 'resolution' in kwargs:
+            r = kwargs['resolution']
+            if re.search('x', r):
+                (w, h) = kwargs['resolution'].split('x', maxsplit=2)
+            elif re.search('x', r):
+                (w, h) = kwargs['resolution'].split(':', maxsplit=2)
+        self.width = int(w)
+        self.height = int(h)
+        self.ratio = self.width / self.height
+
+    def w(self):
+        return self.width
+
+    def x(self):
+        return self.width
+
+    def h(self):
+        return self.height
+
+    def y(self):
+        return self.height
+    
+    def is_ratio(self, ratio):
+        return abs(ratio - self.ratio) < 0.02
+
 
 class MediaFile:
     '''Media file abstraction
