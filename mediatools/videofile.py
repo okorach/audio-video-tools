@@ -198,7 +198,7 @@ class VideoFile(media.MediaFile):
     def get_video_properties(self):
         if self.video_codec is None:
             self.get_specs()
-        return {'file_size':self.size, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate, \
+        return {'file_size':self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate, \
         opt.media.VCODEC: self.video_codec, opt.media.FPS:self.video_fps, \
         'width':self.width, 'height': self.height, opt.media.ASPECT: self.aspect, \
         'pixel_aspect_ratio': self.pixel_aspect,'author': self.author, \
