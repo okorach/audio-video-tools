@@ -391,12 +391,28 @@ class ImageFile(media.MediaFile):
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
         resolution = kwargs.get('resolution', '3840x2160')
+        video_x = int(resolution.split('x')[0])
+        video_y = int(resolution.split('x')[1])
         # hw_accel = kwargs.get('hw_accel', True)
         hw_accel = False
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-        (x, y) = self.get_dimensions()
-        upscaling = int(max(1.5, x / y) * 3840) + 64
+        (img_x, img_y) = self.get_dimensions()
+        
+        if (img_x / img_y) > 1.2 * (video_x / video_y):
+            upscaling = 3840
+            # if img ratio > video ratio + 20%, no vertical drift
+            (ystart, ystop) = (0.5, 0.5)
+            cropfilter = "crop={}:{}".format(int(img_y * upscaling * 16 / 9), int(img_y * upscaling))
+
+            bound_x = (1 - (video_x * (1 + duration * 0.02)) / img_x) / 2
+
+            if xstart < ystart:
+                (xstart, ystart) = (bound_x, 1 - bound_x)
+            else:
+                (xstart, ystart) = (1 - bound_x, bound_x)
+        else:
+            cropfilter = "crop={}:{}".format(3840, 2160)
         scaling = "[0:v]scale={}:-1".format(upscaling)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
@@ -409,8 +425,8 @@ class ImageFile(media.MediaFile):
             inputs += ' -hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
         
-        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},crop=3840:2160:{}:{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, scaling, x_formula, y_formula, duration, vcodec, resolution, out_file)
+        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}:{}:{}\" -t {} {} -s {} \"{}\"".format(
+            framerate, inputs, self.filename, scaling, cropfilter, x_formula, y_formula, duration, vcodec, resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -614,3 +630,9 @@ def __get_random_zoom__(zmin = 100, zmax = 150):
     if random.randint(0, 1) == 0:
         return (rmin, rmax)
     return (rmax, rmin)
+
+def __panorama_bounds__(img_x, img_y, video_x, video_y, duration):
+    bound = 0
+    if (img_x / img_y) > 1.2 * (video_x / video_y):
+        bound = (1 - (video_x * (1 + duration * 0.02)) / img_x) / 2
+    return bound
