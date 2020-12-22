@@ -646,7 +646,7 @@ def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
 
     scaling = "[{}:v]trim=duration={}[over];".format(
         nb_files, (duration-transition_duration)*nb_files+transition_duration)
-    
+
 
 
     inputs += ' -i "{}" -filter_complex '.format(video_files[0])
@@ -667,5 +667,8 @@ def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
 def slideshow(image_files, resolution="1920x1080"):
     video_files = []
     for imgfile in image_files:
-        video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
+        try:
+            video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
+        except:
+            util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
     return build_slideshow(video_files, resolution=resolution)
