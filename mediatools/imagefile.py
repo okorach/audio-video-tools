@@ -372,7 +372,7 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def to_video(self, with_effect=True, resolution="3840x2160", hw_accel=True):
-        util.logger.info("Converting %s to video", self.name)
+        util.logger.info("Converting %s to video", self.filename)
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
 
