@@ -643,7 +643,6 @@ def build_slideshow(video_files, outfile="slideshow.mp4", resolution="3840x2160"
     faders = ''
     inputs = ''
     vcodec = ''
-    hw_accel = False
     if hw_accel:
         inputs += ' -hwaccel cuvid -c:v h264_cuvid '
         vcodec = '-c:v h264_nvenc'
