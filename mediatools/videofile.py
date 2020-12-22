@@ -686,7 +686,7 @@ def slideshow(image_files, resolution="1920x1080"):
     for imgfile in image_files:
         try:
             video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
-        except:
+        except OSError:
             util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(build_slideshow(video_files, resolution=resolution,
