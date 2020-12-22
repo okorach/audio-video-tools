@@ -558,7 +558,7 @@ def get_mp3_tags(file):
     return { 'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
         'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment }
 
-def concat(target_file, file_list):
+def concat(target_file, file_list, with_audio=True):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
     util.logger.info("%s = %s", target_file, ' + '.join(file_list))
     cmd = ''
@@ -567,10 +567,23 @@ def concat(target_file, file_list):
     count = 0
     cmd += '-filter_complex "'
     for file in file_list:
-        cmd += ("[%d:v][%d:a]" % (count, count))
+        cmd += "[{}:v]".format(count)
+        if with_audio:
+            cmd += "[{}:a]".format(count)
         count += 1
-    cmd += 'concat=n=%d:v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" "%s"' % (count, target_file)
+
+    audio_patch = ''
+    audio_patch2 = ''
+    if with_audio:
+        audio_patch = 'a=1'
+        audio_patch2 = '[outa]'
+    cmd += 'concat=n={}:v=1:{}[outv]{}" -map "[outv]"'.format(count, audio_patch, audio_patch2)
+    if with_audio:
+        cmd += ' -map "[outa]"'
+
+    cmd += ' "{}"'.format(target_file)
     util.run_ffmpeg(cmd.strip())
+    return target_file
 
 def add_video_args(parser):
     """Parses options specific to video encoding scripts"""
@@ -621,7 +634,7 @@ def __get_audio_channel_mapping__(**kwargs):
     return mapping
 
 
-def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
+def build_slideshow(video_files, outfile="slideshow.mp4", resolution="3840x2160", hw_accel=False):
     duration = 5
     transition_duration = 0.5
     fade_in = "fade=t=in:st=0:d={}:alpha=1".format(transition_duration)
@@ -650,10 +663,12 @@ def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
 
 
     inputs += ' -i "{}" -filter_complex '.format(video_files[0])
+    setsar = ";[over{}]setsar=1:1[over{}]".format(nb_files, nb_files+1)
+    nb_files += 1
 
-    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + '"' + " -map [over{}] {} -s {} slideshow.mp4".format(
-        nb_files, vcodec, resolution))
-    return "slideshow.mp4"
+    util.run_ffmpeg(inputs + '"' + faders + scaling + overlays + setsar + '"' + " -map [over{}] {} -s {} {}".format(
+        nb_files, vcodec, resolution, outfile))
+    return outfile
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
 #[0:v]format=pix_fmts=yuva420p,fade=t=out:st=4:d=1:alpha=1,setpts=PTS-STARTPTS[va0];\
@@ -665,10 +680,23 @@ def build_slideshow(video_files, resolution="3840x2160", hw_accel=False):
 
 
 def slideshow(image_files, resolution="1920x1080"):
+    MAX_SLIDESHOW_AT_ONCE = 30
     video_files = []
+    all_video_files = []
+    slideshows = []
     for imgfile in image_files:
         try:
             video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
         except:
             util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
-    return build_slideshow(video_files, resolution=resolution)
+        if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
+            slideshows.append(build_slideshow(video_files, resolution=resolution,
+                outfile='slideshow.part{}.mp4'.format(len(slideshows))))
+            all_video_files.append(video_files)
+            video_files = []
+    if len(all_video_files) == 0:
+        return build_slideshow(video_files, resolution=resolution, outfile='slideshow.mp4')
+    else:
+        slideshows.append(build_slideshow(video_files, resolution=resolution,
+            outfile='slideshows.{}.mp4'.format(len(slideshows))))
+        return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)
