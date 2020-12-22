@@ -124,7 +124,7 @@ def automatic_output_file_name(outfile, infile, postfix, extension = None):
     return add_postfix(infile, postfix, extension)
 
 def __is_type_file(file, type_of_media):
-    return match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
+    return os.path.isfile(file) and match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
 
 def is_audio_file(file):
     return __is_type_file(file, MediaType.AUDIO_FILE)
