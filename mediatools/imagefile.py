@@ -316,7 +316,7 @@ class ImageFile(media.MediaFile):
         hw_accel = False
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-        
+
         if self.ratio >= v_res.ratio * 1.2:
             upscaling_y = 2160
             upscaling_x = int(upscaling_y * self.ratio)
@@ -365,13 +365,14 @@ class ImageFile(media.MediaFile):
         if hw_accel:
             inputs += ' -hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
-        
+
         cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}\" -t {} {} -s {} \"{}\"".format(
             framerate, inputs, self.filename, scaling, cropfilter, duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
     def to_video(self, with_effect=True, resolution="3840x2160", hw_accel=True):
+        util.logger.info("Converting %s to video", self.name)
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
 
