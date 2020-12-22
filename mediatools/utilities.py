@@ -151,13 +151,17 @@ def get_file_type(file):
     logger.debug("Filetype of %s is %s", file, filetype)
     return filetype
 
-def get_ffmpeg(props_file = None):
-    props = get_media_properties(props_file)
-    return os.path.realpath(props['binaries.ffmpeg'] )
+def get_ffbin(ffprop, props_file=None):
+    props = get_media_properties()
+    if not re.search(os.path.sep, props[ffprop]):
+        return props[ffprop]
+    return os.path.realpath(props[ffprop])
 
-def get_ffprobe(props_file = None):
-    props = get_media_properties(props_file)
-    return os.path.realpath(props['binaries.ffprobe'] )
+def get_ffmpeg():
+    return get_ffbin('binaries.ffmpeg')
+
+def get_ffprobe():
+    return get_ffbin('binaries.ffprobe')
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
@@ -202,11 +206,12 @@ def build_ffmpeg_complex_prep(file_list):
         s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
     return s
 
-def get_media_properties(props_file = None):
+def get_media_properties():
     """Returns all properties found in the properties file as dictionary"""
     import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
-    PROPERTIES_VALUES = mediaconf.load()
+    if not PROPERTIES_VALUES:
+        PROPERTIES_VALUES = mediaconf.load()
     return PROPERTIES_VALUES
 
 def get_conf_property(prop):
