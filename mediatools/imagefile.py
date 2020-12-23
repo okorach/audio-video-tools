@@ -7,6 +7,7 @@ import random
 
 import mediatools.utilities as util
 import mediatools.mediafile as media
+import mediatools.filters as filters
 
 INPUT_FILE_FMT =  ' -i "%s"'
 STEP_FMT = "[step%d]; "
@@ -277,11 +278,11 @@ class ImageFile(media.MediaFile):
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
     def zoom(self, **kwargs):
-        (zstart, zstop) = kwargs.get('zoom', (100, 130))
+        (zstart, zstop) = kwargs.get('effect', (100, 130))
         zstart = max(zstart, 100)
         zstop = max(zstop, 100)
-        framerate = kwargs.get('framerate', 50)
-        duration = kwargs.get('duration', 5)
+        fps = int(kwargs.get('framerate', 50))
+        duration = float(kwargs.get('duration', 5))
         resolution = kwargs.get('resolution', '3840x2160')
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
@@ -289,20 +290,23 @@ class ImageFile(media.MediaFile):
             'zoom-{}-{}'.format(zstart, zstop), extension="mp4")
         util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
 
+        vfilters = []
         if self.get_ratio() > (16 / 9):
-            scaling = "[0:v]scale=-1:3240,crop=5760:3240"
+            vfilters.append(filters.scale(-1, 3240))
         else:
-            scaling = "[0:v]scale=5760:-1,crop=5760:3240"
+            vfilters.append(filters.scale(5760, -1))
+        vfilters.append(filters.crop(5760, 3240))
 
-        step = abs(zstop - zstart) / 100 / float(duration) / float(framerate)
+        step = abs(zstop - zstart) / 100 / duration / fps
         if zstop < zstart:
             zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart/100, zstop/100, step)
         else:
             zformula = "min(zoom+{},{})".format(step, zstop/100)
-        x = "iw/2-(iw/zoom/2)"
-        y = "ih/2-(ih/zoom/2)"
-        cmd = "-i \"{}\" -framerate {} -filter_complex \"{},zoompan=z='{}':x='{}':y='{}':d=125,trim=duration={}[v]\" -map \"[v]\" -s {} \"{}\"".format(
-            self.filename, framerate, scaling, zformula, x, y, duration, resolution, out_file)
+        vfilters.append(
+            filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
+        vfilters.append(filters.trim(duration=duration))
+        cmd = "-i \"{}\" -framerate {} -filter_complex \"[0:v]{}[v]\" -map \"[v]\" -s {} \"{}\"".format(
+            self.filename, fps, ','.join(vfilters), resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -317,7 +321,7 @@ class ImageFile(media.MediaFile):
         hw_accel = False
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-
+        vfilters = []
         if self.ratio >= v_res.ratio * 1.2:
             upscaling_y = 2160
             upscaling_x = int(upscaling_y * self.ratio)
@@ -330,34 +334,29 @@ class ImageFile(media.MediaFile):
         else:
             upscaling_x = 3840
             upscaling_y = int(upscaling_x / self.ratio)
-        scaling = "[0:v]scale={}:{}".format(upscaling_x, upscaling_y)
-
+        vfilters.append(filters.scale(upscaling_x, upscaling_y))
 
         if self.ratio > 1.2 * v_res.ratio:
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
             bound = max(0, (upscaling_x - 3840 * (1 + duration * 0.02)) / 2 / upscaling_x)
-            util.logger.debug("Bound for x panorama is %5.2f", bound)
             if xstart < xstop:
                 (xstart, xstop) = (bound, 1 - bound)
             else:
                 (xstart, xstop) = (1 - bound, bound)
         elif self.ratio < v_res.ratio / 1.3:
-            # if img ratio > video ratio - 20%, no horizontal drift
+            # if img ratio > video ratio - 30%, no horizontal drift
             (xstart, xstop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            #bound_x = (1 - (v_res.width * (1 + duration * 0.02)) / self.width) / 2
             bound = max(0, (upscaling_y - 2160 * (1 + duration * 0.04)) / 2 / upscaling_y)
-            util.logger.debug("Bound for x panorama is %5.2f", bound)
             if ystart < ystop:
                 (ystart, ystop) = (bound, 1 - bound)
             else:
                 (ystart, ystop) = (1 - bound, bound)
         x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
         y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
-        cropfilter = "crop={}:{}:{}:{}".format(3840, 2160, x_formula, y_formula)
+        vfilters.append(filters.crop(3840, 2160, x_formula, y_formula))
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
 
@@ -367,8 +366,8 @@ class ImageFile(media.MediaFile):
             inputs += ' -hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
 
-        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"{},{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, scaling, cropfilter, duration, vcodec, str(v_res), out_file)
+        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"[0:v]{}\" -t {} {} -s {} \"{}\"".format(
+            framerate, inputs, self.filename, ','.join(vfilters), duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -394,7 +393,7 @@ class ImageFile(media.MediaFile):
         elif random.randint(0, 2) >= 2:
             return self.panorama(effect=__get_random_panorama__(), resolution=resolution, hw_accel=hw_accel)
         else:
-            return self.zoom(zoom=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
+            return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
 
     def scale(self, w, h, scale_method="keepratio", out_file=None):
         final_ratio = w / h

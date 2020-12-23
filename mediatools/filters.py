@@ -53,14 +53,18 @@ def format(pix_fmts):
 def fade(direction='in', start=0, duration=0.5, alpha=1):
     return "fade=t={}:st={}:d={}:alpha={}".format(direction, start, duration, alpha)
 
+
 def fade_in(start=0, duration=0.5, alpha=1):
     return fade('in', start, duration, alpha)
+
 
 def fade_out(start=0, duration=0.5, alpha=1):
     return fade('out', start, duration, alpha)
 
+
 def overlay(in_stream_1, in_stream_2, out_stream):
     return "[{}][{}]overlay[{}]".format(in_stream_1, in_stream_2, out_stream)
+
 
 def trim(duration=None, start=None, stop=None):
     if duration is None and (start is None or stop is None):
@@ -74,5 +78,19 @@ def trim(duration=None, start=None, stop=None):
         s += 'stop={}'.format(stop)
     return s
 
+
 def setpts(pts_formula):
     return "setpts={}".format(pts_formula)
+
+
+def scale(x, y):
+    return "scale={}:{}".format(x, y)
+
+
+def crop(x, y, x_formula=None, y_formula=None):
+    s = "crop={}:{}".format(x, y)
+    if x_formula is not None:
+        s += ':' + str(x_formula)
+    if y_formula is not None:
+        s += ':' + str(y_formula)
+    return s
