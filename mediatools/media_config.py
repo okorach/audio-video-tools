@@ -5,6 +5,7 @@ import jprops
 CONFIG_SETTINGS = {}
 CONFIG_FILE = '.mediatools.properties'
 
+
 def load():
     import pathlib
     import mediatools.utilities as util
@@ -20,9 +21,9 @@ def load():
     try:
         util.logger.info("Trying to load media config %s", target_file)
         fp = open(target_file)
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         util.logger.critical("Default configuration file %s is missing, aborting...", target_file)
-        raise FileNotFoundError
+        raise FileNotFoundError from e
     CONFIG_SETTINGS = jprops.load_properties(fp)
     fp.close()
     for key, value in CONFIG_SETTINGS.items():
