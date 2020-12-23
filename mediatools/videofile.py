@@ -66,7 +66,7 @@ class VideoFile(media.MediaFile):
             self.video_bitrate = get_video_bitrate(stream)
             if self.video_bitrate is None:
                 self.video_bitrate = int(self.specs['format']['bit_rate'])
-            self.duration = stream['duration']
+            self.duration = float(stream['duration'])
         except KeyError as e:
             util.logger.error("Stream %s has no key %s\n", str(stream), e.args[0])
 
@@ -131,7 +131,7 @@ class VideoFile(media.MediaFile):
 
     def get_video_duration(self, stream = None):
         if self.duration is None:
-            self.duration = self.__get_video_stream_attribute__('duration')
+            self.duration = float(self.__get_video_stream_attribute__('duration'))
         return self.duration
 
     def get_audio_codec(self):
@@ -660,7 +660,7 @@ def build_slideshow(video_files, outfile="slideshow.mp4", resolution="3840x2160"
         else:
             in_stream = 'over' + str(i)
 
-        overlays += filters.overlay(in_stream, 'va' + str(i), 'over' + str(i+1)) + ';'
+        overlays += filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i+1)) + ';'
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(f.duration-transition_duration)))
         faders += filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)) + ';'
 
