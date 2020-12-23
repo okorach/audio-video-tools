@@ -181,7 +181,7 @@ def run_os_cmd(cmd):
     logger.info("Running: %s", cmd)
     retcode = os.system(cmd)
     if retcode == 0:
-        logger.info("Sucessfully completed: %s", cmd)
+        logger.info("Successfully completed: %s", cmd)
     else:
         logger.critical("Error %d - cmd: %s", retcode, cmd)
         raise OSError(retcode)
