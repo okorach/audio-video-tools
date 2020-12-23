@@ -4,6 +4,7 @@ import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
+DEFAULT_RESOLUTION = "1280x720"
 
 def main():
     parser = util.parse_common_args('image2video')
@@ -16,12 +17,12 @@ def main():
 
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
-
+    resolution = kwargs.get('framesize', DEFAULT_RESOLUTION)
     if kwargs['effect'] == "panorama":
-        image.ImageFile(inputfile).panorama(resolution=kwargs['framesize'], duration=kwargs['duration'],
-            direction=kwargs['direction'])
+        image.ImageFile(inputfile).panorama(resolution=resolution, duration=kwargs['duration'],
+            effect=(0.2, 0.8, 0.6, 0.4))
     else:
-        image.ImageFile(inputfile).zoom(resolution=kwargs['framesize'], duration=kwargs['duration'],
+        image.ImageFile(inputfile).zoom(resolution=resolution, duration=kwargs['duration'],
             zoom=kwargs['zoom_level'])
 
 
