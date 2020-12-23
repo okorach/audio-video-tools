@@ -313,7 +313,7 @@ class ImageFile(media.MediaFile):
         duration = kwargs.get('duration', 5)
         v_res = media.Resolution(resolution=kwargs.get('resolution', '3840x2160'))
         # hw_accel = kwargs.get('hw_accel', True)
-        hw_accel = False
+        hw_accel = kwargs.get('hw_accel', False)
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
 
