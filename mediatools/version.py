@@ -18,4 +18,4 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-MEDIA_TOOLS_VERSION = '0.2.9'
+MEDIA_TOOLS_VERSION = '0.3'

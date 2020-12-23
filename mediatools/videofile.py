@@ -636,37 +636,46 @@ def __get_audio_channel_mapping__(**kwargs):
 
 
 def build_slideshow(video_files, outfile="slideshow.mp4", resolution="3840x2160", hw_accel=False):
-    duration = 5
+
     transition_duration = 0.5
     fade_in = filters.fade_in(duration=transition_duration)
-    fade_out = filters.fade_out(start=duration-transition_duration, duration=duration)
+
     pixfmt = filters.format('yuva420p')
     nb_files = len(video_files)
+    overlays = ''
     faders = ''
     inputs = ''
     vcodec = ''
     if hw_accel:
         inputs += ' -hwaccel cuvid -c:v h264_cuvid '
         vcodec = '-c:v h264_nvenc'
+    total_duration = 0
     for i in range(nb_files):
-        f = video_files[i]
-        inputs += '-i "{}" '.format(f)
+        f = VideoFile(video_files[i])
+        fade_out = filters.fade_out(start=f.duration-transition_duration, duration=f.duration)
+        total_duration += f.duration
+        inputs += '-i "{}" '.format(f.filename)
         if i == 0:
-            overlays = filters.overlay('trim', 'va0', 'over1')
+            in_stream = 'trim'
         else:
-            overlays += ';' + filters.overlay('over{}'.format(i), 'va{}'.format(i), 'over{}'.format(i+1))
-        pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(duration-transition_duration))
-        faders += filters.wrap_in_streams([pixfmt, fade_in, fade_out, pts], "{}:v".format(i), "va{}".format(i)) + ";"
+            in_stream = 'over' + str(i)
 
-    trim_f = filters.trim(duration=(duration-transition_duration)*nb_files+transition_duration)
-    trim_f = filters.wrap_in_streams(trim_f, "{}:v".format(nb_files), "trim") + ";"
+        overlays += filters.overlay(in_stream, 'va' + str(i), 'over' + str(i+1)) + ';'
+        pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(f.duration-transition_duration)))
+        faders += filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)) + ';'
 
-    nb_files += 1
+    overlays = overlays[:-1]
+    faders = faders[:-1]
+
+    # Add fake input for the trim filter
+    inputs += '-i "{}" '.format(f.filename)
+    trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
+    trim_f = filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim')
+
     setsar_f = filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final")
 
-    overall_filtercomplex = '-filter_complex "{};{};{}"'.format(faders, trim_f, overlays, setsar_f)
-    util.run_ffmpeg(inputs + overall_filtercomplex + " -map [final] {} -s {} {}".format(
-        vcodec, resolution, outfile))
+    overall_filtercomplex = '-filter_complex "{};{};{};{}"'.format(faders, trim_f, overlays, setsar_f)
+    util.run_ffmpeg(inputs + overall_filtercomplex + " -map [final] {} -s {} {}".format(vcodec, resolution, outfile))
     return outfile
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \

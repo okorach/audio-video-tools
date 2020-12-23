@@ -3,6 +3,7 @@
 import sys
 import mediatools.utilities as util
 import mediatools.videofile as video
+import mediatools.version as version
 
 DEFAULT_RESOLUTION = "1280x720"
 
@@ -23,7 +24,7 @@ def main():
             files.append(arg)
     if len(files) > 0:
         output = video.slideshow(files, resolution=resolution)
-        util.logger.info("File %s generated", output)
+        util.logger.info("slideshow v%s - File %s generated", version.MEDIA_TOOLS_VERSION, output)
     else:
         util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
 
