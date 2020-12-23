@@ -47,10 +47,19 @@ fi
 
 version=`cat mediatools/version.py | grep MEDIA_TOOLS_VERSION | cut -d "=" -f 2 | cut -d "'" -f 2`
 
+pr_branch=""
+for o in $*
+do
+  key=$(echo $o | cut -d '=' -f 1)
+  if [ "$key" == "-Dsonar.pullrequest.key" ]; then
+    pr_branch="-Dsonar.pullrequest.branch=foo"
+  fi
+done
+
 sonar-scanner \
   -Dsonar.projectVersion=$version \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
   -Dsonar.python.pylint.reportPath=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
-  -Dsonar.pullrequest.branch=foo \
+  $br \
   $*
