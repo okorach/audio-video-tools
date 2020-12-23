@@ -1,24 +1,29 @@
+import os
+import shutil
 import jprops
 
+CONFIG_SETTINGS = {}
+CONFIG_FILE = '.mediatools.properties'
 
-def load(config_file=None):
+
+def load():
     import pathlib
     import mediatools.utilities as util
-    global CONFIG_SETTINGS
-    file_to_load = config_file
-    if file_to_load is None:
-        file_to_load = pathlib.Path(__file__).parent / 'media-tools.properties'
-
+    global CONFIG_SETTINGS, CONFIG_FILE
+    target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
+    if not os.path.isfile(target_file):
+        default_file = pathlib.Path(__file__).parent / 'media-tools.properties'
+        if not os.path.isfile(default_file):
+            util.logger.critical("Default configuration file %s is missing, aborting...", default_file)
+            raise FileNotFoundError
+        shutil.copyfile(default_file, target_file)
+        util.logger.info("User configuration file %s created", target_file)
     try:
-        util.logger.info("Trying to load media config %s", file_to_load)
-        fp = open(file_to_load)
-    except FileNotFoundError:
-        if config_file is None:
-            file_to_load = pathlib.Path(__file__).parent / 'media-tools.properties'
-        else:
-            file_to_load = pathlib.Path(__file__).parent / config_file
-        util.logger.info("Loading default media config %s", config_file)
-        fp = open(file_to_load)
+        util.logger.info("Trying to load media config %s", target_file)
+        fp = open(target_file)
+    except FileNotFoundError as e:
+        util.logger.critical("Default configuration file %s is missing, aborting...", target_file)
+        raise FileNotFoundError from e
     CONFIG_SETTINGS = jprops.load_properties(fp)
     fp.close()
     for key, value in CONFIG_SETTINGS.items():

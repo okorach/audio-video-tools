@@ -52,4 +52,5 @@ sonar-scanner \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
   -Dsonar.python.pylint.reportPath=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
+  -Dsonar.pullrequest.branch=foo \
   $*
