@@ -40,7 +40,7 @@ if [ "$1" != "-nolint" ]; then
 
   echo "Running bandit"
   rm -f $banditReport
-  bandit -f json -r . >$banditReport
+  bandit -f json --skip B311 -r . >$banditReport
 else
   shift
 fi
