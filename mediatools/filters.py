@@ -76,3 +76,14 @@ def trim(duration=None, start=None, stop=None):
 
 def setpts(pts_formula):
     return "setpts={}".format(pts_formula)
+
+def scale(x, y):
+    return "scale={}:{}".format(x, y)
+
+def crop(x, y, x_formula=None, y_formula=None):
+    s = "crop={}:{}".format(x, y)
+    if x_formula is not None:
+        s += ':' + str(x_formula)
+    if y_formula is not None:
+        s += ':' + str(y_formula)
+    return s
