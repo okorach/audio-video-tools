@@ -8,7 +8,7 @@ import mediatools.version as version
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = video.DEFAULT_RESOLUTION
+    resolution = video.VideoFile.DEFAULT_RESOLUTION
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)

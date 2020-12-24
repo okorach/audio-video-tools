@@ -19,10 +19,11 @@ import mediatools.filters as filters
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
-DEFAULT_RESOLUTION = '3840x2160'
+
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
+    DEFAULT_RESOLUTION = '3840x2160'
 
     '''Video file abstraction'''
     def __init__(self, filename):
