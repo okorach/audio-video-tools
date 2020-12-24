@@ -637,7 +637,8 @@ def __get_audio_channel_mapping__(**kwargs):
 
 
 def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
-    if resolution == None:
+    util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
+    if resolution is None:
         resolution = VideoFile.DEFAULT_RESOLUTION
 
     transition_duration = 0.5
@@ -647,27 +648,26 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     nb_files = len(input_files)
 
     total_duration = 0
-    vfiles = list(map(lambda filename: VideoFile(filename), input_files))
+    vfiles = list(map(lambda f: VideoFile(f), input_files))
     cfilters = []
     for i in range(nb_files):
         f = vfiles[i]
-        fade_out = filters.fade_out(start=f.duration-transition_duration, duration=vfiles[i].duration)
+        fade_out = filters.fade_out(start=f.duration - transition_duration, duration=vfiles[i].duration)
         total_duration += f.duration
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(f.duration-transition_duration)))
         cfilters.append(filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)))
 
     # Add fake input for the trim filter
     input_files.append(input_files[0])
-    #input_files.append(input_files[0])
 
     trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
     cfilters.append(filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim'))
     for i in range(nb_files):
         in_stream = 'trim' if i == 0 else 'over' + str(i)
-        cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i+1)))
+        cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
     cfilters.append(filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final"))
 
-    inputs = ' \\\n'.join(list(map(lambda file: '-i "{}"'.format(file), input_files)))
+    inputs = ' \\\n'.join(list(map(lambda f: '-i "{}"'.format(f), input_files)))
     filtercomplex = '-filter_complex "\\\n{}"'.format('; \\\n'.join(cfilters))
     util.run_ffmpeg("{} \\\n{} \\\n{} -map [final] {} -s {} {}".format(
         filters.hw_accel_input(**kwargs), inputs, filtercomplex,
