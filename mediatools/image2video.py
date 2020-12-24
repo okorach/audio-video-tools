@@ -19,7 +19,7 @@ def main():
     resolution = kwargs.get('framesize', video.VideoFile.DEFAULT_RESOLUTION)
 
     if kwargs['effect'] == "panorama":
-        effect = list(map(lambda x : float(x), kwargs.get('panorama_effect', "0.2,0.8,0.6,0.4").split(",")))
+        effect = list(map(lambda x: float(x), kwargs.get('panorama_effect', "0.2,0.8,0.6,0.4").split(",")))
         image.ImageFile(inputfile).panorama(resolution=resolution, duration=kwargs['duration'],
             effect=effect)
     else:
