@@ -96,10 +96,12 @@ def crop(x, y, x_formula=None, y_formula=None):
         s += ':' + str(y_formula)
     return s
 
+
 def hw_accel_input(**kwargs):
     if kwargs.get('hw_accel', False):
         return '-hwaccel cuvid -c:v h264_cuvid'
     return ''
+
 
 def hw_accel_output(**kwargs):
     if kwargs.get('hw_accel', False):
