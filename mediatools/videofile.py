@@ -691,7 +691,7 @@ def slideshow(input_files, resolution="1920x1080"):
             image_files = util.filelist(input_files)
         else:
             image_files = [image_files]
-    elif len(input_files) = 1:
+    elif len(input_files) == 1:
         image_files = util.filelist(input_files[0])
     video_files = []
     all_video_files = []
