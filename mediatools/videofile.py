@@ -650,18 +650,19 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     total_duration = 0
     vfiles = list(map(lambda f: VideoFile(f), input_files))
     cfilters = []
-    for i in range(nb_files):
-        f = vfiles[i]
-        fade_out = filters.fade_out(start=f.duration - transition_duration, duration=vfiles[i].duration)
+    i = 0
+    for f in vfiles:
+        fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
         total_duration += f.duration
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(f.duration-transition_duration)))
         cfilters.append(filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)))
+        i += 1
 
     # Add fake input for the trim filter
     input_files.append(input_files[0])
-
     trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
     cfilters.append(filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim'))
+    
     for i in range(nb_files):
         in_stream = 'trim' if i == 0 else 'over' + str(i)
         cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
