@@ -5,12 +5,10 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.version as version
 
-DEFAULT_RESOLUTION = "1280x720"
-
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = DEFAULT_RESOLUTION
+    resolution = video.VideoFile.DEFAULT_RESOLUTION
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -18,8 +16,8 @@ def main():
             util.set_debug_level(sys.argv.pop(0))
         elif arg == "--resolution":
             resolution = sys.argv.pop(0)
-        elif not util.is_image_file(arg):
-            util.logger.error("File %s does not exist or is not an image file, skipped...", arg)
+        elif not util.is_image_file(arg) and not util.is_video_file(arg):
+            util.logger.error("File %s does not exist or is neither an image not a video file, skipped...", arg)
         else:
             files.append(arg)
     if len(files) > 0:

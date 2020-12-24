@@ -30,6 +30,7 @@ def in_out(filter_str, in_streams, out_streams):
 
 
 def setsar(ratio):
+    ratio = '/'.join(ratio.split(':'))
     return "setsar={}".format(ratio)
 
 
@@ -94,3 +95,15 @@ def crop(x, y, x_formula=None, y_formula=None):
     if y_formula is not None:
         s += ':' + str(y_formula)
     return s
+
+
+def hw_accel_input(**kwargs):
+    if kwargs.get('hw_accel', False):
+        return '-hwaccel cuvid -c:v h264_cuvid'
+    return ''
+
+
+def hw_accel_output(**kwargs):
+    if kwargs.get('hw_accel', False):
+        return '-c:v h264_nvenc'
+    return ''
