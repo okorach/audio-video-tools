@@ -278,9 +278,7 @@ class ImageFile(media.MediaFile):
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
     def zoom(self, **kwargs):
-        (zstart, zstop) = kwargs.get('effect', (100, 130))
-        zstart = max(zstart, 100)
-        zstop = max(zstop, 100)
+        (zstart, zstop) = list(map(lambda x: max(x, 100), kwargs.get('effect', (100, 130))))
         fps = int(kwargs.get('framerate', 50))
         duration = float(kwargs.get('duration', 5))
         resolution = kwargs.get('resolution', '3840x2160')
@@ -459,16 +457,10 @@ def stack(file1, file2, direction, out_file = None):
     return out_file
 
 def get_widths(files):
-    values = []
-    for file in files:
-        values.append(ImageFile(file).width)
-    return values
+    return list(map(lambda x: ImageFile(file).width, files))
 
 def get_heights(files):
-    values = []
-    for file in files:
-        values.append(ImageFile(file).height)
-    return values
+    return list(map(lambda x: ImageFile(file).height, files))
 
 def min_height(files):
     return min(get_heights(files))
