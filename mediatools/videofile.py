@@ -19,6 +19,7 @@ import mediatools.filters as filters
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
+DEFAULT_RESOLUTION = '3840x2160'
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
@@ -619,7 +620,7 @@ def add_video_args(parser):
     return parser
 
 def __get_aspect_ratio__(width, height, **kwargs):
-    if 'aspect' not in kwargs or kwargs['aspect'] is None:
+    if kwargs.get('aspect', None) is None:
         aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
     else:
         aw, ah = re.split(":", kwargs['aspect'])
@@ -627,55 +628,49 @@ def __get_aspect_ratio__(width, height, **kwargs):
 
 def __get_audio_channel_mapping__(**kwargs):
     # Hack for channels selection
-    mapping = ''
-    if 'achannels' in kwargs and kwargs['achannels'] is not None:
-        mapping = "-map 0:v:0"
-        for channel in kwargs['achannels'].split(','):
-            mapping += " -map 0:a:{0}".format(channel)
+    if kwargs.get('achannels', None) is None:
+        return ''
+    mapping = "-map 0:v:0"
+    mapping += ' '.join(list(map(lambda x: '-map 0:a:{}'.format(x), kwargs['achannels'].split(','))))
     return mapping
 
 
-def build_slideshow(video_files, outfile="slideshow.mp4", resolution="3840x2160", hw_accel=False):
+def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
+    if resolution == None:
+        resolution = VideoFile.DEFAULT_RESOLUTION
 
     transition_duration = 0.5
     fade_in = filters.fade_in(duration=transition_duration)
 
     pixfmt = filters.format('yuva420p')
-    nb_files = len(video_files)
-    overlays = ''
-    faders = ''
-    inputs = ''
-    vcodec = ''
-    if hw_accel:
-        inputs += ' -hwaccel cuvid -c:v h264_cuvid '
-        vcodec = '-c:v h264_nvenc'
+    nb_files = len(input_files)
+
     total_duration = 0
+    vfiles = list(map(lambda filename: VideoFile(filename), input_files))
+    cfilters = []
     for i in range(nb_files):
-        f = VideoFile(video_files[i])
-        fade_out = filters.fade_out(start=f.duration-transition_duration, duration=f.duration)
+        f = vfiles[i]
+        fade_out = filters.fade_out(start=f.duration-transition_duration, duration=vfiles[i].duration)
         total_duration += f.duration
-        inputs += '-i "{}" '.format(f.filename)
-        if i == 0:
-            in_stream = 'trim'
-        else:
-            in_stream = 'over' + str(i)
-
-        overlays += filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i+1)) + ';'
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i*(f.duration-transition_duration)))
-        faders += filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)) + ';'
-
-    overlays = overlays[:-1]
-    faders = faders[:-1]
+        cfilters.append(filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)))
 
     # Add fake input for the trim filter
-    inputs += '-i "{}" '.format(f.filename)
+    input_files.append(input_files[0])
+    #input_files.append(input_files[0])
+
     trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
-    trim_f = filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim')
+    cfilters.append(filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim'))
+    for i in range(nb_files):
+        in_stream = 'trim' if i == 0 else 'over' + str(i)
+        cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i+1)))
+    cfilters.append(filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final"))
 
-    setsar_f = filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final")
-
-    overall_filtercomplex = '-filter_complex "{};{};{};{}"'.format(faders, trim_f, overlays, setsar_f)
-    util.run_ffmpeg(inputs + overall_filtercomplex + " -map [final] {} -s {} {}".format(vcodec, resolution, outfile))
+    inputs = ' \\\n'.join(list(map(lambda file: '-i "{}"'.format(file), input_files)))
+    filtercomplex = '-filter_complex "\\\n{}"'.format('; \\\n'.join(cfilters))
+    util.run_ffmpeg("{} \\\n{} \\\n{} -map [final] {} -s {} {}".format(
+        filters.hw_accel_input(**kwargs), inputs, filtercomplex,
+        filters.hw_accel_output(**kwargs), resolution, outfile))
     return outfile
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
@@ -693,10 +688,15 @@ def slideshow(image_files, resolution="1920x1080"):
     all_video_files = []
     slideshows = []
     for imgfile in image_files:
-        try:
-            video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
-        except OSError:
-            util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
+        if util.is_image_file(imgfile):
+            try:
+                video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
+            except OSError:
+                util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
+        elif util.is_video_file(imgfile):
+            video_files.append(imgfile)
+        else:
+            continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(build_slideshow(video_files, resolution=resolution,
                 outfile='slideshow.part{}.mp4'.format(len(slideshows))))
