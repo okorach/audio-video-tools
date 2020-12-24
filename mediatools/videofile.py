@@ -662,7 +662,7 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     input_files.append(input_files[0])
     trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
     cfilters.append(filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim'))
-    
+
     for i in range(nb_files):
         in_stream = 'trim' if i == 0 else 'over' + str(i)
         cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
@@ -684,11 +684,19 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
 #-vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(image_files, resolution="1920x1080"):
+def slideshow(input_files, resolution="1920x1080"):
     MAX_SLIDESHOW_AT_ONCE = 30
+    if isinstance(input_files, str):
+        if os.path.isdir(input_files):
+            image_files = util.filelist(input_files)
+        else:
+            image_files = [image_files]
+    elif len(input_files) == 1:
+        image_files = util.filelist(input_files[0])
     video_files = []
     all_video_files = []
     slideshows = []
+
     for imgfile in image_files:
         if util.is_image_file(imgfile):
             try:
