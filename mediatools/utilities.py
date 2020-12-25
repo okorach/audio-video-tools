@@ -45,6 +45,7 @@ logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
 
+
 def set_logger(name):
     global logger
     logger = logging.getLogger(name)
@@ -55,6 +56,7 @@ def set_logger(name):
     new_fh.setFormatter(formatter)
     new_ch.setFormatter(formatter)
 
+
 def filelist(root_dir):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
@@ -64,6 +66,7 @@ def filelist(root_dir):
         for file in f:
             files.append(os.path.join(r, file))
     return files
+
 
 def file_list_by_type(root_dir, file_type):
     """Returns and array of all audio files under a given root directory
@@ -76,14 +79,18 @@ def file_list_by_type(root_dir, file_type):
                 files.append(os.path.join(r, file))
     return files
 
+
 def audio_filelist(root_dir):
     return file_list_by_type(root_dir, MediaType.AUDIO_FILE)
+
 
 def video_filelist(root_dir):
     return file_list_by_type(root_dir, MediaType.VIDEO_FILE)
 
+
 def image_filelist(root_dir):
     return file_list_by_type(root_dir, MediaType.IMAGE_FILE)
+
 
 def subdir_list(root_dir):
     """Returns and array of all audio files under a given root directory
@@ -95,21 +102,23 @@ def subdir_list(root_dir):
                 fullfilelist.append(file)
     return fullfilelist
 
+
 def get_file_extension(filename):
     """Returns a file extension"""
     return filename.split('.').pop()
 
+
 def strip_file_extension(filename):
     """Removes the file extension and returns the string"""
-    s = filename.split('.')
-    s.pop()
-    return '.'.join(s)
+    return '.'.join(filename.split('.')[:-1])
 
-def match_extension(file, regex):
+
+def __match_extension__(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     ext = '.' + get_file_extension(file)
     p = re.compile(regex, re.IGNORECASE)
     return not re.search(p, ext) is None
+
 
 def add_postfix(file, postfix, extension = None):
     """Adds a postfix to a file before the file extension"""
@@ -117,27 +126,34 @@ def add_postfix(file, postfix, extension = None):
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
 
+
 def automatic_output_file_name(outfile, infile, postfix, extension = None):
     if outfile is not None:
         return outfile
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
 
+
 def __is_type_file(file, type_of_media):
-    return os.path.isfile(file) and match_extension(file, MediaType.FILE_EXTENSIONS[type_of_media])
+    return os.path.isfile(file) and __match_extension__(file, MediaType.FILE_EXTENSIONS[type_of_media])
+
 
 def is_audio_file(file):
     return __is_type_file(file, MediaType.AUDIO_FILE)
 
+
 def is_video_file(file):
     return __is_type_file(file, MediaType.VIDEO_FILE)
+
 
 def is_image_file(file):
     return __is_type_file(file, MediaType.IMAGE_FILE)
 
+
 def is_media_file(file):
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
     return is_audio_file(file) or is_image_file(file) or is_video_file(file)
+
 
 def get_file_type(file):
     if is_audio_file(file):
@@ -151,17 +167,22 @@ def get_file_type(file):
     logger.debug("Filetype of %s is %s", file, filetype)
     return filetype
 
+
 def get_ffbin(ffprop, props_file=None):
     props = get_media_properties()
-    if not re.search(os.path.sep, props[ffprop]):
+    
+    if not re.search('\\' + os.path.sep, props[ffprop]):
         return props[ffprop]
-    return os.path.realpath(props[ffprop])
+    return props[ffprop] # os.path.realpath(props[ffprop])
+
 
 def get_ffmpeg():
     return get_ffbin('binaries.ffmpeg')
 
+
 def get_ffprobe():
     return get_ffbin('binaries.ffprobe')
+
 
 def get_first_value(a_dict, key_list):
     for tag in key_list:
@@ -169,13 +190,12 @@ def get_first_value(a_dict, key_list):
             return a_dict[tag]
     return None
 
+
 def run_os_cmd(cmd):
     if DEBUG_LEVEL < 2:
-        m = re.search(r'(\w+)[\.\s]', cmd)
-        if m:
-            executable = m.group(1)
-        else:
-            executable = 'ffmpeg'
+        executable = cmd.split(' ')[0].split(os.sep).pop()
+        if len(executable) > 20:
+            executable = executable[:19]
         outfile = '{0}.{1}.log'.format(executable, os.getpid())
         cmd = cmd + " 1>>" + outfile + " 2>&1"
     logger.info("Running: %s", cmd)
@@ -187,6 +207,7 @@ def run_os_cmd(cmd):
         raise OSError(retcode)
     return retcode
 
+
 def run_ffmpeg(params):
     cmd = "%s -y %s" % (get_ffmpeg(), params)
     if is_dry_run():
@@ -194,11 +215,13 @@ def run_ffmpeg(params):
     else:
         run_os_cmd(cmd)
 
+
 def build_ffmpeg_file_list(file_list):
     s = ''
     for f in file_list:
         s = s + ' -i "%s"' % f
     return s
+
 
 def build_ffmpeg_complex_prep(file_list):
     s = ''
@@ -206,19 +229,23 @@ def build_ffmpeg_complex_prep(file_list):
         s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
     return s
 
+
 def get_media_properties():
     """Returns all properties found in the properties file as dictionary"""
     import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         PROPERTIES_VALUES = mediaconf.load()
+        logger.debug("Props = %s", str(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
+
 
 def get_conf_property(prop):
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]
+
 
 def to_hms(seconds):
     try:
@@ -230,21 +257,20 @@ def to_hms(seconds):
     except TypeError:
         return (0,0,0)
 
+
 def to_seconds(hms):
-    a = hms.split(':')
-    seconds = 0
-    multiplier = 1
-    while a:
-        seconds = seconds + multiplier * float(a.pop())
-        multiplier = multiplier * 60
-    return seconds
+    a = list(map(lambda x: float(x), hms.split(':')))
+    return (a[0] * 3600 + a[1] * 60 + a[2])
+
 
 def difftime(start, stop):
     return to_seconds(stop) - to_seconds(start)
 
+
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
+
 
 def get_logging_level(intlevel):
     if intlevel >= 2:
@@ -257,8 +283,10 @@ def get_logging_level(intlevel):
         lvl = logging.CRITICAL
     return lvl
 
+
 def json_fmt(json_data):
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
+
 
 def set_debug_level(level):
     global DEBUG_LEVEL
@@ -266,13 +294,16 @@ def set_debug_level(level):
     logger.setLevel(get_logging_level(DEBUG_LEVEL))
     logger.info("Set debug level to %d", DEBUG_LEVEL)
 
+
 def set_dry_run(dry_run):
     global DRY_RUN
     DRY_RUN = dry_run
     logger.info("Set dry run to %s", str(dry_run))
 
+
 def is_dry_run():
     return DRY_RUN
+
 
 def delete_files(*args):
     if is_dry_run():
@@ -281,18 +312,6 @@ def delete_files(*args):
         logger.debug("Deleting file %s", f)
         os.remove(f)
 
-def debug(level, string):
-    global logger
-    if level >= 4:
-        logger.debug(string)
-    elif level == 3:
-        logger.info(string)
-    elif level == 2:
-        logger.warning(string)
-    elif level == 1:
-        logger.error(string)
-    else:
-        logger.critical(string)
 
 def parse_common_args(desc):
     """Parses options common to all media encoding scripts"""
