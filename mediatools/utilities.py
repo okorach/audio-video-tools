@@ -192,20 +192,17 @@ def get_first_value(a_dict, key_list):
 
 
 def run_os_cmd(cmd):
-    if DEBUG_LEVEL < 2:
-        executable = cmd.split(' ')[0].split(os.sep).pop()
-        if len(executable) > 20:
-            executable = executable[:19]
-        outfile = '{0}.{1}.log'.format(executable, os.getpid())
-        cmd = cmd + " 1>>" + outfile + " 2>&1"
+    import subprocess
     logger.info("Running: %s", cmd)
-    retcode = os.system(cmd)
-    if retcode == 0:
+    try:
+        pipe = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in pipe.stdout:
+            logger.debug("%s", line.rstrip())
         logger.info("Successfully completed: %s", cmd)
-    else:
-        logger.critical("Error %d - cmd: %s", retcode, cmd)
-        raise OSError(retcode)
-    return retcode
+    except subprocess.CalledProcessError as e:
+        logger.error("%s", e.output)
+        logger.error("Command: %s failed with code %d", cmd, e.returncode)
+        raise OSError(e.returncode)
 
 
 def run_ffmpeg(params):
