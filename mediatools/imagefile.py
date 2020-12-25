@@ -308,6 +308,20 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
+    def __compute_upscaling_for_video__(self, video_res):
+        u_res = media.Resolution(resolution=media.Resolution.RES_4K)
+        if self.ratio >= video_res.ratio * 1.2:
+            u_res.width = int(u_res.height * self.ratio)
+        elif self.ratio >= video_res.ratio:
+            u_res.height = int(u_res.height, 1.3)
+            u_res.width = int(u_res.height * self.ratio)
+        elif self.ratio >= video_res.ratio / 1.3:
+            u_res.width = int(u_res.width * 1.5)
+            u_res.height = int(u_res.width  / self.ratio)
+        else:
+            u_res.height = int(u_res.width / self.ratio)
+        return u_res
+        
     def panorama(self, **kwargs):
         out_file = kwargs.get('out_file', None)
         (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
@@ -320,25 +334,14 @@ class ImageFile(media.MediaFile):
 
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         vfilters = []
-        if self.ratio >= v_res.ratio * 1.2:
-            upscaling_y = media.RES_VIDEO_4K.height
-            upscaling_x = int(upscaling_y * self.ratio)
-        elif self.ratio >= v_res.ratio:
-            upscaling_y = int(media.RES_VIDEO_4K.height * 1.3)
-            upscaling_x = int(upscaling_y * self.ratio)
-        elif self.ratio >= v_res.ratio / 1.3:
-            upscaling_x = int(media.RES_VIDEO_4K.width * 1.5)
-            upscaling_y = int(upscaling_x / self.ratio)
-        else:
-            upscaling_x = media.RES_VIDEO_4K.width
-            upscaling_y = int(upscaling_x / self.ratio)
-        vfilters.append(filters.scale(upscaling_x, upscaling_y))
+        u_res = self.__compute_upscaling_for_video__(v_res)
+        vfilters.append(filters.scale(u_res.width, u_res.height))
 
         if self.ratio >= v_res.ratio * 1.2:
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (upscaling_x - media.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / upscaling_x)
+            bound = max(0, (u_res.width - media.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / u_res.width)
             if xstart < xstop:
                 (xstart, xstop) = (bound, 1 - bound)
             else:
@@ -347,7 +350,7 @@ class ImageFile(media.MediaFile):
             # if img ratio > video ratio - 30%, no horizontal drift
             (xstart, xstop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (upscaling_y - media.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / upscaling_y)
+            bound = max(0, (u_res.height - media.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / u_res.height)
             if ystart < ystop:
                 (ystart, ystop) = (bound, 1 - bound)
             else:
