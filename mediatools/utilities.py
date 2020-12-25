@@ -211,10 +211,11 @@ def get_first_value(a_dict, key_list):
 
 
 def run_os_cmd(cmd):
-    import subprocess
+    import subprocess, shlex
     logger.info("Running: %s", cmd)
     try:
-        pipe = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        args = shlex.split(cmd)
+        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in pipe.stdout:
             logger.debug("%s", line.rstrip())
         logger.info("Successfully completed: %s", cmd)
