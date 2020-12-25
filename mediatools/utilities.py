@@ -24,6 +24,8 @@ import sys
 import json
 import re
 import logging
+import subprocess
+import shlex
 import jprops
 import mediatools.options as opt
 
@@ -211,7 +213,6 @@ def get_first_value(a_dict, key_list):
 
 
 def run_os_cmd(cmd):
-    import subprocess, shlex
     logger.info("Running: %s", cmd)
     try:
         args = shlex.split(cmd)
