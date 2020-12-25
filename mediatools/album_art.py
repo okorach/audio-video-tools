@@ -28,7 +28,6 @@ import sys
 import os
 import mediatools.utilities as util
 import mediatools.audiofile as audio
-import mediatools.imagefile as image
 
 DEFAULT_RESCALING = '512x512'
 
@@ -44,7 +43,7 @@ def filelist_album_art(filelist, image_file):
     for file in filelist:
         if util.is_audio_file(file):
             util.logger.info('Encoding album art %s in file %s', image_file, file)
-            audio.encode_album_art(file, image_file, **{'scale':DEFAULT_RESCALING})
+            audio.encode_album_art(file, image_file, scale=DEFAULT_RESCALING)
 
 
 def dir_album_art(directory):
