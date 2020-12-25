@@ -460,9 +460,11 @@ def stack(file1, file2, direction, out_file = None):
     return out_file
 
 def get_widths(files):
+    # [ImageFile(file).width for file in files]
     return list(map(lambda file: ImageFile(file).width, files))
 
 def get_heights(files):
+    # [ImageFile(file).height for file in files]
     return list(map(lambda file: ImageFile(file).height, files))
 
 def min_height(files):
