@@ -709,7 +709,8 @@ def slideshow(input_files_or_dir, resolution="1920x1080"):
             except OSError:
                 util.logger.error("Failed to use %s for slideshow, skipped", slide_file)
         elif util.is_video_file(slide_file):
-            video_files.append(slide_file)
+            # video_files.append(slide_file)
+            util.logger.info("File %s is a video, skipped", slide_file)
         else:
             util.logger.info("File %s is neither an image not a video, skipped", slide_file)
             continue
