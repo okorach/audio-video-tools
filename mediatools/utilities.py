@@ -259,8 +259,8 @@ def to_hms(seconds):
 
 
 def to_seconds(hms):
-    a = list(map(lambda x: float(x), hms.split(':')))
-    return (a[0] * 3600 + a[1] * 60 + a[2])
+    a = [float(x) for x in hms.split(':')]
+    return a[0] * 3600 + a[1] * 60 + a[2]
 
 
 def difftime(start, stop):
