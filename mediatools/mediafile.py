@@ -71,6 +71,10 @@ class Resolution:
     def to_string(self, separator="x"):
         return "{}{}{}".format(self.width, separator, self.height)
 
+
+RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
+RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
+
 class MediaFile:
     '''Media file abstraction
     A media file can be:
