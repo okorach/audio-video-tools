@@ -3,7 +3,7 @@
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
-import mediatools.videofile as video
+import mediatools.mediafile as media
 
 def main():
     parser = util.parse_common_args('image2video')
@@ -16,14 +16,14 @@ def main():
 
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
-    resolution = kwargs.get('framesize', video.VideoFile.DEFAULT_RESOLUTION)
+    resolution = kwargs.get('framesize', media.Resolution.DEFAULT_VIDEO)
 
     if kwargs['effect'] == "panorama":
-        effect = list(map(lambda x: float(x), kwargs.get('panorama_effect', "0.2,0.8,0.6,0.4").split(",")))
+        effect = [float(x) for x in kwargs.get('panorama_effect', "0.2,0.8,0.6,0.4").split(",")]
         image.ImageFile(inputfile).panorama(resolution=resolution, duration=kwargs['duration'],
             effect=effect)
     else:
-        effect = list(map(lambda x: float(x), kwargs.get('zoom_effect', "100,130").split(",")))
+        effect = [float(x) for x in kwargs.get('zoom_effect', "100,130").split(",")]
         image.ImageFile(inputfile).zoom(resolution=resolution, duration=kwargs['duration'],
             effect=effect)
 

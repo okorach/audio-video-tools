@@ -27,6 +27,8 @@ class Resolution:
     RES_VGA = "640x480"
     RES_XGA = "1024x768"
 
+    DEFAULT_VIDEO = RES_4K
+
     RATIO_16_9 = 16 / 9
     RATIO_15_10 = 15 / 10
     RATIO_4_3 = 4 / 3
@@ -68,6 +70,10 @@ class Resolution:
 
     def to_string(self, separator="x"):
         return "{}{}{}".format(self.width, separator, self.height)
+
+
+RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
+RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
 
 class MediaFile:
     '''Media file abstraction

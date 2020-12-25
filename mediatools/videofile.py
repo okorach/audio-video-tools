@@ -6,6 +6,7 @@ from __future__ import print_function
 import sys
 import re
 import os
+import platform
 import random
 import json
 import shutil
@@ -23,7 +24,6 @@ FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
-    DEFAULT_RESOLUTION = '3840x2160'
 
     '''Video file abstraction'''
     def __init__(self, filename):
@@ -639,7 +639,7 @@ def __get_audio_channel_mapping__(**kwargs):
 def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     if resolution is None:
-        resolution = VideoFile.DEFAULT_RESOLUTION
+        resolution = media.Resolution.DEFAULT_VIDEO
 
     transition_duration = 0.5
     fade_in = filters.fade_in(duration=transition_duration)
@@ -668,11 +668,12 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
         cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
     cfilters.append(filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final"))
 
-    inputs = ' \\\n'.join(list(map(lambda f: '-i "{}"'.format(f), input_files)))
-    filtercomplex = '-filter_complex "\\\n{}"'.format('; \\\n'.join(cfilters))
-    util.run_ffmpeg("{} \\\n{} \\\n{} -map [final] {} -s {} {}".format(
-        filters.hw_accel_input(**kwargs), inputs, filtercomplex,
-        filters.hw_accel_output(**kwargs), resolution, outfile))
+    sep = " " if platform.system() == 'Windows' else " \\\n"
+    inputs = sep.join(list(map(lambda f: '-i "{}"'.format(f), input_files)))
+    filtercomplex = '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(cfilters))
+    util.run_ffmpeg("{} {} {} {} {} -map [final] {} -s {} {}".format(
+        filters.hw_accel_input(**kwargs), inputs, filtercomplex, sep,
+        filters.hw_accel_output(**kwargs), sep, resolution, outfile))
     return outfile
 
 #            ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
@@ -684,28 +685,31 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
 #-vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(input_files, resolution="1920x1080"):
+def slideshow(input_files_or_dir, resolution="1920x1080"):
     MAX_SLIDESHOW_AT_ONCE = 30
-    if isinstance(input_files, str):
-        if os.path.isdir(input_files):
-            image_files = util.filelist(input_files)
+    # If only 1 entry is passed as string or list of 1 item, it's assumed to be a directory
+    if isinstance(input_files_or_dir, str):
+        if os.path.isdir(input_files_or_dir):
+            slideshow_files = util.filelist(input_files_or_dir)
         else:
-            image_files = [image_files]
-    elif len(input_files) == 1:
-        image_files = util.filelist(input_files[0])
+            slideshow_files = [slideshow_files]
+    elif len(input_files_or_dir) == 1:
+        slideshow_files = util.filelist(input_files_or_dir[0])
     video_files = []
     all_video_files = []
     slideshows = []
 
-    for imgfile in image_files:
-        if util.is_image_file(imgfile):
+    for slide_file in slideshow_files:
+        if util.is_image_file(slide_file):
             try:
-                video_files.append(image.ImageFile(imgfile).to_video(with_effect=True, resolution=resolution))
+                video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
             except OSError:
-                util.logger.error("Failed to use %s for slideshow, skipped", imgfile)
-        elif util.is_video_file(imgfile):
-            video_files.append(imgfile)
+                util.logger.error("Failed to use %s for slideshow, skipped", slide_file)
+        elif util.is_video_file(slide_file):
+            # video_files.append(slide_file)
+            util.logger.info("File %s is a video, skipped", slide_file)
         else:
+            util.logger.info("File %s is neither an image not a video, skipped", slide_file)
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(build_slideshow(video_files, resolution=resolution,
@@ -716,5 +720,5 @@ def slideshow(input_files, resolution="1920x1080"):
         return build_slideshow(video_files, resolution=resolution, outfile='slideshow.mp4')
     else:
         slideshows.append(build_slideshow(video_files, resolution=resolution,
-            outfile='slideshows.{}.mp4'.format(len(slideshows))))
+            outfile='slideshow.part{}.mp4'.format(len(slideshows))))
         return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)

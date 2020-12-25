@@ -28,7 +28,7 @@ def main():
         for video_range in re.split(',', args.timeranges):
             kwargs['ss'], kwargs['to'] = re.split('-', video_range)
     outputfile = video.deshake(args.inputfile, int(args.width), int(args.height), args.outputfile, **kwargs)
-    util.debug(1, 'Generated %s' % outputfile)
+    util.logger.info('Generated %s', outputfile)
 
 
 if __name__ == "__main__":

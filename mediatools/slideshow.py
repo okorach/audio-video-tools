@@ -1,15 +1,15 @@
 #!/usr/local/bin/python3
 
 import sys
-import os
 import mediatools.utilities as util
+import mediatools.mediafile as media
 import mediatools.videofile as video
 import mediatools.version as version
 
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = video.VideoFile.DEFAULT_RESOLUTION
+    resolution = media.Resolution.DEFAULT_VIDEO
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -17,8 +17,6 @@ def main():
             util.set_debug_level(sys.argv.pop(0))
         elif arg == "--resolution":
             resolution = sys.argv.pop(0)
-        elif not util.is_image_file(arg) and not util.is_video_file(arg) and not os.path.isdir(arg):
-            util.logger.error("File %s does not exist or is neither an image nor a video file nor a directory, skipped...", arg)
         else:
             files.append(arg)
     if len(files) > 0:
