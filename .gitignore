@@ -30,4 +30,4 @@ build/
 .idea/
 dist/
 media_tools.egg-info/
-audio-video-tools.code-workspace
+*.code-workspace
