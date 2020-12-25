@@ -216,8 +216,10 @@ def run_os_cmd(cmd):
     try:
         args = shlex.split(cmd)
         pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        for line in pipe.stdout:
-            logger.debug("%s", line.rstrip())
+        line = pipe.stdout.readline()
+        while line:
+            logger.debug(line.decode("utf-8").rstrip())
+            line = pipe.stdout.readline()
         logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
         logger.error("%s", e.output)
