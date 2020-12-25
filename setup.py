@@ -1,3 +1,4 @@
+#!python3
 #
 # media-tools
 # Copyright (C) 2019-2020 Olivier Korach
