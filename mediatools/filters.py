@@ -8,7 +8,7 @@ class FilterError(Exception):
 
 def __str_streams__(streams):
     if isinstance(streams, list) or isinstance(streams, tuple):
-        s = "[" + "][".joint(streams) + "]"
+        s = "[" + "][".join(streams) + "]"
     elif isinstance(streams, str):
         s = "[{}]".format(streams)
     else:
