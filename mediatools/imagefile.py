@@ -313,7 +313,7 @@ class ImageFile(media.MediaFile):
         (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
-        v_res = media.Resolution(resolution=kwargs.get('resolution', '3840x2160'))
+        v_res = media.Resolution(resolution=kwargs.get('resolution', media.Resolution.DEFAULT_VIDEO))
         # Filters used for panorama are incompatible with hw acceleration
         # hw_accel = kwargs.get('hw_accel', False)
         hw_accel = False
@@ -321,24 +321,24 @@ class ImageFile(media.MediaFile):
         util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         vfilters = []
         if self.ratio >= v_res.ratio * 1.2:
-            upscaling_y = 2160
+            upscaling_y = media.RES_VIDEO_4K.height
             upscaling_x = int(upscaling_y * self.ratio)
         elif self.ratio >= v_res.ratio:
-            upscaling_y = int(2160 * 1.1)
+            upscaling_y = int(media.RES_VIDEO_4K.height * 1.3)
             upscaling_x = int(upscaling_y * self.ratio)
         elif self.ratio >= v_res.ratio / 1.3:
-            upscaling_x = int(3840 * 1.5)
+            upscaling_x = int(media.RES_VIDEO_4K.width * 1.5)
             upscaling_y = int(upscaling_x / self.ratio)
         else:
-            upscaling_x = 3840
+            upscaling_x = media.RES_VIDEO_4K.width
             upscaling_y = int(upscaling_x / self.ratio)
         vfilters.append(filters.scale(upscaling_x, upscaling_y))
 
-        if self.ratio > 1.2 * v_res.ratio:
+        if self.ratio >= v_res.ratio * 1.2:
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (upscaling_x - 3840 * (1 + duration * 0.02)) / 2 / upscaling_x)
+            bound = max(0, (upscaling_x - media.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / upscaling_x)
             if xstart < xstop:
                 (xstart, xstop) = (bound, 1 - bound)
             else:
@@ -347,14 +347,14 @@ class ImageFile(media.MediaFile):
             # if img ratio > video ratio - 30%, no horizontal drift
             (xstart, xstop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (upscaling_y - 2160 * (1 + duration * 0.04)) / 2 / upscaling_y)
+            bound = max(0, (upscaling_y - media.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / upscaling_y)
             if ystart < ystop:
                 (ystart, ystop) = (bound, 1 - bound)
             else:
                 (ystart, ystop) = (1 - bound, bound)
         x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
         y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
-        vfilters.append(filters.crop(3840, 2160, x_formula, y_formula))
+        vfilters.append(filters.crop(media.RES_VIDEO_4K.width, media.RES_VIDEO_4K.height, x_formula, y_formula))
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
 
@@ -369,7 +369,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def to_video(self, with_effect=True, resolution="3840x2160", hw_accel=True):
+    def to_video(self, with_effect=True, resolution=media.Resolution.RES_4K, hw_accel=True):
         util.logger.info("Converting %s to video", self.filename)
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
