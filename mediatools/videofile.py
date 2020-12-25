@@ -62,7 +62,7 @@ class VideoFile(media.MediaFile):
         self.audio_codec = None
         self.audio_language = None
         self.audio_sample_rate = None
-        super(VideoFile, self).__init__(filename)
+        super().__init__(filename)
         self.get_specs()
 
     def get_specs(self):

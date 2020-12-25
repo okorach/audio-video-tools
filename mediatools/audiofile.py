@@ -27,6 +27,7 @@ import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
 
+
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename):
@@ -42,7 +43,7 @@ class AudioFile(media.MediaFile):
         self.abitrate = None
         self.duration = None
         self.audio_sample_rate = None
-        super(AudioFile, self).__init__(filename)
+        super().__init__(filename)
 
     def get_audio_specs(self):
         for stream in self.specs['streams']:
@@ -148,7 +149,7 @@ def encode_album_art(source_file, album_art_file, **kwargs):
     target_file = util.add_postfix(source_file, 'album_art')
 
     if kwargs['scale'] is not None:
-        w, h = re.split("x",kwargs['scale'])
+        w, h = re.split("x", kwargs['scale'])
         album_art_file = image.rescale(album_art_file, int(w), int(h))
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"

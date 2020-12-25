@@ -43,8 +43,7 @@ class ImageFile(media.MediaFile):
         self.height = None
         self.pixels = None
         self.ratio = None
-
-        super(ImageFile, self).__init__(filename)
+        super().__init__(filename)
         self.probe()
 
     def get_properties(self):
@@ -59,7 +58,7 @@ class ImageFile(media.MediaFile):
     def probe(self):
         if self.specs is not None:
             return
-        super(ImageFile, self).probe()
+        super().probe()
         stream = self.__get_stream_by_codec__('codec_name', ImageFile.SUPPORTED_IMG_CODECS)
         self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
