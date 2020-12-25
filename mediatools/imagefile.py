@@ -281,7 +281,7 @@ class ImageFile(media.MediaFile):
         (zstart, zstop) = list(map(lambda x: max(x, 100), kwargs.get('effect', (100, 130))))
         fps = int(kwargs.get('framerate', 50))
         duration = float(kwargs.get('duration', 5))
-        resolution = kwargs.get('resolution', '3840x2160')
+        resolution = kwargs.get('resolution', media.Resolution.DEFAULT_VIDEO)
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename,

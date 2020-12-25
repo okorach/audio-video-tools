@@ -3,13 +3,14 @@
 import sys
 import os
 import mediatools.utilities as util
+import mediatools.mediafile as media
 import mediatools.videofile as video
 import mediatools.version as version
 
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = video.VideoFile.DEFAULT_RESOLUTION
+    resolution = media.Resolution.DEFAULT_VIDEO
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)

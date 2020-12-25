@@ -27,6 +27,8 @@ class Resolution:
     RES_VGA = "640x480"
     RES_XGA = "1024x768"
 
+    DEFAULT_VIDEO = RES_4K
+
     RATIO_16_9 = 16 / 9
     RATIO_15_10 = 15 / 10
     RATIO_4_3 = 4 / 3

@@ -24,7 +24,6 @@ FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
-    DEFAULT_RESOLUTION = '3840x2160'
 
     '''Video file abstraction'''
     def __init__(self, filename):
@@ -640,7 +639,7 @@ def __get_audio_channel_mapping__(**kwargs):
 def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     if resolution is None:
-        resolution = VideoFile.DEFAULT_RESOLUTION
+        resolution = media.Resolution.DEFAULT_VIDEO
 
     transition_duration = 0.5
     fade_in = filters.fade_in(duration=transition_duration)
