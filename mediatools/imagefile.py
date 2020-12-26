@@ -394,7 +394,9 @@ def stack(*files, direction='vertical', out_file=None):
     total_height = sum([f.height() for f in files_to_stack])
     out_file = util.automatic_output_file_name(out_file, files_to_stack[0].filename, "stacked")
     max_w = max([f.width() for f in files_to_stack])
+    max_w = (max_w * min(total_width, 65536)) // total_width
     max_h = max([f.height() for f in files_to_stack])
+    max_w = (max_w * min(total_height, 65536)) // total_height
     if direction == 'horizontal':
         final_list = [ImageFile(f).scale(-1, max_h) for f in files_to_stack]
         filter_name = 'hstack'
