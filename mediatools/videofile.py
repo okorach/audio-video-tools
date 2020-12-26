@@ -718,16 +718,10 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     # -vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(input_files_or_dir, resolution="1920x1080"):
+def slideshow(*inputs, resolution="1920x1080"):
+    util.logger.info("slideshow(%s)", *inputs)
     MAX_SLIDESHOW_AT_ONCE = 30
-    # If only 1 entry is passed as string or list of 1 item, it's assumed to be a directory
-    if isinstance(input_files_or_dir, str):
-        if os.path.isdir(input_files_or_dir):
-            slideshow_files = util.filelist(input_files_or_dir)
-        else:
-            slideshow_files = [slideshow_files]
-    elif len(input_files_or_dir) == 1:
-        slideshow_files = util.filelist(input_files_or_dir[0])
+    slideshow_files = util.file_list(*inputs)
     video_files = []
     all_video_files = []
     slideshows = []
