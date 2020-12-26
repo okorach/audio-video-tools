@@ -225,6 +225,9 @@ def run_os_cmd(cmd):
         while line:
             logger.debug(line.decode("utf-8").rstrip())
             line = pipe.stdout.readline()
+        # TODO: Handle error in retcode
+        # if pipe.returncode != 0:
+        #     raise subprocess.CalledProcessError(cmd=cmd, output=line, returncode=pipe.returncode)
         logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
         logger.error("%s", e.output)

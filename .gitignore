@@ -20,9 +20,6 @@ nytprof.out
 /_eumm/
 *.pyc
 .vscode/
-*.jpg
-*.png
-*.mp4
 *.log
 .scannerwork/
 test/
@@ -31,3 +28,6 @@ build/
 dist/
 media_tools.egg-info/
 *.code-workspace
+it/*.scale-*
+it/*.mp4
+

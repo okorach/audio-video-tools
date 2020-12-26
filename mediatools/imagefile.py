@@ -22,6 +22,7 @@
 import math
 import re
 import random
+import shutil
 
 import mediatools.utilities as util
 import mediatools.mediafile as media
@@ -392,24 +393,13 @@ class ImageFile(media.MediaFile):
         else:
             return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
 
-    def scale(self, w, h, scale_method="keepratio", out_file=None):
-        final_ratio = w / h
-        (iw, ih) = self.get_dimensions()
-        x = w
-        y = h
-        if scale_method == 'stretch':
-            pass
-        elif iw / ih > final_ratio:
-            y = -1
-            h = ih * iw / w
-        else:
-            x = -1
-            w = iw * ih / h
-
+    def scale(self, w=-1, h=-1, out_file=None):
         out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
+        if w == -1 and h == -1:
+            shutil.copy(self.filename, out_file)
+            return out_file
         util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
-
-        util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (self.filename, x, y, out_file))
+        util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
         return out_file
 
 
