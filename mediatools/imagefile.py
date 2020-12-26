@@ -299,7 +299,7 @@ class ImageFile(media.MediaFile):
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
-        cmd = '-i "{}" -framerate {} -filter_complex    [0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
+        cmd = '-i "{}" -framerate {} -filter_complex "[0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
             self.filename, fps, ','.join(vfilters), resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
