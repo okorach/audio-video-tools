@@ -390,18 +390,18 @@ def get_rectangle(color, w, h):
 def stack(*files, direction='vertical', out_file=None):
     util.logger.debug("stack(%s, %s)", str(files), direction)
     files_to_stack = [ImageFile(f) for f in util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)]
-    total_width = sum([f.width() for f in files_to_stack])
-    total_height = sum([f.height() for f in files_to_stack])
+    total_width = sum([f.width for f in files_to_stack])
+    total_height = sum([f.height for f in files_to_stack])
     out_file = util.automatic_output_file_name(out_file, files_to_stack[0].filename, "stacked")
-    max_w = max([f.width() for f in files_to_stack])
+    max_w = max([f.width for f in files_to_stack])
     max_w = (max_w * min(total_width, 65536)) // total_width
-    max_h = max([f.height() for f in files_to_stack])
+    max_h = max([f.height for f in files_to_stack])
     max_w = (max_w * min(total_height, 65536)) // total_height
     if direction == 'horizontal':
-        final_list = [ImageFile(f).scale(-1, max_h) for f in files_to_stack]
+        final_list = [f.scale(-1, max_h) for f in files_to_stack]
         filter_name = 'hstack'
     else:
-        final_list = [ImageFile(f).scale(max_w, -1) for f in files_to_stack]
+        final_list = [f.scale(max_w, -1) for f in files_to_stack]
         filter_name = 'vstack'
 
     # ffmpeg -i left.mp4 -i centre.mp4 -i right.mp4 -filter_complex "[0:v:0][1:v:0][2:v:0]hstack=inputs=3"
@@ -423,22 +423,6 @@ def get_widths(files):
 def get_heights(files):
     # [ImageFile(file).height for file in files]
     return [ImageFile(file).height for file in files]
-
-
-def min_height(files):
-    return min(get_heights(files))
-
-
-def min_width(files):
-    return min(get_widths(files))
-
-
-def max_height(files):
-    return max(get_heights(files))
-
-
-def max_width(files):
-    return max(get_widths(files))
 
 
 def avg_height(files):
