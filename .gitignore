@@ -30,4 +30,6 @@ media_tools.egg-info/
 *.code-workspace
 it/*.scale-*.mp4
 it/*.crop_*.mp4
+it/*.zoom*.mp4
+it/*.pan*.mp4
 
