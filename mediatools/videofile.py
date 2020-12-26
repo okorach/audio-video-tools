@@ -46,9 +46,7 @@ class VideoFile(media.MediaFile):
         self.aspect = None
         self.video_codec = None
         self.video_bitrate = None
-        self.width = None
-        self.height = None
-        self.pixels = None
+        self.resolution = None
         self.duration = None
         self.video_fps = None
         self.pixel_aspect = None
@@ -73,18 +71,19 @@ class VideoFile(media.MediaFile):
     def get_video_specs(self):
         '''Returns video file video specs as dict'''
         stream = self.__get_first_video_stream__()
-        _, _ = self.get_dimensions(stream)
+        _, _ = self.dimensions(stream)
         _ = self.get_fps(stream)
         _ = self.get_video_codec(stream)
         _ = self.get_pixel_aspect_ratio(stream)
-        try:
-            self.video_bitrate = get_video_bitrate(stream)
-            if self.video_bitrate is None:
-                self.video_bitrate = int(self.specs['format']['bit_rate'])
-            self.duration = float(stream['duration'])
-        except KeyError as e:
-            util.logger.error("Stream %s has no key %s\n", str(stream), e.args[0])
-
+        self.video_bitrate = int(stream.get('bit_rate', 0))
+        if self.video_bitrate == 0:
+            try:
+                self.video_bitrate = self.specs['format']['bit_rate']
+            except KeyError:
+                util.logger.error("Can't find video_bitrate in %s", str(self.specs))
+        self.duration = float(stream.get('duration', 0))
+        if self.duration == 0.0:
+            util.logger.error("Can't find duration in %s", str(stream))
         return self.specs
 
     def get_audio_specs(self):
@@ -113,11 +112,11 @@ class VideoFile(media.MediaFile):
         if self.pixel_aspect is None:
             ar = stream.get('display_aspect_ratio', None)
             if ar is None:
-                ar = "%d:%d" % (self.width, self.height)
+                ar = "%d:%d" % (self.width(), self.height())
             self.aspect = media.reduce_aspect_ratio(ar)
             par = stream.get('sample_aspect_ratio', None)
             if par is None:
-                par = media.reduce_aspect_ratio("%d:%d" % (self.width, self.height))
+                par = media.reduce_aspect_ratio("%d:%d" % (self.width(), self.height()))
             self.pixel_aspect = media.reduce_aspect_ratio(par)
         return self.pixel_aspect
 
@@ -128,19 +127,15 @@ class VideoFile(media.MediaFile):
             return self.video_codec
         if stream is None:
             stream = self.__get_first_video_stream__()
-        try:
-            self.video_codec = stream['codec_name']
-        except KeyError as e:
-            util.logger.error("Stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+        self.video_codec = stream.get('codec_name', '')
+        if self.video_codec == '':
+            util.logger.error("Can't find video codec in stream %s\n", util.json_fmt(stream))
         return self.video_codec
 
-    def get_video_bitrate(self):
+    def video_bitrate(self):
         '''Returns video file video bitrate'''
         if self.video_bitrate is None:
-            try:
-                self.video_bitrate = int(self.specs['format']['bit_rate'])
-            except KeyError as e:
-                util.logger.error("Format %s has no key %s\n", util.json_fmt(self.specs['format']), e.args[0])
+            self.get_video_specs()
         return self.video_bitrate
 
     def get_video_duration(self):
@@ -166,18 +161,6 @@ class VideoFile(media.MediaFile):
             self.get_specs()
         return self.duration
 
-    def get_height(self):
-        '''Returns video file height'''
-        if self.height is None:
-            self.get_specs()
-        return self.height
-
-    def get_width(self):
-        '''Returns video file width'''
-        if self.width is None:
-            self.get_specs()
-        return self.width
-
     def get_fps(self, stream=None):
         if self.video_fps is None:
             if stream is None:
@@ -189,19 +172,34 @@ class VideoFile(media.MediaFile):
                     break
         return self.video_fps
 
-    def get_dimensions(self, stream=None):
+    def dimensions(self, stream=None):
         util.logger.debug('Getting video dimensions')
-        if self.width is None or self.height is None:
+        if self.resolution is None:
             if stream is None:
                 stream = self.__get_first_video_stream__()
-            if self.width is None:
-                self.width = int(util.get_first_value(stream, ['width', 'codec_width', 'coded_width']))
-            if self.height is None:
-                self.height = int(util.get_first_value(stream, ['height', 'codec_height', 'coded_height']))
-            if self.width is not None and self.height is not None:
-                self.pixels = self.width * self.height
-        util.logger.debug("Returning [%d, %d]", self.width, self.height)
-        return [self.width, self.height]
+            w = int(util.get_first_value(stream, ('width', 'codec_width', 'coded_width')))
+            h = int(util.get_first_value(stream, ('height', 'codec_height', 'coded_height')))
+            self.resolution = media.Resolution(width=w, height=h)
+        util.logger.debug("Returning (%d, %d)", self.width(), self.height())
+        return (self.resolution.width, self.resolution.height)
+
+    def height(self):
+        if self.resolution is None:
+            _, _ = self.dimensions()
+        return self.resolution.height
+
+    def width(self):
+        if self.resolution is None:
+            _, _ = self.dimensions()
+        return self.resolution.width
+
+    def resolution(self):
+        if self.resolution is None:
+            _, _ = self.dimensions()
+        return self.resolution
+
+    def calc_resolution(self, w, h):
+        return self.resolution.calc_resolution(w, h)
 
     def get_audio_properties(self):
         if self.audio_codec is None:
@@ -217,7 +215,7 @@ class VideoFile(media.MediaFile):
         return {
             'file_size': self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate,
             opt.media.VCODEC: self.video_codec, opt.media.FPS: self.video_fps,
-            'width': self.width, 'height': self.height, opt.media.ASPECT: self.aspect,
+            'width': self.width(), 'height': self.height(), opt.media.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
             'copyright': self.copyright, 'year': self.year
         }
@@ -231,28 +229,48 @@ class VideoFile(media.MediaFile):
         util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
-    def crop(self, width, height, top, left, out_file, **kwargs):
+    def crop(self, width, height, out_file, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
-
-        if width is str:
-            width = int(width)
-        if height is str:
-            height = int(height)
-        i_bitrate = self.get_video_bitrate()
-        i_w, i_h = self.get_dimensions()
+        i_bitrate = self.video_bitrate
+        iw, ih = self.dimensions()
         media_opts = self.get_properties()
         media_opts[opt.media.ACODEC] = 'copy'
-        # Target bitrate proportional to crop level (+ 20%)
-        media_opts[opt.media.VBITRATE] = int(int(i_bitrate) * (width * height) / (int(i_w) * int(i_h)) * 1.2)
+        (width, height) = self.calc_resolution(width, height)
+
+        top = kwargs.get('top', None)
+        left = kwargs.get('left', None)
+        pos = kwargs.get('position', None)
+        if top is None:
+            if pos is None:
+                pos = "center"
+                top = (ih - height) // 2
+            elif re.search('.*top.*', pos):
+                top = 0
+            elif re.search('.*bottom.*', pos):
+                top = ih - height
+            else:
+                top = (ih - height) // 2
+        if left is None:
+            if pos is None:
+                pos = "center"
+                left = (ih - height) // 2
+            elif re.search('.*left.*', pos):
+                left = 0
+            elif re.search('.*right.*', pos):
+                left = iw - width
+            else:
+                left = (iw - width) // 2
+        # Target bitrate proportional to crop level (x 2)
+        media_opts[opt.media.VBITRATE] = int(i_bitrate * (width * height) / (iw * ih) * 2)
 
         media_opts.update(util.cleanup_options(kwargs))
         util.logger.info("Cmd line settings = %s", str(media_opts))
-        out_file = util.automatic_output_file_name(out_file, self.filename, \
-            "crop_{0}x{1}-{2}x{3}".format(width, height, top, left))
+        out_file = util.automatic_output_file_name(out_file, self.filename,
+            "crop_{0}x{1}-{2}".format(width, height, pos))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
 
-        cmd = '-i "%s" %s %s -aspect %s "%s"' % (self.filename,
-            media.build_ffmpeg_options(media_opts), media.get_crop_filter_options(width, height, top, left),
+        cmd = '-i "{}" {} -vf "{}" -aspect {} "{}"'.format(self.filename,
+            media.build_ffmpeg_options(media_opts), filters.crop(width, height, left, top),
             aspect, out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -384,8 +402,8 @@ class VideoFile(media.MediaFile):
         if 'nocrop' not in kwargs:
             return output_file
 
-        new_w = self.get_width() - width
-        new_h = self.get_height() - height
+        new_w = self.width() - width
+        new_h = self.height() - height
         if out_file is None:
             output_file2 = util.add_postfix(self.filename, "deshake_crop_%dx%d" % (new_w, new_h))
         else:
@@ -409,7 +427,7 @@ class VideoFile(media.MediaFile):
         return self.copyright
 
     def reverse(self, out_file=None, with_audio=False, **kwargs):
-        (w, _) = self.get_dimensions()
+        (w, _) = self.dimensions()
         if w >= 1920:
             profile = "1080p"
         elif w >= 1280:
@@ -569,15 +587,6 @@ def get_deshake_filter_options(width, height):
 def deshake(video_file, width, height, out_file =None, **kwargs):
     ''' Applies deshake video filter for width x height pixels '''
     return VideoFile(video_file).deshake(width, height, out_file, **kwargs)
-
-
-def get_video_bitrate(stream):
-    bitrate = None
-    try:
-        bitrate = stream['bit_rate']
-    except KeyError:
-        pass
-    return bitrate
 
 
 def get_mp3_tags(file):

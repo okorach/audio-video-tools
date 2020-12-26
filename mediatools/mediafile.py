@@ -50,6 +50,7 @@ class Resolution:
     def __init__(self, **kwargs):
         self.width = 0
         self.height = 0
+        self.pixels = 0
         self.ratio = None
         if 'width' in kwargs and 'height' in kwargs:
             w = kwargs['width']
@@ -63,28 +64,29 @@ class Resolution:
         self.width = int(w)
         self.height = int(h)
         self.ratio = self.width / self.height
-
-    def w(self):
-        return self.width
-
-    def x(self):
-        return self.width
-
-    def h(self):
-        return self.height
-
-    def y(self):
-        return self.height
+        self.pixels = self.width * self.height
 
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
-    def __str__(self):
-        return "{}x{}".format(self.width, self.height)
+    def calc_resolution(self, width, height):
+        a = str(width).split('%')
+        w = int(width) if len(a) == 1 else int(self.width * int(a[0]) / 100)
+        a = str(height).split('%')
+        h = int(height) if len(a) == 1 else int(self.height * int(a[0]) / 100)
+        return (w, h)
 
-    def to_string(self, separator="x"):
+    def __str__(self):
+        return self.as_string('x')
+
+    def as_string(self, separator="x"):
         return "{}{}{}".format(self.width, separator, self.height)
 
+    def as_list(self):
+        return [self.width, self.height]
+
+    def as_tuple(self):
+        return (self.width, self.height)
 
 RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
 RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
