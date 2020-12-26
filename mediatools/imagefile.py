@@ -441,8 +441,8 @@ def avg_width(files):
 
 
 def posterize(files, posterfile=None, background_color="black", margin=5):
-    min_h = max_height(files)
-    min_w = max_width(files)
+    min_h = max([ImageFile(f).height for f in files])
+    min_w = max([ImageFile(f).width for f in files])
     util.logger.debug("Max W x H = %d x %d", min_w, min_h)
     gap = (min_w * margin) // 100
 
