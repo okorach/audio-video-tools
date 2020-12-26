@@ -99,7 +99,7 @@ def file_list(*args, file_type=None):
     for arg in args:
         logger.debug("Check file %s", str(arg))
         if os.path.isdir(arg):
-            files.extend(dir_list(arg), file_type=file_type)
+            files.extend(dir_list(arg, file_type=file_type))
         elif file_type is None or __is_type_file(arg, file_type):
             files.append(arg)
     return files
