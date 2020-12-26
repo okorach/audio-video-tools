@@ -19,16 +19,15 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import mediatools.utilities as util
 import mediatools.options as opt
 
 
+LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
-LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
 
 class Encoder:
     '''Encoder abstraction'''
-    SETTINGS = ['format', 'vcodec', 'vbitrate', 'acodec', 'abitrate', 'fps', 'aspect', \
+    SETTINGS = ['format', 'vcodec', 'vbitrate', 'acodec', 'abitrate', 'fps', 'aspect',
                 'vsize', 'deinterlace', 'achannel', 'asample', 'vfilter', 'start', 'stop']
 
     def __init__(self, **kwargs):
@@ -88,10 +87,10 @@ class Encoder:
         self.add_vfilter("crop={0}:{1}:{2}:{3}".format(width, height, top, left))
 
     def add_deshake_filter(self, width, height):
-    # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
+        # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
         self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height))
 
-    def add_fade_filter(self, fade_d, start = None, stop = None):
+    def add_fade_filter(self, fade_d, start=None, stop=None):
         if start is None:
             start = self.start
         if start is None:

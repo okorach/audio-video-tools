@@ -24,7 +24,6 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
-import sys
 import os
 import re
 from shutil import copyfile
@@ -32,8 +31,8 @@ import mediatools.videofile as video
 import mediatools.audiofile as audio
 import mediatools.imagefile as img
 import mediatools.utilities as util
-import mediatools.mediafile as media
 import mediatools.options as opt
+
 
 def encode_file(args, options):
     '''Encodes a single file'''
@@ -74,6 +73,7 @@ def encode_file(args, options):
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, "combined", ext)
         video.concat(target_file, filelist)
 
+
 def encode_dir(args, options):
     '''Encodes a whole directory'''
     targetdir = args.inputfile + '.' + args.profile
@@ -104,6 +104,7 @@ def encode_dir(args, options):
             util.logger.info("Skipping/Plain Copy file %s", fname)
         i = i + 1
     util.logger.info('%05d/%05d : 100%% : Job finished', nbfiles, nbfiles)
+
 
 def main():
     parser = util.parse_common_args('Audio and Video file (re)encoder')

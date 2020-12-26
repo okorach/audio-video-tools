@@ -29,9 +29,9 @@
 # --size parameter is exclusive to --width and/or --height
 #
 import sys
-import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
+
 
 def main():
     parser = util.parse_common_args('Image resizer')
@@ -53,6 +53,7 @@ def main():
 
     newfile = image.ImageFile(kwargs.pop('inputfile')).resize(width, height)
     util.logger.info("Generated %s", newfile)
+
 
 if __name__ == "__main__":
     main()

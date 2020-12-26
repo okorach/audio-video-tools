@@ -28,7 +28,6 @@
 import sys
 import os
 import mediatools.utilities as util
-import mediatools.audiofile as audio
 import mediatools.imagefile as image
 
 DEFAULT_RESCALING = '512x512'
@@ -47,7 +46,7 @@ def main():
     file_list = []
     dir_list = []
     background = "black"
-    margin=5
+    margin = 5
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)

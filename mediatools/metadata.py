@@ -26,7 +26,6 @@
 # - Languages of audio tracks
 # - Author of video
 
-import argparse
 import mediatools.utilities as util
 import mediatools.videofile as video
 
@@ -38,17 +37,17 @@ def main():
     parser.add_argument('--year', required=False, help='Year the media file was produced')
     parser.add_argument('--default_track', required=False, type=int, help='Default track')
     parser.add_argument('--languages', required=False, nargs='+', help='Languages of tracks, eg 0:fre 1:eng')
-    parser.add_argument('--titles', required=False, nargs='+', \
+    parser.add_argument('--titles', required=False, nargs='+',
                         help='Titles of tracks, eg "0:French canadian" "1:English with music"')
     kwargs = vars(parser.parse_args())
 
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
     if util.is_video_file(inputfile):
-        metas = {'copyright': kwargs.pop('copyright', None), \
-                'author': kwargs.pop('author', None), \
+        metas = {'copyright': kwargs.pop('copyright', None),
+                'author': kwargs.pop('author', None),
                 'year': kwargs.pop('year', None)
-                }
+        }
         inputfile = video.VideoFile(inputfile).add_metadata(**metas)
         if 'default_track' in kwargs:
             inputfile = video.VideoFile(inputfile).set_default_track(kwargs['default_track'])

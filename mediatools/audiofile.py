@@ -22,10 +22,12 @@
 import re
 import os
 import shutil
+from mp3_tagger import MP3File
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
+
 
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
@@ -42,7 +44,7 @@ class AudioFile(media.MediaFile):
         self.abitrate = None
         self.duration = None
         self.audio_sample_rate = None
-        super(AudioFile, self).__init__(filename)
+        super().__init__(filename)
 
     def get_audio_specs(self):
         for stream in self.specs['streams']:
@@ -58,7 +60,6 @@ class AudioFile(media.MediaFile):
 
     def get_tags(self):
         """Returns all file MP3 tags"""
-        from mp3_tagger import MP3File
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise media.FileTypeError('File %s is not an mp3 file')
             # Create MP3File instance.
@@ -102,14 +103,13 @@ class AudioFile(media.MediaFile):
         return self.genre
 
     def get_specs(self):
-        #super(AudioFile, self).get_specs()
         self.get_audio_specs()
 
     def get_audio_properties(self):
         if self.acodec is None:
             self.get_specs()
-        return {opt.media.ABITRATE: self.abitrate, opt.media.ACODEC: self.acodec, \
-                'audio_sample_rate': self.audio_sample_rate }
+        return {opt.media.ABITRATE: self.abitrate, opt.media.ACODEC: self.acodec,
+                'audio_sample_rate': self.audio_sample_rate}
 
     def get_properties(self):
         all_props = self.get_file_properties()
@@ -140,6 +140,7 @@ class AudioFile(media.MediaFile):
         util.logger.info("File %s encoded", target_file)
         return target_file
 
+
 def encode_album_art(source_file, album_art_file, **kwargs):
     """Encodes album art image in an audio file after optionally resizing"""
     # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
@@ -148,13 +149,13 @@ def encode_album_art(source_file, album_art_file, **kwargs):
     target_file = util.add_postfix(source_file, 'album_art')
 
     if kwargs['scale'] is not None:
-        w, h = re.split("x",kwargs['scale'])
-        album_art_file = image.rescale(album_art_file, int(w), int(h))
+        (w, h) = [int(x) for x in re.split("x", kwargs['scale'])]
+        album_art_file = image.ImageFile(album_art_file).scale(w, h)
 
     # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
     # -metadata:s:v comment="Cover (Front)" %1.mp3
-    util.run_ffmpeg('-i "%s" -i "%s"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 %s "%s"' % \
-        (source_file, album_art_file, album_art_std_settings, target_file))
+    util.run_ffmpeg('-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
+        source_file, album_art_file, album_art_std_settings, target_file))
     shutil.copy(target_file, source_file)
     os.remove(target_file)
     if kwargs['scale'] is not None:

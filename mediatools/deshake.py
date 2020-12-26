@@ -23,9 +23,9 @@
 # to improve image stabilization
 
 import re
-import argparse
 import mediatools.utilities as util
 import mediatools.videofile as video
+
 
 def parse_args():
     parser = util.parse_common_args(desc='Apply deshake filter')
@@ -52,4 +52,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

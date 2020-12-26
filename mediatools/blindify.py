@@ -22,7 +22,6 @@
 # This script creates a venetian blinds effect on an image
 # ie interweaves slices of images and slices of black (or white)
 
-import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
 

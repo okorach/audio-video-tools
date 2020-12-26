@@ -25,7 +25,6 @@ It can also rescale all the images of a given directory
 Pass rescale dimensions as -s WxH
 '''
 
-import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
 

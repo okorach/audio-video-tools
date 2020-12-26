@@ -26,7 +26,6 @@ import re
 import logging
 import subprocess
 import shlex
-import jprops
 import mediatools.options as opt
 
 DEBUG_LEVEL = 0
@@ -34,25 +33,27 @@ DRY_RUN = False
 logger = logging.getLogger('mediatools')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh = logging.FileHandler('mediatools.log')
-#fh.setLevel(logging.DEBUG)
+# fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-#ch.setLevel(logging.DEBUG)
+# ch.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 logger.addHandler(ch)
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 
+
 class MediaType:
     AUDIO_FILE = 1
     VIDEO_FILE = 2
     IMAGE_FILE = 3
-    FILE_EXTENSIONS = { AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
-                        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
-                        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$' }
+    FILE_EXTENSIONS = {
+        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
+        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
+        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$'
+    }
 
 
-
-LANGUAGE_MAPPING = { 'fre': 'French', 'eng': 'English'}
+LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
 
@@ -141,14 +142,14 @@ def __match_extension__(file, regex):
     return not re.search(p, ext) is None
 
 
-def add_postfix(file, postfix, extension = None):
+def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
     if extension is None:
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
 
 
-def automatic_output_file_name(outfile, infile, postfix, extension = None):
+def automatic_output_file_name(outfile, infile, postfix, extension=None):
     if outfile is not None:
         return outfile
     postfix.replace(':', '-')
@@ -189,12 +190,12 @@ def get_file_type(file):
     return filetype
 
 
-def get_ffbin(ffprop, props_file=None):
+def get_ffbin(ffprop):
     props = get_media_properties()
 
     if not re.search('\\' + os.path.sep, props[ffprop]):
         return props[ffprop]
-    return props[ffprop] # os.path.realpath(props[ffprop])
+    return props[ffprop]      # os.path.realpath(props[ffprop])
 
 
 def get_ffmpeg():
@@ -239,14 +240,14 @@ def run_ffmpeg(params):
 def build_ffmpeg_file_list(file_list):
     s = ''
     for f in file_list:
-        s = s + ' -i "%s"' % f
+        s += ' -i "%s"' % f
     return s
 
 
 def build_ffmpeg_complex_prep(file_list):
     s = ''
-    for i in range(len(file_list)+1):
-        s = s + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+    for i in range(len(file_list) + 1):
+        s += "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
     return s
 
 
@@ -269,13 +270,13 @@ def get_conf_property(prop):
 
 def to_hms(seconds):
     try:
-        s = float(seconds)
-        hours = int(s)//3600
-        minutes = int(s)//60 - hours*60
-        secs = s - hours*3600 - minutes*60
+        s = int(seconds)
+        hours = s // 3600
+        minutes = s // 60 - hours * 60
+        secs = float(seconds) - hours * 3600 - minutes * 60
         return (hours, minutes, secs)
     except TypeError:
-        return (0,0,0)
+        return (0, 0, 0)
 
 
 def to_seconds(hms):
@@ -365,17 +366,20 @@ def parse_common_args(desc):
 
     return parser
 
+
 def cleanup_options(kwargs):
     new_options = remove_nones(kwargs)
     for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
 
+
 def check_environment(kwargs):
     set_debug_level(kwargs.pop('debug', 0))
     set_dry_run(kwargs.pop('dry_run', 'false'))
 
-def get_profile_extension(profile, properties = None):
+
+def get_profile_extension(profile, properties=None):
     if properties is None:
         properties = get_media_properties()
     extension = properties.get(profile + '.extension', None)
@@ -383,9 +387,11 @@ def get_profile_extension(profile, properties = None):
         extension = properties.get('default.extension', None)
     return extension
 
+
 def get_profile_params(profile):
     props = get_media_properties()
-    return get_cmdline_params(props[profile +'.cmdline'])
+    return get_cmdline_params(props[profile + '.cmdline'])
+
 
 def get_cmdline_params(cmdline):
     """Returns a dictionary of all parameters found on input string command line
@@ -410,9 +416,11 @@ def get_cmdline_params(cmdline):
                 found = False
     return parms
 
+
 def int_split(string, separator):
     a, b = string.split(separator)
     return [int(a), int(b)]
+
 
 def get_ffmpeg_cmdline_param(cmdline, param):
     m = re.search(rf"{param}\s+(\S+)", cmdline)
@@ -420,17 +428,21 @@ def get_ffmpeg_cmdline_param(cmdline, param):
         return m.group(1)
     return None
 
+
 def get_ffmpeg_cmdline_switch(cmdline, param):
     m = re.search(rf'{param}\s', cmdline)
     if m:
         return True
     return False
 
+
 def get_ffmpeg_cmdline_vbitrate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.VBITRATE)
 
+
 def get_ffmpeg_cmdline_abitrate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ABITRATE)
+
 
 def get_ffmpeg_cmdline_vcodec(cmdline):
     for option in [opt.ff.VCODEC, opt.ff.VCODEC2, opt.ff.VCODEC3]:
@@ -447,35 +459,46 @@ def get_ffmpeg_cmdline_acodec(cmdline):
             return v
     return None
 
+
 def get_ffmpeg_cmdline_framesize(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.SIZE)
+
 
 def get_ffmpeg_cmdline_framerate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FPS)
 
+
 def get_ffmpeg_cmdline_aspect_ratio(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ASPECT)
+
 
 def get_ffmpeg_cmdline_vfilter(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-vf')
 
+
 def get_ffmpeg_cmdline_achannels(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ACHANNEL)
+
 
 def get_ffmpeg_cmdline_format(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FORMAT)
 
+
 def get_ffmpeg_cmdline_deinterlace(cmdline):
     return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.ff.DEINTERLACE)
+
 
 def get_ffmpeg_cmdline_amute(cmdline):
     return get_ffmpeg_cmdline_switch(cmdline, '-an')
 
+
 def get_ffmpeg_cmdline_vmute(cmdline):
     return get_ffmpeg_cmdline_switch(cmdline, '-vn')
 
+
 def get_audio_sample_rate(cmdline):
     return get_ffmpeg_cmdline_param(cmdline, '-ar')
+
 
 def get_ffmpeg_cmdline_params(cmdline):
     p = {}
@@ -494,11 +517,14 @@ def get_ffmpeg_cmdline_params(cmdline):
     p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
     return remove_nones(p)
 
+
 def remove_nones(p):
     return dict((k, v) for k, v in p.items() if v is not None)
 
+
 def swap_keys_values(p):
     return dict([(v, k) for k, v in p.items()])
+
 
 def dict2str(options):
     cmd = ''

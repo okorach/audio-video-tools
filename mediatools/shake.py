@@ -25,7 +25,6 @@ Effect can be horizontal or vertical
 Arguments: -c <color> -r <ratio> -n <slices> -d <direction>
 '''
 
-import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
