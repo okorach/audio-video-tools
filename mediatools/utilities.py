@@ -381,7 +381,7 @@ def cleanup_options(kwargs):
 
 
 def check_environment(kwargs):
-    set_debug_level(kwargs.pop('debug', 0))
+    set_debug_level(kwargs.pop('debug', 1))
     set_dry_run(kwargs.pop('dry_run', 'false'))
 
 
