@@ -216,9 +216,9 @@ class VideoFile(media.MediaFile):
             self.get_specs()
         return {
             'file_size': self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate,
-            opt.media.VCODEC: self.video_codec, opt.media.FPS:self.video_fps,
+            opt.media.VCODEC: self.video_codec, opt.media.FPS: self.video_fps,
             'width': self.width, 'height': self.height, opt.media.ASPECT: self.aspect,
-            'pixel_aspect_ratio': self.pixel_aspect,'author': self.author,
+            'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
             'copyright': self.copyright, 'year': self.year
         }
 
@@ -251,7 +251,6 @@ class VideoFile(media.MediaFile):
             "crop_{0}x{1}-{2}x{3}".format(width, height, top, left))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
 
-
         cmd = '-i "%s" %s %s -aspect %s "%s"' % (self.filename,
             media.build_ffmpeg_options(media_opts), media.get_crop_filter_options(width, height, top, left),
             aspect, out_file)
@@ -275,7 +274,7 @@ class VideoFile(media.MediaFile):
         if fade is not None:
             fmt = "fade=type={0}:duration={1}:start_time={2}"
             fader = fmt.format('in', fade, util.to_seconds(start)) + "," + \
-                    fmt.format('out', fade, util.to_seconds(stop) - fade)
+                fmt.format('out', fade, util.to_seconds(stop) - fade)
             video_filters.append(fader)
         util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(media_opts),
                                                 media.build_video_filters_options(video_filters), out_file))
