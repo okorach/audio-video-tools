@@ -80,26 +80,13 @@ class ImageFile(media.MediaFile):
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg(('-y ' + INPUT_FILE_FMT + ' -vf crop=%d:%d:%d:%d "%s"') % (self.filename, w, h, x, y, out_file))
 
-    def resize(self, width=None, height=None, out_file=None):
-        '''Resizes an image file
-        If one of width or height is None, then it is calculated to
-        preserve the image aspect ratio'''
-        if width is None and height is None:
-            util.logger.error("Resize requested with neither width not height")
-            return None
-        if isinstance(width, str):
-            width = int(width)
-        if isinstance(height, str):
-            height = int(height)
-        if width is None:
-            w, h = self.get_dimensions()
-            width = w * height // h
-        elif height is None:
-            w, h = self.get_dimensions()
-            height = h * width // w
-        util.logger.debug("Resizing %s to %d x %d into %s", self.filename, width, height, out_file)
-        out_file = util.automatic_output_file_name(out_file, self.filename, "resized-%dx%d" % (width, height))
-        util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (self.filename, width, height, out_file))
+    def scale(self, w=-1, h=-1, out_file=None):
+        out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
+        if w == -1 and h == -1:
+            shutil.copy(self.filename, out_file)
+            return out_file
+        util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
+        util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
         return out_file
 
     def slice_vertical(self, nbr_slices, round_to=16, slice_pattern='slice'):
@@ -392,15 +379,6 @@ class ImageFile(media.MediaFile):
             return self.panorama(effect=__get_random_panorama__(), resolution=resolution, hw_accel=hw_accel)
         else:
             return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
-
-    def scale(self, w=-1, h=-1, out_file=None):
-        out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
-        if w == -1 and h == -1:
-            shutil.copy(self.filename, out_file)
-            return out_file
-        util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
-        util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
-        return out_file
 
 
 def get_rectangle(color, w, h):
