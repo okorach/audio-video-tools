@@ -24,7 +24,6 @@
 # horizontally or vertically
 
 import sys
-import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
@@ -41,7 +40,6 @@ def main():
             direction = sys.argv.pop(0)
         else:
             files.append(arg)
-    # files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
 
     if len(files) > 0:
         output = image.stack(*files, direction=direction)
@@ -49,8 +47,8 @@ def main():
         print('Generated', output)
     else:
         util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
-        exit(1)
-    exit(0)
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
