@@ -28,6 +28,11 @@ Pass rescale dimensions as -s WxH
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
+def int_or_empty(x):
+    if x == "":
+        return -1
+    else:
+        return int(x)
 
 def main():
     parser = util.parse_common_args('Rescale image dimensions of a file or directory')
@@ -35,8 +40,8 @@ def main():
 
     args = parser.parse_args()
     util.check_environment(vars(args))
-    width, height = args.scale.split("x")
-    outputfile = image.ImageFile(args.inputfile).scale(int(width), int(height), out_file=args.outputfile)
+    width, height = [int_or_empty(x) for x in args.scale.split("x")]
+    outputfile = image.ImageFile(args.inputfile).scale(width, height, out_file=args.outputfile)
 
     print('Generated', outputfile)
 
