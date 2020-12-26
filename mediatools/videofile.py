@@ -179,24 +179,23 @@ class VideoFile(media.MediaFile):
                 stream = self.__get_first_video_stream__()
             w = int(util.get_first_value(stream, ('width', 'codec_width', 'coded_width')))
             h = int(util.get_first_value(stream, ('height', 'codec_height', 'coded_height')))
-            if w is not None and h is not None:
-                self.resolution = media.Resolution(width=w, height=h)
+            self.resolution = media.Resolution(width=w, height=h)
         util.logger.debug("Returning (%d, %d)", self.width(), self.height())
         return (self.resolution.width, self.resolution.height)
 
     def height(self):
         if self.resolution is None:
-            _, _ = self.dimension()
+            _, _ = self.dimensions()
         return self.resolution.height
 
     def width(self):
         if self.resolution is None:
-            _, _ = self.get_dimension()
+            _, _ = self.dimensions()
         return self.resolution.width
 
     def resolution(self):
         if self.resolution is None:
-            _, _ = self.get_dimension()
+            _, _ = self.dimensions()
         return self.resolution
 
     def calc_resolution(self, w, h):
@@ -236,17 +235,11 @@ class VideoFile(media.MediaFile):
         iw, ih = self.dimensions()
         media_opts = self.get_properties()
         media_opts[opt.media.ACODEC] = 'copy'
-
-        util.logger.debug("iw, width, ih, height = {}, {}, {}, {}".format(iw, width, ih, height))
-
         (width, height) = self.calc_resolution(width, height)
-        util.logger.debug("iw, width, ih, height = %d, %d, %d, %d, ", iw, width, ih, height)
 
         top = kwargs.get('top', None)
         left = kwargs.get('left', None)
         pos = kwargs.get('position', None)
-        util.logger.debug("kwargs = %s", str(kwargs))
-
         if top is None:
             if pos is None:
                 pos = "center"
