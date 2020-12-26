@@ -28,6 +28,7 @@ used in several places
 in mediatools library
 '''
 
+
 class ff:
     '''Documents supported ffmpeg options'''
     FORMAT = 'f'
@@ -48,6 +49,7 @@ class ff:
     VFILTER = 'vf'
     START = 'ss'
     STOP = 'to'
+
 
 class media:
     '''Documents supported audio-video-tools encoding options'''
@@ -76,21 +78,22 @@ class media:
     DURATION = 'duration'
     LANGUAGE = 'language'
 
-M2F_MAPPING = { \
-    media.FORMAT:ff.FORMAT, \
-    media.VCODEC:ff.VCODEC, \
-    media.VBITRATE:ff.VBITRATE, \
-    media.ACODEC:ff.ACODEC, \
-    media.ABITRATE:ff.ABITRATE, \
-    media.FPS:ff.FPS, \
-    media.ASPECT:ff.ASPECT, \
-    media.SIZE:ff.SIZE, \
-    media.DEINTERLACE:ff.DEINTERLACE, \
-    media.ACHANNEL:ff.ACHANNEL, \
-    media.VFILTER:ff.VFILTER, \
-    media.START:ff.START, \
-    media.STOP:ff.STOP \
-    }
+
+M2F_MAPPING = {
+    media.FORMAT: ff.FORMAT,
+    media.VCODEC: ff.VCODEC,
+    media.VBITRATE: ff.VBITRATE,
+    media.ACODEC: ff.ACODEC,
+    media.ABITRATE: ff.ABITRATE,
+    media.FPS: ff.FPS,
+    media.ASPECT: ff.ASPECT,
+    media.SIZE: ff.SIZE,
+    media.DEINTERLACE: ff.DEINTERLACE,
+    media.ACHANNEL: ff.ACHANNEL,
+    media.VFILTER: ff.VFILTER,
+    media.START: ff.START,
+    media.STOP: ff.STOP
+}
 
 F2M_MAPPING = {}
 for k, v in M2F_MAPPING.items():
@@ -99,6 +102,7 @@ F2M_MAPPING[ff.ACODEC2] = media.ACODEC
 F2M_MAPPING[ff.ACODEC3] = media.ACODEC
 F2M_MAPPING[ff.VCODEC2] = media.VCODEC
 F2M_MAPPING[ff.VCODEC3] = media.VCODEC
+
 
 def media2ffmpeg(options):
     # Returns ffmpeg cmd options dict from media options dict
@@ -110,6 +114,7 @@ def media2ffmpeg(options):
         if key in options and options[key] is not None:
             ffopts[M2F_MAPPING[key]] = options[key]
     return util.remove_nones(ffopts)
+
 
 def ffmpeg2media(options):
     # Returns ffmpeg cmd options dict from media options dict

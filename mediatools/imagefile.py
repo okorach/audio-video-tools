@@ -19,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
 import math
 import re
 import random
@@ -28,12 +27,12 @@ import mediatools.utilities as util
 import mediatools.mediafile as media
 import mediatools.filters as filters
 
-INPUT_FILE_FMT =  ' -i "%s"'
+INPUT_FILE_FMT = ' -i "%s"'
 STEP_FMT = "[step%d]; "
 OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
 OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
-# ET blah blah blah et bla bla bli
+
 class ImageFile(media.MediaFile):
 
     SUPPORTED_IMG_CODECS = ('mjpeg', 'png', 'gif')
@@ -53,8 +52,6 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Returning image props %s\nObject %s", str(all_props), str(vars(self)))
         return all_props
 
-# ET blah blah blah et bla bla bli
-
     def probe(self):
         if self.specs is not None:
             return
@@ -73,35 +70,16 @@ class ImageFile(media.MediaFile):
     def get_ratio(self):
         return self.width / self.height
 
-
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
     def get_image_properties(self):
-        return { 'format':self.format, 'width':self.width, 'height': self.height, 'pixels': self.pixels  }
+        return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
-    def crop(self, w, h, x, y, out_file = None):
+    def crop(self, w, h, x, y, out_file=None):
         util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
         # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
         util.run_ffmpeg(('-y ' + INPUT_FILE_FMT + ' -vf crop=%d:%d:%d:%d "%s"') % (self.filename, w, h, x, y, out_file))
 
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-# ET blah blah blah et bla bla bli
-
-    def resize(self, width = None, height = None, out_file = None):
+    def resize(self, width=None, height=None, out_file=None):
         '''Resizes an image file
         If one of width or height is None, then it is calculated to
         preserve the image aspect ratio'''
@@ -120,41 +98,41 @@ class ImageFile(media.MediaFile):
             height = h * width // w
         util.logger.debug("Resizing %s to %d x %d into %s", self.filename, width, height, out_file)
         out_file = util.automatic_output_file_name(out_file, self.filename, "resized-%dx%d" % (width, height))
-        util.run_ffmpeg((INPUT_FILE_FMT+ ' -vf scale=%d:%d "%s"') % (self.filename, width, height, out_file))
+        util.run_ffmpeg((INPUT_FILE_FMT + ' -vf scale=%d:%d "%s"') % (self.filename, width, height, out_file))
         return out_file
 
-    def slice_vertical(self, nbr_slices, round_to = 16, slice_pattern = 'slice'):
+    def slice_vertical(self, nbr_slices, round_to=16, slice_pattern='slice'):
         w, h = self.get_dimensions()
         slice_w = max(w // nbr_slices, round_to)
         slices = []
-        nbr_slices = min(nbr_slices, (w // slice_w)+1)
+        nbr_slices = min(nbr_slices, (w // slice_w) + 1)
         for i in range(nbr_slices):
             slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
-            self.crop(slice_w, h, i*slice_w, 0, slicefile)
+            self.crop(slice_w, h, i * slice_w, 0, slicefile)
             slices.append(slicefile)
         return slices
 
-    def slice_horizontal(self, nbr_slices, round_to = 16, slice_pattern = 'slice'):
+    def slice_horizontal(self, nbr_slices, round_to=16, slice_pattern='slice'):
         w, h = self.get_dimensions()
         slice_h = max(h // nbr_slices, round_to)
         slices = []
-        nbr_slices = min(nbr_slices, (h // slice_h)+1)
+        nbr_slices = min(nbr_slices, (h // slice_h) + 1)
         for i in range(nbr_slices):
             slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
             self.crop(w, slice_h, 0, i * slice_h, slicefile)
             slices.append(slicefile)
         return slices
 
-    def slice(self, nbr_slices, direction = 'vertical', round_to = 16, slice_pattern = 'slice'):
+    def slice(self, nbr_slices, direction='vertical', round_to=16, slice_pattern='slice'):
         if direction == 'horizontal':
             return self.slice_horizontal(nbr_slices, round_to, slice_pattern)
         else:
             return self.slice_vertical(nbr_slices, round_to, slice_pattern)
 
-    def crop_any(self, width_height_ratio = "1.5", align = "center", out_file = None):
+    def crop_any(self, width_height_ratio="1.5", align="center", out_file=None):
         if re.match(r"^\d+:\d+$", width_height_ratio):
-            a, b = re.split(r':', width_height_ratio)
-            ratio = float(a)/float(b)
+            a, b = [float(x) for x in width_height_ratio.split(':')]
+            ratio = a / b
         else:
             ratio = float(width_height_ratio)
 
@@ -171,18 +149,18 @@ class ImageFile(media.MediaFile):
         y = 0
         if align == 'right':
             if ratio > current_ratio:
-                y = h-crop_h
+                y = h - crop_h
             else:
-                x = w-crop_w
+                x = w - crop_w
         elif align == 'center':
             if ratio > current_ratio:
-                y = (h-crop_h)//2
+                y = (h - crop_h) // 2
             else:
-                x = (w-crop_w)//2
+                x = (w - crop_w) // 2
 
         self.crop(crop_w, crop_h, x, y, out_file)
 
-    def blindify(self, out_file = None, **kwargs):
+    def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
         background_color = kwargs.pop('background_color', 'black')
@@ -193,9 +171,9 @@ class ImageFile(media.MediaFile):
         h_gap = h * blinds_size_pct // 100
 
         if direction == 'horizontal':
-            tmpbg = get_rectangle(background_color, w, (h//nbr_slices*nbr_slices) + h_gap*(nbr_slices-1))
+            tmpbg = get_rectangle(background_color, w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
         else:
-            tmpbg = get_rectangle(background_color, (w//nbr_slices*nbr_slices) + w_gap*(nbr_slices-1), h)
+            tmpbg = get_rectangle(background_color, (w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
 
         # ffmpeg -i file1.jpg -i file2.jpg -i bg.tmp.jpg \
         # -filter_complex "[0]scale=iw:-1:flags=lanczos[pip0]; \
@@ -210,9 +188,9 @@ class ImageFile(media.MediaFile):
         filelist = filelist + INPUT_FILE_FMT % tmpbg
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
-        #i = 0
-        #cmplx = ''
-        #for slicefile in slices:
+        # i = 0
+        # cmplx = ''
+        # for slicefile in slices:
         #    cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
         #    i = i + 1
 
@@ -224,19 +202,19 @@ class ImageFile(media.MediaFile):
         y = 0
         for slicefile in slices:
             if direction == 'horizontal':
-                y = (j+1) * (h // nbr_slices + h_gap)
+                y = (j + 1) * (h // nbr_slices + h_gap)
             else:
-                x = (j+1) * (w // nbr_slices + w_gap)
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
-            if slicefile != slices[len(slices)-1]:
-                cmplx = cmplx + STEP_FMT % (j+1)
-            j = j+1
+                x = (j + 1) * (w // nbr_slices + w_gap)
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
+            if slicefile != slices[len(slices) - 1]:
+                cmplx = cmplx + STEP_FMT % (j + 1)
+            j += 1
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
         util.run_ffmpeg('%s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
         util.delete_files(*slices, first_slice, tmpbg)
 
-    def shake_vertical(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
+    def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
         w, h = self.get_dimensions()
         h_jitter = h * shake_pct // 100
         slice_width = max(w // nbr_slices, 16)
@@ -251,18 +229,18 @@ class ImageFile(media.MediaFile):
         first_slice = slices.pop(0)
 
         for j in range(n_slices):
-            x = (j+1) * slice_width
+            x = (j + 1) * slice_width
             y = random.randint(1, h_jitter)
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
-            if j < n_slices-1:
-                cmplx = cmplx + STEP_FMT % (j+1)
-            j = j+1
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
+            if j < n_slices - 1:
+                cmplx = cmplx + STEP_FMT % (j + 1)
+            j += 1
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
-    def shake_horizontal(self, nbr_slices = 10 , shake_pct = 3, background_color = "black", out_file = None):
+    def shake_horizontal(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
         w, h = self.get_dimensions()
         w_jitter = w * shake_pct // 100
         slice_height = max(h // nbr_slices, 16)
@@ -278,11 +256,11 @@ class ImageFile(media.MediaFile):
 
         for j in range(n_slices):
             x = random.randint(1, w_jitter)
-            y = (j+1) * slice_height
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j+1, x, y)
-            if j < n_slices-1:
-                cmplx = cmplx + STEP_FMT % (j+1)
-            j = j+1
+            y = (j + 1) * slice_height
+            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
+            if j < n_slices - 1:
+                cmplx = cmplx + STEP_FMT % (j + 1)
+            j += 1
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
         util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
@@ -296,7 +274,7 @@ class ImageFile(media.MediaFile):
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
     def zoom(self, **kwargs):
-        (zstart, zstop) = list(map(lambda x: max(x, 100), kwargs.get('effect', (100, 130))))
+        (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
         fps = int(kwargs.get('framerate', 50))
         duration = float(kwargs.get('duration', 5))
         resolution = kwargs.get('resolution', media.Resolution.DEFAULT_VIDEO)
@@ -315,13 +293,13 @@ class ImageFile(media.MediaFile):
 
         step = abs(zstop - zstart) / 100 / duration / fps
         if zstop < zstart:
-            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart/100, zstop/100, step)
+            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart / 100, zstop / 100, step)
         else:
-            zformula = "min(zoom+{},{})".format(step, zstop/100)
+            zformula = "min(zoom+{},{})".format(step, zstop / 100)
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
-        cmd = "-i \"{}\" -framerate {} -filter_complex \"[0:v]{}[v]\" -map \"[v]\" -s {} \"{}\"".format(
+        cmd = '-i "{}" -framerate {} -filter_complex    [0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
             self.filename, fps, ','.join(vfilters), resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -335,7 +313,7 @@ class ImageFile(media.MediaFile):
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio / 1.3:
             u_res.width = int(u_res.width * 1.5)
-            u_res.height = int(u_res.width  / self.ratio)
+            u_res.height = int(u_res.width / self.ratio)
         else:
             u_res.height = int(u_res.width / self.ratio)
         return u_res
@@ -379,14 +357,14 @@ class ImageFile(media.MediaFile):
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
 
-        inputs = ''
         vcodec = ''
+        gpu_codec = ''
         if hw_accel:
-            inputs += ' -hwaccel cuvid -c:v h264_cuvid'
+            gpu_codec = '-hwaccel cuvid -c:v h264_cuvid'
             vcodec = '-c:v h264_nvenc'
 
         cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"[0:v]{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, inputs, self.filename, ','.join(vfilters), duration, vcodec, str(v_res), out_file)
+            framerate, gpu_codec, self.filename, ','.join(vfilters), duration, vcodec, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -439,7 +417,8 @@ def get_rectangle(color, w, h):
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
     return ImageFile(bgfile).scale(w, h, out_file="bg.tmp.jpg")
 
-def stack(file1, file2, direction, out_file = None):
+
+def stack(file1, file2, direction, out_file=None):
     util.logger.debug("stack(%s, %s, %s, _)", file1, file2, direction)
     if not util.is_image_file(file1):
         raise media.FileTypeError('File %s is not an image file' % file1)
@@ -470,40 +449,50 @@ def stack(file1, file2, direction, out_file = None):
 
     # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
 
-    util.run_ffmpeg((INPUT_FILE_FMT + INPUT_FILE_FMT + '-filter_complex %s "%s"') % (tmpfile1, tmpfile2, filter_name, out_file))
+    util.run_ffmpeg((INPUT_FILE_FMT + INPUT_FILE_FMT + '-filter_complex %s "%s"') % (
+                    tmpfile1, tmpfile2, filter_name, out_file))
     if tmpfile1 is not file1:
         util.delete_files(tmpfile1)
     if tmpfile2 is not file2:
         util.delete_files(tmpfile2)
     return out_file
 
+
 def get_widths(files):
     # [ImageFile(file).width for file in files]
     return list(map(lambda file: ImageFile(file).width, files))
+
 
 def get_heights(files):
     # [ImageFile(file).height for file in files]
     return list(map(lambda file: ImageFile(file).height, files))
 
+
 def min_height(files):
     return min(get_heights(files))
+
 
 def min_width(files):
     return min(get_widths(files))
 
+
 def max_height(files):
     return max(get_heights(files))
+
 
 def max_width(files):
     return max(get_widths(files))
 
+
 def avg_height(files):
     values = get_heights(files)
-    return sum(values)//len(values)
+    return sum(values) // len(values)
+
 
 def avg_width(files):
     values = get_widths(files)
-    return sum(values)//len(values)
+    return sum(values) // len(values)
+
 
 def posterize(files, posterfile=None, background_color="black", margin=5):
     min_h = max_height(files)
@@ -516,10 +505,10 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     rows = int(round(root))
     if rows < root:
         rows += 1
-    cols = (nb_files + rows-1) // rows
+    cols = (nb_files + rows - 1) // rows
 
-    full_w = (cols*min_w) + (cols+1)*gap
-    full_h = (rows*min_h) + (rows+1)*gap
+    full_w = (cols * min_w) + (cols + 1) * gap
+    full_h = (rows * min_h) + (rows + 1) * gap
 
     util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
                       min_w, min_h, gap, cols, rows, full_w, full_h)
@@ -538,7 +527,8 @@ def posterize(files, posterfile=None, background_color="black", margin=5):
     util.delete_files(tmpbg)
     return posterfile
 
-def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images = 10000):
+
+def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images=10000):
     i_photo = 1
     cmplx = "[pip0][pip1]overlay=%d:%d[step1] " % (gap, gap)
     for irow in range(rows):
@@ -548,9 +538,9 @@ def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images = 10000):
             if i_photo >= max_images:
                 continue
             i_photo += 1
-            x = gap+icol*(img_w+gap)
-            y = gap+irow*(img_h+gap)
-            cmplx += "; [step%d][pip%d]overlay=%d:%d" % (i_photo-1, i_photo, x, y)
+            x = gap + icol * (img_w + gap)
+            y = gap + irow * (img_h + gap)
+            cmplx += "; [step%d][pip%d]overlay=%d:%d" % (i_photo - 1, i_photo, x, y)
             if i_photo < max_images:
                 cmplx += "[step%d]" % i_photo
 
@@ -577,7 +567,8 @@ def __get_random_panorama__():
 
     return (xstart, xstop, ystart, ystop)
 
-def __get_random_zoom__(zmin = 100, zmax = 150):
+
+def __get_random_zoom__(zmin=100, zmax=150):
     rmin = zmin + 10 * random.randint(0, 2)
     rmax = zmax - 10 * random.randint(0, 2)
     if rmax - rmin < 20:
@@ -587,6 +578,7 @@ def __get_random_zoom__(zmin = 100, zmax = 150):
     if random.randint(0, 1) == 0:
         return (rmin, rmax)
     return (rmax, rmin)
+
 
 def __panorama_bounds__(img_x, img_y, video_x, video_y, duration):
     bound = 0

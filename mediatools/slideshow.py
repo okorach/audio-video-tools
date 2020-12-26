@@ -25,6 +25,7 @@ import mediatools.mediafile as media
 import mediatools.videofile as video
 import mediatools.version as version
 
+
 def main():
     files = []
     util.set_logger('video-slideshow')

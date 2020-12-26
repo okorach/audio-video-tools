@@ -23,7 +23,6 @@
 # in a video file with already one audio track
 
 import sys
-import os
 import mediatools.videofile as video
 import mediatools.utilities as util
 
@@ -31,7 +30,7 @@ import mediatools.utilities as util
 def main():
     util.set_debug_level(5)
     afiles = []
-    for i in range (0, len(sys.argv)):
+    for i in range(0, len(sys.argv)):
         file = sys.argv[i]
         if util.is_video_file(file):
             vfile = file

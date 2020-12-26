@@ -19,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import mediatools.utilities as util
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -28,7 +27,7 @@ class FilterError(Exception):
 
 
 def __str_streams__(streams):
-    if isinstance(streams, list) or isinstance(streams, tuple):
+    if isinstance(streams, (list, tuple)):
         s = "[" + "][".join(streams) + "]"
     elif isinstance(streams, str):
         s = "[{}]".format(streams)
@@ -40,11 +39,12 @@ def __str_streams__(streams):
 def wrap_in_streams(filter_list, in_stream, out_stream):
     if isinstance(filter_list, str):
         s = filter_list
-    elif isinstance(filter_list, list) or isinstance(filter_list, tuple):
+    elif isinstance(filter_list, (list, tuple)):
         s = ','.join(filter_list)
     else:
         raise FilterError("Unexpected filter_list type {}".format(type(filter_list)))
     return "[{}]{}[{}]".format(in_stream, s, out_stream)
+
 
 def in_out(filter_str, in_streams, out_streams):
     return "{}{}{}".format(__str_streams__(in_streams), filter_str, __str_streams__(out_streams))

@@ -22,6 +22,7 @@ import sys
 import mediatools.utilities as util
 import mediatools.videofile as video
 
+
 def main():
     util.set_logger('video-reverse')
     hw_accel = False
@@ -35,6 +36,7 @@ def main():
         elif util.is_video_file(arg):
             output = video.VideoFile(arg).reverse(hw_accel=hw_accel)
             util.logger.info("File %s generated", output)
+
 
 if __name__ == "__main__":
     main()

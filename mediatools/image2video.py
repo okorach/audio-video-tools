@@ -19,10 +19,10 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.mediafile as media
+
 
 def main():
     parser = util.parse_common_args('image2video')

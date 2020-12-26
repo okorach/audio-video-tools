@@ -48,10 +48,10 @@ def load():
     fp.close()
     for key, value in CONFIG_SETTINGS.items():
         value = value.lower()
-        if value == 'yes' or value == 'true' or value == 'on':
+        if value in ('yes', 'true', 'on'):
             CONFIG_SETTINGS[key] = True
             continue
-        if value == 'no' or value == 'false' or value == 'off':
+        if value in ('no', 'false', 'off'):
             CONFIG_SETTINGS[key] = False
             continue
         try:

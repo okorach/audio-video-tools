@@ -19,12 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
 import re
-import os
-import json
-import shutil
-import jprops
 import ffmpeg
 import mediatools.utilities as util
 import mediatools.options as opt
@@ -94,6 +89,7 @@ class Resolution:
 RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
 RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
 
+
 class MediaFile:
     '''Media file abstraction
     A media file can be:
@@ -119,6 +115,7 @@ class MediaFile:
         self.date_created = None
         self.date_modified = None
         self.comment = None
+        self.duration = None
         self.probe()
 
     def probe(self):
@@ -176,7 +173,7 @@ class MediaFile:
         util.logger.debug('Searching first audio stream')
         return self.__get_stream_by_codec__('codec_type', ('audio'))
 
-    def __get_audio_stream_attribute__(self, attr, stream = None):
+    def __get_audio_stream_attribute__(self, attr, stream=None):
         if stream is None:
             stream = self.__get_first_audio_stream__()
         try:
@@ -184,7 +181,7 @@ class MediaFile:
         except KeyError as e:
             util.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
-    def __get_video_stream_attribute__(self, attr, stream = None):
+    def __get_video_stream_attribute__(self, attr, stream=None):
         if stream is None:
             stream = self.__get_first_video_stream__()
         try:
@@ -204,34 +201,37 @@ class MediaFile:
         all_props = self.get_file_properties()
         return all_props
 
+
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
 
+
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
     return '-filter:v "crop={0}:{1}:{2}:{3}"'.format(width, height, top, left)
+
 
 def get_deshake_filter_options(width, height):
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
 
+
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
     util.logger.debug('Calling compute_fps(%s)', rate)
     if re.match(r"^\d+\/\d+$", rate):
-        a, b = re.split(r'/', rate)
-        return str(round(int(a)/int(b), 1))
+        a, b = [int(x) for x in rate.split('/')]
+        return str(round(a / b, 1))
     return rate
+
 
 def reduce_aspect_ratio(aspect_ratio, height=None):
     ''' Reduces the Aspect ratio calculation in prime factors '''
     if height is None:
-        ws, hs = re.split("[:/x]", aspect_ratio)
-        w = int(ws)
-        h = int(hs)
+        (w, h) = [int(x) for x in re.split("[:/x]", aspect_ratio)]
     else:
         w = aspect_ratio
         h = height
@@ -241,19 +241,21 @@ def reduce_aspect_ratio(aspect_ratio, height=None):
             h = h // n
     return "%d:%d" % (w, h)
 
+
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
     if util.get_file_extension(file).lower() != 'mp3':
         raise FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
-    return {'artist' : mp3.artist, 'author' : mp3.artist, 'song' : mp3.song, 'title' : mp3.song, \
-        'album' : mp3.album, 'year' : mp3.year, 'track' : mp3.track, 'genre' : mp3.genre, 'comment' : mp3.comment}
+    return {'artist': mp3.artist, 'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,
+            'album': mp3.album, 'year': mp3.year, 'track': mp3.track, 'genre': mp3.genre, 'comment': mp3.comment}
+
 
 def concat(target_file, file_list):
-#    ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
-#  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
-#  -map "[v]" -map "[a]" output.mkv
+    #  ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
+    #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
+    #  -map "[v]" -map "[a]" output.mkv
     util.logger.info("Concatenating %s", str(file_list))
     cmd = util.build_ffmpeg_file_list(file_list)
     cmd = cmd + '-filter_complex "'
@@ -261,6 +263,7 @@ def concat(target_file, file_list):
         cmd = cmd + ('[%d:v] [%d:a] ' % (i, i))
     cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (len(file_list), target_file)
     util.run_ffmpeg(cmd)
+
 
 def strip_media_options(options):
     strip = {}
@@ -270,6 +273,7 @@ def strip_media_options(options):
     util.logger.debug("stripped media options = %s", str(strip))
     return strip
 
+
 def strip_ffmpeg_options(options):
     strip = {}
     for k in options:
@@ -277,6 +281,7 @@ def strip_ffmpeg_options(options):
             strip[k] = options[k]
     util.logger.debug("stripped ffmpeg options = %s", str(strip))
     return strip
+
 
 def build_ffmpeg_options(options):
     cmd = ''
@@ -293,12 +298,13 @@ def build_ffmpeg_options(options):
     return cmd
 
 
-def build_video_filters_options(vfilters, afilters=[]):
+def build_video_filters_options(vfilters, afilters=None):
     cmd = ''
     for f in vfilters:
         if f is not None:
             cmd += '-vf "{}" '.format(f)
-    for f in afilters:
-        if f is not None:
-            cmd += '-af "{}" '.format(f)
+    if afilters is not None:
+        for f in afilters:
+            if f is not None:
+                cmd += '-af "{}" '.format(f)
     return cmd.strip()
