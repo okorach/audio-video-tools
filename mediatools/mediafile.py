@@ -127,6 +127,7 @@ class MediaFile:
         try:
             util.logger.info('Probing %s with %s', self.filename, util.get_ffprobe())
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
+            # util.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
             util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
             return None
