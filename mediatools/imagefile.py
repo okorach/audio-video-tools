@@ -309,7 +309,7 @@ class ImageFile(media.MediaFile):
         if self.ratio >= video_res.ratio * 1.2:
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio:
-            u_res.height = int(u_res.height, 1.3)
+            u_res.height = int(u_res.height * 1.3)
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio / 1.3:
             u_res.width = int(u_res.width * 1.5)
