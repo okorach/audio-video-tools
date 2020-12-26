@@ -23,22 +23,34 @@
 # 2 input images that can be glued
 # horizontally or vertically
 
+import sys
+import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
 
 def main():
-    parser = util.parse_common_args('Sticks 2 image together')
-    parser.add_argument('-i2', '--inputfile2', required=True, help='Input File 2')
-    parser.add_argument('-d', '--direction', required=False, default='vertical',
-                        help='Stacking direction (horizontal or vertical)')
+    files = []
+    util.set_logger('image-stack')
+    sys.argv.pop(0)
+    while sys.argv:
+        arg = sys.argv.pop(0)
+        if arg == "-g":
+            util.set_debug_level(sys.argv.pop(0))
+        elif arg == "--direction":
+            direction = sys.argv.pop(0)
+        else:
+            files.append(arg)
+    # files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
 
-    args = parser.parse_args()
-    util.check_environment(vars(args))
-
-    outputfile = image.stack(args.inputfile, args.inputfile2, args.direction, args.outputfile)
-
-    print('Generated', outputfile)
+    if len(files) > 0:
+        output = image.stack(*files, direction=direction)
+        util.logger.info("File %s generated", output)
+        print('Generated', output)
+    else:
+        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
+        exit(1)
+    exit(0)
 
 
 if __name__ == "__main__":
