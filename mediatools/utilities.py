@@ -79,26 +79,39 @@ def set_logger(name):
     new_ch.setFormatter(formatter)
 
 
-def filelist(root_dir):
+def dir_list(root_dir, recurse=False, file_type=None):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
     files = []
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
-            files.append(os.path.join(r, file))
+            if os.path.isdir(file) and recurse:
+                files.append(dir_list(file))
+            elif __is_type_file(file, file_type):
+                files.append(os.path.join(r, file))
+    return files
+
+
+def file_list(*args):
+    logger.debug("Searching files in %s", str(args))
+    files = []
+    for arg in args:
+        logger.debug("Check file %s", str(arg))
+        if os.path.isdir(arg):
+            files.extend(dir_list(arg))
+        else:
+            files.append(arg)
     return files
 
 
 def file_list_by_type(root_dir, file_type):
-    """Returns and array of all audio files under a given root directory
+    """Returns and array of all files of a given typeunder a given root directory
     going down into sub directories"""
     files = []
-    # 3 params are r=root, _=directories, f = files
-    for r, _, f in os.walk(root_dir):
-        for file in f:
-            if __is_type_file(file, file_type):
-                files.append(os.path.join(r, file))
+    for file in dir_list(root_dir):
+        if __is_type_file(file, file_type):
+            files.append(file)
     return files
 
 
@@ -112,17 +125,6 @@ def video_filelist(root_dir):
 
 def image_filelist(root_dir):
     return file_list_by_type(root_dir, MediaType.IMAGE_FILE)
-
-
-def subdir_list(root_dir):
-    """Returns and array of all audio files under a given root directory
-    going down into sub directories"""
-    fullfilelist = []
-    for _, _, file_list in os.walk(root_dir):
-        for file in file_list:
-            if os.path.isdir(file):
-                fullfilelist.append(file)
-    return fullfilelist
 
 
 def get_file_extension(filename):
@@ -157,7 +159,8 @@ def automatic_output_file_name(outfile, infile, postfix, extension=None):
 
 
 def __is_type_file(file, type_of_media):
-    return os.path.isfile(file) and __match_extension__(file, MediaType.FILE_EXTENSIONS[type_of_media])
+    return type_of_media is None or (
+        os.path.isfile(file) and __match_extension__(file, MediaType.FILE_EXTENSIONS[type_of_media]))
 
 
 def is_audio_file(file):
