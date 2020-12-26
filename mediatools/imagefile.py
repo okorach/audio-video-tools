@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import math
 import re
 import random
@@ -61,6 +62,11 @@ class ImageFile(media.MediaFile):
         self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
+        (dis_w, dis_h) = [int(x) for x in util.find_key(stream, ['display_aspect_ratio']).split(':')]
+        if abs(dis_w * self.height - dis_h * self.width) < 0.001:
+            a = self.width
+            self.width = self.height
+            self.height = a
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         util.logger.debug("Image = %s", str(vars(self)))
@@ -386,70 +392,42 @@ def get_rectangle(color, w, h):
     return ImageFile(bgfile).scale(w, h, out_file="bg.tmp.jpg")
 
 
-def stack(file1, file2, direction, out_file=None):
-    util.logger.debug("stack(%s, %s, %s, _)", file1, file2, direction)
-    if not util.is_image_file(file1):
-        raise media.FileTypeError('File %s is not an image file' % file1)
-    if not util.is_image_file(file2):
-        raise media.FileTypeError('File %s is not an image file' % file2)
-    out_file = util.automatic_output_file_name(out_file, file1, "stacked")
-    w1, h1 = ImageFile(file1).get_dimensions()
-    w2, h2 = ImageFile(file2).get_dimensions()
-    tmpfile1 = file1
-    tmpfile2 = file2
-    util.logger.debug("Images dimensions: %d x %d and %d x %d", w1, h1, w2, h2)
+def stack(*files, direction='vertical', out_file=None):
+    util.logger.debug("stack(%s, %s)", str(files), direction)
+    files_to_stack = [ImageFile(f) for f in util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)]
+    total_width = sum([f.width for f in files_to_stack])
+    total_height = sum([f.height for f in files_to_stack])
+    out_file = util.automatic_output_file_name(out_file, files_to_stack[0].filename, "stacked")
+    max_w = max([f.width for f in files_to_stack])
+    max_w = (max_w * min(total_width, 65536)) // total_width
+    max_h = max([f.height for f in files_to_stack])
+    max_w = (max_w * min(total_height, 65536)) // total_height
     if direction == 'horizontal':
+        final_list = [f.scale(-1, max_h) for f in files_to_stack]
         filter_name = 'hstack'
-        if h1 > h2:
-            new_w2 = w2 * h1 // h2
-            tmpfile2 = ImageFile(file2).scale(new_w2, h1)
-        elif h2 > h1:
-            new_w1 = w1 * h2 // h1
-            tmpfile1 = ImageFile(file1).scale(new_w1, h2)
     else:
+        final_list = [f.scale(max_w, -1) for f in files_to_stack]
         filter_name = 'vstack'
-        if w1 > w2:
-            new_h2 = h2 * w1 // w2
-            tmpfile2 = ImageFile(file2).scale(w1, new_h2)
-        elif w2 > w1:
-            new_h1 = h1 * w2 // w1
-            tmpfile1 = ImageFile(file1).scale(w2, new_h1)
 
-    # ffmpeg -i a.jpg -i b.jpg -filter_complex hstack output
-
-    util.run_ffmpeg((INPUT_FILE_FMT + INPUT_FILE_FMT + '-filter_complex %s "%s"') % (
-                    tmpfile1, tmpfile2, filter_name, out_file))
-    if tmpfile1 is not file1:
-        util.delete_files(tmpfile1)
-    if tmpfile2 is not file2:
-        util.delete_files(tmpfile2)
+    # ffmpeg -i left.mp4 -i centre.mp4 -i right.mp4 -filter_complex "[0:v:0][1:v:0][2:v:0]hstack=inputs=3"
+    inputs_str = ' '.join(['-i "{}"'.format(f) for f in final_list])
+    fcomp = ''
+    for i in range(len(final_list)):
+        fcomp += "[{}:v]".format(i)
+    fcomp += "{}=inputs={}".format(filter_name, len(final_list))
+    util.run_ffmpeg('{} -filter_complex "{}" "{}"'.format(inputs_str, fcomp, out_file))
+    [os.remove(f) for f in final_list]
     return out_file
 
 
 def get_widths(files):
     # [ImageFile(file).width for file in files]
-    return list(map(lambda file: ImageFile(file).width, files))
+    return [ImageFile(file).width for file in files]
 
 
 def get_heights(files):
     # [ImageFile(file).height for file in files]
-    return list(map(lambda file: ImageFile(file).height, files))
-
-
-def min_height(files):
-    return min(get_heights(files))
-
-
-def min_width(files):
-    return min(get_widths(files))
-
-
-def max_height(files):
-    return max(get_heights(files))
-
-
-def max_width(files):
-    return max(get_widths(files))
+    return [ImageFile(file).height for file in files]
 
 
 def avg_height(files):
@@ -463,8 +441,8 @@ def avg_width(files):
 
 
 def posterize(files, posterfile=None, background_color="black", margin=5):
-    min_h = max_height(files)
-    min_w = max_width(files)
+    min_h = max([ImageFile(f).height for f in files])
+    min_w = max([ImageFile(f).width for f in files])
     util.logger.debug("Max W x H = %d x %d", min_w, min_h)
     gap = (min_w * margin) // 100
 
