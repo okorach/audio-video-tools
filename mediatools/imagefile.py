@@ -299,7 +299,7 @@ class ImageFile(media.MediaFile):
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
-        cmd = '-i "{}" -framerate {} -filter_complex    [0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
+        cmd = '-i "{}" -framerate {} -filter_complex "[0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
             self.filename, fps, ','.join(vfilters), resolution, out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -309,7 +309,7 @@ class ImageFile(media.MediaFile):
         if self.ratio >= video_res.ratio * 1.2:
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio:
-            u_res.height = int(u_res.height, 1.3)
+            u_res.height = int(u_res.height * 1.3)
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio / 1.3:
             u_res.width = int(u_res.width * 1.5)
