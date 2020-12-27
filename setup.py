@@ -66,7 +66,7 @@ setuptools.setup(
             'image-stack = mediatools.stack:main',
             'video-mux = mediatools.mux:main',
             'video-concat = mediatools.concat:main',
-            'video-crop = mediatools.crop:main',
+            'media-crop = mediatools.crop:main',
             'video-cut = mediatools.cut:main',
             'video-stabilize = mediatools.deshake:main',
             'audio-album-art = mediatools.album_art:main',
