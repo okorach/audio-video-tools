@@ -88,37 +88,9 @@ class ImageFile(media.MediaFile):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
     def crop(self, width, height, out_file=None, **kwargs):
-        #def crop(self, w, h, x, y, out_file=None):
-        #util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
-        # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
 
-        iw, ih = self.dimensions()
         (width, height) = self.resolution.calc_resolution(width, height)
-
-        top = kwargs.get('top', None)
-        left = kwargs.get('left', None)
-        pos = kwargs.get('position', None)
-        if top is None:
-            if pos is None:
-                pos = "center"
-                top = (ih - height) // 2
-            elif re.search('.*top.*', pos):
-                top = 0
-            elif re.search('.*bottom.*', pos):
-                top = ih - height
-            else:
-                top = (ih - height) // 2
-        if left is None:
-            if pos is None:
-                pos = "center"
-                left = (ih - height) // 2
-            elif re.search('.*left.*', pos):
-                left = 0
-            elif re.search('.*right.*', pos):
-                left = iw - width
-            else:
-                left = (iw - width) // 2
-
+        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename,
             "crop_{0}x{1}-{2}".format(width, height, pos))
 

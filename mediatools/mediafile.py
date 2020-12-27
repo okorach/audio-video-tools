@@ -142,6 +142,35 @@ class MediaFile:
         all_props = self.get_file_properties()
         return all_props
 
+    def dimensions(self):
+        return None
+
+    def __get_top_left__(self, width, height, **kwargs):
+        iw, ih = self.dimensions()
+        top = kwargs.get('top', None)
+        left = kwargs.get('left', None)
+        pos = kwargs.get('position', None)
+        if top is None:
+            if pos is None:
+                pos = "center"
+                top = (ih - height) // 2
+            elif re.search('.*top.*', pos):
+                top = 0
+            elif re.search('.*bottom.*', pos):
+                top = ih - height
+            else:
+                top = (ih - height) // 2
+        if left is None:
+            if pos is None:
+                pos = "center"
+                left = (ih - height) // 2
+            elif re.search('.*left.*', pos):
+                left = 0
+            elif re.search('.*right.*', pos):
+                left = iw - width
+            else:
+                left = (iw - width) // 2
+        return (top, left, pos)
 
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)

@@ -233,37 +233,13 @@ class VideoFile(media.MediaFile):
 
     def crop(self, width, height, out_file=None, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
-        i_bitrate = self.video_bitrate
-        iw, ih = self.dimensions()
         media_opts = self.get_properties()
         media_opts[opt.Option.ACODEC] = 'copy'
         (width, height) = self.calc_resolution(width, height)
+        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
 
-        top = kwargs.get('top', None)
-        left = kwargs.get('left', None)
-        pos = kwargs.get('position', None)
-        if top is None:
-            if pos is None:
-                pos = "center"
-                top = (ih - height) // 2
-            elif re.search('.*top.*', pos):
-                top = 0
-            elif re.search('.*bottom.*', pos):
-                top = ih - height
-            else:
-                top = (ih - height) // 2
-        if left is None:
-            if pos is None:
-                pos = "center"
-                left = (ih - height) // 2
-            elif re.search('.*left.*', pos):
-                left = 0
-            elif re.search('.*right.*', pos):
-                left = iw - width
-            else:
-                left = (iw - width) // 2
         # Target bitrate proportional to crop level (x 2)
-        media_opts[opt.Option.VBITRATE] = int(i_bitrate * (width * height) / (iw * ih) * 2)
+        media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
 
         media_opts.update(util.cleanup_options(kwargs))
         util.logger.debug("Cmd line settings = %s", str(media_opts))
@@ -394,7 +370,7 @@ class VideoFile(media.MediaFile):
         else:
             output_file = out_file
 
-        ffopts = opt.Option2ffmpeg(media_opts)
+        ffopts = opt.media2ffmpeg(media_opts)
         cmd = '-i "%s" %s %s "%s"' % (self.filename,
             util.dict2str(ffopts), get_deshake_filter_options(width, height), output_file)
         util.run_ffmpeg(cmd)
@@ -474,7 +450,7 @@ class VideoFile(media.MediaFile):
 
         util.logger.debug("After hw acceleration = %s", str(media_opts))
 
-        ffopts = opt.Option2ffmpeg(media_opts)
+        ffopts = opt.media2ffmpeg(media_opts)
         util.logger.debug("After converting to ffmpeg params = %s", str(ffopts))
 
         # Hack for channels selection
