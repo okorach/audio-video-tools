@@ -53,23 +53,23 @@ class Encoder:
             if k in Encoder.SETTINGS and kwargs[k] is not None:
                 kwsettings[k] = kwargs[k]
         if 'vcodec' in kwsettings:
-            self.vcodec = kwsettings[opt.media.VCODEC]
+            self.vcodec = kwsettings[opt.Option.VCODEC]
         if 'vbitrate' in kwsettings:
-            self.vbitrate = kwsettings[opt.media.VBITRATE]
+            self.vbitrate = kwsettings[opt.Option.VBITRATE]
         if 'acodec' in kwsettings:
-            self.acodec = kwsettings[opt.media.ACODEC]
+            self.acodec = kwsettings[opt.Option.ACODEC]
         if 'abitrate' in kwsettings:
-            self.abitrate = kwsettings[opt.media.ABITRATE]
+            self.abitrate = kwsettings[opt.Option.ABITRATE]
         if 'aspect' in kwsettings:
-            self.aspect = kwsettings[opt.media.ASPECT]
+            self.aspect = kwsettings[opt.Option.ASPECT]
         if 'size' in kwsettings:
-            self.size = kwsettings[opt.media.SIZE]
+            self.size = kwsettings[opt.Option.SIZE]
         if 'start' in kwsettings:
-            self.start = kwsettings[opt.media.START]
+            self.start = kwsettings[opt.Option.START]
         if 'stop' in kwsettings:
-            self.start = kwsettings[opt.media.STOP]
+            self.start = kwsettings[opt.Option.STOP]
         if 'format' in kwsettings:
-            self.format = kwsettings[opt.media.FORMAT]
+            self.format = kwsettings[opt.Option.FORMAT]
 
     def set_format(self, fmt):
         self.format = fmt
