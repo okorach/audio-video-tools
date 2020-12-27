@@ -35,4 +35,3 @@ def file(filename):
         return image.ImageFile(filename)
     else:
         raise ex.FileTypeError(file=filename)
-

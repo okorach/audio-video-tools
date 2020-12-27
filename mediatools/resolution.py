@@ -81,5 +81,6 @@ class Resolution:
     def as_tuple(self):
         return (self.width, self.height)
 
+
 RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
 RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
