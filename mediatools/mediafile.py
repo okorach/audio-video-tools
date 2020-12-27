@@ -125,9 +125,9 @@ class MediaFile:
         if self.specs is not None:
             return self.specs
         try:
-            util.logger.info('Probing %s with %s', self.filename, util.get_ffprobe())
+            util.logger.info('%s(%s)', util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            # util.logger.debug("Specs = %s", util.json_fmt(self.specs))
+            util.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
             util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
             return None
@@ -159,7 +159,11 @@ class MediaFile:
 
     def get_file_properties(self):
         '''Returns file properties as dict'''
-        return vars(self)
+        d = vars(self)
+        # d.pop('specs')
+        r = vars(d.get('resolution'))
+        d.update(r)
+        return d
 
     def get_file_extension(self):
         return self.filename.split('.').pop()
