@@ -8,14 +8,14 @@ do
         code=$?
         if [ $code -ne 0 ]; then
             1>&2 echo "========================================"
-            1>&2 echo $cmd
+            1>&2 echo "FAILED: $cmd"
             1>&2 echo "========================================"
             exit $code
         fi
     done
 done
 echo "----------------------------------------"
-echo "SUCCESS" `basename $0`
+echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm *.crop_*.jpg 2>/dev/null
+rm ./*.crop_*.jpg 2>/dev/null
 exit 0
