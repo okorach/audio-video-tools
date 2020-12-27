@@ -62,11 +62,11 @@ class ImageFile(media.MediaFile):
         self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
-        (dis_w, dis_h) = [int(x) for x in util.find_key(stream, ['display_aspect_ratio']).split(':')]
-        if abs(dis_w * self.height - dis_h * self.width) < 0.001:
-            a = self.width
-            self.width = self.height
-            self.height = a
+        dar = util.find_key(stream, ['display_aspect_ratio'])
+        if dar is not None:
+            (dis_w, dis_h) = [int(x) for x in dar.split(':')]
+            if abs(dis_w * self.height - dis_h * self.width) < 0.001:
+                self.width, self.height = self.height, self.width
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         util.logger.debug("Image = %s", str(vars(self)))
