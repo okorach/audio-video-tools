@@ -10,12 +10,13 @@ do
             code=$?
             if [ $code -ne 0 ]; then
                 1>&2 echo FAILED image-scale -i $f -s "${w}x${h}"
-                rm *.scale-*.jpg
                 exit $code
             fi
         done
     done
 done
-echo "SUCCESS image-scale"
-rm *.scale-*.jpg
+echo "----------------------------------------"
+echo "SUCCESS" `basename $0`
+echo "----------------------------------------"
+rm *.scale-*.jpg 2>/dev/null
 exit 0
