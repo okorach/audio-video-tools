@@ -19,32 +19,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
-import mediatools.utilities as util
-import mediatools.resolution as res
-import mediatools.videofile as video
-
-
-def main():
-    files = []
-    util.set_logger('video-slideshow')
-    resolution = res.Resolution.DEFAULT_VIDEO
-    sys.argv.pop(0)
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--resolution":
-            resolution = sys.argv.pop(0)
-        else:
-            files.append(arg)
-    if len(files) > 0:
-        output = video.slideshow(*files, resolution=resolution)
-        util.logger.info("File %s generated", output)
-        print("File {} generated".format(output))
-    else:
-        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
-
-
-if __name__ == "__main__":
-    main()
+class FileTypeError(Exception):
+    '''Error when passing a non media file'''
+    def __init__(self, file="file", expected_type='media', message=None):
+        self.file = file
+        self.message = message
+        if message is None:
+            self.message = "File {} is not of th expected {} type".format(file, expected_type)
+        super().__init__(self.message)

@@ -23,6 +23,7 @@ import re
 import os
 import shutil
 from mp3_tagger import MP3File
+import mediatools.exceptions as ex
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
@@ -32,6 +33,8 @@ import mediatools.options as opt
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename):
+        if not util.is_audio_file(filename):
+            raise ex.FileTypeError(file=filename, expected_type='audio')
         self.acodec = None
         self.artist = None
         self.title = None
@@ -61,7 +64,7 @@ class AudioFile(media.MediaFile):
     def get_tags(self):
         """Returns all file MP3 tags"""
         if util.get_file_extension(self.filename).lower() != 'mp3':
-            raise media.FileTypeError('File %s is not an mp3 file')
+            raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
         mp3 = MP3File(self.filename)
         self.artist = mp3.artist
@@ -108,7 +111,7 @@ class AudioFile(media.MediaFile):
     def get_audio_properties(self):
         if self.acodec is None:
             self.get_specs()
-        return {opt.media.ABITRATE: self.abitrate, opt.media.ACODEC: self.acodec,
+        return {opt.Option.ABITRATE: self.abitrate, opt.Option.ACODEC: self.acodec,
                 'audio_sample_rate': self.audio_sample_rate}
 
     def get_properties(self):
@@ -129,7 +132,7 @@ class AudioFile(media.MediaFile):
         media_opts = self.get_properties()
         util.logger.debug("Input file settings = %s", str(media_opts))
         media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
-        media_opts.update({opt.media.FORMAT: util.get_conf_property(profile + '.format')})
+        media_opts.update({opt.Option.FORMAT: util.get_conf_property(profile + '.format')})
         util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
         media_opts.update(kwargs)
         util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))

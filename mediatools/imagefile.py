@@ -26,6 +26,8 @@ import random
 import shutil
 
 import mediatools.utilities as util
+import mediatools.resolution as res
+import mediatools.exceptions as ex
 import mediatools.mediafile as media
 import mediatools.filters as filters
 
@@ -40,6 +42,8 @@ class ImageFile(media.MediaFile):
     SUPPORTED_IMG_CODECS = ('mjpeg', 'png', 'gif')
 
     def __init__(self, filename):
+        if not util.is_image_file(filename):
+            raise ex.FileTypeError(file=filename, expected_type='image')
         self.resolution = None
         self.width = None
         self.height = None
@@ -69,12 +73,12 @@ class ImageFile(media.MediaFile):
             (dis_w, dis_h) = [int(x) for x in dar.split(':')]
             if abs(dis_w * self.height - dis_h * self.width) < 0.001:
                 self.width, self.height = self.height, self.width
-        self.resolution = media.Resolution(width=self.width, height=self.height)
+        self.resolution = res.Resolution(width=self.width, height=self.height)
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         util.logger.debug("Image = %s", str(vars(self)))
 
-    def get_dimensions(self):
+    def dimensions(self):
         return (self.width, self.height)
 
     def get_ratio(self):
@@ -83,11 +87,16 @@ class ImageFile(media.MediaFile):
     def get_image_properties(self):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
-    def crop(self, w, h, x, y, out_file=None):
-        util.logger.debug("%s(->%s, %d, %d, %d, %d)", 'crop', self.filename, w, h, x, y)
-        out_file = util.automatic_output_file_name(out_file, self.filename, "crop.%dx%d" % (w, h))
-        # ffmpeg -i input.png -vf  "crop=w:h:x:y" input_crop.png
-        util.run_ffmpeg(('-y ' + INPUT_FILE_FMT + ' -vf crop=%d:%d:%d:%d "%s"') % (self.filename, w, h, x, y, out_file))
+    def crop(self, width, height, out_file=None, **kwargs):
+
+        (width, height) = self.resolution.calc_resolution(width, height)
+        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
+        out_file = util.automatic_output_file_name(out_file, self.filename,
+            "crop_{0}x{1}-{2}".format(width, height, pos))
+
+        cmd = '-y -i "{}" -vf "{}" "{}"'.format(self.filename, filters.crop(width, height, left, top), out_file)
+        util.run_ffmpeg(cmd)
+        return out_file
 
     def scale(self, w=-1, h=-1, out_file=None):
         out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
@@ -99,7 +108,7 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def slice_vertical(self, nbr_slices, round_to=16, slice_pattern='slice'):
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
         slice_w = max(w // nbr_slices, round_to)
         slices = []
         nbr_slices = min(nbr_slices, (w // slice_w) + 1)
@@ -110,7 +119,7 @@ class ImageFile(media.MediaFile):
         return slices
 
     def slice_horizontal(self, nbr_slices, round_to=16, slice_pattern='slice'):
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
         slice_h = max(h // nbr_slices, round_to)
         slices = []
         nbr_slices = min(nbr_slices, (h // slice_h) + 1)
@@ -133,7 +142,7 @@ class ImageFile(media.MediaFile):
         else:
             ratio = float(width_height_ratio)
 
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
         current_ratio = w / h
         crop_w = w
         crop_h = h
@@ -162,7 +171,7 @@ class ImageFile(media.MediaFile):
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
         background_color = kwargs.pop('background_color', 'black')
         direction = kwargs.pop('direction', 'vertical')
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
 
         w_gap = w * blinds_size_pct // 100
         h_gap = h * blinds_size_pct // 100
@@ -212,7 +221,7 @@ class ImageFile(media.MediaFile):
         util.delete_files(*slices, first_slice, tmpbg)
 
     def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
         h_jitter = h * shake_pct // 100
         slice_width = max(w // nbr_slices, 16)
         slices = self.slice_vertical(nbr_slices)
@@ -238,7 +247,7 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def shake_horizontal(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
-        w, h = self.get_dimensions()
+        w, h = self.dimensions()
         w_jitter = w * shake_pct // 100
         slice_height = max(h // nbr_slices, 16)
         slices = self.slice_horizontal(nbr_slices)
@@ -274,7 +283,7 @@ class ImageFile(media.MediaFile):
         (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
         fps = int(kwargs.get('framerate', 50))
         duration = float(kwargs.get('duration', 5))
-        resolution = kwargs.get('resolution', media.Resolution.DEFAULT_VIDEO)
+        resolution = kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO)
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename,
@@ -302,7 +311,7 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def __compute_upscaling_for_video__(self, video_res):
-        u_res = media.Resolution(resolution=media.Resolution.RES_4K)
+        u_res = res.Resolution(resolution=res.Resolution.RES_4K)
         if self.ratio >= video_res.ratio * 1.2:
             u_res.width = int(u_res.height * self.ratio)
         elif self.ratio >= video_res.ratio:
@@ -320,7 +329,7 @@ class ImageFile(media.MediaFile):
         (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
         framerate = kwargs.get('framerate', 50)
         duration = kwargs.get('duration', 5)
-        v_res = media.Resolution(resolution=kwargs.get('resolution', media.Resolution.DEFAULT_VIDEO))
+        v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
         # Filters used for panorama are incompatible with hw acceleration
         # hw_accel = kwargs.get('hw_accel', False)
         hw_accel = False
@@ -334,7 +343,7 @@ class ImageFile(media.MediaFile):
             # if img ratio > video ratio + 20%, no vertical drift
             (ystart, ystop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.width - media.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / u_res.width)
+            bound = max(0, (u_res.width - res.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / u_res.width)
             if xstart < xstop:
                 (xstart, xstop) = (bound, 1 - bound)
             else:
@@ -343,14 +352,14 @@ class ImageFile(media.MediaFile):
             # if img ratio > video ratio - 30%, no horizontal drift
             (xstart, xstop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.height - media.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / u_res.height)
+            bound = max(0, (u_res.height - res.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / u_res.height)
             if ystart < ystop:
                 (ystart, ystop) = (bound, 1 - bound)
             else:
                 (ystart, ystop) = (1 - bound, bound)
         x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
         y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
-        vfilters.append(filters.crop(media.RES_VIDEO_4K.width, media.RES_VIDEO_4K.height, x_formula, y_formula))
+        vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
 
         out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
 
@@ -365,12 +374,12 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def to_video(self, with_effect=True, resolution=media.Resolution.RES_4K, hw_accel=True):
+    def to_video(self, with_effect=True, resolution=res.Resolution.RES_4K, hw_accel=True):
         util.logger.info("Converting %s to video", self.filename)
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
 
-        (w, h) = self.get_dimensions()
+        (w, h) = self.dimensions()
         if w / h <= (3 / 4 + 0.00001):
             r = random.randint(0, 1)
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0

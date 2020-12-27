@@ -44,14 +44,14 @@ def encode_file(args, options):
         file_object = video.VideoFile(args.inputfile)
     if args.width is not None:
         specs = file_object.get_properties()
-        w = int(specs[opt.media.WIDTH])
-        h = int(specs[opt.media.HEIGHT])
+        w = int(specs[opt.Option.WIDTH])
+        h = int(specs[opt.Option.HEIGHT])
         new_w = int(args.width)
         if args.vheight is not None:
             new_h = int(args.vheight)
         else:
             new_h = (int(h * new_w / w) // 8) * 8
-        options[opt.media.SIZE] = "%dx%d" % (new_w, new_h)
+        options[opt.Option.SIZE] = "%dx%d" % (new_w, new_h)
     if args.timeranges is None:
         file_object.encode(args.outputfile, args.profile, **options)
         return
@@ -62,7 +62,7 @@ def encode_file(args, options):
     filelist = []
     timeranges = re.split(',', args.timeranges)
     for video_range in timeranges:
-        options[opt.media.START], options[opt.media.STOP] = re.split('-', video_range)
+        options[opt.Option.START], options[opt.Option.STOP] = re.split('-', video_range)
         count += 1
         target_file = util.automatic_output_file_name(args.outputfile, args.inputfile, str(count), ext)
         filelist.append(target_file)

@@ -26,9 +26,11 @@ import sys
 import re
 import os
 import platform
+import mediatools.exceptions as ex
+import mediatools.resolution as res
 import mediatools.utilities as util
-import mediatools.mediafile as media
 import mediatools.imagefile as image
+import mediatools.mediafile as media
 import mediatools.options as opt
 import mediatools.filters as filters
 
@@ -36,12 +38,12 @@ FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
 
 class VideoFile(media.MediaFile):
-    AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.ff.VCODEC, opt.ff.ACODEC)
+    AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.ACODEC)
 
     '''Video file abstraction'''
     def __init__(self, filename):
         if not util.is_video_file(filename):
-            raise media.FileTypeError('File {0} is not a video file'.format(filename))
+            raise ex.FileTypeError(file=filename, expected_type='video')
 
         self.aspect = None
         self.video_codec = None
@@ -179,7 +181,7 @@ class VideoFile(media.MediaFile):
                 stream = self.__get_first_video_stream__()
             w = int(util.get_first_value(stream, ('width', 'codec_width', 'coded_width')))
             h = int(util.get_first_value(stream, ('height', 'codec_height', 'coded_height')))
-            self.resolution = media.Resolution(width=w, height=h)
+            self.resolution = res.Resolution(width=w, height=h)
         util.logger.debug("Resolution = %s", str(self.resolution))
         return (self.resolution.width, self.resolution.height)
 
@@ -205,69 +207,42 @@ class VideoFile(media.MediaFile):
         if self.audio_codec is None:
             self.get_specs()
         return {
-            opt.media.ABITRATE: self.audio_bitrate, opt.media.ACODEC: self.audio_codec,
+            opt.Option.ABITRATE: self.audio_bitrate, opt.Option.ACODEC: self.audio_codec,
             'audio_language': self.audio_language, 'audio_sample_rate': self.audio_sample_rate
         }
 
     def get_video_properties(self):
-        util.logger.debug("4 Resolution = %s", str(self.resolution))
         if self.video_codec is None:
             self.get_specs()
-        util.logger.debug("3 Resolution = %s", str(self.resolution))
         return {
-            'file_size': self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate,
-            opt.media.VCODEC: self.video_codec, opt.media.FPS: self.video_fps,
-            'width': self.get_width(), 'height': self.get_height(), opt.media.ASPECT: self.aspect,
+            'file_size': self.filesize, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
+            opt.Option.VCODEC: self.video_codec, opt.Option.FPS: self.video_fps,
+            'width': self.get_width(), 'height': self.get_height(), opt.Option.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
             'copyright': self.copyright, 'year': self.year
         }
 
     def get_properties(self):
         all_props = self.get_file_properties()
-        util.logger.debug("File properties(%s) = %s", self.filename, str(all_props))
         all_props.update(self.get_audio_properties())
-        util.logger.debug("After audio properties(%s) = %s", self.filename, str(all_props))
         all_props.update(self.get_video_properties())
-        util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
+        all_props = all_props.copy()
         all_props.pop('resolution')
+        util.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
-    def crop(self, width, height, out_file, **kwargs):
+    def crop(self, width, height, out_file=None, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
-        i_bitrate = self.video_bitrate
-        iw, ih = self.dimensions()
         media_opts = self.get_properties()
-        media_opts[opt.media.ACODEC] = 'copy'
+        media_opts[opt.Option.ACODEC] = 'copy'
         (width, height) = self.calc_resolution(width, height)
+        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
 
-        top = kwargs.get('top', None)
-        left = kwargs.get('left', None)
-        pos = kwargs.get('position', None)
-        if top is None:
-            if pos is None:
-                pos = "center"
-                top = (ih - height) // 2
-            elif re.search('.*top.*', pos):
-                top = 0
-            elif re.search('.*bottom.*', pos):
-                top = ih - height
-            else:
-                top = (ih - height) // 2
-        if left is None:
-            if pos is None:
-                pos = "center"
-                left = (ih - height) // 2
-            elif re.search('.*left.*', pos):
-                left = 0
-            elif re.search('.*right.*', pos):
-                left = iw - width
-            else:
-                left = (iw - width) // 2
         # Target bitrate proportional to crop level (x 2)
-        media_opts[opt.media.VBITRATE] = int(i_bitrate * (width * height) / (iw * ih) * 2)
+        media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
 
         media_opts.update(util.cleanup_options(kwargs))
-        util.logger.info("Cmd line settings = %s", str(media_opts))
+        util.logger.debug("Cmd line settings = %s", str(media_opts))
         out_file = util.automatic_output_file_name(out_file, self.filename,
             "crop_{0}x{1}-{2}".format(width, height, pos))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
@@ -285,10 +260,10 @@ class VideoFile(media.MediaFile):
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
         # media_opts = self.get_properties()
         media_opts = {
-            opt.media.START: start,
-            opt.media.STOP: stop,
-            opt.media.VCODEC: 'copy',
-            opt.media.ACODEC: 'copy'
+            opt.Option.START: start,
+            opt.Option.STOP: stop,
+            opt.Option.VCODEC: 'copy',
+            opt.Option.ACODEC: 'copy'
         }
         video_filters = []
         if fade is not None:
@@ -387,7 +362,7 @@ class VideoFile(media.MediaFile):
     def deshake(self, width, height, out_file, **kwargs):
         ''' Applies deshake video filter for width x height pixels '''
         media_opts = self.get_properties()
-        media_opts.update({opt.media.DEINTERLACE: None, opt.media.ASPECT: self.get_aspect_ratio()})
+        media_opts.update({opt.Option.DEINTERLACE: None, opt.Option.ASPECT: self.get_aspect_ratio()})
         media_opts.update(util.cleanup_options(kwargs))
 
         if out_file is None or 'nocrop' in kwargs:
@@ -410,7 +385,7 @@ class VideoFile(media.MediaFile):
         else:
             output_file2 = out_file
         deshake_file_o = VideoFile(output_file)
-        kwargs.update({opt.media.ASPECT: self.get_aspect_ratio()})
+        kwargs.update({opt.Option.ASPECT: self.get_aspect_ratio()})
         deshake_file_o.crop(new_w, new_h, width // 2, height // 2, output_file2, **kwargs)
         os.remove(output_file)
         return output_file2
@@ -461,17 +436,17 @@ class VideoFile(media.MediaFile):
 
         media_opts['input_params'] = ''
         if 'hw_accel' in kwargs and kwargs['hw_accel'] is True:
-            if re.search(r'[xh]264', media_opts[opt.media.VCODEC]):
+            if re.search(r'[xh]264', media_opts[opt.Option.VCODEC]):
                 util.logger.debug("Patching settings for H264 hw acceleration")
-                media_opts[opt.media.VCODEC] = 'h264_nvenc'
+                media_opts[opt.Option.VCODEC] = 'h264_nvenc'
                 media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            elif re.search(r'[xh]265', media_opts[opt.media.VCODEC]):
+            elif re.search(r'[xh]265', media_opts[opt.Option.VCODEC]):
                 util.logger.debug("Patching settings for H265 hw acceleration")
-                media_opts[opt.media.VCODEC] = 'hevc_nvenc'
+                media_opts[opt.Option.VCODEC] = 'hevc_nvenc'
                 media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            if media_opts['input_params'] != '' and media_opts.get(opt.media.SIZE, None) is not None:
-                media_opts['input_params'] += ' -resize ' + media_opts[opt.media.SIZE]
-                del media_opts[opt.media.SIZE]
+            if media_opts['input_params'] != '' and media_opts.get(opt.Option.SIZE, None) is not None:
+                media_opts['input_params'] += ' -resize ' + media_opts[opt.Option.SIZE]
+                del media_opts[opt.Option.SIZE]
 
         util.logger.debug("After hw acceleration = %s", str(media_opts))
 
@@ -593,7 +568,7 @@ def deshake(video_file, width, height, out_file =None, **kwargs):
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
     if util.get_file_extension(file).lower() != 'mp3':
-        raise media.FileTypeError('File %s is not an mp3 file')
+        raise ex.FileTypeError('File %s is not an mp3 file')
     # Create MP3File instance.
     mp3 = MP3File(file)
     return {
@@ -634,29 +609,29 @@ def add_video_args(parser):
     """Parses options specific to video encoding scripts"""
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
 
-    parser.add_argument('--' + opt.media.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
-    parser.add_argument('--' + opt.media.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
+    parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
+    parser.add_argument('--' + opt.Option.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
     parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
                         help='Use Nvidia HW acceleration')
 
-    parser.add_argument('--' + opt.media.VBITRATE, required=False, help='Video bitrate eg 1024k')
-    parser.add_argument('--' + opt.media.ABITRATE, required=False, help='Audio bitrate eg 128k')
+    parser.add_argument('--' + opt.Option.VBITRATE, required=False, help='Video bitrate eg 1024k')
+    parser.add_argument('--' + opt.Option.ABITRATE, required=False, help='Audio bitrate eg 128k')
 
     parser.add_argument('--fade', required=False, help='Fade in/out duration')
 
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('--' + opt.media.START, required=False, help='Start time')
-    parser.add_argument('--' + opt.media.STOP, required=False, help='Stop time')
+    parser.add_argument('--' + opt.Option.START, required=False, help='Start time')
+    parser.add_argument('--' + opt.Option.STOP, required=False, help='Stop time')
 
-    parser.add_argument('-f', '--' + opt.media.FORMAT, required=False, help='Output file format eg mp4')
-    parser.add_argument('-r', '--' + opt.media.FPS, required=False, help='Video framerate of the output eg 25')
+    parser.add_argument('-f', '--' + opt.Option.FORMAT, required=False, help='Output file format eg mp4')
+    parser.add_argument('-r', '--' + opt.Option.FPS, required=False, help='Video framerate of the output eg 25')
 
     parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
-    parser.add_argument('--' + opt.media.ACHANNEL, required=False, help='Audio channel to pick')
+    parser.add_argument('--' + opt.Option.ACHANNEL, required=False, help='Audio channel to pick')
 
-    parser.add_argument('--' + opt.media.SIZE, required=False, help='Video size HxW')
-    parser.add_argument('--' + opt.media.WIDTH, required=False, help='Video width')
+    parser.add_argument('--' + opt.Option.SIZE, required=False, help='Video size HxW')
+    parser.add_argument('--' + opt.Option.WIDTH, required=False, help='Video width')
     parser.add_argument('--vheight', required=False, help='Video height')
 
     return parser
@@ -682,7 +657,7 @@ def __get_audio_channel_mapping__(**kwargs):
 def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     if resolution is None:
-        resolution = media.Resolution.DEFAULT_VIDEO
+        resolution = res.Resolution.DEFAULT_VIDEO
 
     transition_duration = 0.5
     fade_in = filters.fade_in(duration=transition_duration)

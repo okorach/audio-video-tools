@@ -21,7 +21,7 @@
 
 import mediatools.utilities as util
 import mediatools.imagefile as image
-import mediatools.mediafile as media
+import mediatools.resolution as res
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
 
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
-    resolution = kwargs.get('framesize', media.Resolution.DEFAULT_VIDEO)
+    resolution = kwargs.get('framesize', res.Resolution.DEFAULT_VIDEO)
 
     if kwargs['effect'] == "panorama":
         effect = [float(x) for x in kwargs.get('panorama_effect', "0.2,0.8,0.6,0.4").split(",")]

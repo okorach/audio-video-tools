@@ -22,29 +22,29 @@
 import os
 import re
 import argparse
+import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.mediafile as media
 import mediatools.imagefile as img
 import mediatools.options as opt
 
 STD_FMT = "%-20s : %s"
 
 VIDEO_PROPS = ['filename', 'filesize', 'type',
-    opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, opt.media.DURATION,
-    opt.media.VCODEC, opt.media.VBITRATE, opt.media.ASPECT, 'pixel_aspect_ratio', opt.media.FPS,
-    opt.media.ACODEC, opt.media.ABITRATE, opt.media.LANGUAGE, opt.media.ASAMPLING, opt.media.AUTHOR]
+    opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, opt.Option.DURATION,
+    opt.Option.VCODEC, opt.Option.VBITRATE, opt.Option.ASPECT, 'pixel_aspect_ratio', opt.Option.FPS,
+    opt.Option.ACODEC, opt.Option.ABITRATE, opt.Option.LANGUAGE, opt.Option.ASAMPLING, opt.Option.AUTHOR]
 
-AUDIO_PROPS = ['filename', 'filesize', 'type', opt.media.FORMAT, opt.media.DURATION,
-    opt.media.ACODEC, opt.media.ABITRATE, opt.media.ASAMPLING,
-    opt.media.AUTHOR, opt.media.TITLE, opt.media.ALBUM, opt.media.YEAR, opt.media.TRACK, opt.media.GENRE]
+AUDIO_PROPS = ['filename', 'filesize', 'type', opt.Option.FORMAT, opt.Option.DURATION,
+    opt.Option.ACODEC, opt.Option.ABITRATE, opt.Option.ASAMPLING,
+    opt.Option.AUTHOR, opt.Option.TITLE, opt.Option.ALBUM, opt.Option.YEAR, opt.Option.TRACK, opt.Option.GENRE]
 
 IMAGE_PROPS = ['filename', 'filesize', 'type',
-    opt.media.FORMAT, opt.media.WIDTH, opt.media.HEIGHT, 'pixels', opt.media.AUTHOR, opt.media.TITLE]
+    opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, 'pixels', opt.Option.AUTHOR, opt.Option.TITLE]
 
-UNITS = {'filesize': [1048576, 'MB'], opt.media.DURATION: [1, 'hms'], opt.media.VBITRATE: [1024, 'kbits/s'],
-        opt.media.ABITRATE: [1024, 'kbits/s'], opt.media.ASAMPLING: [1000, 'k'], 'pixels': [1000000, 'Mpix']}
+UNITS = {'filesize': [1048576, 'MB'], opt.Option.DURATION: [1, 'hms'], opt.Option.VBITRATE: [1024, 'kbits/s'],
+        opt.Option.ABITRATE: [1024, 'kbits/s'], opt.Option.ASAMPLING: [1000, 'k'], 'pixels': [1000000, 'Mpix']}
 
 
 def file_list(input_item, filetypes=''):
@@ -95,7 +95,7 @@ def main():
     for file in filelist:
         try:
             if not util.is_media_file(file):
-                raise media.FileTypeError("File %s is not a supported file format" % file)
+                raise ex.FileTypeError(file=file)
             if util.is_video_file(file):
                 file_object = video.VideoFile(file)
                 if nb_files == 1:
@@ -135,7 +135,7 @@ def main():
                     except KeyError:
                         print("%s;" % '', end='')
             print("")
-        except media.FileTypeError as e:
+        except ex.FileTypeError as e:
             print('ERROR: File %s type error %s' % (file, str(e)))
 
 

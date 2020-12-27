@@ -19,32 +19,19 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
+import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.resolution as res
+import mediatools.audiofile as audio
 import mediatools.videofile as video
+import mediatools.imagefile as image
 
 
-def main():
-    files = []
-    util.set_logger('video-slideshow')
-    resolution = res.Resolution.DEFAULT_VIDEO
-    sys.argv.pop(0)
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--resolution":
-            resolution = sys.argv.pop(0)
-        else:
-            files.append(arg)
-    if len(files) > 0:
-        output = video.slideshow(*files, resolution=resolution)
-        util.logger.info("File %s generated", output)
-        print("File {} generated".format(output))
+def file(filename):
+    if util.is_audio_file(filename):
+        return audio.AudioFile(filename)
+    elif util.is_video_file(filename):
+        return video.VideoFile(filename)
+    elif util.is_image_file(filename):
+        return image.ImageFile(filename)
     else:
-        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
-
-
-if __name__ == "__main__":
-    main()
+        raise ex.FileTypeError(file=filename)
