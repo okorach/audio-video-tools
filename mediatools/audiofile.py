@@ -66,14 +66,16 @@ class AudioFile(media.MediaFile):
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
-        mp3 = MP3File(self.filename)
-        self.artist = mp3.artist
-        self.title = mp3.song
-        self.album = mp3.album
-        self.year = mp3.year
-        self.track = mp3.track
-        self.genre = mp3.genre
-        self.comment = mp3.comment
+        if self.title is None:
+            mp3 = MP3File(self.filename)
+            self.artist = mp3.artist
+            self.title = mp3.song
+            self.album = mp3.album
+            self.year = mp3.year
+            self.track = mp3.track
+            self.genre = mp3.genre
+            self.comment = mp3.comment
+        return vars(self)
 
     def get_title(self):
         if self.title is None:
@@ -163,16 +165,3 @@ def encode_album_art(source_file, album_art_file, **kwargs):
     os.remove(target_file)
     if kwargs['scale'] is not None:
         os.remove(album_art_file)
-
-
-def get_mp3_tags(file):
-    from mp3_tagger import MP3File
-    if util.get_file_extension(file).lower() != 'mp3':
-        raise ex.FileTypeError(file=file, expected_type='mp3')
-    # Create MP3File instance.
-    mp3 = MP3File(file)
-    return {
-        'artist': mp3.artist,'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,
-        'album': mp3.album, 'year': mp3.year, 'track': mp3.track, 'genre': mp3.genre,
-        'comment': mp3.comment
-    }
