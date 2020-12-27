@@ -6,7 +6,7 @@ do
     do
         for h in "" 64 128 258 512 500 800 1024 2000 3000 10000
         do
-            cmd="image-scale -i $f -s \"${w}x${h}\""
+            cmd="image-scale -i $f -s ${w}x${h}"
             $cmd
             code=$?
             if [ $code -ne 0 ]; then
