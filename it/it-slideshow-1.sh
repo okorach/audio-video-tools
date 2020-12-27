@@ -11,7 +11,7 @@ do
     fi
 done
 echo "----------------------------------------"
-echo "SUCCESS" `basename $0`
+echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm *.pan.*.mp4 *.zoom*.mp4 2>/dev/null
+rm ./*.pan*.mp4 ./*.zoom*.mp4 2>/dev/null
 exit 0
