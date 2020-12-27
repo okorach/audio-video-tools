@@ -21,15 +21,14 @@
 
 import sys
 import mediatools.utilities as util
-import mediatools.mediafile as media
+import mediatools.resolution as res
 import mediatools.videofile as video
-import mediatools.version as version
 
 
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = media.Resolution.DEFAULT_VIDEO
+    resolution = res.Resolution.DEFAULT_VIDEO
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -41,7 +40,8 @@ def main():
             files.append(arg)
     if len(files) > 0:
         output = video.slideshow(*files, resolution=resolution)
-        util.logger.info("slideshow v%s - File %s generated", version.MEDIA_TOOLS_VERSION, output)
+        util.logger.info("File %s generated", output)
+        print("File {} generated".format(output))
     else:
         util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
 
