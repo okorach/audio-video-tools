@@ -61,7 +61,7 @@ class VideoFile(media.MediaFile):
         '''Returns video file complete specs as dict'''
         if self.specs is None:
             self.probe()
-        self.decode_specs()
+            self.decode_specs()
 
     def decode_specs(self):
         self.get_file_specs()
@@ -112,11 +112,11 @@ class VideoFile(media.MediaFile):
         if self.pixel_aspect is None:
             ar = stream.get('display_aspect_ratio', None)
             if ar is None:
-                ar = "%d:%d" % (self.width(), self.height())
+                ar = "%d:%d" % (self.get_width(), self.get_height())
             self.aspect = media.reduce_aspect_ratio(ar)
             par = stream.get('sample_aspect_ratio', None)
             if par is None:
-                par = media.reduce_aspect_ratio("%d:%d" % (self.width(), self.height()))
+                par = media.reduce_aspect_ratio("%d:%d" % (self.get_width(), self.get_height()))
             self.pixel_aspect = media.reduce_aspect_ratio(par)
         return self.pixel_aspect
 
@@ -180,20 +180,20 @@ class VideoFile(media.MediaFile):
             w = int(util.get_first_value(stream, ('width', 'codec_width', 'coded_width')))
             h = int(util.get_first_value(stream, ('height', 'codec_height', 'coded_height')))
             self.resolution = media.Resolution(width=w, height=h)
-        util.logger.debug("Returning (%d, %d)", self.width(), self.height())
+        util.logger.debug("Resolution = %s", str(self.resolution))
         return (self.resolution.width, self.resolution.height)
 
-    def height(self):
+    def get_height(self):
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution.height
 
-    def width(self):
+    def get_width(self):
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution.width
 
-    def resolution(self):
+    def get_resolution(self):
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution
@@ -210,12 +210,14 @@ class VideoFile(media.MediaFile):
         }
 
     def get_video_properties(self):
+        util.logger.debug("4 Resolution = %s", str(self.resolution))
         if self.video_codec is None:
             self.get_specs()
+        util.logger.debug("3 Resolution = %s", str(self.resolution))
         return {
             'file_size': self.filesize, opt.media.FORMAT: self.format, opt.media.VBITRATE: self.video_bitrate,
             opt.media.VCODEC: self.video_codec, opt.media.FPS: self.video_fps,
-            'width': self.width(), 'height': self.height(), opt.media.ASPECT: self.aspect,
+            'width': self.get_width(), 'height': self.get_height(), opt.media.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
             'copyright': self.copyright, 'year': self.year
         }
@@ -227,6 +229,7 @@ class VideoFile(media.MediaFile):
         util.logger.debug("After audio properties(%s) = %s", self.filename, str(all_props))
         all_props.update(self.get_video_properties())
         util.logger.debug("After video properties(%s) = %s", self.filename, str(all_props))
+        all_props.pop('resolution')
         return all_props
 
     def crop(self, width, height, out_file, **kwargs):
@@ -276,8 +279,7 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def cut(self, start, stop, fade=None, out_file=None):
-        if out_file is None:
-            out_file = util.automatic_output_file_name(
+        out_file = util.automatic_output_file_name(
                 out_file, self.filename,
                 "cut_%s_to_%s" % (start.replace(':', '-'), stop.replace(':', '-')))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
@@ -290,12 +292,11 @@ class VideoFile(media.MediaFile):
         }
         video_filters = []
         if fade is not None:
-            fmt = "fade=type={0}:duration={1}:start_time={2}"
-            fader = fmt.format('in', fade, util.to_seconds(start)) + "," + \
-                fmt.format('out', fade, util.to_seconds(stop) - fade)
-            video_filters.append(fader)
-        util.run_ffmpeg('-i "%s" %s %s "%s"' % (self.filename, media.build_ffmpeg_options(media_opts),
-                                                media.build_video_filters_options(video_filters), out_file))
+            video_filters.append(filters.fade_in(start=util.to_seconds(start), duration=fade))
+            video_filters.append(filters.fade_out(start=util.to_seconds(stop) - fade, duration=fade))
+        util.run_ffmpeg('-i "{}" {} {} "{}"'.format(
+            self.filename, media.build_ffmpeg_options(media_opts),
+            media.build_video_filters_options(video_filters), out_file))
 
         return out_file
 
@@ -402,8 +403,8 @@ class VideoFile(media.MediaFile):
         if 'nocrop' not in kwargs:
             return output_file
 
-        new_w = self.width() - width
-        new_h = self.height() - height
+        new_w = self.get_width() - width
+        new_h = self.get_height() - height
         if out_file is None:
             output_file2 = util.add_postfix(self.filename, "deshake_crop_%dx%d" % (new_w, new_h))
         else:
