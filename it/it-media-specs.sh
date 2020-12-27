@@ -1,4 +1,4 @@
-for f in *.mpg *.jpg
+for f in *.mp4 *.jpg
 do
 	media-specs -i $f
 	code=$?
