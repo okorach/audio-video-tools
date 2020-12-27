@@ -21,75 +21,9 @@
 
 import re
 import ffmpeg
+import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.options as opt
-
-
-class FileTypeError(Exception):
-    '''Error when passing a non media file'''
-
-
-class Resolution:
-    RES_8K = "7680x4320"
-    RES_4K = "3840x2160"
-    RES_1080P = "1920x1080"
-    RES_720P = "1280x720"
-    RES_HD = RES_1080P
-    RES_540P = "960x540"
-    RES_400P = "720x400"
-    RES_360P = "640x360"
-    RES_VGA = "640x480"
-    RES_XGA = "1024x768"
-
-    DEFAULT_VIDEO = RES_4K
-
-    RATIO_16_9 = 16 / 9
-    RATIO_15_10 = 15 / 10
-    RATIO_4_3 = 4 / 3
-
-    def __init__(self, **kwargs):
-        self.width = 0
-        self.height = 0
-        self.pixels = 0
-        self.ratio = None
-        if 'width' in kwargs and 'height' in kwargs:
-            w = kwargs['width']
-            h = kwargs['height']
-        elif 'resolution' in kwargs:
-            r = kwargs['resolution']
-            if re.search('x', r):
-                (w, h) = r.split('x', maxsplit=2)
-            elif re.search(':', r):
-                (w, h) = r.split(':', maxsplit=2)
-        self.width = int(w)
-        self.height = int(h)
-        self.ratio = self.width / self.height
-        self.pixels = self.width * self.height
-
-    def is_ratio(self, ratio):
-        return abs(ratio - self.ratio) < 0.02
-
-    def calc_resolution(self, width, height):
-        a = str(width).split('%')
-        w = int(width) if len(a) == 1 else int(self.width * int(a[0]) / 100)
-        a = str(height).split('%')
-        h = int(height) if len(a) == 1 else int(self.height * int(a[0]) / 100)
-        return (w, h)
-
-    def __str__(self):
-        return self.as_string('x')
-
-    def as_string(self, separator="x"):
-        return "{}{}{}".format(self.width, separator, self.height)
-
-    def as_list(self):
-        return [self.width, self.height]
-
-    def as_tuple(self):
-        return (self.width, self.height)
-
-RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
-RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
 
 
 class MediaFile:
@@ -101,7 +35,7 @@ class MediaFile:
 
     def __init__(self, filename):
         if not util.is_media_file(filename):
-            raise FileTypeError('File %s is neither video, audio nor image file' % filename)
+            raise ex.FileTypeError(file=filename)
         self.type = util.get_file_type(filename)
         self.filename = filename
         self.specs = None
@@ -125,7 +59,7 @@ class MediaFile:
         if self.specs is not None:
             return self.specs
         try:
-            util.logger.info('%s(%s)', util.get_ffprobe(), self.filename)
+            util.logger.debug('%s(%s)', util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
             util.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
@@ -252,7 +186,7 @@ def reduce_aspect_ratio(aspect_ratio, height=None):
 def get_mp3_tags(file):
     from mp3_tagger import MP3File
     if util.get_file_extension(file).lower() != 'mp3':
-        raise FileTypeError('File %s is not an mp3 file')
+        raise ex.FileTypeError(file=file, expected_type='mp3')
     # Create MP3File instance.
     mp3 = MP3File(file)
     return {'artist': mp3.artist, 'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,

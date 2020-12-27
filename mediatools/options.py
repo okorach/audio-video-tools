@@ -29,7 +29,7 @@ in mediatools library
 '''
 
 
-class ff:
+class OptionFfmpeg:
     '''Documents supported ffmpeg options'''
     FORMAT = 'f'
     SIZE = 's'
@@ -51,7 +51,7 @@ class ff:
     STOP = 'to'
 
 
-class media:
+class Option:
     '''Documents supported audio-video-tools encoding options'''
     FORMAT = 'format'
     SIZE = 'vsize'
@@ -80,28 +80,28 @@ class media:
 
 
 M2F_MAPPING = {
-    media.FORMAT: ff.FORMAT,
-    media.VCODEC: ff.VCODEC,
-    media.VBITRATE: ff.VBITRATE,
-    media.ACODEC: ff.ACODEC,
-    media.ABITRATE: ff.ABITRATE,
-    media.FPS: ff.FPS,
-    media.ASPECT: ff.ASPECT,
-    media.SIZE: ff.SIZE,
-    media.DEINTERLACE: ff.DEINTERLACE,
-    media.ACHANNEL: ff.ACHANNEL,
-    media.VFILTER: ff.VFILTER,
-    media.START: ff.START,
-    media.STOP: ff.STOP
+    Option.FORMAT: OptionFfmpeg.FORMAT,
+    Option.VCODEC: OptionFfmpeg.VCODEC,
+    Option.VBITRATE: OptionFfmpeg.VBITRATE,
+    Option.ACODEC: OptionFfmpeg.ACODEC,
+    Option.ABITRATE: OptionFfmpeg.ABITRATE,
+    Option.FPS: OptionFfmpeg.FPS,
+    Option.ASPECT: OptionFfmpeg.ASPECT,
+    Option.SIZE: OptionFfmpeg.SIZE,
+    Option.DEINTERLACE: OptionFfmpeg.DEINTERLACE,
+    Option.ACHANNEL: OptionFfmpeg.ACHANNEL,
+    Option.VFILTER: OptionFfmpeg.VFILTER,
+    Option.START: OptionFfmpeg.START,
+    Option.STOP: OptionFfmpeg.STOP
 }
 
 F2M_MAPPING = {}
 for k, v in M2F_MAPPING.items():
     F2M_MAPPING[v] = k
-F2M_MAPPING[ff.ACODEC2] = media.ACODEC
-F2M_MAPPING[ff.ACODEC3] = media.ACODEC
-F2M_MAPPING[ff.VCODEC2] = media.VCODEC
-F2M_MAPPING[ff.VCODEC3] = media.VCODEC
+F2M_MAPPING[OptionFfmpeg.ACODEC2] = Option.ACODEC
+F2M_MAPPING[OptionFfmpeg.ACODEC3] = Option.ACODEC
+F2M_MAPPING[OptionFfmpeg.VCODEC2] = Option.VCODEC
+F2M_MAPPING[OptionFfmpeg.VCODEC3] = Option.VCODEC
 
 
 def media2ffmpeg(options):
