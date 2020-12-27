@@ -40,6 +40,7 @@ class ImageFile(media.MediaFile):
     SUPPORTED_IMG_CODECS = ('mjpeg', 'png', 'gif')
 
     def __init__(self, filename):
+        self.resolution = None
         self.width = None
         self.height = None
         self.pixels = None
@@ -51,7 +52,8 @@ class ImageFile(media.MediaFile):
         '''Returns file media properties as a dict'''
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
-        util.logger.debug("Returning image props %s\nObject %s", str(all_props), str(vars(self)))
+        all_props.pop('resolution')
+        util.logger.debug("Returning image props %s", str(all_props))
         return all_props
 
     def probe(self):
@@ -67,6 +69,7 @@ class ImageFile(media.MediaFile):
             (dis_w, dis_h) = [int(x) for x in dar.split(':')]
             if abs(dis_w * self.height - dis_h * self.width) < 0.001:
                 self.width, self.height = self.height, self.width
+        self.resolution = media.Resolution(width=self.width, height=self.height)
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         util.logger.debug("Image = %s", str(vars(self)))
