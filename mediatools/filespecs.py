@@ -26,7 +26,6 @@ import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.mediafile as media
 import mediatools.imagefile as img
 import mediatools.options as opt
 
