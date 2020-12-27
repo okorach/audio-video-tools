@@ -66,14 +66,16 @@ class AudioFile(media.MediaFile):
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
-        mp3 = MP3File(self.filename)
-        self.artist = mp3.artist
-        self.title = mp3.song
-        self.album = mp3.album
-        self.year = mp3.year
-        self.track = mp3.track
-        self.genre = mp3.genre
-        self.comment = mp3.comment
+        if self.title is None:
+            mp3 = MP3File(self.filename)
+            self.artist = mp3.artist
+            self.title = mp3.song
+            self.album = mp3.album
+            self.year = mp3.year
+            self.track = mp3.track
+            self.genre = mp3.genre
+            self.comment = mp3.comment
+        return vars(self)
 
     def get_title(self):
         if self.title is None:
