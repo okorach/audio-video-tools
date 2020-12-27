@@ -163,3 +163,16 @@ def encode_album_art(source_file, album_art_file, **kwargs):
     os.remove(target_file)
     if kwargs['scale'] is not None:
         os.remove(album_art_file)
+
+
+def get_mp3_tags(file):
+    from mp3_tagger import MP3File
+    if util.get_file_extension(file).lower() != 'mp3':
+        raise ex.FileTypeError(file=file, expected_type='mp3')
+    # Create MP3File instance.
+    mp3 = MP3File(file)
+    return {
+        'artist': mp3.artist,'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,
+        'album': mp3.album, 'year': mp3.year, 'track': mp3.track, 'genre': mp3.genre,
+        'comment': mp3.comment
+    }

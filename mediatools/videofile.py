@@ -565,18 +565,6 @@ def deshake(video_file, width, height, out_file =None, **kwargs):
     return VideoFile(video_file).deshake(width, height, out_file, **kwargs)
 
 
-def get_mp3_tags(file):
-    from mp3_tagger import MP3File
-    if util.get_file_extension(file).lower() != 'mp3':
-        raise ex.FileTypeError('File %s is not an mp3 file')
-    # Create MP3File instance.
-    mp3 = MP3File(file)
-    return {
-        'artist': mp3.artist, 'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,
-        'album': mp3.album, 'year': mp3.year, 'track': mp3.track, 'genre': mp3.genre, 'comment': mp3.comment
-    }
-
-
 def concat(target_file, file_list, with_audio=True):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
     util.logger.info("%s = %s", target_file, ' + '.join(file_list))

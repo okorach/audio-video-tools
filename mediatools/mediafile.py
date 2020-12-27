@@ -209,16 +209,6 @@ def reduce_aspect_ratio(aspect_ratio, height=None):
     return "%d:%d" % (w, h)
 
 
-def get_mp3_tags(file):
-    from mp3_tagger import MP3File
-    if util.get_file_extension(file).lower() != 'mp3':
-        raise ex.FileTypeError(file=file, expected_type='mp3')
-    # Create MP3File instance.
-    mp3 = MP3File(file)
-    return {'artist': mp3.artist, 'author': mp3.artist, 'song': mp3.song, 'title': mp3.song,
-            'album': mp3.album, 'year': mp3.year, 'track': mp3.track, 'genre': mp3.genre, 'comment': mp3.comment}
-
-
 def concat(target_file, file_list):
     #  ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
     #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
