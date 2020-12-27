@@ -142,9 +142,6 @@ class MediaFile:
         all_props = self.get_file_properties()
         return all_props
 
-    def dimensions(self):
-        return None
-
     def __get_top_left__(self, width, height, **kwargs):
         iw, ih = self.dimensions()
         top = kwargs.get('top', None)
