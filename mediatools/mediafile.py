@@ -63,8 +63,8 @@ class MediaFile:
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
             util.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
-            util.logger.error("%s error %s", util.get_ffprobe(), e.stderr)
-            return None
+            util.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
+            raise
         self.decode_specs()
         return self.specs
 
