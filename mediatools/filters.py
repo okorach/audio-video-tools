@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import platform
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -84,8 +85,8 @@ def fade_out(start=0, duration=0.5, alpha=1):
     return fade('out', start, duration, alpha)
 
 
-def overlay(in_stream_1, in_stream_2, out_stream):
-    return "[{}][{}]overlay[{}]".format(in_stream_1, in_stream_2, out_stream)
+def overlay(in_stream_1, in_stream_2, out_stream, x=0, y=0):
+    return "[{}][{}]overlay={}:{}[{}]".format(in_stream_1, in_stream_2, x, y, out_stream)
 
 
 def trim(duration=None, start=None, stop=None):
@@ -117,6 +118,14 @@ def crop(x, y, x_formula=None, y_formula=None):
         s += ':' + str(y_formula)
     return s
 
+
+def filtercomplex(filter_list):
+    sep = " "   # if platform.system() == 'Windows' else " \\\n"
+    return'-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+
+
+def inputs_str(input_list):
+    return ' '.join(['-i "{}"'.format(f) for f in input_list])
 
 def hw_accel_input(**kwargs):
     if kwargs.get('hw_accel', False):

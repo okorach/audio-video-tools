@@ -124,33 +124,29 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
         return out_file
 
-    def slice_vertical(self, nbr_slices, round_to=16, slice_pattern='slice'):
+    def slice_vertical(self, nbr_slices, round_to=16):
+        filter_list = []
         w, h = self.dimensions()
         slice_w = max(w // nbr_slices, round_to)
-        slices = []
         nbr_slices = min(nbr_slices, (w // slice_w) + 1)
         for i in range(nbr_slices):
-            slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
-            self.crop(slice_w, h, i * slice_w, 0, slicefile)
-            slices.append(slicefile)
-        return slices
+            filter_list.append(filters.crop(slice_w, h, i * slice_w, 0))
+        return filter_list
 
-    def slice_horizontal(self, nbr_slices, round_to=16, slice_pattern='slice'):
+    def slice_horizontal(self, nbr_slices, round_to=16):
+        filter_list = []
         w, h = self.dimensions()
         slice_h = max(h // nbr_slices, round_to)
-        slices = []
         nbr_slices = min(nbr_slices, (h // slice_h) + 1)
         for i in range(nbr_slices):
-            slicefile = util.add_postfix(self.filename, "%s.%d" % (slice_pattern, i))
-            self.crop(w, slice_h, 0, i * slice_h, slicefile)
-            slices.append(slicefile)
-        return slices
+            filter_list.append(filters.crop(w, slice_h, 0, i * slice_h))
+        return filter_list
 
-    def slice(self, nbr_slices, direction='vertical', round_to=16, slice_pattern='slice'):
+    def get_crop_filters(self, nbr_slices, direction='vertical', round_to=16):
         if direction == 'horizontal':
-            return self.slice_horizontal(nbr_slices, round_to, slice_pattern)
+            return self.slice_horizontal(nbr_slices, round_to)
         else:
-            return self.slice_vertical(nbr_slices, round_to, slice_pattern)
+            return self.slice_vertical(nbr_slices, round_to)
 
     def crop_any(self, width_height_ratio="1.5", align="center", out_file=None):
         if re.match(r"^\d+:\d+$", width_height_ratio):
@@ -186,56 +182,38 @@ class ImageFile(media.MediaFile):
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
-        background_color = kwargs.pop('background_color', 'black')
+        input_list = [self.filename, get_bg(kwargs.pop('background_color', 'black'))]
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.dimensions()
-
         w_gap = w * blinds_size_pct // 100
         h_gap = h * blinds_size_pct // 100
 
+        crop_filters = self.get_crop_filters(nbr_slices, direction)
+        filter_list = crop_filters.copy()
+        for i in range(len(filter_list)):
+            filter_list[i] = filters.wrap_in_streams(filter_list[i], "0", "slice{}".format(i))
+
         if direction == 'horizontal':
-            tmpbg = get_rectangle(background_color, w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
+            background = filters.scale(w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
         else:
-            tmpbg = get_rectangle(background_color, (w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
+            background = filters.scale((w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
 
-        # ffmpeg -i file1.jpg -i file2.jpg -i bg.tmp.jpg \
-        # -filter_complex "[0]scale=iw:-1:flags=lanczos[pip0]; \
-        # [1]scale=iw:-1:flags=lanczos[pip1]; \
-        # [8]scale=iw:-1:flags=lanczos[pip8]; \
-        # [9][pip0]overlay=204:204[step0] ; \
-        # [step0][pip1]overlay=2456:204[step1]; \
-        # [step7][pip8]overlay=4708:3374" outfile.jpg
-
-        slices = self.slice(nbr_slices, direction)
-        filelist = util.build_ffmpeg_file_list(slices)
-        filelist = filelist + INPUT_FILE_FMT % tmpbg
-        cmplx = util.build_ffmpeg_complex_prep(slices)
-
-        # i = 0
-        # cmplx = ''
-        # for slicefile in slices:
-        #    cmplx = cmplx + "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
-        #    i = i + 1
-
-        step = 0
-        cmplx = cmplx + OVERLAY_0_FMT % (len(slices), step)
-        first_slice = slices.pop(0)
-        j = 0
-        x = 0
-        y = 0
-        for slicefile in slices:
+        filter_list.append(filters.wrap_in_streams(background, "1", "bg"))
+        filter_list.append(filters.overlay("bg", "slice0", "overlay0"))
+        for i in range(1, len(crop_filters)):
+            in1 = "overlay{}".format(i - 1)
+            in2 = "slice{}".format(i)
+            outstream = "overlay{}".format(i)
             if direction == 'horizontal':
-                y = (j + 1) * (h // nbr_slices + h_gap)
+                overlay = filters.overlay(in1, in2, outstream, 0, i * (h // nbr_slices + h_gap))
             else:
-                x = (j + 1) * (w // nbr_slices + w_gap)
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
-            if slicefile != slices[len(slices) - 1]:
-                cmplx = cmplx + STEP_FMT % (j + 1)
-            j += 1
+                overlay = filters.overlay(in1, in2, outstream, i * (w // nbr_slices + w_gap), 0)
+            filter_list.append(overlay)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
-        util.run_ffmpeg('%s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
-        util.delete_files(*slices, first_slice, tmpbg)
+        util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(
+            filters.inputs_str(input_list), filters.filtercomplex(filter_list), outstream, out_file))
+        return out_file
 
     def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
         w, h = self.dimensions()
@@ -417,8 +395,12 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color, w, h):
+    return ImageFile(get_bg(color)).scale(w, h, out_file="bg.tmp.jpg")
+
+
+def get_bg(color):
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
-    return ImageFile(bgfile).scale(w, h, out_file="bg.tmp.jpg")
+    return bgfile
 
 
 def stack(*files, direction='vertical', out_file=None):
@@ -438,13 +420,11 @@ def stack(*files, direction='vertical', out_file=None):
         final_list = [f.scale(max_w, -1) for f in files_to_stack]
         filter_name = 'vstack'
 
-    # ffmpeg -i left.mp4 -i centre.mp4 -i right.mp4 -filter_complex "[0:v:0][1:v:0][2:v:0]hstack=inputs=3"
-    inputs_str = ' '.join(['-i "{}"'.format(f) for f in final_list])
     fcomp = ''
     for i in range(len(final_list)):
         fcomp += "[{}:v]".format(i)
     fcomp += "{}=inputs={}".format(filter_name, len(final_list))
-    util.run_ffmpeg('{} -filter_complex "{}" "{}"'.format(inputs_str, fcomp, out_file))
+    util.run_ffmpeg('{} -filter_complex "{}" "{}"'.format(filters.inputs_str(final_list), fcomp, out_file))
     [os.remove(f) for f in final_list]
     return out_file
 
