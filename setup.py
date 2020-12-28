@@ -48,6 +48,7 @@ setuptools.setup(
         'datetime',
         'mp3_tagger',
         'ffmpeg-python',
+        'ExifRead',
         'jprops'
     ],
     classifiers=[

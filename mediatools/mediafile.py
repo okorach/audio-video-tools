@@ -160,7 +160,7 @@ class MediaFile:
         if left is None:
             if pos is None:
                 pos = "center"
-                left = (ih - height) // 2
+                left = (iw - width) // 2
             elif re.search('.*left.*', pos):
                 left = 0
             elif re.search('.*right.*', pos):
