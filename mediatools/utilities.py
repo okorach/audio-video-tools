@@ -220,18 +220,24 @@ def run_os_cmd(cmd):
     logger.info("Running: %s", cmd)
     try:
         args = shlex.split(cmd)
-        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline()
         while line:
-            logger.debug(line.decode("utf-8").rstrip())
+            if re.search("error", line, re.IGNORECASE):
+                logger.error(line.rstrip())
+            elif re.search("warning", line, re.IGNORECASE):
+                logger.warning(line.rstrip())
+            else:
+                logger.debug(line.rstrip())
             line = pipe.stdout.readline()
-        # TODO: Handle error in retcode
-        # if pipe.returncode != 0:
-        #     raise subprocess.CalledProcessError(cmd=cmd, output=line, returncode=pipe.returncode)
+        outs, errs = pipe.communicate()
+        logger.debug("Return code = %d", pipe.returncode)
+        if pipe.returncode != 0:
+            raise subprocess.CalledProcessError(cmd=cmd, output=line, returncode=pipe.returncode)
         logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
-        logger.error("%s", e.output)
-        logger.error("Command: %s failed with code %d", cmd, e.returncode)
+        logger.error("Command: %s failed with return code %d", cmd, e.returncode)
         raise OSError(e.returncode)
 
 
