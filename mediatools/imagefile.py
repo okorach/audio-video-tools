@@ -21,7 +21,6 @@
 
 import os
 import math
-import platform
 import re
 import random
 import shutil
@@ -202,13 +201,13 @@ class ImageFile(media.MediaFile):
         filter_list.append(filters.wrap_in_streams(background, "1", "bg"))
         filter_list.append(filters.overlay("bg", "slice0", "overlay0"))
         for i in range(1, len(crop_filters)):
-            in1 = "overlay{}".format(i-1)
+            in1 = "overlay{}".format(i - 1)
             in2 = "slice{}".format(i)
             outstream = "overlay{}".format(i)
             if direction == 'horizontal':
-                overlay = filters.overlay( in1, in2, outstream, 0, i * (h // nbr_slices + h_gap))
+                overlay = filters.overlay(in1, in2, outstream, 0, i * (h // nbr_slices + h_gap))
             else:
-                overlay = filters.overlay( in1, in2, outstream, i * (w // nbr_slices + w_gap), 0)
+                overlay = filters.overlay(in1, in2, outstream, i * (w // nbr_slices + w_gap), 0)
             filter_list.append(overlay)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
