@@ -46,6 +46,7 @@ class ImageFile(media.MediaFile):
         if not util.is_image_file(filename):
             raise ex.FileTypeError(file=filename, expected_type='image')
         self.resolution = None
+        self.dar = None
         self.width = None
         self.height = None
         self.pixels = None
@@ -70,17 +71,12 @@ class ImageFile(media.MediaFile):
         self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
-        dar = util.find_key(stream, ['display_aspect_ratio'])
-        # if dar is not None:
-        #     (dis_w, dis_h) = [int(x) for x in dar.split(':')]
-        #     if abs(dis_w * self.height - dis_h * self.width) < 0.001:
-        #         self.width, self.height = self.height, self.width
+        self.dar = util.find_key(stream, ['display_aspect_ratio'])
         self.resolution = res.Resolution(width=self.width, height=self.height)
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         self.exif_read()
         util.logger.debug("Image = %s", str(vars(self)))
-
 
     def exif_read(self):
         import exifread
@@ -109,7 +105,6 @@ class ImageFile(media.MediaFile):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
     def crop(self, width, height, out_file=None, **kwargs):
-
         if self.orientation == 'portrait':
             width, height = height, width
         (width, height) = self.resolution.calc_resolution(width, height)
