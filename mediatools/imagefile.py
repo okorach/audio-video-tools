@@ -24,6 +24,7 @@ import math
 import re
 import random
 import shutil
+import exifread
 
 import mediatools.utilities as util
 import mediatools.resolution as res
@@ -49,6 +50,7 @@ class ImageFile(media.MediaFile):
         self.height = None
         self.pixels = None
         self.ratio = None
+        self.orientation = 'landscape'
         super().__init__(filename)
         self.probe()
 
@@ -69,14 +71,31 @@ class ImageFile(media.MediaFile):
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))
         self.height = int(util.find_key(stream, ('height', 'codec_height', 'coded_height')))
         dar = util.find_key(stream, ['display_aspect_ratio'])
-        if dar is not None:
-            (dis_w, dis_h) = [int(x) for x in dar.split(':')]
-            if abs(dis_w * self.height - dis_h * self.width) < 0.001:
-                self.width, self.height = self.height, self.width
+        # if dar is not None:
+        #     (dis_w, dis_h) = [int(x) for x in dar.split(':')]
+        #     if abs(dis_w * self.height - dis_h * self.width) < 0.001:
+        #         self.width, self.height = self.height, self.width
         self.resolution = res.Resolution(width=self.width, height=self.height)
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
+        self.exif_read()
         util.logger.debug("Image = %s", str(vars(self)))
+
+
+    def exif_read(self):
+        import exifread
+        f = open(self.filename, 'rb')
+        tags = exifread.process_file(f)
+        for tag in tags:
+            if not re.search("thumbnail", tag, re.IGNORECASE):
+                util.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
+        if re.search('Rotated 90', str(tags.get('Image Orientation', ''))):
+            self.width, self.height = self.height, self.width
+            self.resolution = res.Resolution(width=self.width, height=self.height)
+            self.orientation = 'portrait'
+            util.logger.debug('Portrait orientation: %s', str(self.resolution))
+
+        return tags
 
     def dimensions(self):
         return (self.width, self.height)
