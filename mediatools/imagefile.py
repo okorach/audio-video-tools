@@ -97,7 +97,9 @@ class ImageFile(media.MediaFile):
 
         return tags
 
-    def dimensions(self):
+    def dimensions(self, ignore_orientation=False):
+        if not ignore_orientation and self.orientation == 'portrait':
+            return (self.height, self.width)
         return (self.width, self.height)
 
     def get_ratio(self):
@@ -108,6 +110,8 @@ class ImageFile(media.MediaFile):
 
     def crop(self, width, height, out_file=None, **kwargs):
 
+        if self.orientation == 'portrait':
+            width, height = height, width
         (width, height) = self.resolution.calc_resolution(width, height)
         (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename,
