@@ -13,6 +13,15 @@ do
             exit $code
         fi
     done
+    cmd="media-crop -i img-3000x4000.jpg --box 2800x3800 --position center"
+        $cmd
+        code=$?
+        if [ $code -ne 0 ]; then
+            1>&2 echo "========================================"
+            1>&2 echo "FAILED: $cmd"
+            1>&2 echo "========================================"
+        exit $code
+    fi
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
