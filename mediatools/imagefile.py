@@ -79,7 +79,6 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Image = %s", str(vars(self)))
 
     def exif_read(self):
-        import exifread
         f = open(self.filename, 'rb')
         tags = exifread.process_file(f)
         for tag in tags:
