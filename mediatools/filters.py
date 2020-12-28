@@ -119,7 +119,7 @@ def crop(x, y, x_formula=None, y_formula=None):
 
 
 def filtercomplex(filter_list):
-    sep = " " # if platform.system() == 'Windows' else " \\\n"
+    sep = " "   # if platform.system() == 'Windows' else " \\\n"
     return'-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
 
 
