@@ -33,15 +33,6 @@ import mediatools.imagefile as image
 DEFAULT_RESCALING = '512x512'
 
 
-def filelist_poster(filelist, bg, margin):
-    image.posterize(filelist, None, bg, margin)
-
-
-def dir_poster(dirname, bg, margin):
-    filelist = util.filelist(dirname)
-    filelist_poster(filelist, bg, margin)
-
-
 def main():
     file_list = []
     dir_list = []
@@ -72,12 +63,8 @@ def main():
             util.logger.info("Adding file %s to poster", arg)
             file_list.append(arg)
 
-    for directory in dir_list:
-        dir_poster(directory, background, margin)
-
-    if file_list:
-        filelist_poster(file_list, background, margin)
-
+    posterfile = image.posterize(*file_list, out_file=None, background_color=background, margin=margin)
+    print("Generated {}".format(posterfile))
 
 if __name__ == "__main__":
     main()

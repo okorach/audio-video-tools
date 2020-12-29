@@ -54,6 +54,12 @@ class MediaFile:
         self.duration = None
         self.probe()
 
+    def __str__(self):
+        return self.filename
+
+    def __format__(self, format_spec):
+        return self.filename
+
     def probe(self):
         '''Returns media file general specs'''
         if self.specs is not None:
