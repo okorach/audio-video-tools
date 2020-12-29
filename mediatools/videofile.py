@@ -674,12 +674,9 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
         cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
     cfilters.append(filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final"))
 
-    sep = " " if platform.system() == 'Windows' else " \\\n"
-    inputs = sep.join(list(map(lambda f: '-i "{}"'.format(f), input_files)))
-    filtercomplex = '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(cfilters))
-    util.run_ffmpeg("{} {} {} {} {} -map [final] {} -s {} {}".format(
-        filters.hw_accel_input(**kwargs), inputs, filtercomplex, sep,
-        filters.hw_accel_output(**kwargs), sep, resolution, outfile))
+    util.run_ffmpeg("{} {} {} {} -map [final] -s {} {}".format(
+        filters.hw_accel_input(**kwargs), filters.inputs_str(input_files), filters.filtercomplex(cfilters),
+        filters.hw_accel_output(**kwargs), resolution, outfile))
     return outfile
 
     # ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
