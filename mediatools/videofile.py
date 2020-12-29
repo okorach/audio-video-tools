@@ -174,7 +174,7 @@ class VideoFile(media.MediaFile):
                     break
         return self.video_fps
 
-    def dimensions(self, stream=None):
+    def dimensions(self, stream=None, ignore_orientation=True):
         util.logger.debug('Getting video dimensions')
         if self.resolution is None:
             if stream is None:
