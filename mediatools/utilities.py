@@ -219,26 +219,31 @@ def get_first_value(a_dict, key_list):
 def run_os_cmd(cmd):
     logger.info("Running: %s", cmd)
     try:
+        last_error = None
         args = shlex.split(cmd)
         pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             universal_newlines=True, bufsize=1)
-        line = pipe.stdout.readline()
+        line = pipe.stdout.readline().rstrip()
         while line:
+            if re.search("Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
+                last_error = line
             if re.search("(error|invalid|failed)", line, re.IGNORECASE):
-                logger.error(line.rstrip())
+                logger.error(line)
             elif re.search("(warning|deprecated)", line, re.IGNORECASE):
-                logger.warning(line.rstrip())
+                logger.warning(line)
             else:
-                logger.debug(line.rstrip())
-            line = pipe.stdout.readline()
+                logger.debug(line)
+            line = pipe.stdout.readline().rstrip()
         outs, errs = pipe.communicate()
         logger.debug("Return code = %d", pipe.returncode)
         if pipe.returncode != 0:
-            raise subprocess.CalledProcessError(cmd=cmd, output=line, returncode=pipe.returncode)
+            last_error = line if last_error is None else last_error
+            raise subprocess.CalledProcessError(cmd=cmd, output=last_error, returncode=pipe.returncode)
         logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
         logger.error("Command: %s failed with return code %d", cmd, e.returncode)
-        raise OSError(e.returncode)
+        logger.error("%s", e.output)
+        raise
 
 
 def run_ffmpeg(params):
