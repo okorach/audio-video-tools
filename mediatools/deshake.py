@@ -30,9 +30,13 @@ import mediatools.videofile as video
 def parse_args():
     parser = util.parse_common_args(desc='Apply deshake filter')
     parser = video.add_video_args(parser)
-    parser.add_argument('--width', required=True, help='Deshake width')
-    parser.add_argument('--height', required=True, help='Deshake height')
-    parser.add_argument('--nocrop', required=False, help='Do not crop video after deshaking')
+    parser.add_argument('--rx', required=False, type=int, default=64, choices=range(65),
+        help='Deshake rx', metavar="[0-64]")
+    parser.add_argument('--ry', required=False, type=int, default=64, choices=range(65),
+        help='Deshake ry', metavar="[0-64]")
+    parser.add_argument('--crop', dest='crop', action='store_true', help='Crop video after stabilization')
+    parser.add_argument('--nocrop', dest='crop', action='store_false', help='Do not crop video after stabilization')
+    parser.set_defaults(crop=True)
     return parser.parse_args()
 
 
@@ -41,13 +45,13 @@ def main():
     kwargs = vars(args)
     util.check_environment(kwargs)
     kwargs = util.cleanup_options(kwargs)
-    del kwargs['width']
-    del kwargs['height']
+    rx = kwargs.pop('rx')
+    ry = kwargs.pop('ry')
     if args.timeranges is not None:
         for video_range in re.split(',', args.timeranges):
             kwargs['ss'], kwargs['to'] = re.split('-', video_range)
-    outputfile = video.deshake(args.inputfile, int(args.width), int(args.height), args.outputfile, **kwargs)
-    util.logger.info('Generated %s', outputfile)
+    outputfile = video.VideoFile(args.inputfile).deshake(rx=rx, ry=ry, out_file=args.outputfile, **kwargs)
+    print('Generated {}'.format(outputfile))
 
 
 if __name__ == "__main__":
