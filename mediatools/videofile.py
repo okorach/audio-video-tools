@@ -359,36 +359,23 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('{0} {1} -dn -codec copy "{2}"'.format(inputs, maps, output_file))
         return output_file
 
-    def deshake(self, width, height, out_file, **kwargs):
+    def deshake(self, rx=64, ry=64, out_file=None, **kwargs):
         ''' Applies deshake video filter for width x height pixels '''
         media_opts = self.get_properties()
         media_opts.update({opt.Option.DEINTERLACE: None, opt.Option.ASPECT: self.get_aspect_ratio()})
         media_opts.update(util.cleanup_options(kwargs))
 
-        if out_file is None or 'nocrop' in kwargs:
-            output_file = util.add_postfix(self.filename, "deshake_%dx%d" % (width, height))
-        else:
-            output_file = out_file
+        vfilters = [filters.deshake(rx=rx, ry=ry)]
+        w, h = self.dimensions()
+        if kwargs.get('crop', True):
+            vfilters.append(filters.crop(w - rx, h - ry, rx // 2, ry // 2))
 
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'deshake', extension="mp4")
         ffopts = opt.media2ffmpeg(media_opts)
-        cmd = '-i "%s" %s %s "%s"' % (self.filename,
-            util.dict2str(ffopts), get_deshake_filter_options(width, height), output_file)
-        util.run_ffmpeg(cmd)
-
-        if 'nocrop' not in kwargs:
-            return output_file
-
-        new_w = self.get_width() - width
-        new_h = self.get_height() - height
-        if out_file is None:
-            output_file2 = util.add_postfix(self.filename, "deshake_crop_%dx%d" % (new_w, new_h))
-        else:
-            output_file2 = out_file
-        deshake_file_o = VideoFile(output_file)
-        kwargs.update({opt.Option.ASPECT: self.get_aspect_ratio()})
-        deshake_file_o.crop(new_w, new_h, width // 2, height // 2, output_file2, **kwargs)
-        os.remove(output_file)
-        return output_file2
+        util.run_ffmpeg(
+            '-i "{}" {} {} "{}"'.format(self.filename, util.dict2str(ffopts), filters.vfilter(vfilters), out_file))
+        util.logger.info("Generated %s", out_file)
+        return out_file
 
     def set_author(self, author):
         self.author = author
@@ -555,14 +542,9 @@ def get_crop_filter_options(width, height, top, left):
     return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
 
 
-def get_deshake_filter_options(width, height):
-    # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
-    return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height)
-
-
-def deshake(video_file, width, height, out_file =None, **kwargs):
+def deshake(video_file, rx=64, ry=64, out_file=None, **kwargs):
     ''' Applies deshake video filter for width x height pixels '''
-    return VideoFile(video_file).deshake(width, height, out_file, **kwargs)
+    return VideoFile(video_file).deshake(rx=rx, ry=ry, out_file=out_file, **kwargs)
 
 
 def concat(target_file, file_list, with_audio=True):

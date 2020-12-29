@@ -119,9 +119,17 @@ def crop(x, y, x_formula=None, y_formula=None):
     return s
 
 
+def deshake(x=-1, y=-1, w=-1, h=-1, rx=64, ry=64):
+    return "deshake=x={}:y={}:w={}:h={}:rx={}:ry={}".format(x, y, w, h, rx, ry)
+
+
 def filtercomplex(filter_list):
     sep = " "   # if platform.system() == 'Windows' else " \\\n"
     return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+
+
+def vfilter(filter_list):
+    return '-vf "{}"'.format(','.join(filter_list))
 
 
 def inputs_str(input_list):
