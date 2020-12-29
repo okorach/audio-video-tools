@@ -121,11 +121,13 @@ def crop(x, y, x_formula=None, y_formula=None):
 
 def filtercomplex(filter_list):
     sep = " "   # if platform.system() == 'Windows' else " \\\n"
-    return'-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+    return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
 
 
 def inputs_str(input_list):
-    return ' '.join(['-i "{}"'.format(f) for f in input_list])
+    sep = " "   # if platform.system() == 'Windows' else " \\\n"
+    return sep.join(['-i "{}"'.format(f) for f in input_list])
+
 
 def hw_accel_input(**kwargs):
     if kwargs.get('hw_accel', False):
