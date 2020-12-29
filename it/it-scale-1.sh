@@ -1,6 +1,8 @@
 #!/bin/bash
-list=`ls *.jpg`
-for f in $list
+
+. lib-it.sh
+
+for f in ./*.jpg
 do
     for w in "" 64 128 258 512 500 800 1024 2000 3000 10000
     do
@@ -10,14 +12,8 @@ do
                 # Generates a too wide image, skip
                 continue
             fi
-            cmd="image-scale -i $f -s ${w}x${h}"
-            $cmd
-            code=$?
-            if [ $code -ne 0 ]; then
-                1>&2 echo "FAILED: $cmd"
-                exit $code
-            fi
-            rm "./$f*.scale-*.jpg" 2>/dev/null
+            run_cmd "image-scale -i $f -s ${w}x${h}"
+            rm ./$f*.scale-*.jpg 2>/dev/null
         done
     done
 done

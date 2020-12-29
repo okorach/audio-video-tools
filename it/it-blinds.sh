@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. lib-it.sh
+
 let i=0
 for f in ./*.jpg
 do
@@ -20,14 +22,7 @@ do
             else
                 c=white
             fi
-            cmd="image-blinds -i $f -n $n -d $d -c $c -r $r"
-            echo "Running: $cmd"
-            $cmd
-            code=$?
-            if [ $code -ne 0 ]; then
-                1>&2 echo "FAILED: $cmd"
-                exit $code
-            fi
+            run_cmd "image-blinds -i $f -n $n -d $d -c $c -r $r"
         done
     done
 done
