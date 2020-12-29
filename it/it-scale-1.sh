@@ -16,7 +16,7 @@ do
                 1>&2 echo "FAILED: $cmd"
                 exit $code
             fi
-            rm ./$f*.scale-*.jpg 2>/dev/null
+            rm "./$f*.scale-*.jpg" 2>/dev/null
         done
     done
 done

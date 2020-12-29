@@ -451,7 +451,7 @@ def posterize(*files, out_file=None, background_color="black", margin=5):
 
     input_files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
     files_to_posterize = [ImageFile(f) for f in input_files]
-    input_files.insert(0,   get_bg(background_color))
+    input_files.insert(0, get_bg(background_color))
 
     max_h = max([f.height for f in files_to_posterize])
     max_w = max([f.width for f in files_to_posterize])
