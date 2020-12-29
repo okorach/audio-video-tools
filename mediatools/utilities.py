@@ -224,9 +224,9 @@ def run_os_cmd(cmd):
             universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline()
         while line:
-            if re.search("error", line, re.IGNORECASE):
+            if re.search("(error|invalid|failed)", line, re.IGNORECASE):
                 logger.error(line.rstrip())
-            elif re.search("warning", line, re.IGNORECASE):
+            elif re.search("(warning|deprecated)", line, re.IGNORECASE):
                 logger.warning(line.rstrip())
             else:
                 logger.debug(line.rstrip())
