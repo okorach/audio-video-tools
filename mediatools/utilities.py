@@ -225,11 +225,11 @@ def run_os_cmd(cmd):
             universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline().rstrip()
         while line:
-            if re.search("Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
+            if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
                 last_error = line
-            if re.search("(error|invalid|failed)", line, re.IGNORECASE):
+            if re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
                 logger.error(line)
-            elif re.search("(warning|deprecated)", line, re.IGNORECASE):
+            elif re.search(r"(warning|deprecated)", line, re.IGNORECASE):
                 logger.warning(line)
             else:
                 logger.debug(line)
