@@ -19,5 +19,5 @@ done
 echo "----------------------------------------"
 echo "SUCCESS: $(basename $0)"
 echo "----------------------------------------"
-rm "./*.deshake*.mp4" 2>/dev/null
+rm ./*.deshake*.mp4 2>/dev/null
 exit 0
