@@ -446,57 +446,45 @@ def avg_width(files):
     return sum(values) // len(values)
 
 
-def posterize(files, posterfile=None, background_color="black", margin=5):
-    min_h = max([ImageFile(f).height for f in files])
-    min_w = max([ImageFile(f).width for f in files])
+def posterize(*files, out_file=None, background_color="black", margin=5):
+    util.logger.debug("posterize(%s)", str(files))
+    input_files = [get_bg(background_color)]
+    input_files.extend(util.file_list(*files, file_type=util.MediaType.IMAGE_FILE))
+    files_to_posterize = [ImageFile(f) for f in util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)]
+    #input_files.append(files_to_posterize.copy())
+
+    min_h = max([f.height for f in files_to_posterize])
+    min_w = max([f.width for f in files_to_posterize])
     util.logger.debug("Max W x H = %d x %d", min_w, min_h)
     gap = (min_w * margin) // 100
 
-    nb_files = len(files)
-    root = math.sqrt(nb_files)
-    rows = int(round(root))
-    if rows < root:
-        rows += 1
-    cols = (nb_files + rows - 1) // rows
+    rows = math.ceil(math.sqrt(len(files)))
+    cols = (len(files) + rows - 1) // rows
 
     full_w = (cols * min_w) + (cols + 1) * gap
     full_h = (rows * min_h) + (rows + 1) * gap
 
     util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
-                      min_w, min_h, gap, cols, rows, full_w, full_h)
-    bgfile = "white-square.jpg" if background_color == "white" else "black-square.jpg"
-    tmpbg = "bg.tmp.jpg"
-    ImageFile(bgfile).scale(full_w, full_h, tmpbg)
+        min_w, min_h, gap, cols, rows, full_w, full_h)
 
-    file_list = util.build_ffmpeg_file_list(files)
-
-    cmplx = util.build_ffmpeg_complex_prep(files)
-    cmplx = cmplx + __build_poster_fcomplex(rows, cols, gap, min_w, min_h, len(files))
-
-    posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
-    util.run_ffmpeg((INPUT_FILE_FMT + ' %s -filter_complex "%s" "%s"') % (tmpbg, file_list, cmplx, posterfile))
-    util.logger.info("Generated %s", posterfile)
-    util.delete_files(tmpbg)
-    return posterfile
-
-
-def __build_poster_fcomplex(rows, cols, gap, img_w, img_h, max_images=10000):
-    i_photo = 1
-    cmplx = "[pip0][pip1]overlay=%d:%d[step1] " % (gap, gap)
+    filter_list = []
+    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "ovl0"))
+    i_photo = 0
     for irow in range(rows):
         for icol in range(cols):
-            if irow == 0 and icol == 0:
-                continue
-            if i_photo >= max_images:
-                continue
             i_photo += 1
-            x = gap + icol * (img_w + gap)
-            y = gap + irow * (img_h + gap)
-            cmplx += "; [step%d][pip%d]overlay=%d:%d" % (i_photo - 1, i_photo, x, y)
-            if i_photo < max_images:
-                cmplx += "[step%d]" % i_photo
+            x = gap + icol * (min_w + gap)
+            y = gap + irow * (min_h + gap)
+            last_ovl = "ovl{}".format(i_photo)
+            filter_list.append(filters.overlay(
+                "ovl{}".format(i_photo-1), "{}".format(i_photo), last_ovl, x, y)
+            )
 
-    return cmplx
+    posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
+    util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
+        filters.inputs_str(input_files), filters.filtercomplex(filter_list), last_ovl, posterfile))
+    util.logger.info("Generated %s", posterfile)
+    return posterfile
 
 
 def __get_random_panorama__():
