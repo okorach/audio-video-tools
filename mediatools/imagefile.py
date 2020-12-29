@@ -104,15 +104,12 @@ class ImageFile(media.MediaFile):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
     def crop(self, width, height, out_file=None, **kwargs):
-        if self.orientation == 'portrait':
-            width, height = height, width
-        (width, height) = self.resolution.calc_resolution(width, height)
-        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
+        (w, h) = self.resolution.calc_resolution(width, height, orientation=self.orientation)
+        (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename,
-            "crop_{0}x{1}-{2}".format(width, height, pos))
+            "crop_{0}x{1}-{2}".format(width.replace("%", "pct"), height.replace("%", "pct"), pos))
 
-        cmd = '-y -i "{}" -vf "{}" "{}"'.format(self.filename, filters.crop(width, height, left, top), out_file)
-        util.run_ffmpeg(cmd)
+        util.run_ffmpeg('-y -i "{}" -vf "{}" "{}"'.format(self.filename, filters.crop(w, h, left, top), out_file))
         return out_file
 
     def scale(self, w=-1, h=-1, out_file=None):

@@ -20,6 +20,7 @@
 #
 
 import re
+import mediatools.utilities as util
 
 
 class Resolution:
@@ -62,11 +63,15 @@ class Resolution:
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
-    def calc_resolution(self, width, height):
+    def calc_resolution(self, width, height, orientation='landscape'):
+        iw, ih = self.width, self.height
+        if orientation == 'portrait':
+            width, height = height, width
+            iw, ih = ih, iw
         a = str(width).split('%')
-        w = int(width) if len(a) == 1 else int(self.width * int(a[0]) / 100)
+        w = int(width) if len(a) == 1 else int(iw * int(a[0]) / 100)
         a = str(height).split('%')
-        h = int(height) if len(a) == 1 else int(self.height * int(a[0]) / 100)
+        h = int(height) if len(a) == 1 else int(ih * int(a[0]) / 100)
         return (w, h)
 
     def __str__(self):
