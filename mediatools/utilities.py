@@ -254,17 +254,10 @@ def run_ffmpeg(params):
         run_os_cmd(cmd)
 
 
-def build_ffmpeg_file_list(file_list):
+def build_ffmpeg_complex_prep(input_file_list):
     s = ''
-    for f in file_list:
-        s += ' -i "%s"' % f
-    return s
-
-
-def build_ffmpeg_complex_prep(file_list):
-    s = ''
-    for i in range(len(file_list) + 1):
-        s += "[%d]scale=iw:-1:flags=lanczos[pip%d]; " % (i, i)
+    for i in range(len(input_file_list) + 1):
+        s += "[{0}]scale=iw:-1:flags=lanczos[pip{0}]; ".format(i)
     return s
 
 
@@ -297,7 +290,7 @@ def to_hms(seconds):
 
 
 def to_seconds(hms):
-    a = [float(x) for x in hms.split(':')]
+    a = [float(x) for x in str(hms).split(':')]
     return a[0] * 3600 + a[1] * 60 + a[2]
 
 

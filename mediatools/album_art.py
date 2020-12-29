@@ -47,7 +47,7 @@ def filelist_album_art(filelist, image_file):
 
 
 def dir_album_art(directory):
-    filelist = util.filelist(directory)
+    filelist = util.file_list(directory)
     dir_album_art_file = find_image(filelist)
     if dir_album_art_file is None:
         util.logger.error("No image file in directory %s", directory)

@@ -25,7 +25,6 @@ from __future__ import print_function
 import sys
 import re
 import os
-import platform
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
@@ -134,11 +133,6 @@ class VideoFile(media.MediaFile):
             util.logger.error("Can't find video codec in stream %s\n", util.json_fmt(stream))
         return self.video_codec
 
-    def video_bitrate(self):
-        '''Returns video file video bitrate'''
-        if self.video_bitrate is None:
-            self.get_video_specs()
-        return self.video_bitrate
 
     def get_video_duration(self):
         if self.duration is None:
@@ -440,40 +434,27 @@ class VideoFile(media.MediaFile):
         ffopts = opt.media2ffmpeg(media_opts)
         util.logger.debug("After converting to ffmpeg params = %s", str(ffopts))
 
+        if kwargs.get('reverse', False):
+            video_filters.append(filters.reverse())
+        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
+            video_filters.append(filters.areverse())
+        if kwargs.get('fade', False):
+            video_filters.append(
+                filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
+            video_filters.append(
+                filters.fade_out(start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
+
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
-        video_filters.append(self.__get_reverse_filter__(**kwargs))
-        audio_filters.append(self.__get_reverse_audio_filter__(**kwargs))
-        video_filters.append(self.__get_fader_filter__(**kwargs))
-
-        util.run_ffmpeg('%s -i "%s" %s %s %s "%s"' % (media_opts['input_params'], self.filename,
-                        util.dict2str(ffopts),
-                        media.build_video_filters_options(video_filters, audio_filters), mapping, target_file))
+        util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
+            media_opts['input_params'], self.filename, util.dict2str(ffopts),
+            filters.vfilter(video_filters), filters.afilter(audio_filters), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
 
     # ----------------- Private methods ------------------------------------------
 
-
-    def __get_reverse_filter__(self, **kwargs):
-        if kwargs.get('reverse', False):
-            return 'reverse'
-        return None
-
-    def __get_reverse_audio_filter__(self, **kwargs):
-        if kwargs.get('audio_reverse', False):
-            return 'areverse'
-        return None
-
-    def __get_fader_filter__(self, **kwargs):
-        if 'fade' in kwargs and kwargs['fade'] is not None:
-            fade_d = int(kwargs['fade'])
-            start = util.to_seconds(kwargs['start']) if 'start' in kwargs else 0
-            stop = util.to_seconds(kwargs['stop']) if 'stop' in kwargs else float(self.get_duration())
-            fmt = "fade=type={0}:duration={1}:start_time={2}"
-            return fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
-        return None
 
     def __get_number_of_audio_tracks(self):
         n = 0

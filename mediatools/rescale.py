@@ -35,6 +35,7 @@ def __int_or_empty(x):
     else:
         return int(x)
 
+
 def main():
     parser = util.parse_common_args('Rescale image dimensions of a file or directory')
     parser.add_argument('-s', '--scale', required=True, help='Dimensions to rescale widthxheight')
