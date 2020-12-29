@@ -229,7 +229,7 @@ def run_os_cmd(cmd):
                 last_error = line
             if re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
                 logger.error(line)
-            elif re.search(r"(warning|deprecated)", line, re.IGNORECASE):
+            elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
                 logger.warning(line)
             else:
                 logger.debug(line)
