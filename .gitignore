@@ -29,6 +29,7 @@ dist/
 media_tools.egg-info/
 *.code-workspace
 it/*.scale-*.mp4
+it/*.scale-*.jpg
 it/*.crop_*.mp4
 it/*.zoom*.mp4
 it/*.pan*.mp4
