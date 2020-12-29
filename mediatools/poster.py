@@ -66,5 +66,6 @@ def main():
     posterfile = image.posterize(*file_list, out_file=None, background_color=background, margin=margin)
     print("Generated {}".format(posterfile))
 
+
 if __name__ == "__main__":
     main()
