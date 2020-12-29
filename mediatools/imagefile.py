@@ -451,7 +451,7 @@ def posterize(*files, out_file=None, background_color="black", margin=5):
 
     input_files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
     files_to_posterize = [ImageFile(f) for f in input_files]
-    input_files.insert(0,  get_bg(background_color))
+    input_files.insert(0,   get_bg(background_color))
 
     max_h = max([f.height for f in files_to_posterize])
     max_w = max([f.width for f in files_to_posterize])
@@ -479,7 +479,7 @@ def posterize(*files, out_file=None, background_color="black", margin=5):
             y = gap + irow * (max_h + gap)
             last_ovl = "ovl{}".format(i_photo)
             filter_list.append(filters.overlay(
-                "ovl{}".format(i_photo-1), "{}".format(i_photo), last_ovl, x, y)
+                "ovl{}".format(i_photo - 1), "{}".format(i_photo), last_ovl, x, y)
             )
 
     out_file = util.automatic_output_file_name(out_file, files[0], "poster")

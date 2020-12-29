@@ -57,7 +57,7 @@ class MediaFile:
     def __str__(self):
         return self.filename
 
-    def __format__(self):
+    def __format__(self, format_spec):
         return self.filename
 
     def probe(self):
