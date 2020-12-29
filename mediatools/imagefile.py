@@ -448,24 +448,24 @@ def avg_width(files):
 
 def posterize(*files, out_file=None, background_color="black", margin=5):
     util.logger.debug("posterize(%s)", str(files))
-    input_files = [get_bg(background_color)]
-    input_files.extend(util.file_list(*files, file_type=util.MediaType.IMAGE_FILE))
-    files_to_posterize = [ImageFile(f) for f in util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)]
-    #input_files.append(files_to_posterize.copy())
 
-    min_h = max([f.height for f in files_to_posterize])
-    min_w = max([f.width for f in files_to_posterize])
-    util.logger.debug("Max W x H = %d x %d", min_w, min_h)
-    gap = (min_w * margin) // 100
+    input_files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
+    files_to_posterize = [ImageFile(f) for f in input_files]
+    input_files.insert(0,  get_bg(background_color))
+
+    max_h = max([f.height for f in files_to_posterize])
+    max_w = max([f.width for f in files_to_posterize])
+    util.logger.debug("Max W x H = %d x %d", max_w, max_h)
+    gap = (max_w * margin) // 100
 
     rows = math.ceil(math.sqrt(len(files)))
     cols = (len(files) + rows - 1) // rows
 
-    full_w = (cols * min_w) + (cols + 1) * gap
-    full_h = (rows * min_h) + (rows + 1) * gap
+    full_w = (cols * max_w) + (cols + 1) * gap
+    full_h = (rows * max_h) + (rows + 1) * gap
 
-    util.logger.debug("W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
-        min_w, min_h, gap, cols, rows, full_w, full_h)
+    util.logger.debug("max W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
+        max_w, max_h, gap, cols, rows, full_w, full_h)
 
     filter_list = []
     filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "ovl0"))
@@ -473,18 +473,20 @@ def posterize(*files, out_file=None, background_color="black", margin=5):
     for irow in range(rows):
         for icol in range(cols):
             i_photo += 1
-            x = gap + icol * (min_w + gap)
-            y = gap + irow * (min_h + gap)
+            if i_photo > len(files_to_posterize):
+                break
+            x = gap + icol * (max_w + gap)
+            y = gap + irow * (max_h + gap)
             last_ovl = "ovl{}".format(i_photo)
             filter_list.append(filters.overlay(
                 "ovl{}".format(i_photo-1), "{}".format(i_photo), last_ovl, x, y)
             )
 
-    posterfile = util.automatic_output_file_name(posterfile, files[0], "poster")
+    out_file = util.automatic_output_file_name(out_file, files[0], "poster")
     util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
-        filters.inputs_str(input_files), filters.filtercomplex(filter_list), last_ovl, posterfile))
-    util.logger.info("Generated %s", posterfile)
-    return posterfile
+        filters.inputs_str(input_files), filters.filtercomplex(filter_list), last_ovl, out_file))
+    util.logger.info("Generated %s", out_file)
+    return out_file
 
 
 def __get_random_panorama__():
