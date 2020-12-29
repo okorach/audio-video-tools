@@ -20,7 +20,6 @@
 #
 
 import re
-import mediatools.utilities as util
 
 
 class Resolution:
