@@ -24,10 +24,7 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
-import os
-import re
 import mediatools.videofile as video
-import mediatools.audiofile as audio
 import mediatools.utilities as util
 import mediatools.options as opt
 
@@ -53,9 +50,9 @@ def encode_file(file, **kwargs):
         ext = util.get_profile_extension(kwargs.get('profile'))
     count = 0
     filelist = []
-    timeranges = re.split(',', kwargs.get('timeranges', None))
+    timeranges = kwargs.get('timeranges', None).split(',')
     for video_range in timeranges:
-        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = re.split('-', video_range)
+        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = video_range.split('-')
         count += 1
         target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, str(count), ext)
         filelist.append(target_file)
