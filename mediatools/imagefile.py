@@ -102,11 +102,11 @@ class ImageFile(media.MediaFile):
     def get_image_properties(self):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
-    def crop(self, width, height, out_file=None, **kwargs):
+    def crop(self, out_file=None, **kwargs):
+        width, height = kwargs.pop('width'), kwargs.pop('height')
         (w, h) = self.resolution.calc_resolution(width, height, orientation=self.orientation)
         (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
-        out_file = util.automatic_output_file_name(out_file, self.filename,
-            "crop_{0}x{1}-{2}".format(width.replace("%", "pct"), height.replace("%", "pct"), pos))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_{0}x{1}-{2}".format(w, h, pos))
 
         util.run_ffmpeg('-y -i "{}" -vf "{}" "{}"'.format(self.filename, filters.crop(w, h, left, top), out_file))
         return out_file

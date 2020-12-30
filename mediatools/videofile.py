@@ -225,12 +225,13 @@ class VideoFile(media.MediaFile):
         util.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
-    def crop(self, width, height, out_file=None, **kwargs):
+    def crop(self, out_file=None, **kwargs):
         ''' Applies crop video filter for width x height pixels '''
+        width, height = kwargs.pop('width'), kwargs.pop('height')
         media_opts = self.get_properties()
         media_opts[opt.Option.ACODEC] = 'copy'
         (width, height) = self.calc_resolution(width, height)
-        (top, left, pos) = self.__get_top_left__(width, height, **kwargs)
+        (top, left, pos) = self.__get_top_left__(width=width, height=height, **kwargs)
 
         # Target bitrate proportional to crop level (x 2)
         media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
@@ -572,18 +573,12 @@ def add_video_args(parser):
     parser.add_argument('--fade', required=False, help='Fade in/out duration')
 
     parser.add_argument('-t', '--timeranges', required=False, help='Ranges of encoding <start>:<end>,<start>:<end>')
-    parser.add_argument('--' + opt.Option.START, required=False, help='Start time')
-    parser.add_argument('--' + opt.Option.STOP, required=False, help='Stop time')
 
     parser.add_argument('-f', '--' + opt.Option.FORMAT, required=False, help='Output file format eg mp4')
     parser.add_argument('-r', '--' + opt.Option.FPS, required=False, help='Video framerate of the output eg 25')
 
     parser.add_argument('--asampling', required=False, help='Audio sampling eg 44100')
     parser.add_argument('--' + opt.Option.ACHANNEL, required=False, help='Audio channel to pick')
-
-    parser.add_argument('--' + opt.Option.SIZE, required=False, help='Video size HxW')
-    parser.add_argument('--' + opt.Option.WIDTH, required=False, help='Video width')
-    parser.add_argument('--vheight', required=False, help='Video height')
 
     return parser
 
