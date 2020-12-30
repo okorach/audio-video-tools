@@ -1,18 +1,12 @@
 #!/bin/bash
+
+. lib-it.sh
+
 for pos in top left center bottom-right top-right
 do
     for box in 320x240 400x800 960x1080 1920x128 50%x100% 80%x50% 50%x10% 100%x100%
     do
-        cmd="media-crop -i img-3000x4000.jpg --box $box --position $pos"
-        echo "Running: $cmd"
-        $cmd
-        code=$?
-        if [ $code -ne 0 ]; then
-            1>&2 echo "========================================"
-            1>&2 echo "FAILED: $cmd"
-            1>&2 echo "========================================"
-            exit $code
-        fi
+        run_cmd "media-crop -i img-3000x4000.jpg --box $box --position $pos"
     done
 done
 echo "----------------------------------------"

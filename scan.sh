@@ -45,13 +45,13 @@ else
   shift
 fi
 
-version=`cat mediatools/version.py | grep MEDIA_TOOLS_VERSION | cut -d "=" -f 2 | cut -d "'" -f 2`
+version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
 
 pr_branch=""
 for o in $*
 do
-  key=$(echo $o | cut -d '=' -f 1)
-  if [ "$key" == "-Dsonar.pullrequest.key" ]; then
+  key="$(echo $o | cut -d '=' -f 1)"
+  if [ "$key" = "-Dsonar.pullrequest.key" ]; then
     pr_branch="-Dsonar.pullrequest.branch=foo"
   fi
 done

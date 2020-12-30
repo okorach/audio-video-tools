@@ -23,6 +23,7 @@ import re
 import ffmpeg
 import mediatools.exceptions as ex
 import mediatools.utilities as util
+import mediatools.filters as filters
 import mediatools.options as opt
 
 
@@ -175,6 +176,7 @@ class MediaFile:
                 left = (iw - width) // 2
         return (top, left, pos)
 
+
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
@@ -220,7 +222,7 @@ def concat(target_file, file_list):
     #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
     #  -map "[v]" -map "[a]" output.mkv
     util.logger.info("Concatenating %s", str(file_list))
-    cmd = util.build_ffmpeg_file_list(file_list)
+    cmd = filters.inputs_str(file_list)
     cmd = cmd + '-filter_complex "'
     for i in range(len(file_list)):
         cmd = cmd + ('[%d:v] [%d:a] ' % (i, i))

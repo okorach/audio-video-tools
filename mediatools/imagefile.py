@@ -19,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
 import math
 import re
 import random
@@ -218,7 +217,7 @@ class ImageFile(media.MediaFile):
         slice_width = max(w // nbr_slices, 16)
         slices = self.slice_vertical(nbr_slices)
         tmpbg = get_rectangle(background_color, slice_width * len(slices), h + h_jitter)
-        filelist = util.build_ffmpeg_file_list(slices) + INPUT_FILE_FMT % tmpbg
+        filelist = filters.inputs_str(slices) + " " + filters.inputs_str([tmpbg])
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
         step = 0
@@ -244,7 +243,7 @@ class ImageFile(media.MediaFile):
         slice_height = max(h // nbr_slices, 16)
         slices = self.slice_horizontal(nbr_slices)
         tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * len(slices))
-        filelist = util.build_ffmpeg_file_list(slices) + INPUT_FILE_FMT % tmpbg
+        filelist = filters.inputs_str(slices) + " " + filters.inputs_str([tmpbg])
         cmplx = util.build_ffmpeg_complex_prep(slices)
 
         step = 0
@@ -422,7 +421,6 @@ def stack(*files, direction='vertical', out_file=None):
         fcomp += "[{}:v]".format(i)
     fcomp += "{}=inputs={}".format(filter_name, len(final_list))
     util.run_ffmpeg('{} -filter_complex "{}" "{}"'.format(filters.inputs_str(final_list), fcomp, out_file))
-    [os.remove(f) for f in final_list]
     return out_file
 
 

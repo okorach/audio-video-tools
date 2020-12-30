@@ -44,9 +44,10 @@ def main():
     util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
     if util.is_video_file(inputfile):
-        metas = {'copyright': kwargs.pop('copyright', None),
-                'author': kwargs.pop('author', None),
-                'year': kwargs.pop('year', None)
+        metas = {
+            'copyright': kwargs.pop('copyright', None),
+            'author': kwargs.pop('author', None),
+            'year': kwargs.pop('year', None)
         }
         inputfile = video.VideoFile(inputfile).add_metadata(**metas)
         if 'default_track' in kwargs:
