@@ -78,10 +78,10 @@ def main():
     kwargs = vars(parser.parse_args())
     util.check_environment(kwargs)
 
-    file_list = util.file_list_by_type(kwargs['inputfile'], util.MediaType.VIDEO_FILE)
+    file_list = util.file_list(kwargs['inputfile'], file_type=util.MediaType.VIDEO_FILE)
     nb_files = len(file_list)
     for i in range(nb_files):
-        util.logger.info("%3d/%3d : %3d%% : %s", i, nb_files, i * 100 // nb_files, file_list[i])
+        util.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
         encode_file(file_list[i], **kwargs)
 
 
