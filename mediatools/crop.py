@@ -27,7 +27,6 @@
 import mediatools.creator as creator
 import mediatools.videofile as video
 import mediatools.utilities as util
-import mediatools.options as opt
 
 
 def main():
