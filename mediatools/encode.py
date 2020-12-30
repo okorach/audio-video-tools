@@ -75,16 +75,14 @@ def main():
     util.set_logger('video-encode')
     parser = video.add_video_args(parser)
 
-    myargs = parser.parse_args()
-    myoptions = vars(myargs)
-    util.check_environment(myoptions)
-    # myoptions = util.cleanup_options(myoptions)
+    kwargs = vars(parser.parse_args())
+    util.check_environment(kwargs)
 
-    file_list = util.file_list_by_type(myargs.inputfile, util.MediaType.VIDEO_FILE)
+    file_list = util.file_list_by_type(kwargs['inputfile'], util.MediaType.VIDEO_FILE)
     nb_files = len(file_list)
     for i in range(nb_files):
         util.logger.info("%3d/%3d : %3d%% : %s", i, nb_files, i * 100 // nb_files, file_list[i])
-        encode_file(file_list[i], **myoptions)
+        encode_file(file_list[i], **kwargs)
 
 
 if __name__ == "__main__":
