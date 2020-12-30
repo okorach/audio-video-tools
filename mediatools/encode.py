@@ -26,10 +26,8 @@
 
 import os
 import re
-from shutil import copyfile
 import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.imagefile as img
 import mediatools.utilities as util
 import mediatools.options as opt
 
@@ -37,7 +35,6 @@ import mediatools.options as opt
 def encode_file(file, **kwargs):
     '''Encodes a single file'''
     file_object = video.VideoFile(file)
-    util.logger.debug("%s", str(kwargs))
     if kwargs.get('width', None) is not None:
         specs = file_object.get_properties()
         w = int(specs[opt.Option.WIDTH])
@@ -64,10 +61,13 @@ def encode_file(file, **kwargs):
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
         util.logger.info("File %s generated", outputfile)
+        print("File %s generated", outputfile)
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
         target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, "combined", ext)
         video.concat(target_file, filelist)
+        util.logger.info("Concatenated file %s generated", target_file)
+        print("Concatenated file %s generated", target_file)
 
 
 def main():
