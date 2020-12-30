@@ -447,15 +447,15 @@ def get_ffmpeg_cmdline_switch(cmdline, param):
 
 
 def get_ffmpeg_cmdline_vbitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.VBITRATE)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.VBITRATE)
 
 
 def get_ffmpeg_cmdline_abitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ABITRATE)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ABITRATE)
 
 
 def get_ffmpeg_cmdline_vcodec(cmdline):
-    for option in [opt.ff.VCODEC, opt.ff.VCODEC2, opt.ff.VCODEC3]:
+    for option in [opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.VCODEC2, opt.OptionFfmpeg.VCODEC3]:
         v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
         if v is not None:
             return v
@@ -463,7 +463,7 @@ def get_ffmpeg_cmdline_vcodec(cmdline):
 
 
 def get_ffmpeg_cmdline_acodec(cmdline):
-    for option in [opt.ff.ACODEC, opt.ff.ACODEC2, opt.ff.ACODEC3]:
+    for option in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
         v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
         if v is not None:
             return v
@@ -471,15 +471,15 @@ def get_ffmpeg_cmdline_acodec(cmdline):
 
 
 def get_ffmpeg_cmdline_framesize(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.SIZE)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.SIZE)
 
 
 def get_ffmpeg_cmdline_framerate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FPS)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FPS)
 
 
 def get_ffmpeg_cmdline_aspect_ratio(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ASPECT)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ASPECT)
 
 
 def get_ffmpeg_cmdline_vfilter(cmdline):
@@ -487,15 +487,15 @@ def get_ffmpeg_cmdline_vfilter(cmdline):
 
 
 def get_ffmpeg_cmdline_achannels(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.ACHANNEL)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ACHANNEL)
 
 
 def get_ffmpeg_cmdline_format(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.ff.FORMAT)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FORMAT)
 
 
 def get_ffmpeg_cmdline_deinterlace(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.ff.DEINTERLACE)
+    return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.OptionFfmpeg.DEINTERLACE)
 
 
 def get_ffmpeg_cmdline_amute(cmdline):
