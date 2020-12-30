@@ -261,15 +261,3 @@ def build_ffmpeg_options(options):
             cmd = cmd + " -%s %s" % (opt.M2F_MAPPING[k], v)
     util.logger.debug("ffmpeg options = %s", cmd)
     return cmd
-
-
-def build_video_filters_options(vfilters, afilters=None):
-    cmd = ''
-    for f in vfilters:
-        if f is not None:
-            cmd += '-vf "{}" '.format(f)
-    if afilters is not None:
-        for f in afilters:
-            if f is not None:
-                cmd += '-af "{}" '.format(f)
-    return cmd.strip()
