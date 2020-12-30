@@ -337,8 +337,6 @@ def get_common_args(executable, desc):
     parser.add_argument('--' + opt.Option.HEIGHT, required=False, type=int, help='height of video/image')
     parser.add_argument('-s', '--' + opt.Option.SIZE, required=False, help='Media size HxW for videos and images')
 
-    #parser.add_argument('--crop', required=False, help='Comma separated cropping left,top,right,bottom')
-
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
     parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
@@ -356,7 +354,7 @@ def parse_media_args(parser):
     set_debug_level(kwargs.pop('debug', 1))
     logger.debug('KW=%s', str(kwargs))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
-        kwargs.get(opt.Option.SIZE, None) is not None:
+            kwargs.get(opt.Option.SIZE, None) is not None:
         kwargs[opt.Option.SIZE] = res.canonical(kwargs[opt.Option.SIZE])
         kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.SIZE].split('x', maxsplit=2)
         if kwargs[opt.Option.WIDTH] == '':

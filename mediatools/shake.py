@@ -31,7 +31,7 @@ import mediatools.imagefile as image
 
 def main():
     parser = util.get_common_args('image-shake', 'Image shake effect')
-    parser.add_argument('-n', '--slices', required=False, type=int default=10, help='Number of slices')
+    parser.add_argument('-n', '--slices', required=False, type=int, default=10, help='Number of slices')
     parser.add_argument('-d', '--direction', required=False, default='vertical', help='Direction to slice')
     parser.add_argument('-c', '--color', required=False, default='black', help='Blinds color')
     parser.add_argument('-r', '--shake_ratio', required=False, type=float, default=3.0, help='Size of the shake')

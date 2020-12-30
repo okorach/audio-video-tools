@@ -43,7 +43,7 @@ def main():
             effect=effect)
     else:
         effect = [float(x) for x in kwargs.get('zoom_effect', "100,130").split(",")]
-        output =  image.ImageFile(inputfile).zoom(resolution=resolution, duration=kwargs['duration'],
+        output = image.ImageFile(inputfile).zoom(resolution=resolution, duration=kwargs['duration'],
             effect=effect)
     util.logger.info('Generated %s', output)
     print('Generated {}'.format(output))

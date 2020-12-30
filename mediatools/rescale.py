@@ -27,7 +27,6 @@ Pass rescale dimensions as -s WxH
 
 import mediatools.imagefile as image
 import mediatools.utilities as util
-import mediatools.options as opt
 
 
 def __int_or_empty(x):
