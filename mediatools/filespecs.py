@@ -73,16 +73,13 @@ def main():
                         help='Types of files to include [audio,video,image]')
     parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
     parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
-    args = parser.parse_args()
-    options = vars(args)
-    util.check_environment(options)
-    util.cleanup_options(options)
+    kwargs = util.parse_media_args(parser)
 
-    filelist = file_list(args.inputfile)
+    filelist = file_list(kwargs['inputfile'])
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 
-    if args.format == 'csv':
+    if kwargs['format'] == 'csv':
         print("# ")
         for prop in all_props:
             print("%s;" % prop, end='')
@@ -112,7 +109,7 @@ def main():
             specs = file_object.get_properties()
             util.logger.debug("Specs = %s", util.json_fmt(specs))
             for prop in props:
-                if args.format != "csv":
+                if kwargs['format'] != "csv":
                     try:
                         if prop in UNITS:
                             (divider, unit) = UNITS[prop]

@@ -24,19 +24,25 @@ This script cuts a video
 It will be improved soon
 '''
 
+import sys
 import mediatools.videofile as video
 import mediatools.utilities as util
 
 
 def main():
-    parser = util.parse_common_args('Cuts a time window of the input video file')
+    parser = util.get_common_args('video-cut', 'Cuts a time window of the input video file')
     parser = video.add_video_args(parser)
-    kwargs = vars(parser.parse_args())
-    util.check_environment(kwargs)
-    util.set_logger('video-cut')
-    start = kwargs.pop('start', None)
-    stop = kwargs.pop('stop', None)
-    outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=start, stop=stop)
+    parser.add_argument('--start', required=False, help='Cut start timestamp')
+    parser.add_argument('--stop', required=False, help='Cut stop timestamp')
+    kwargs = util.parse_media_args(parser)
+    if kwargs.get('start', None) is None and kwargs.get('stop', None) is None:
+        ranges = kwargs.get('timeranges', None)
+        if ranges is None:
+            util.logger.error('--start and --stop or --timeranges options is mandatory, type video-cut -h for more details')
+            sys.exit(1)
+        kwargs['start'], kwargs['stop'] = ranges.split('-', maxsplit=2)
+
+    outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=kwargs['start'], stop=kwargs['stop'])
     print('Generated file {}'.format(outputfile))
 
 

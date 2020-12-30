@@ -28,15 +28,15 @@ import mediatools.videofile as video
 
 
 def main():
-    util.set_debug_level(2)
-
     sys.argv.pop(0)
-    target_file = sys.argv.pop()
-
+    target_file = sys.argv.pop(0)
     filelist = []
-    for file in sys.argv:
-        filelist.append(file)
-
+    while sys.argv:
+        arg = sys.argv.pop(0)
+        if arg == "-g":
+            util.set_debug_level(sys.argv.pop(0))
+        else:
+            filelist.append(arg)
     video.concat(target_file, filelist)
 
 

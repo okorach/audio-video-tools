@@ -31,7 +31,7 @@ import mediatools.videofile as video
 
 
 def main():
-    parser = util.parse_common_args('Tool to add metadata to media files')
+    parser = util.get_common_args('video-metadata', 'Tool to add metadata to media files')
     parser.add_argument('--copyright', required=False, help='Copyright string without year')
     parser.add_argument('--author', required=False, help='Author of the media file')
     parser.add_argument('--year', required=False, help='Year the media file was produced')
@@ -39,9 +39,8 @@ def main():
     parser.add_argument('--languages', required=False, nargs='+', help='Languages of tracks, eg 0:fre 1:eng')
     parser.add_argument('--titles', required=False, nargs='+',
                         help='Titles of tracks, eg "0:French canadian" "1:English with music"')
-    kwargs = vars(parser.parse_args())
+    kwargs = util.parse_media_args(parser)
 
-    util.check_environment(kwargs)
     inputfile = kwargs.pop('inputfile')
     if util.is_video_file(inputfile):
         metas = {

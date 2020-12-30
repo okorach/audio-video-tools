@@ -54,7 +54,7 @@ class OptionFfmpeg:
 class Option:
     '''Documents supported audio-video-tools encoding options'''
     FORMAT = 'format'
-    SIZE = 'vsize'
+    SIZE = 'size'
     VCODEC = 'vcodec'
     ACODEC = 'acodec'
     VBITRATE = 'vbitrate'

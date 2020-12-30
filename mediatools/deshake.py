@@ -27,8 +27,8 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 
 
-def parse_args():
-    parser = util.parse_common_args(desc='Apply deshake filter')
+def main():
+    parser = util.get_common_args('video-stabilize', 'Apply deshake filter')
     parser = video.add_video_args(parser)
     parser.add_argument('--rx', required=False, type=int, default=64, choices=range(65),
         help='Deshake rx', metavar="[0-64]")
@@ -37,20 +37,14 @@ def parse_args():
     parser.add_argument('--crop', dest='crop', action='store_true', help='Crop video after stabilization')
     parser.add_argument('--nocrop', dest='crop', action='store_false', help='Do not crop video after stabilization')
     parser.set_defaults(crop=True)
-    return parser.parse_args()
+    kwargs = util.parse_media_args(parser)
 
-
-def main():
-    args = parse_args()
-    kwargs = vars(args)
-    util.check_environment(kwargs)
-    kwargs = util.cleanup_options(kwargs)
     rx = kwargs.pop('rx')
     ry = kwargs.pop('ry')
-    if args.timeranges is not None:
-        for video_range in re.split(',', args.timeranges):
-            kwargs['ss'], kwargs['to'] = re.split('-', video_range)
-    outputfile = video.VideoFile(args.inputfile).deshake(rx=rx, ry=ry, out_file=args.outputfile, **kwargs)
+    if 'timeranges' in kwargs:
+        kwargs['ss'], kwargs['to'] = kwargs['timeranges'].split(',')[0].split('-')
+    outputfile = video.VideoFile(kwargs['inputfile']).deshake(rx=rx, ry=ry,
+        out_file=kwargs.get('outputfile', None), **kwargs)
     print('Generated {}'.format(outputfile))
 
 

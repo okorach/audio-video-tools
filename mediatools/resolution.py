@@ -20,6 +20,25 @@
 #
 
 import re
+import mediatools.options as opt
+
+
+def canonical(res):
+    if res == '720p':
+        res = Resolution.RES_720P
+    elif res == '540p':
+        res = Resolution.RES_540P
+    elif res == '400p':
+        res = Resolution.RES_400P
+    elif res in ('vga', 'VGA'):
+        res = Resolution.RES_VGA
+    elif res in ('xga', 'XGA'):
+        res = Resolution.RES_XGA
+    elif res == '1080p':
+        res = Resolution.RES_1080P
+    elif res in ('4k', '4K', '2160p'):
+        res = Resolution.RES_4K
+    return res
 
 
 class Resolution:
@@ -48,12 +67,10 @@ class Resolution:
         if 'width' in kwargs and 'height' in kwargs:
             w = kwargs['width']
             h = kwargs['height']
-        elif 'resolution' in kwargs:
-            r = kwargs['resolution']
-            if re.search('x', r):
-                (w, h) = r.split('x', maxsplit=2)
-            elif re.search(':', r):
-                (w, h) = r.split(':', maxsplit=2)
+        elif 'resolution' in kwargs or opt.Option.SIZE in kwargs:
+            r = canonical(kwargs.get('resolution', kwargs.get(opt.Option.SIZE, None)))
+            if re.search(r'[x:]', r):
+                (w, h) = re.split(r'[x:]', r, maxsplit=2)
         self.width = int(w)
         self.height = int(h)
         self.ratio = self.width / self.height
