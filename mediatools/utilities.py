@@ -333,8 +333,11 @@ def get_common_args(executable, desc):
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
 
-    parser.add_argument('--' + opt.Option.SIZE, required=False, help='Media size HxW for videos and images')
-    parser.add_argument('--crop', required=False, help='Comma separated cropping left,top,right,bottom')
+    parser.add_argument('--' + opt.Option.WIDTH, required=False, type=int, help='width of video/image')
+    parser.add_argument('--' + opt.Option.HEIGHT, required=False, type=int, help='height of video/image')
+    parser.add_argument('-s', '--' + opt.Option.SIZE, required=False, help='Media size HxW for videos and images')
+
+    #parser.add_argument('--crop', required=False, help='Comma separated cropping left,top,right,bottom')
 
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
@@ -349,15 +352,25 @@ def remove_nones(p):
 
 
 def parse_media_args(parser):
-    kwargs = vars(parser.parse_args())
-    if kwargs.get(opt.Option.SIZE, None) is not None:
+    kwargs = remove_nones(vars(parser.parse_args()))
+    set_debug_level(kwargs.pop('debug', 1))
+    logger.debug('KW=%s', str(kwargs))
+    if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
+        kwargs.get(opt.Option.SIZE, None) is not None:
         kwargs[opt.Option.SIZE] = res.canonical(kwargs[opt.Option.SIZE])
-        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = \
-            res.Resolution(**kwargs).as_tuple()
+        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.SIZE].split('x', maxsplit=2)
+        if kwargs[opt.Option.WIDTH] == '':
+            kwargs[opt.Option.WIDTH] = -1
+        else:
+            kwargs[opt.Option.WIDTH] = int(kwargs[opt.Option.WIDTH])
+        if kwargs[opt.Option.HEIGHT] == '':
+            kwargs[opt.Option.HEIGHT] = -1
+        else:
+            kwargs[opt.Option.HEIGHT] = int(kwargs[opt.Option.HEIGHT])
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
-    set_debug_level(kwargs.pop('debug', 1))
-    return remove_nones(kwargs.copy())
+    logger.debug('KW=%s', str(kwargs))
+    return kwargs
 
 
 def cleanup_options(kwargs):

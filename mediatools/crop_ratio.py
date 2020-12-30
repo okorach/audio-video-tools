@@ -26,13 +26,11 @@ import mediatools.imagefile as image
 
 
 def main():
-    parser = util.parse_common_args('Image cropper')
+    parser = util.get_common_args('image-crop-ratio', 'Image cropper')
     parser.add_argument('--align', required=False, default='center', help='How to crop')
     parser.add_argument('--ratio', required=True, help='W/H ratio of picture like 2, 1.5')
-    args = parser.parse_args()
-
-    util.check_environment(vars(args))
-    image.ImageFile(args.inputfile).crop_any(args.ratio, args.align)
+    kwargs = util.parse_media_args(parser)
+    image.ImageFile(kwargs['inputfile']).crop_any(kwargs['ratio'], kwargs['align'])
 
 
 if __name__ == "__main__":

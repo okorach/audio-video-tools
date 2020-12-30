@@ -37,11 +37,11 @@ def main():
     parser.add_argument('--crop', dest='crop', action='store_true', help='Crop video after stabilization')
     parser.add_argument('--nocrop', dest='crop', action='store_false', help='Do not crop video after stabilization')
     parser.set_defaults(crop=True)
-    kwargs = util.parse_media_args(parser=)
+    kwargs = util.parse_media_args(parser)
 
     rx = kwargs.pop('rx')
     ry = kwargs.pop('ry')
-    if kwargs['timeranges'] is not None:
+    if 'timeranges' in kwargs:
         kwargs['ss'], kwargs['to'] = kwargs['timeranges'].split(',')[0].split('-')
     outputfile = video.VideoFile(kwargs['inputfile']).deshake(rx=rx, ry=ry,
         out_file=kwargs.get('outputfile', None), **kwargs)
