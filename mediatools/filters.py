@@ -133,16 +133,25 @@ def areverse():
 
 
 def filtercomplex(filter_list):
-    sep = " "   # if platform.system() == 'Windows' else " \\\n"
-    return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+    if filter_list is None or len(filter_list) == 0:
+        return ''
+    else:
+        sep = " "   # if platform.system() == 'Windows' else " \\\n"
+        return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
 
 
 def vfilter(filter_list):
-    return '-vf "{}"'.format(','.join(filter_list))
+    if filter_list is None or len(filter_list) == 0:
+        return ''
+    else:
+        return '-vf "{}"'.format(','.join(filter_list))
 
 
 def afilter(filter_list):
-    return '-af "{}"'.format(','.join(filter_list))
+    if filter_list is None or len(filter_list) == 0:
+        return ''
+    else:
+        return '-af "{}"'.format(','.join(filter_list))
 
 
 def inputs_str(input_list):
