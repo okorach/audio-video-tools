@@ -87,7 +87,7 @@ def dir_list(root_dir, recurse=False, file_type=None):
     for r, _, f in os.walk(root_dir):
         for file in f:
             if os.path.isdir(file) and recurse:
-                files.append(dir_list(file))
+                files.append(dir_list(file, recurse=recurse, file_type=file_type))
             elif __is_type_file(file, file_type):
                 files.append(os.path.join(r, file))
     return files
@@ -103,28 +103,6 @@ def file_list(*args, file_type=None):
         elif file_type is None or __is_type_file(arg, file_type):
             files.append(arg)
     return files
-
-
-def file_list_by_type(root_dir, file_type):
-    """Returns and array of all files of a given typeunder a given root directory
-    going down into sub directories"""
-    files = []
-    for file in dir_list(root_dir):
-        if __is_type_file(file, file_type):
-            files.append(file)
-    return files
-
-
-def audio_filelist(root_dir):
-    return file_list_by_type(root_dir, MediaType.AUDIO_FILE)
-
-
-def video_filelist(root_dir):
-    return file_list_by_type(root_dir, MediaType.VIDEO_FILE)
-
-
-def image_filelist(root_dir):
-    return file_list_by_type(root_dir, MediaType.IMAGE_FILE)
 
 
 def get_file_extension(filename):

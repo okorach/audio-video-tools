@@ -265,7 +265,7 @@ class VideoFile(media.MediaFile):
             video_filters.append(filters.fade_out(start=util.to_seconds(stop) - fade, duration=fade))
         util.run_ffmpeg('-i "{}" {} {} "{}"'.format(
             self.filename, media.build_ffmpeg_options(media_opts),
-            media.build_video_filters_options(video_filters), out_file))
+            filters.vfilter(video_filters), out_file))
 
         return out_file
 

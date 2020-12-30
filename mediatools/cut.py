@@ -37,7 +37,7 @@ def main():
     start = kwargs.pop('start', None)
     stop = kwargs.pop('stop', None)
     outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=start, stop=stop)
-    util.logger.info('Generated file %s', outputfile)
+    print('Generated file {}'.format(outputfile))
 
 
 if __name__ == "__main__":
