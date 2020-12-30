@@ -21,6 +21,7 @@
 
 import os
 import sys
+import platform
 import json
 import re
 import logging
@@ -227,7 +228,8 @@ def run_os_cmd(cmd):
 
 
 def run_ffmpeg(params):
-    cmd = "%s -y %s" % (get_ffmpeg(), params)
+    quot = '"' if platform.system() == 'Windows' else ""
+    cmd = '{0}{1}{0} -y {2}'.format(quot, get_ffmpeg(), params)
     if is_dry_run():
         logger.info("DRY RUN: %s", cmd)
     else:
