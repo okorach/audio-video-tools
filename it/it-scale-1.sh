@@ -4,11 +4,11 @@
 
 for f in ./*.jpg
 do
-    for w in "" 64 128 258 512 500 800 1024 2000 3000 10000
+    for w in "" 128 258 500 800 1024 2000 3000 10000
     do
-        for h in "" 64 128 258 512 500 800 1024 2000 3000 10000
+        for h in "" 64 258 512 800 1024 2000 3000 10000
         do
-            if [ "$f" = "img-superwide.jpg" ] && [ "$h" = "10000" ]; then
+            if [ "$f" = "./img-superwide.jpg" ] && [ "$h" = "10000" ]; then
                 # Generates a too wide image, skip
                 continue
             fi
