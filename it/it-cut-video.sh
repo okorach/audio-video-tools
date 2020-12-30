@@ -9,5 +9,5 @@ done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.encode.*.mp4 2>/dev/null
+rm ./*.cut_*.mp4 2>/dev/null
 exit 0
