@@ -28,38 +28,21 @@ import mediatools.creator as creator
 import mediatools.videofile as video
 import mediatools.utilities as util
 import mediatools.options as opt
+import mediatools.resolution as res
 
 
 def main():
-    parser = util.parse_common_args('Crops a region of the input video file')
+    parser = util.get_common_args('video-crop', 'Crops a region of the input video file')
     parser = video.add_video_args(parser)
     parser.add_argument('--box', required=True, help='Video box eg 320x200')
     parser.add_argument('--position', required=False, help='Crop video position (from top-left to bottom-right)')
     parser.add_argument('--top', required=False, help='Video top origin')
     parser.add_argument('--left', required=False, help='Video left origin')
-    args = parser.parse_args()
-    kwargs = util.remove_nones(vars(args).copy())
-    util.check_environment(kwargs)
+    kwargs = util.parse_media_args(parser)
 
-    if args.box == '720p':
-        args.box = '1280x720'
-    elif args.box == '540p':
-        args.box = '960x540'
-    elif args.box == '1080p':
-        args.box = '1920x1080'
-
-    if args.timeranges is not None:
-        (kwargs[opt.Option.START], kwargs[opt.Option.STOP]) = args.timeranges.split('-')
-
-    width, height = args.box.split("x")
-    kwargs.pop('width', None)
-    kwargs.pop('height', None)
-
-    # Remove the explicitly passed arguments
-    for key in ['inputfile', 'outputfile', 'box', 'left', 'top', 'center']:
-        kwargs.pop(key, None)
-
-    outputfile = creator.file(args.inputfile).crop(width, height, args.outputfile, **kwargs)
+    kwargs['width'], kwargs['height'] = kwargs['box'].split("x", maxsplit=2)
+    util.logger.debug("KW=%s", str(kwargs))
+    outputfile = creator.file(kwargs['inputfile']).crop(out_file=kwargs.get('outputfile', None), **kwargs)
     util.logger.info('Generated %s', outputfile)
     print("Generated {}".format(outputfile))
 

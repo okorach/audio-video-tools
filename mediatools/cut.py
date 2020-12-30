@@ -29,15 +29,15 @@ import mediatools.utilities as util
 
 
 def main():
-    parser = util.parse_common_args('Cuts a time window of the input video file')
+    parser = util.get_common_args('video-cut', 'Cuts a time window of the input video file')
     parser = video.add_video_args(parser)
-    kwargs = vars(parser.parse_args())
-    util.check_environment(kwargs)
-    util.set_logger('video-cut')
-    start = kwargs.pop('start', None)
-    stop = kwargs.pop('stop', None)
-    outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=start, stop=stop)
-    print('Generated file {}'.format(outputfile))
+    kwargs = util.parse_common_args(parser)
+    ranges = kwargs.get('timeranges', None)
+    if ranges is None:
+        util.logger.error('--timeranges option is mandatory, type video-cut -h for more details')
+    else:
+        outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=kwargs['start'], stop=kwargs['stop'])
+        print('Generated file {}'.format(outputfile))
 
 
 if __name__ == "__main__":

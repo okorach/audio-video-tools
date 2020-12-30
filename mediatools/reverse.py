@@ -36,6 +36,7 @@ def main():
         elif util.is_video_file(arg):
             output = video.VideoFile(arg).reverse(hw_accel=hw_accel)
             util.logger.info("File %s generated", output)
+            print("File {} generated".format(output))
 
 
 if __name__ == "__main__":

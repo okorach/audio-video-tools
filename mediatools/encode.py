@@ -68,12 +68,9 @@ def encode_file(file, **kwargs):
 
 
 def main():
-    parser = util.parse_common_args('Audio and Video file (re)encoder')
-    util.set_logger('video-encode')
+    parser = util.get_common_args('video-encode', 'Audio and Video file (re)encoder')
     parser = video.add_video_args(parser)
-
-    kwargs = vars(parser.parse_args())
-    util.check_environment(kwargs)
+    kwargs = util.parser_media_args(parser)
 
     file_list = util.file_list(kwargs['inputfile'], file_type=util.MediaType.VIDEO_FILE)
     nb_files = len(file_list)
