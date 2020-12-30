@@ -24,9 +24,11 @@ import sys
 import json
 import re
 import logging
+import argparse
 import subprocess
 import shlex
 import mediatools.options as opt
+import mediatools.resolution as res
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
@@ -322,32 +324,19 @@ def delete_files(*args):
         os.remove(f)
 
 
-def parse_common_args(desc):
+def get_common_args(executable, desc):
     """Parses options common to all media encoding scripts"""
-    try:
-        import argparse
-    except ImportError:
-        if sys.version_info < (2, 7, 0):
-            print("""Error: You are running an old version of python. Two options to fix the problem
-                   Option 1: Upgrade to python version >= 2.7
-                   Option 2: Install argparse library for the current python version
-                             See: https://pypi.python.org/pypi/argparse""")
+
+    set_logger(executable)
+
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
 
-    parser.add_argument('--framesize', required=False, help='Media size HxW for videos and images')
-    parser.add_argument('--framewidth', required=False, help='Media width for videos and images')
+    parser.add_argument('--' + opt.Option.SIZE, required=False, help='Media size HxW for videos and images')
+    parser.add_argument('--crop', required=False, help='Comma separated cropping left,top,right,bottom')
 
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
-
-    parser.add_argument('--croph', required=False, help='Horizontal cropping top and bottom')
-    parser.add_argument('--cropv', required=False, help='Vertical cropping left and right')
-
-    parser.add_argument('--croptop', required=False, help='Croptop')
-    parser.add_argument('--cropleft', required=False, help='Cropleft')
-    parser.add_argument('--cropbottom', required=False, help='Croptop')
-    parser.add_argument('--cropright', required=False, help='Cropleft')
 
     parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
@@ -355,16 +344,27 @@ def parse_common_args(desc):
     return parser
 
 
+def remove_nones(p):
+    return dict((k, v) for k, v in p.items() if v is not None)
+
+
+def parse_media_args(parser):
+    kwargs = vars(parser.parse_args())
+    if kwargs.get(opt.Option.SIZE, None) is not None:
+        kwargs[opt.Option.SIZE] = res.canonical(kwargs[opt.Option.SIZE])
+        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = \
+            res.Resolution(**kwargs).as_tuple()
+    if kwargs.get('timeranges', None) is not None:
+        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
+    set_debug_level(kwargs.pop('debug', 1))
+    return remove_nones(kwargs.copy())
+
+
 def cleanup_options(kwargs):
     new_options = remove_nones(kwargs)
     for key in ['inputfile', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
-
-
-def check_environment(kwargs):
-    set_debug_level(kwargs.pop('debug', 1))
-    set_dry_run(kwargs.pop('dry_run', 'false'))
 
 
 def get_profile_extension(profile, properties=None):
@@ -504,10 +504,6 @@ def get_ffmpeg_cmdline_params(cmdline):
     p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
     p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
     return remove_nones(p)
-
-
-def remove_nones(p):
-    return dict((k, v) for k, v in p.items() if v is not None)
 
 
 def swap_keys_values(p):
