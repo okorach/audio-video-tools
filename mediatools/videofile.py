@@ -270,6 +270,17 @@ class VideoFile(media.MediaFile):
 
         return out_file
 
+    def speed(self, speed, out_file=None, **kwargs):
+        ''' Changes the speed of a video ex: 4x (accelerate 4 times), 0.5x (slows down 2 times) '''
+        if isinstance(speed, str):
+            speed = float(speed.split('x')[0])
+        util.logger.debug("speed(%s, %4.2fx)", self.filename, speed)
+        out_file = util.automatic_output_file_name(out_file, self.filename, "speed")
+        vfilters = [ filters.speed(speed) ]
+        an = '-an' if not kwargs.get("audio", False) else ''
+        util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
+        return out_file
+
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
@@ -677,3 +688,7 @@ def slideshow(*inputs, resolution="1920x1080"):
         slideshows.append(build_slideshow(video_files, resolution=resolution,
             outfile='slideshow.part{}.mp4'.format(len(slideshows))))
         return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)
+
+
+def speed(filename, speed, output=None, **kwargs):
+    return VideoFile(filename).speed(speed=speed, out_file=output, **kwargs)

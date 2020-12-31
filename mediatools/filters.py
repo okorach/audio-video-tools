@@ -132,6 +132,10 @@ def areverse():
     return "areverse"
 
 
+def speed(speed):
+    return "setpts={}*PTS".format(1 / speed)
+
+
 def filtercomplex(filter_list):
     if filter_list is None or len(filter_list) == 0:
         return ''
