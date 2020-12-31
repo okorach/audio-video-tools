@@ -159,7 +159,7 @@ class AudioFile(media.MediaFile):
 
 
 def album_art(*file_list, **kwargs):
-    album_cover = util.file_list(file_list, media.MediaType.IMAGE_FILE)
+    album_cover = util.file_list(file_list, util.MediaType.IMAGE_FILE)
     if len(album_cover) != 1:
         util.logger.critical("Zero or too many image files in selection")
         return False
@@ -170,8 +170,8 @@ def album_art(*file_list, **kwargs):
     else:
         cover_file = album_cover[0]
 
-    for f in [AudioFile(f) for f in util.file_list(file_list, media.MediaType.AUDIO_FILE)]:
-       f.encode_album_art(cover_file, **kwargs)
+    for f in [AudioFile(f) for f in util.file_list(file_list, util.MediaType.AUDIO_FILE)]:
+        f.encode_album_art(cover_file, **kwargs)
 
     if kwargs['scale'] is not None:
         os.remove(cover_file)
