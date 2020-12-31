@@ -166,6 +166,38 @@ def inputs_str(input_list):
     return sep.join(['-i "{}"'.format(f) for f in input_list])
 
 
+def format_options(opts):
+    if opts is None:
+        return ''
+    return ' '.join(opts)
+
+
+def metadata(key, value, track=None, track_type=None):
+    if track is None:
+        return '-metadata {}="{}"'.format(key, value)
+    else:
+        if track_type is None:
+            track_type = 's:a'
+        return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
+
+
+def vcodec(codec):
+    return '-vcodec {}'.format(codec)
+
+
+def acodec(codec):
+    return '-acodec {}'.format(codec)
+
+
+def disposition(default_track, nb_tracks):
+    # -disposition:a:0 default -disposition:a:1
+    disp = ''
+    for t in range(nb_tracks):
+        t_disp = "default" if t == default_track else "none"
+        disp += "-disposition:a:{} {} ".format(t, t_disp)
+    return disp.rstrip()
+
+
 def hw_accel_input(**kwargs):
     if kwargs.get('hw_accel', False):
         return '-hwaccel cuvid -c:v h264_cuvid'
