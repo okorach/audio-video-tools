@@ -19,4 +19,25 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-MEDIA_TOOLS_VERSION = '0.6.3'
+'''
+This script slows down or accelerate a video
+'''
+
+import mediatools.utilities as util
+import mediatools.videofile as video
+
+
+def main():
+    parser = util.get_common_args('video-speed', 'Video speed change')
+    parser.add_argument('--speed', required=True, help='Speed in the form of 4x (accelerate), 0.1x (slow down)')
+    parser.add_argument('--keep_audio', dest='audio', action='store_true', help='Keep audio after speed change')
+    parser.set_defaults(audio=False)
+    kwargs = util.parse_media_args(parser)
+
+    output = video.speed(kwargs.pop('inputfile'), kwargs.pop('speed'), kwargs.get('outputfile', None))
+    util.logger.info("Generated %s", output)
+    print("Generated %s", output)
+
+
+if __name__ == "__main__":
+    main()

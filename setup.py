@@ -60,6 +60,7 @@ setuptools.setup(
         'console_scripts': [
             'video-encode = mediatools.encode:main',
             'media-specs = mediatools.filespecs:main',
+            'video-speed = mediatools.speed:main',
             'image-poster = mediatools.poster:main',
             'image-blinds = mediatools.blindify:main',
             'image-shake = mediatools.shake:main',
