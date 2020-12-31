@@ -262,15 +262,21 @@ def get_conf_property(prop):
     return PROPERTIES_VALUES[prop]
 
 
-def to_hms(seconds):
+def to_hms(seconds, fmt='tuple'):
     try:
         s = int(seconds)
         hours = s // 3600
         minutes = s // 60 - hours * 60
         secs = float(seconds) - hours * 3600 - minutes * 60
-        return (hours, minutes, secs)
+        if fmt == 'string':
+            return "%02d:%02d:%04.1f" % (hours, minutes, secs)
+        else:
+            return (hours, minutes, secs)
     except TypeError:
-        return (0, 0, 0)
+        if fmt == 'string':
+            return "00:00:00"
+        else:
+            return (0, 0, 0)
 
 
 def to_seconds(hms):
