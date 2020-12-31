@@ -145,23 +145,34 @@ class AudioFile(media.MediaFile):
         util.logger.info("File %s encoded", target_file)
         return target_file
 
+    def encode_album_art(self, album_art_file):
+        """Encodes album art image in an audio file after optionally resizing"""
+        album_art_std_settings = '-metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)"'
+        target_file = util.add_postfix(self.filename, 'album_art')
 
-def encode_album_art(source_file, album_art_file, **kwargs):
-    """Encodes album art image in an audio file after optionally resizing"""
-    # profile = 'album_art' - # For the future, we'll use the cmd line associated to the profile in the config file
+        # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
+        # -metadata:s:v comment="Cover (Front)" %1.mp3
+        util.run_ffmpeg('-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
+            self.filename, album_art_file, album_art_std_settings, target_file))
+        shutil.copy(target_file, self.filename)
+        os.remove(target_file)
 
-    album_art_std_settings = '-metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)"'
-    target_file = util.add_postfix(source_file, 'album_art')
 
-    if kwargs['scale'] is not None:
+def album_art(*file_list, **kwargs):
+    album_cover = util.file_list(file_list, util.MediaType.IMAGE_FILE)
+    if len(album_cover) != 1:
+        util.logger.critical("Zero or too many image files in selection")
+        return False
+
+    if kwargs.get('scale', None) is not None:
         (w, h) = [int(x) for x in re.split("x", kwargs['scale'])]
-        album_art_file = image.ImageFile(album_art_file).scale(w, h)
+        cover_file = image.ImageFile(album_cover[0]).scale(w, h)
+    else:
+        cover_file = album_cover[0]
 
-    # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
-    # -metadata:s:v comment="Cover (Front)" %1.mp3
-    util.run_ffmpeg('-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
-        source_file, album_art_file, album_art_std_settings, target_file))
-    shutil.copy(target_file, source_file)
-    os.remove(target_file)
+    for f in [AudioFile(f) for f in util.file_list(file_list, util.MediaType.AUDIO_FILE)]:
+        f.encode_album_art(cover_file, **kwargs)
+
     if kwargs['scale'] is not None:
-        os.remove(album_art_file)
+        os.remove(cover_file)
+    return True
