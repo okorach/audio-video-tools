@@ -268,12 +268,12 @@ def to_hms(seconds, fmt='tuple'):
         hours = s // 3600
         minutes = s // 60 - hours * 60
         secs = float(seconds) - hours * 3600 - minutes * 60
-        if fmt is 'string':
+        if fmt == 'string':
             return "%02d:%02d:%04.1f" % (hours, minutes, secs)
         else:
             return (hours, minutes, secs)
     except TypeError:
-        if fmt is 'string':
+        if fmt == 'string':
             return "00:00:00"
         else:
             return (0, 0, 0)

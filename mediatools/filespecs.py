@@ -69,10 +69,10 @@ def __to_std__(specs, all_props):
             continue
         if UNITS[prop] in ('bytes', 'bits', 'pix', 'bytes/s', 'bits/s'):
             v = float(v)
-            if v > 1024*1024*1024:
+            if v > 1024 * 1024 * 1024:
                 v = round(v / 1024 / 1024 / 1024, 2)
                 u = 'G' + UNITS[prop]
-            elif v > 1024*1024:
+            elif v > 1024 * 1024:
                 v = round(v / 1024 / 1024, 2)
                 u = 'M' + UNITS[prop]
             elif v > 1024:
