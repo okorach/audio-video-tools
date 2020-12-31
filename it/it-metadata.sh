@@ -4,11 +4,12 @@
 
 for file in ./*.mp4
 do
-    for c in "Olivier Korach 2020" 'OKO' "Oli.vier"
+    video-metadata -i $file --copyright "Olivier Korach 2020" --author "O.Korach"
+    for c in "Olivier Korach 2020" "Oli.vier"
     do
-        for lang in "0:fre:Francais sans sous-titre"  "0:eng:English with music"
+        for lang in "0:fre" "0:fre:Francais sans sous-titre"  "0:eng:English with music"
         do
-            video-metadata -i $file --copyright "Olivier Korach 2020" --author "O.Korach" --year "2020" --default_track 0 --language "0:fre:Francais sans sous-titre"
+            run_cmd "video-metadata -i $file --copyright \"$c\" --author \"O.Korach\" --year \"2020\" --default_track 0 --language \"$lang\""
         done
     done
 done

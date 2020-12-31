@@ -177,8 +177,8 @@ def metadata(key, value, track=None, track_type=None):
         return '-metadata {}="{}"'.format(key, value)
     else:
         if track_type is None:
-            track_type='s:a'
-        return  '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
+            track_type = 's:a'
+        return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
 
 
 def vcodec(codec):
