@@ -2,10 +2,10 @@
 
 . lib-it.sh
 
-for speed in 0.1x 0.25 0.5x 2x 4 10x 3x
+for speed in 10% 0.25 50% 200% 4 1000% 300%
 do
     case $speed in
-        0.1x|0.5x|4|3x)
+        10%|50%|4|300%)
             file=video-720p.mp4
             ;;
         *)
@@ -13,7 +13,7 @@ do
             ;;
     esac
     case $speed in
-        0.1x|2x|10x)
+        10%|200%|1000%)
             keep_audio="--keep_audio"
             ;;
         *)
