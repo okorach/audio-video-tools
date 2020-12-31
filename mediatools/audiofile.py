@@ -145,7 +145,7 @@ class AudioFile(media.MediaFile):
         util.logger.info("File %s encoded", target_file)
         return target_file
 
-    def encode_album_art(self, source_file, album_art_file):
+    def encode_album_art(self, album_art_file):
         """Encodes album art image in an audio file after optionally resizing"""
         album_art_std_settings = '-metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)"'
         target_file = util.add_postfix(self.filename, 'album_art')
@@ -153,8 +153,8 @@ class AudioFile(media.MediaFile):
         # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
         # -metadata:s:v comment="Cover (Front)" %1.mp3
         util.run_ffmpeg('-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
-            source_file, album_art_file, album_art_std_settings, target_file))
-        shutil.copy(target_file, source_file)
+            self.filename, album_art_file, album_art_std_settings, target_file))
+        shutil.copy(target_file, self.filename)
         os.remove(target_file)
 
 
