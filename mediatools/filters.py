@@ -132,8 +132,8 @@ def areverse():
     return "areverse"
 
 
-def speed(speed):
-    return "setpts={}*PTS".format(1 / speed)
+def speed(target_speed):
+    return "setpts={}*PTS".format(1 / target_speed)
 
 
 def filtercomplex(filter_list):

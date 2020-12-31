@@ -270,13 +270,13 @@ class VideoFile(media.MediaFile):
 
         return out_file
 
-    def speed(self, speed, out_file=None, **kwargs):
+    def speed(self, target_speed, out_file=None, **kwargs):
         ''' Changes the speed of a video ex: 4x (accelerate 4 times), 0.5x (slows down 2 times) '''
-        if isinstance(speed, str):
-            speed = float(speed.split('x')[0])
-        util.logger.debug("speed(%s, %4.2fx)", self.filename, speed)
+        if isinstance(target_speed, str):
+            target_speed = float(target_speed.split('x')[0])
+        util.logger.debug("speed(%s, %4.2fx)", self.filename, target_speed)
         out_file = util.automatic_output_file_name(out_file, self.filename, "speed")
-        vfilters = [ filters.speed(speed) ]
+        vfilters = [filters.speed(target_speed)]
         an = '-an' if not kwargs.get("audio", False) else ''
         util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
         return out_file
