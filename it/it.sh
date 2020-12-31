@@ -2,7 +2,7 @@
 
 . lib-it.sh
 
-rm ./*.blind.jpg ./*.log ./*.pan*.mp4 ./*.zoom*.mp4 ./*.crop_*.* ./*.deshake*.mp4 ./*.encode.*.mp4 ./*.scale-*.jpg 2>/dev/null
+rm ./*.blind.jpg ./*.log ./*.pan*.mp4 ./*.zoom*.mp4 ./*.crop_*.* ./*.deshake*.mp4 ./*.encode.*.mp4 ./*.scale-*.jpg ./*.meta.* ./*.speed.* 2>/dev/null
 for cmd in it*.sh
 do
     if [ "$cmd" != "$(basename $0)" ]; then
