@@ -549,6 +549,12 @@ def find_key(hashlist, keylist):
     return None
 
 
+def percent_to_float(x):
+    if isinstance(x, str) and re.match(r'\d+(.\d+)?%', x):
+        return float(x[:-1]) / 100
+    return x
+
+
 def generated_file(filename):
     logger.info("Generated %s", filename)
     print("Generated {}".format(filename))

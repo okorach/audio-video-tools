@@ -29,7 +29,7 @@ import mediatools.videofile as video
 
 def main():
     parser = util.get_common_args('media-volume', 'Change volume of a video or audio file')
-    parser.add_argument('--volume', required=True, help='Change volume like 4x (relative change) or 6dB (absolute)')
+    parser.add_argument('--volume', required=True, help='Change volume like 400% (relative change) or 6dB (absolute)')
     kwargs = util.parse_media_args(parser)
 
     output = video.volume(kwargs.pop('inputfile'), kwargs.pop('volume'), kwargs.get('outputfile', None))
