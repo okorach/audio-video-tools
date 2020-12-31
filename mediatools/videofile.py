@@ -296,50 +296,35 @@ class VideoFile(media.MediaFile):
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
         # -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
         util.logger.debug("Add metadata: %s", str(metadatas))
-        opts = VideoFile.AV_PASSTHROUGH
+
+        options = [filters.vcodec('copy'), filters.acodec('copy')]
+
+        # Handle copyright, author, year
         for key, value in metadatas.items():
-            opts += '-metadata {0}="{1}" '.format(key, value)
+            if key in ('author', 'year'):
+                options.append(filters.metadata(key, value))
+            if key == 'copyright':
+                options.append(filters.metadata(key, '© {}'.format(value)))
+
+        nb_tracks = self.__get_number_of_audio_tracks()
+        # Handle default_track
+        if 'default_track' in metadatas:
+            options.append(filters.disposition(metadatas['default_track'], nb_tracks))
+
+        if 'language' in metadatas:
+            for m in metadatas['language']:
+                try:
+                    track, value, details = m.split(':', maxsplit=3)
+                    options.append(filters.metadata('language', value, track))
+                    options.append(filters.metadata('title', details, track))
+                except ValueError:
+                    track, value = m.split(':', maxsplit=2)
+                    options.append(filters.metadata('language', value, track))
+
         output_file = util.add_postfix(self.filename, "meta")
-        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, opts.strip(), output_file))
+        util.run_ffmpeg('-i "{}" {} "{}"'.format(self.filename, filters.format_options(options), output_file))
         return output_file
 
-    def set_default_track(self, track):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
-        # -disposition:a:0 default -disposition:a:1 none out.mp4
-        util.logger.debug("Set default track: %s", track)
-        disp = VideoFile.AV_PASSTHROUGH
-        for i in range(self.__get_number_of_audio_tracks() + 1):
-            util.logger.debug("i = %d, nb tracks = %d", i, self.__get_number_of_audio_tracks())
-            is_default = "default" if i == track else "none"
-            disp += "-disposition:a:{0} {1} ".format(i, is_default)
-        output_file = util.add_postfix(self.filename, "track")
-        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, disp.strip(), output_file))
-        return output_file
-
-    def set_tracks_property(self, prop, **props):
-        util.logger.debug("Set tracks properties: %s-->%s", prop, str(props))
-        meta = VideoFile.AV_PASSTHROUGH
-        for idx, propval in props.items():
-            meta += '-metadata:s:a:{0} {1}="{2}" '.format(idx, prop, propval)
-        output_file = util.add_postfix(self.filename, prop)
-        util.run_ffmpeg(FFMPEG_CLASSIC_FMT.format(self.filename, meta.strip(), output_file))
-        return output_file
-
-    def set_tracks_language(self, **langs):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
-        # -metadata:s:a:0 language=fre -metadata:s:a:1 language=eng out.mp4
-        return self.set_tracks_property("language", **langs)
-
-    def set_tracks_title(self, **titles):
-        # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0
-        # -metadata:s:a:0 title="Avec musique" -metadata:s:a:1 title="Anglais" out.mp4
-        return self.set_tracks_property("title", **titles)
-
-    def add_copyright(self, copyr, year = None):
-        if year is None:
-            import datetime
-            year = datetime.datetime.now().year
-        return self.add_metadata(**{'copyright': '© {0} {1}'.format(copyr, year)})
 
     def add_stream_property(self, stream_index, prop, value=None):
         direct_copy = '-vcodec copy -c:a copy -map 0'
