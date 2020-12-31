@@ -281,6 +281,18 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
         return out_file
 
+
+    def volume(self, vol, out_file=None, **kwargs):
+        ''' Changes the speed of a video ex: 4x (accelerate 4 times), 0.5x (slows down 2 times) '''
+        if isinstance(vol, str) and re.match(r'\d+x', vol):
+            vol = vol.split('x')[0]
+        util.logger.debug("volume(%s, %s)", self.filename, vol)
+        out_file = util.automatic_output_file_name(out_file, self.filename, "volume")
+        afilters = [filters.volume(vol)]
+        util.run_ffmpeg('-i "{}" {} -vcodec copy "{}"'.format(self.filename, filters.afilter(afilters), out_file))
+        return out_file
+
+
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
@@ -692,3 +704,7 @@ def slideshow(*inputs, resolution="1920x1080"):
 
 def speed(filename, target_speed, output=None, **kwargs):
     return VideoFile(filename).speed(target_speed=target_speed, out_file=output, **kwargs)
+
+
+def volume(filename, vol, output=None, **kwargs):
+    return VideoFile(filename).volume(vol=vol, out_file=output, **kwargs)
