@@ -690,5 +690,5 @@ def slideshow(*inputs, resolution="1920x1080"):
         return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)
 
 
-def speed(filename, speed, output=None, **kwargs):
-    return VideoFile(filename).speed(speed=speed, out_file=output, **kwargs)
+def speed(filename, target_speed, output=None, **kwargs):
+    return VideoFile(filename).speed(target_speed=target_speed, out_file=output, **kwargs)
