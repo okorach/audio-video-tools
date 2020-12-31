@@ -547,3 +547,8 @@ def find_key(hashlist, keylist):
 
     logger.warning("No key %s found in %s", str(keylist), str(hashlist))
     return None
+
+
+def generated_file(filename):
+    logger.info("Generated %s", filename)
+    print("Generated {}".format(filename))
