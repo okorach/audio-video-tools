@@ -132,6 +132,12 @@ def areverse():
     return "areverse"
 
 
+def volume(vol):
+    ''' Sets video / audio volume
+    Can pass vol as a multiplier of current volume or absolute value like -6.0dB '''
+    return "volume={}".format(vol)
+
+
 def speed(target_speed):
     return "setpts={}*PTS".format(1 / target_speed)
 
