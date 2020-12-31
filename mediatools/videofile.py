@@ -280,8 +280,7 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
         return out_file
 
-
-    def volume(self, vol, out_file=None, **kwargs):
+    def volume(self, vol, out_file=None):
         ''' Changes the speed of a video ex: 400% (accelerate 4 times), 50% (slows down 2 times) '''
         vol = util.percent_to_float(vol)
         util.logger.debug("volume(%s, %s)", self.filename, str(vol))
@@ -704,5 +703,5 @@ def speed(filename, target_speed, output=None, **kwargs):
     return VideoFile(filename).speed(target_speed=target_speed, out_file=output, **kwargs)
 
 
-def volume(filename, vol, output=None, **kwargs):
-    return VideoFile(filename).volume(vol=vol, out_file=output, **kwargs)
+def volume(filename, vol, output=None):
+    return VideoFile(filename).volume(vol=vol, out_file=output)

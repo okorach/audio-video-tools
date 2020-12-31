@@ -20,7 +20,7 @@
 #
 
 '''
-This script slows down or accelerate a video
+This script changes the volume of a video or audio file
 '''
 
 import mediatools.utilities as util
@@ -32,9 +32,8 @@ def main():
     parser.add_argument('--volume', required=True, help='Change volume like 400% (relative change) or 6dB (absolute)')
     kwargs = util.parse_media_args(parser)
 
-    output = video.volume(kwargs.pop('inputfile'), kwargs.pop('volume'), kwargs.get('outputfile', None))
+    output = video.volume(kwargs.pop('inputfile'), kwargs.pop('volume'))
     util.generated_file(output)
-
 
 
 if __name__ == "__main__":
