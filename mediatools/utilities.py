@@ -208,8 +208,10 @@ def run_os_cmd(cmd):
         while line:
             if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
                 last_error = line
-            if re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
+            elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
                 logger.error(line)
+            elif re.search(r"frame=\s*(\d+)\s+fps=\s*(\d+)", line, re.IGNORECASE):
+                logger.info(line)
             elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
                 logger.warning(line)
             else:
