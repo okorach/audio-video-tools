@@ -19,8 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
-import re
 import argparse
 import mediatools.exceptions as ex
 import mediatools.utilities as util
