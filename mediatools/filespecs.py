@@ -24,9 +24,7 @@ import re
 import argparse
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.videofile as video
-import mediatools.audiofile as audio
-import mediatools.imagefile as img
+import mediatools.creator as creator
 import mediatools.options as opt
 
 STD_FMT = "%-20s : %s"
@@ -43,26 +41,49 @@ AUDIO_PROPS = ['filename', 'filesize', 'type', opt.Option.FORMAT, opt.Option.DUR
 IMAGE_PROPS = ['filename', 'filesize', 'type',
     opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, 'pixels', opt.Option.AUTHOR, opt.Option.TITLE]
 
-UNITS = {'filesize': [1048576, 'MB'], opt.Option.DURATION: [1, 'hms'], opt.Option.VBITRATE: [1024, 'kbits/s'],
-        opt.Option.ABITRATE: [1024, 'kbits/s'], opt.Option.ASAMPLING: [1000, 'k'], 'pixels': [1000000, 'Mpix']}
+UNITS = {'filesize': 'bytes', opt.Option.DURATION: 'time', opt.Option.VBITRATE: 'bits/s',
+        opt.Option.ABITRATE: 'bits/s', opt.Option.ASAMPLING: 'bits', 'pixels': 'pix'}
 
 
-def file_list(input_item, filetypes=''):
-    filelist = []
-    if os.path.isdir(input_item):
-        if filetypes == '':
-            types = ['video', 'audio', 'image']
+def __to_csv__(specs, all_props):
+    s = ''
+    for prop in all_props:
+        if prop not in specs:
+            s += ','
         else:
-            types = re.split(',', filetypes.lower())
-        if 'video' in types:
-            filelist.extend(util.video_filelist(input_item))
-        if 'audio' in types:
-            filelist.extend(util.audio_filelist(input_item))
-        if 'image' in types:
-            filelist.extend(util.image_filelist(input_item))
-    else:
-        filelist = [input_item]
-    return filelist
+            s += str(specs[prop]) + ','
+        if prop == 'duration':
+            s += util.to_hms(specs[prop], fmt='string') + ','
+    return s[:-1]
+
+
+def __to_std__(specs, all_props):
+    s = ''
+    for prop in sorted(all_props):
+        if prop not in specs:
+            continue
+        u = ''
+        v = specs[prop]
+        if prop not in UNITS:
+            s += "{}: {} {}\n".format("%-20s" % prop, v, u)
+            continue
+        if UNITS[prop] in ('bytes', 'bits', 'pix', 'bytes/s', 'bits/s'):
+            v = float(v)
+            if v > 1024*1024*1024:
+                v = round(v / 1024 / 1024 / 1024, 2)
+                u = 'G' + UNITS[prop]
+            elif v > 1024*1024:
+                v = round(v / 1024 / 1024, 2)
+                u = 'M' + UNITS[prop]
+            elif v > 1024:
+                v = round(v / 1024, 2)
+                u = 'k' + UNITS[prop]
+            else:
+                u = UNITS[prop]
+        elif UNITS[prop] == 'time':
+            v = util.to_hms(specs[prop], fmt='string')
+        s += "{}: {} {}\n".format("%-20s" % prop, v, u)
+    return s[:-1]
 
 
 def main():
@@ -75,65 +96,30 @@ def main():
     parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
     kwargs = util.parse_media_args(parser)
 
-    filelist = file_list(kwargs['inputfile'])
+    filelist = util.file_list(kwargs['inputfile'])
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 
-    if kwargs['format'] == 'csv':
+    fmt = kwargs['format']
+    if fmt == 'csv':
         print("# ")
         for prop in all_props:
-            print("%s;" % prop, end='')
+            print("%s," % prop, end='')
             if prop == 'duration':
-                print("%s;" % "Duration HH:MM:SS", end='')
+                print("%s," % "Duration HH:MM:SS.x", end='')
         print('')
 
-    props = all_props
-    nb_files = len(filelist)
     for file in filelist:
         try:
-            if not util.is_media_file(file):
-                raise ex.FileTypeError(file=file)
-            if util.is_video_file(file):
-                file_object = video.VideoFile(file)
-                if nb_files == 1:
-                    props = VIDEO_PROPS
-            elif util.is_audio_file(file):
-                file_object = audio.AudioFile(file)
-                if nb_files == 1:
-                    props = AUDIO_PROPS
-            elif util.is_image_file(file):
-                file_object = img.ImageFile(file)
-                if nb_files == 1:
-                    props = IMAGE_PROPS
-
-            specs = file_object.get_properties()
-            util.logger.debug("Specs = %s", util.json_fmt(specs))
-            for prop in props:
-                if kwargs['format'] != "csv":
-                    try:
-                        if prop in UNITS:
-                            (divider, unit) = UNITS[prop]
-                            if unit == 'hms':
-                                print(STD_FMT % (prop, util.to_hms_str(specs[prop])))
-                            else:
-                                print("%-20s : %.1f %s" % (prop, (int(specs[prop]) / divider), unit))
-                        else:
-                            print(STD_FMT % (prop, str(specs[prop]) if specs[prop] is not None else ''))
-                    except KeyError:
-                        print(STD_FMT % (prop, ""))
-                    except TypeError:
-                        print(STD_FMT % (prop, "Wrong type"))
-                else:
-                    # CSV format
-                    try:
-                        print("%s;" % (str(specs[prop]) if specs[prop] is not None else ''), end='')
-                        if prop == 'duration':
-                            print("%s;" % util.to_hms_str(specs[prop]), end='')
-                    except KeyError:
-                        print("%s;" % '', end='')
-            print("")
-        except ex.FileTypeError as e:
-            print('ERROR: File %s type error %s' % (file, str(e)))
+            file_object = creator.file(file)
+        except ex.FileTypeError:
+            continue
+        specs = file_object.get_properties()
+        util.logger.debug("Specs = %s", util.json_fmt(specs))
+        if fmt == 'csv':
+            print(__to_csv__(specs, all_props))
+        else:
+            print(__to_std__(specs, all_props))
 
 
 if __name__ == "__main__":
