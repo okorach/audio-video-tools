@@ -271,15 +271,24 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def speed(self, target_speed, out_file=None, **kwargs):
-        ''' Changes the speed of a video ex: 4x (accelerate 4 times), 0.5x (slows down 2 times) '''
-        if isinstance(target_speed, str):
-            target_speed = float(target_speed.split('x')[0])
-        util.logger.debug("speed(%s, %4.2fx)", self.filename, target_speed)
+        ''' Changes the speed of a video ex: 400% (accelerate 4 times), 50% (slows down 2 times) '''
+        target_speed = util.percent_to_float(target_speed)
+        util.logger.debug("speed(%s, %s)", self.filename, str(target_speed))
         out_file = util.automatic_output_file_name(out_file, self.filename, "speed")
         vfilters = [filters.speed(target_speed)]
         an = '-an' if not kwargs.get("audio", False) else ''
         util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
         return out_file
+
+    def volume(self, vol, out_file=None):
+        ''' Changes the speed of a video ex: 400% (accelerate 4 times), 50% (slows down 2 times) '''
+        vol = util.percent_to_float(vol)
+        util.logger.debug("volume(%s, %s)", self.filename, str(vol))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "volume")
+        afilters = [filters.volume(vol)]
+        util.run_ffmpeg('-i "{}" {} -vcodec copy "{}"'.format(self.filename, filters.afilter(afilters), out_file))
+        return out_file
+
 
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
@@ -692,3 +701,7 @@ def slideshow(*inputs, resolution="1920x1080"):
 
 def speed(filename, target_speed, output=None, **kwargs):
     return VideoFile(filename).speed(target_speed=target_speed, out_file=output, **kwargs)
+
+
+def volume(filename, vol, output=None):
+    return VideoFile(filename).volume(vol=vol, out_file=output)
