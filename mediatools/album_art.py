@@ -25,7 +25,6 @@
 # The image is rescaled to 512x512 if too big
 
 import sys
-import os
 import mediatools.utilities as util
 import mediatools.audiofile as audio
 
