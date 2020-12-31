@@ -21,5 +21,5 @@
 setlocal enabledelayedexpansion
 set /p speed=Speed factor ?:
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed %speed% "%%~F.speed.%speed%.mp4"
+    video-speed -i "%%~F" --speed %speed%
 )
