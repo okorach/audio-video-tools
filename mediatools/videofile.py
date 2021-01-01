@@ -250,8 +250,7 @@ class VideoFile(media.MediaFile):
 
     def cut(self, start, stop, fade=None, out_file=None):
         out_file = util.automatic_output_file_name(
-                out_file, self.filename,
-                "cut_%s_to_%s" % (start.replace(':', '-'), stop.replace(':', '-')))
+            out_file, self.filename, "cut_%s_to_%s" % (start.replace(':', '-'), stop.replace(':', '-')))
         util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
         # media_opts = self.get_properties()
         media_opts = {
@@ -289,7 +288,6 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('-i "{}" {} -vcodec copy "{}"'.format(self.filename, filters.afilter(afilters), out_file))
         return out_file
 
-
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
@@ -324,7 +322,6 @@ class VideoFile(media.MediaFile):
         output_file = util.add_postfix(self.filename, "meta")
         util.run_ffmpeg('-i "{}" {} "{}"'.format(self.filename, filters.format_options(options), output_file))
         return output_file
-
 
     def add_stream_property(self, stream_index, prop, value=None):
         direct_copy = '-vcodec copy -c:a copy -map 0'
@@ -460,7 +457,6 @@ class VideoFile(media.MediaFile):
         return target_file
 
     # ----------------- Private methods ------------------------------------------
-
 
     def __get_number_of_audio_tracks(self):
         n = 0

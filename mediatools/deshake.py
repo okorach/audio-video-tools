@@ -22,7 +22,6 @@
 # This script applies the ffmpeg deshake filter on a video file
 # to improve image stabilization
 
-import re
 import mediatools.utilities as util
 import mediatools.videofile as video
 
