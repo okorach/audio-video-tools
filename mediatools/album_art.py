@@ -32,7 +32,7 @@ DEFAULT_RESCALING = '512x512'
 
 
 def main():
-    util.set_logger('video-mux')
+    util.set_logger('album-art')
     sys.argv.pop(0)
     files = []
     scale = DEFAULT_RESCALING
@@ -40,7 +40,7 @@ def main():
         arg = sys.argv.pop(0)
         if arg == '-g':
             util.set_debug_level(sys.argv.pop(0))
-        if arg == '--scale':
+        elif arg == '--scale':
             scale = sys.argv.pop(0)
         else:
             files.append(arg)

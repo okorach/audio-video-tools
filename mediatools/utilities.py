@@ -91,7 +91,7 @@ def dir_list(root_dir, recurse=False, file_type=None):
         for file in f:
             if os.path.isdir(file) and recurse:
                 files.append(dir_list(file, recurse=recurse, file_type=file_type))
-            elif __is_type_file(file, file_type):
+            elif __is_type_file(os.path.join(r, file), file_type):
                 files.append(os.path.join(r, file))
     return files
 
