@@ -19,4 +19,6 @@
 ::
 set /p year=Year of video?:
 set /p track=Default track?:
-video-metadata -i "%~1" --year %year% --copyright "O. Korach %year%" --author "Olivier Korach" --default_track %track% --languages "0:fre:Francais avec musique" "1:fre:Francais sans musique" -o "%~1.meta.mp4"
+video-metadata -i "%~1" --year %year% --copyright "O. Korach %year%" --author "Olivier Korach" --default_track %track% --language "0:fre:Francais avec musique" "1:fre:Francais sans musique" -o "%~1.meta.mp4" -g 5
+
+pause
