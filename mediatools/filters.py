@@ -139,7 +139,14 @@ def volume(vol):
 
 
 def speed(target_speed):
-    return "setpts={}*PTS".format(1 / float(target_speed))
+    if target_speed > 1:
+        return select('not(mod(n,{}))'.format(target_speed)) + ',' + setpts('N/FRAME_RATE/TB')
+    else:
+        return setpts("{}*PTS".format(1 / float(target_speed)))
+
+
+def select(expr):
+    return "select='{}'".format(expr)
 
 
 def filtercomplex(filter_list):
