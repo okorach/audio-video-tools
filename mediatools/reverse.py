@@ -18,6 +18,7 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
 import sys
 import mediatools.utilities as util
 import mediatools.videofile as video
@@ -25,18 +26,21 @@ import mediatools.videofile as video
 
 def main():
     util.set_logger('video-reverse')
-    hw_accel = False
     sys.argv.pop(0)
+    opts = {'audio': False, 'hw_accel': False}
     while sys.argv:
         arg = sys.argv.pop(0)
         if arg == "-g":
             util.set_debug_level(sys.argv.pop(0))
+        elif arg == "--keep_audio":
+            opts['audio'] = True
         elif arg == "--hw_accel":
-            hw_accel = True
+            opts['hw_accel'] = True
         elif util.is_video_file(arg):
-            output = video.VideoFile(arg).reverse(hw_accel=hw_accel)
-            util.logger.info("File %s generated", output)
-            print("File {} generated".format(output))
+            file = arg
+
+    output = video.reverse(file, **opts)
+    util.generated_file(output)
 
 
 if __name__ == "__main__":
