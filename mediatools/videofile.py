@@ -364,18 +364,6 @@ class VideoFile(media.MediaFile):
     def get_copyright(self):
         return self.copyright
 
-    def reverse(self, out_file=None, with_audio=False, **kwargs):
-        (w, _) = self.dimensions()
-        if w >= 1920:
-            profile = "1080p"
-        elif w >= 1280:
-            profile = "720p"
-        else:
-            profile = "540p"
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'reverse', extension="mp4")
-        kwargs.pop('hw_accel', None)
-        return self.encode(out_file, profile, reverse=True, audio_reverse=False, **kwargs)
-
     def encode(self, target_file=None, profile=None, **kwargs):
         '''Encodes a file
         - target_file is the name of the output file. Optional
@@ -412,13 +400,16 @@ class VideoFile(media.MediaFile):
 # ---------------- Class methods ---------------------------------
 
     def __get_audio_filters__(self, **kwargs):
+        util.logger.debug('Afilters options = %s', str(kwargs))
         afilters = []
         if kwargs.get('volume', None) is not None:
             vol = util.percent_to_float(kwargs['volume'])
             afilters.append(filters.volume(vol))
+        util.logger.debug('Afilters = %s', str(afilters))
         return afilters
 
     def __get_video_filters__(self, **kwargs):
+        util.logger.debug('Vfilters options = %s', str(kwargs))
         vfilters = []
         if kwargs.get('speed', None) is not None:
             speed = util.percent_to_float(kwargs['speed'])
@@ -431,47 +422,57 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
+        util.logger.debug('Vfilters = %s', str(vfilters))
         return vfilters
 
     def __get_input_settings__(self, **kwargs):
+        util.logger.debug('Input options = %s', str(kwargs))
         settings = []
         video_encode = False
         for k in kwargs:
-            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect'):
+            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
                 video_encode = True
                 break
-        if video_encode and kwargs.get('hw_accel', None) is not None:
+        if video_encode and kwargs.get('hw_accel', False):
             settings.append('-hwaccel cuvid -c:v h264_cuvid')
+        util.logger.debug('Input settings = %s', str(settings))
         return settings
 
     def __get_output_settings__(self, **kwargs):
         settings = []
-        util.logger.debug('Ouput options = %s', str(kwargs))
+        util.logger.debug('Output options = %s', str(kwargs))
         video_encode = False
         audio_encode = False
-        if kwargs.get('speed', None) is not None and not kwargs.get('audio', False):
-            settings.append('-an')
-            audio_encode = True
+        audio_copy = True
         for k in kwargs:
-            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect'):
+            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
                 video_encode = True
             if k in ('acodec', 'abirate', 'volume'):
                 audio_encode = True
+                audio_copy = False
+        for k in kwargs:
+            if k in ('speed', 'reverse') and not kwargs.get('audio', False):
+                settings.append('-an')
+                audio_encode = False
+                audio_copy = False
 
-        if kwargs.get('acodec', None) is not None:
+        if audio_encode and kwargs.get('acodec', None) is not None:
             settings.append('-acodec {}'.format(kwargs['acodec']))
-        elif not audio_encode:
+        elif audio_copy:
             settings.append('-acodec copy')
 
-        if not video_encode:
-            settings.append('-vcodec copy')
-        elif kwargs.get('hw_accel', None) is not None:
+        if video_encode:
             vcodec = kwargs.get('vcodec', None)
-            if vcodec is not None and re.search(r'[xh]265', vcodec):
-                settings.append('-vcodec hevc_nvenc')
-            else:
-                settings.append('-vcodec h264_nvenc')
-
+            if kwargs.get('hw_accel', False):
+                if vcodec is not None and re.search(r'[xh]265', vcodec):
+                    settings.append('-vcodec hevc_nvenc')
+                else:
+                    settings.append('-vcodec h264_nvenc')
+            elif vcodec is not None:
+                settings.append('-vcodec {}'.format(vcodec))
+        else:
+            settings.append('-vcodec copy')
+        util.logger.debug('Output settings = %s', str(settings))
         return settings
 
 
@@ -572,7 +573,7 @@ def add_video_args(parser):
     parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
     parser.add_argument('--' + opt.Option.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
-    parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
+    parser.add_argument('--hw_accel', required=False, default=False, dest='hw_accel', action='store_true',
                         help='Use Nvidia HW acceleration')
 
     parser.add_argument('--' + opt.Option.VBITRATE, required=False, help='Video bitrate eg 1024k')
@@ -692,6 +693,11 @@ def speed(filename, target_speed, output=None, **kwargs):
     return VideoFile(filename).encode(speed=target_speed, target_file=output, **kwargs)
 
 
-def volume(filename, vol, output=None):
+def volume(filename, vol, output=None, **kwargs):
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='volume')
-    return VideoFile(filename).encode(volume=vol, target_file=output)
+    return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
+
+
+def reverse(filename, output=None, **kwargs):
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='reverse')
+    return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
