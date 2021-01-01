@@ -34,7 +34,7 @@ def main():
     parser.set_defaults(audio=False)
     kwargs = util.parse_media_args(parser)
 
-    output = video.speed(kwargs.pop('inputfile'), kwargs.pop('speed'), kwargs.get('outputfile', None))
+    output = video.speed(filename=kwargs.pop('inputfile'), target_speed=kwargs.pop('speed'), output=kwargs.pop('outputfile', None), **kwargs)
     util.logger.info("Generated %s", output)
     print("Generated %s", output)
 
