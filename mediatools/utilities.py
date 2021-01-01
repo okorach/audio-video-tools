@@ -20,7 +20,6 @@
 #
 
 import os
-import sys
 import platform
 import json
 import re
@@ -372,6 +371,8 @@ def cleanup_options(kwargs):
 
 
 def get_profile_extension(profile, properties=None):
+    if profile is None:
+        return 'mp4'
     if properties is None:
         properties = get_media_properties()
     extension = properties.get(profile + '.extension', None)
