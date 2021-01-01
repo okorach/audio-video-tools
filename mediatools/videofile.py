@@ -22,9 +22,7 @@
 '''Video file tools'''
 
 from __future__ import print_function
-import sys
 import re
-import os
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
@@ -132,7 +130,6 @@ class VideoFile(media.MediaFile):
         if self.video_codec == '':
             util.logger.error("Can't find video codec in stream %s\n", util.json_fmt(stream))
         return self.video_codec
-
 
     def get_video_duration(self):
         if self.duration is None:
@@ -269,25 +266,6 @@ class VideoFile(media.MediaFile):
 
         return out_file
 
-    def speed(self, target_speed, out_file=None, **kwargs):
-        ''' Changes the speed of a video ex: 400% (accelerate 4 times), 50% (slows down 2 times) '''
-        target_speed = util.percent_to_float(target_speed)
-        util.logger.debug("speed(%s, %s)", self.filename, str(target_speed))
-        out_file = util.automatic_output_file_name(out_file, self.filename, "speed")
-        vfilters = [filters.speed(target_speed)]
-        an = '-an' if not kwargs.get("audio", False) else ''
-        util.run_ffmpeg('-i "{}" {} {} "{}"'.format(self.filename, filters.vfilter(vfilters), an, out_file))
-        return out_file
-
-    def volume(self, vol, out_file=None):
-        ''' Changes the speed of a video ex: 400% (accelerate 4 times), 50% (slows down 2 times) '''
-        vol = util.percent_to_float(vol)
-        util.logger.debug("volume(%s, %s)", self.filename, str(vol))
-        out_file = util.automatic_output_file_name(out_file, self.filename, "volume")
-        afilters = [filters.volume(vol)]
-        util.run_ffmpeg('-i "{}" {} -vcodec copy "{}"'.format(self.filename, filters.afilter(afilters), out_file))
-        return out_file
-
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
@@ -398,7 +376,7 @@ class VideoFile(media.MediaFile):
         kwargs.pop('hw_accel', None)
         return self.encode(out_file, profile, reverse=True, audio_reverse=False, **kwargs)
 
-    def encode(self, target_file, profile, **kwargs):
+    def encode(self, target_file=None, profile=None, **kwargs):
         '''Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
@@ -408,51 +386,17 @@ class VideoFile(media.MediaFile):
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        media_opts = {}
-        video_filters = []
-        audio_filters = []
-        media_opts = self.get_properties()
-        util.logger.debug("File settings(%s) = %s", self.filename, str(media_opts))
-        media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
-        util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
-        media_opts.update(kwargs)
-        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
-
-        media_opts['input_params'] = ''
-        if 'hw_accel' in kwargs and kwargs['hw_accel'] is True:
-            if re.search(r'[xh]264', media_opts[opt.Option.VCODEC]):
-                util.logger.debug("Patching settings for H264 hw acceleration")
-                media_opts[opt.Option.VCODEC] = 'h264_nvenc'
-                media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            elif re.search(r'[xh]265', media_opts[opt.Option.VCODEC]):
-                util.logger.debug("Patching settings for H265 hw acceleration")
-                media_opts[opt.Option.VCODEC] = 'hevc_nvenc'
-                media_opts['input_params'] = '-hwaccel cuvid -c:v h264_cuvid'
-            if media_opts['input_params'] != '' and media_opts.get(opt.Option.SIZE, None) is not None:
-                media_opts['input_params'] += ' -resize ' + media_opts[opt.Option.SIZE]
-                del media_opts[opt.Option.SIZE]
-
-        util.logger.debug("After hw acceleration = %s", str(media_opts))
-
-        ffopts = opt.media2ffmpeg(media_opts)
-        util.logger.debug("After converting to ffmpeg params = %s", str(ffopts))
-
-        if kwargs.get('reverse', False):
-            video_filters.append(filters.reverse())
-        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
-            video_filters.append(filters.areverse())
-        if kwargs.get('fade', False):
-            video_filters.append(
-                filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
-            video_filters.append(
-                filters.fade_out(start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
+        input_settings = self.__get_input_settings__(**kwargs)
+        video_filters = self.__get_video_filters__(**kwargs)
+        audio_filters = self.__get_audio_filters__(**kwargs)
+        output_settings = self.__get_output_settings__(**kwargs)
 
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
         util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
-            media_opts['input_params'], self.filename, util.dict2str(ffopts),
-            filters.vfilter(video_filters), filters.afilter(audio_filters), mapping, target_file))
+            ' '.join(input_settings), self.filename, filters.vfilter(video_filters),
+            filters.afilter(audio_filters), ' '.join(output_settings), mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
 
@@ -466,6 +410,69 @@ class VideoFile(media.MediaFile):
         return n
 
 # ---------------- Class methods ---------------------------------
+
+    def __get_audio_filters__(self, **kwargs):
+        afilters = []
+        if kwargs.get('volume', None) is not None:
+            vol = util.percent_to_float(kwargs['volume'])
+            afilters.append(filters.volume(vol))
+        return afilters
+
+    def __get_video_filters__(self, **kwargs):
+        vfilters = []
+        if kwargs.get('speed', None) is not None:
+            speed = util.percent_to_float(kwargs['speed'])
+            vfilters.append(filters.speed(speed))
+        if kwargs.get('reverse', False):
+            vfilters.append(filters.reverse())
+        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
+            vfilters.append(filters.areverse())
+        if kwargs.get('fade', False):
+            vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
+            vfilters.append(filters.fade_out(
+                start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
+        return vfilters
+
+    def __get_input_settings__(self, **kwargs):
+        settings = []
+        video_encode = False
+        for k in kwargs:
+            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect'):
+                video_encode = True
+                break
+        if video_encode and kwargs.get('hw_accel', None) is not None:
+            settings.append('-hwaccel cuvid -c:v h264_cuvid')
+        return settings
+
+    def __get_output_settings__(self, **kwargs):
+        settings = []
+        util.logger.debug('Ouput options = %s', str(kwargs))
+        video_encode = False
+        audio_encode = False
+        if kwargs.get('speed', None) is not None and not kwargs.get('audio', False):
+            settings.append('-an')
+            audio_encode = True
+        for k in kwargs:
+            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect'):
+                video_encode = True
+            if k in ('acodec', 'abirate', 'volume'):
+                audio_encode = True
+
+        if kwargs.get('acodec', None) is not None:
+            settings.append('-acodec {}'.format(kwargs['acodec']))
+        elif not audio_encode:
+            settings.append('-acodec copy')
+
+        if not video_encode:
+            settings.append('-vcodec copy')
+        elif kwargs.get('hw_accel', None) is not None:
+            vcodec = kwargs.get('vcodec', None)
+            if vcodec is not None and re.search(r'[xh]265', vcodec):
+                settings.append('-vcodec hevc_nvenc')
+            else:
+                settings.append('-vcodec h264_nvenc')
+
+        return settings
 
 
 def get_size_option(cmdline):
@@ -681,8 +688,10 @@ def slideshow(*inputs, resolution="1920x1080"):
 
 
 def speed(filename, target_speed, output=None, **kwargs):
-    return VideoFile(filename).speed(target_speed=target_speed, out_file=output, **kwargs)
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='speed')
+    return VideoFile(filename).encode(speed=target_speed, target_file=output, **kwargs)
 
 
 def volume(filename, vol, output=None):
-    return VideoFile(filename).volume(vol=vol, out_file=output)
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='volume')
+    return VideoFile(filename).encode(volume=vol, target_file=output)

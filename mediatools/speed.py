@@ -43,8 +43,7 @@ def main():
         sys.exit(1)
 
     output = video.speed(filename=kwargs.pop('inputfile'), target_speed=speed, output=kwargs.pop('outputfile', None), **kwargs)
-    util.logger.info("Generated %s", output)
-    print("Generated %s", output)
+    util.generated_file(output)
 
 
 if __name__ == "__main__":
