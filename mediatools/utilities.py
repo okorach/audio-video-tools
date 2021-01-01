@@ -232,10 +232,7 @@ def run_os_cmd(cmd):
 def run_ffmpeg(params):
     quot = '"' if platform.system() == 'Windows' else ""
     cmd = '{0}{1}{0} -y {2}'.format(quot, get_ffmpeg(), params)
-    if is_dry_run():
-        logger.info("DRY RUN: %s", cmd)
-    else:
-        run_os_cmd(cmd)
+    run_os_cmd(cmd)
 
 
 def build_ffmpeg_complex_prep(input_file_list):
@@ -316,19 +313,7 @@ def set_debug_level(level):
     logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 
-def set_dry_run(dry_run):
-    global DRY_RUN
-    DRY_RUN = dry_run
-    logger.info("Set dry run to %s", str(dry_run))
-
-
-def is_dry_run():
-    return DRY_RUN
-
-
 def delete_files(*args):
-    if is_dry_run():
-        return
     for f in args:
         logger.debug("Deleting file %s", f)
         os.remove(f)
@@ -349,7 +334,6 @@ def get_common_args(executable, desc):
 
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
-    parser.add_argument('--dry_run', required=False, default=False, help='Only display ffmpeg command, don\'t run it')
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
 
     return parser
@@ -362,7 +346,6 @@ def remove_nones(p):
 def parse_media_args(parser):
     kwargs = remove_nones(vars(parser.parse_args()))
     set_debug_level(kwargs.pop('debug', 1))
-    logger.debug('KW=%s', str(kwargs))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
             kwargs.get(opt.Option.SIZE, None) is not None:
         kwargs[opt.Option.SIZE] = res.canonical(kwargs[opt.Option.SIZE])
