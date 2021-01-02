@@ -475,10 +475,10 @@ def posterize(*file_list, out_file=None, **kwargs):
     full_w = (cols * max_w) + (cols + 1) * gap
     full_h = (rows * max_h) + (rows + 1) * gap
     if cols == 1:
-        full_h = sum([f.height for f in files]) + (len(files) + 1) * gap
+        full_h = sum([f.height * max_w / f.width for f in files]) + (len(files) + 1) * gap
         max_h = -1
     if rows == 1:
-        full_w = sum([f.width for f in files]) + (len(files) + 1) * gap
+        full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
         max_w = -1
     util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
