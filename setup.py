@@ -41,7 +41,7 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     package_data={
-        "mediatools": ["LICENSE", "media-tools.properties"]
+        "mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg"]
     },
     install_requires=[
         'argparse',
