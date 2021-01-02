@@ -513,7 +513,6 @@ def posterize(*file_list, out_file=None, **kwargs):
             y += gap + int(files[i_photo].height * reduction * max_w / files[i_photo].width)
         else:
             y += gap + max_h
-        i_photo += 1
 
     out_file = util.automatic_output_file_name(out_file, files[0], "poster")
     util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
