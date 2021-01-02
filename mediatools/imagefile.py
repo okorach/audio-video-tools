@@ -393,10 +393,12 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color, w, h):
+    '''color=c=black:s=1280x720:r=5'''
     return ImageFile(__get_background__(color)).scale(w, h, out_file="bg.tmp.jpg")
 
 
 def __get_background__(color):
+    '''color=c=black:s=1280x720:r=5'''
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
     return bgfile
 
@@ -462,7 +464,6 @@ def posterize(*file_list, out_file=None, **kwargs):
 
     input_files = util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)
     files = [ImageFile(f) for f in input_files]
-    input_files.insert(0, __get_background__(kwargs['background_color']))
 
     max_h = max([f.height for f in files])
     max_w = max([f.width for f in files])
@@ -475,14 +476,17 @@ def posterize(*file_list, out_file=None, **kwargs):
     full_w = (cols * max_w) + (cols + 1) * gap
     full_h = (rows * max_h) + (rows + 1) * gap
     if cols == 1:
-        full_h = sum([f.height * max_w / f.width for f in files]) + (len(files) + 1) * gap
+        full_h = int(sum([f.height * max_w / f.width for f in files]) + (len(files) + 1) * gap)
         max_h = -1
     if rows == 1:
-        full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
+        full_w = int(sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap)
         max_w = -1
     util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
     (full_w, full_h, max_w, max_h, gap, reduction) = __downsize__(full_w, full_h, max_w, max_h, gap)
+    # Insert background
+    input_files.insert(0, 'color=c={}:s={}x{}:r=5'.format(
+        kwargs.get('background_color', 'black'), full_w, full_h))
 
     filter_list = []
     in_fmt = '{}'
