@@ -545,10 +545,10 @@ def find_key(hashlist, keylist):
     return None
 
 
-def percent_to_float(x):
+def percent_to_float(x, reference=1):
     if isinstance(x, str) and re.match(r'\d+(.\d+)?%', x):
-        return float(x[:-1]) / 100
-    return x
+        return float(x[:-1]) * reference / 100
+    return float(x)
 
 
 def generated_file(filename):
