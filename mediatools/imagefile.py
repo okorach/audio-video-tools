@@ -455,7 +455,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     - columns / rows
     - layout (of images eg 4x3 4 rows 3 columns)
     - background_color
-    - margin (% of widest image)
+    - margin (% of widest image or nb_of_pixels)
     - stretch: stretch images to be all the same width and height
     '''
     util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
@@ -467,8 +467,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     max_h = max([f.height for f in files])
     max_w = max([f.width for f in files])
 
-    gap = max_w * int(kwargs['margin']) // 100
-
+    gap = int(util.percent_to_float(kwargs['margin'], max_w))
     rows, cols = __get_layout__(len(files), **kwargs)
 
     # Max image size = ((Width * 8) + 1024)*(Height + 128) < INT_MAX
@@ -480,7 +479,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     if rows == 1:
         full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
         max_w = -1
-    util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
+    util.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
     (full_w, full_h, max_w, max_h, gap, reduction) = __downsize__(full_w, full_h, max_w, max_h, gap)
 
@@ -495,9 +494,8 @@ def posterize(*file_list, out_file=None, **kwargs):
                 filters.scale(max_w, max_h), str(i + 1), in_fmt.format(i + 1)))
 
     fmt = in_fmt
+    y = gap
     for i_photo in range(len(files)):
-        if i_photo // cols == 0:
-            y = gap
         if i_photo % cols == 0:
             x = gap
         in1s = fmt.format(i_photo)
@@ -511,7 +509,7 @@ def posterize(*file_list, out_file=None, **kwargs):
             x += gap + max_w
         if cols == 1:
             y += gap + int(files[i_photo].height * reduction * max_w / files[i_photo].width)
-        else:
+        elif (i_photo + 1) % cols == 0:
             y += gap + max_h
 
     out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
