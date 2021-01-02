@@ -49,7 +49,7 @@ def main():
             kwargs['stretch'] = True
         elif arg in ('-h', '--help'):
             print("Usage: {}".format(USAGE))
-            exit(0)
+            sys.exit(0)
         else:
             files.append(arg)
 
