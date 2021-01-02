@@ -28,6 +28,9 @@ import sys
 import mediatools.videofile as video
 import mediatools.utilities as util
 
+MISSING_PARAM = '''--start and --stop or --timeranges options is mandatory,
+type video-cut -h for more details'''
+
 
 def main():
     parser = util.get_common_args('video-cut', 'Cuts a time window of the input video file')
@@ -38,12 +41,11 @@ def main():
     if kwargs.get('start', None) is None and kwargs.get('stop', None) is None:
         ranges = kwargs.get('timeranges', None)
         if ranges is None:
-            util.logger.error('--start and --stop or --timeranges options is mandatory, type video-cut -h for more details')
+            util.logger.error(MISSING_PARAM)
             sys.exit(1)
-        kwargs['start'], kwargs['stop'] = ranges.split('-', maxsplit=2)
 
-    outputfile = video.VideoFile(kwargs.pop('inputfile')).cut(start=kwargs['start'], stop=kwargs['stop'])
-    print('Generated file {}'.format(outputfile))
+    outputfile = video.cut(kwargs.pop('inputfile'), **kwargs)
+    util.generated_file(outputfile)
 
 
 if __name__ == "__main__":

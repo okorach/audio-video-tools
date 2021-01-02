@@ -245,27 +245,6 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def cut(self, start, stop, fade=None, out_file=None):
-        out_file = util.automatic_output_file_name(
-            out_file, self.filename, "cut_%s_to_%s" % (start.replace(':', '-'), stop.replace(':', '-')))
-        util.logger.debug("Cutting %s from %s to %s into %s", self.filename, start, stop, out_file)
-        # media_opts = self.get_properties()
-        media_opts = {
-            opt.Option.START: start,
-            opt.Option.STOP: stop,
-            opt.Option.VCODEC: 'copy',
-            opt.Option.ACODEC: 'copy'
-        }
-        video_filters = []
-        if fade is not None:
-            video_filters.append(filters.fade_in(start=util.to_seconds(start), duration=fade))
-            video_filters.append(filters.fade_out(start=util.to_seconds(stop) - fade, duration=fade))
-        util.run_ffmpeg('-i "{}" {} {} "{}"'.format(
-            self.filename, media.build_ffmpeg_options(media_opts),
-            filters.vfilter(video_filters), out_file))
-
-        return out_file
-
     def add_metadata(self, **metadatas):
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
@@ -357,6 +336,7 @@ class VideoFile(media.MediaFile):
             target_file = media.build_target_file(self.filename, profile)
 
         input_settings = self.__get_input_settings__(**kwargs)
+        prefilter_settings = self.__get_prefilter_settings__(**kwargs)
         video_filters = self.__get_video_filters__(**kwargs)
         audio_filters = self.__get_audio_filters__(**kwargs)
         output_settings = self.__get_output_settings__(**kwargs)
@@ -364,9 +344,10 @@ class VideoFile(media.MediaFile):
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
-        util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
-            ' '.join(input_settings), self.filename, filters.vfilter(video_filters),
-            filters.afilter(audio_filters), ' '.join(output_settings), mapping, target_file))
+        util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
+            ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
+            filters.vfilter(video_filters), filters.afilter(audio_filters), ' '.join(output_settings),
+            mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
 
@@ -378,8 +359,6 @@ class VideoFile(media.MediaFile):
             if stream['codec_type'] != 'audio':
                 n += 1
         return n
-
-# ---------------- Class methods ---------------------------------
 
     def __get_audio_filters__(self, **kwargs):
         util.logger.debug('Afilters options = %s', str(kwargs))
@@ -417,25 +396,26 @@ class VideoFile(media.MediaFile):
     def __get_input_settings__(self, **kwargs):
         util.logger.debug('Input options = %s', str(kwargs))
         settings = []
-        video_encode = False
-        for k in kwargs:
-            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
-                video_encode = True
-                break
-        if video_encode and kwargs.get('hw_accel', False):
-            settings.append('-hwaccel cuvid -c:v h264_cuvid')
+        if must_encode_video(**kwargs):
+            if kwargs.get('hw_accel', False):
+                settings.append('-hwaccel cuvid -c:v h264_cuvid')
+        elif 'start' in kwargs and kwargs['start'] != '':
+            settings.append('-ss {}'.format(kwargs['start']))
+
         util.logger.debug('Input settings = %s', str(settings))
+        return settings
+
+    def __get_prefilter_settings__(self, **kwargs):
+        settings = []
         return settings
 
     def __get_output_settings__(self, **kwargs):
         settings = []
         util.logger.debug('Output options = %s', str(kwargs))
-        video_encode = False
         audio_encode = False
         audio_copy = True
+
         for k in kwargs:
-            if k in ('vcodec', 'size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
-                video_encode = True
             if k in ('acodec', 'abirate', 'volume'):
                 audio_encode = True
                 audio_copy = False
@@ -450,7 +430,7 @@ class VideoFile(media.MediaFile):
         elif audio_copy:
             settings.append('-acodec copy')
 
-        if video_encode:
+        if must_encode_video(**kwargs):
             vcodec = kwargs.get('vcodec', None)
             if kwargs.get('hw_accel', False):
                 if vcodec is not None and re.search(r'[xh]265', vcodec):
@@ -461,8 +441,31 @@ class VideoFile(media.MediaFile):
                 settings.append('-vcodec {}'.format(vcodec))
         else:
             settings.append('-vcodec copy')
+        if 'stop' in kwargs and kwargs['stop'] != '':
+            settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
+
         util.logger.debug('Output settings = %s', str(settings))
         return settings
+
+# ---------------- Class methods ---------------------------------
+
+
+def must_encode_video(**kwargs):
+    for k in kwargs:
+        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
+            return True
+        if k == 'vcodec' and kwargs[k] != 'copy':
+            return True
+    return False
+
+
+def must_encode_audio(**kwargs):
+    for k in kwargs:
+        if k in ('acodec', 'abitrate', 'volume'):
+            return True
+        if k == 'acodec' and kwargs[k] != 'copy':
+            return True
+    return False
 
 
 def get_size_option(cmdline):
@@ -520,8 +523,6 @@ def get_frame_rate_option(cmdline):
 def get_crop_filter_options(width, height, top, left):
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
     return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
-
-
 
 
 def concat(target_file, file_list, with_audio=True):
@@ -691,4 +692,22 @@ def reverse(filename, output=None, **kwargs):
 
 def deshake(filename, output=None, **kwargs):
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix='deshake')
-    return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
+    return VideoFile(filename).encode(target_file=output, **kwargs)
+
+
+def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs):
+    ''' Args: start and/or stop or timeranges '''
+    if 'vcodec' not in kwargs:
+        kwargs['vcodec'] = 'copy'
+    if 'acodec' not in kwargs:
+        kwargs['acodec'] = 'copy'
+    if start is None and stop is None:
+        i = 1
+        for r in timeranges.split(','):
+            kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
+            output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
+            output = VideoFile(filename).encode(target_file=output, **kwargs)
+            i += 1
+    else:
+        output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
+        return VideoFile(filename).encode(target_file=output, start=start, stop=stop, **kwargs)
