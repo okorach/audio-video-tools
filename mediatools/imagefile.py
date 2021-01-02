@@ -397,8 +397,8 @@ def get_rectangle(color, w, h):
 
 
 def __get_background__(color):
-    bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
-    return bgfile
+    bgfile = "white.jpg" if color == "white" else "black.jpg"
+    return util.package_home() / bgfile
 
 
 def get_widths(files):
