@@ -277,10 +277,15 @@ def to_hms(seconds, fmt='tuple'):
 
 def to_seconds(hms):
     a = [float(x) for x in str(hms).split(':')]
-    return a[0] * 3600 + a[1] * 60 + a[2]
+    if len(a) == 3:
+        return a[0] * 3600 + a[1] * 60 + a[2]
+    elif len(a) == 2:
+        return a[0] * 60 + a[1]
+    else:
+        return a[0]
 
 
-def difftime(start, stop):
+def difftime(stop, start):
     return to_seconds(stop) - to_seconds(start)
 
 
