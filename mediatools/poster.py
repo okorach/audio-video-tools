@@ -52,7 +52,7 @@ def main():
             kwargs['left'] = sys.argv.pop(0)
         elif arg == "--right":
             kwargs['right'] = sys.argv.pop(0)
-        elif arg in ("--layout"):
+        elif arg == "--layout":
             kwargs['layout'] = sys.argv.pop(0)
         elif arg in ('-m', "--margin"):
             kwargs['margin'] = int(sys.argv.pop(0))

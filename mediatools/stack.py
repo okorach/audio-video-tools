@@ -33,7 +33,7 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin x%] [--stretch]
 def main():
     files = []
     util.set_logger('image-stack')
-    kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': False, 'background_color': 'black'}
+    kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': True, 'background_color': 'black'}
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -45,7 +45,7 @@ def main():
             kwargs['background_color'] = sys.argv.pop(0)
         elif arg in ('-m', '--margin'):
             kwargs['margin'] = int(sys.argv.pop(0))
-        elif arg in ('--stretch'):
+        elif arg == '--stretch':
             kwargs['stretch'] = True
         elif arg in ('-h', '--help'):
             print("Usage: {}".format(USAGE))

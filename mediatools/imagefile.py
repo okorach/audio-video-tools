@@ -433,7 +433,9 @@ def __get_layout__(nb_files, **kwargs):
 
 def __downsize__(full_w, full_h, max_w, max_h, gap):
     full_pix = (full_w * 8 + 1024) * (full_h + 128)
-    util.logger.debug("Total poster pixels = %d", full_pix)
+    util.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d",
+        max_w, max_h, gap, full_pix)
+
     reduction_factor = 1
     if full_pix > MAX_INT:
         reduction_factor = math.sqrt(MAX_INT / full_pix) - 0.05
@@ -444,6 +446,7 @@ def __downsize__(full_w, full_h, max_w, max_h, gap):
         gap = int(reduction_factor * gap)
         full_w = int(reduction_factor * full_w)
         full_h = int(reduction_factor * full_h)
+    util.logger.debug("After reduction of %4.2f Max W x H + G = %d x %d + %d", reduction_factor, max_w, max_h, gap)
     return (full_w, full_h, max_w, max_h, gap, reduction_factor)
 
 
@@ -480,7 +483,6 @@ def posterize(*file_list, out_file=None, **kwargs):
     util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
     (full_w, full_h, max_w, max_h, gap, reduction) = __downsize__(full_w, full_h, max_w, max_h, gap)
-    util.logger.debug("After reduction Max W x H + G = %d x %d + %d", max_w, max_h, gap)
 
     filter_list = []
     in_fmt = '{}'
@@ -498,7 +500,6 @@ def posterize(*file_list, out_file=None, **kwargs):
             y = gap
         if i_photo % cols == 0:
             x = gap
-        util.logger.debug("x, y = %d, %d", x, y)
         in1s = fmt.format(i_photo)
         in2s = in_fmt.format(i_photo + 1)
         outs = ovl_fmt.format(i_photo + 1)
@@ -513,9 +514,6 @@ def posterize(*file_list, out_file=None, **kwargs):
         else:
             y += gap + max_h
         i_photo += 1
-
-        if i_photo >= len(files):
-            break
 
     out_file = util.automatic_output_file_name(out_file, files[0], "poster")
     util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
