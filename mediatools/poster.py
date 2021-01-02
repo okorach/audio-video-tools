@@ -30,7 +30,8 @@ import os
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
-DEFAULT_RESCALING = '512x512'
+USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
+[--background_color [black|white]] [--stretch] [-g 0-5] file1 file2 ... filen"
 
 
 def main():
@@ -44,28 +45,16 @@ def main():
             util.set_debug_level(sys.argv.pop(0))
         elif arg in ('-b', "--background_color"):
             kwargs['background_color'] = sys.argv.pop(0)
-        elif arg == "--bottom":
-            kwargs['bottom'] = sys.argv.pop(0)
-        elif arg == "--top":
-            kwargs['top'] = sys.argv.pop(0)
-        elif arg == "--left":
-            kwargs['left'] = sys.argv.pop(0)
-        elif arg == "--right":
-            kwargs['right'] = sys.argv.pop(0)
         elif arg == "--layout":
             kwargs['layout'] = sys.argv.pop(0)
         elif arg in ('-m', "--margin"):
             kwargs['margin'] = int(sys.argv.pop(0))
-        elif arg in ('-r', "--rows"):
-            kwargs['rows'] = int(sys.argv.pop(0))
-        elif arg in ('-c', "--columns"):
-            kwargs['columns'] = int(sys.argv.pop(0))
         elif arg == "--stretch":
             kwargs['stretch'] = True
         elif os.path.isdir(arg):
             dir_list.append(arg)
         else:
-            util.logger.info("Adding file %s to poster", arg)
+            util.logger.debug("Adding file %s to poster", arg)
             file_list.append(arg)
 
     posterfile = image.posterize(*file_list, out_file=None, **kwargs)
