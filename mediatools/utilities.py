@@ -25,6 +25,7 @@ import json
 import re
 import logging
 import argparse
+import pathlib
 import subprocess
 import shlex
 import mediatools.options as opt
@@ -553,3 +554,7 @@ def percent_to_float(x):
 def generated_file(filename):
     logger.info("Generated %s", filename)
     print("Generated {}".format(filename))
+
+
+def package_home():
+    return pathlib.Path(__file__).parent

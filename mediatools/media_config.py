@@ -27,12 +27,11 @@ CONFIG_FILE = '.mediatools.properties'
 
 
 def load():
-    import pathlib
     import mediatools.utilities as util
     global CONFIG_SETTINGS, CONFIG_FILE
     target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
     if not os.path.isfile(target_file):
-        default_file = pathlib.Path(__file__).parent / 'media-tools.properties'
+        default_file = util.package_home() / 'media-tools.properties'
         if not os.path.isfile(default_file):
             util.logger.critical("Default configuration file %s is missing, aborting...", default_file)
             raise FileNotFoundError
