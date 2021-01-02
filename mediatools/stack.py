@@ -27,22 +27,34 @@ import sys
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
+USAGE = "image-stack [--direction vertical|horizontal] [--margin x%] [--stretch] [-g 0-5] file1 file2 ... filen"
+
 
 def main():
     files = []
     util.set_logger('image-stack')
+    kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': True, 'background_color': 'black'}
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
-        if arg == "-g":
+        if arg == '-g':
             util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--direction":
-            direction = sys.argv.pop(0)
+        elif arg in ('-d', '--direction'):
+            kwargs['direction'] = sys.argv.pop(0)
+        elif arg in ('-b', '--background_color'):
+            kwargs['background_color'] = sys.argv.pop(0)
+        elif arg in ('-m', '--margin'):
+            kwargs['margin'] = int(sys.argv.pop(0))
+        elif arg == '--stretch':
+            kwargs['stretch'] = True
+        elif arg in ('-h', '--help'):
+            print("Usage: {}".format(USAGE))
+            sys.exit(0)
         else:
             files.append(arg)
 
     if len(files) > 0:
-        output = image.stack(*files, direction=direction)
+        output = image.stack(*files, out_file=None, **kwargs)
         util.logger.info("File %s generated", output)
         print('Generated', output)
     else:

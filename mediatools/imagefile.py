@@ -36,6 +36,8 @@ STEP_FMT = "[step%d]; "
 OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
 OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
+MAX_INT = 2147483647
+
 
 class ImageFile(media.MediaFile):
 
@@ -178,7 +180,7 @@ class ImageFile(media.MediaFile):
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
-        input_list = [self.filename, get_bg(kwargs.pop('background_color', 'black'))]
+        input_list = [self.filename, __get_background__(kwargs.pop('background_color', 'black'))]
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.dimensions()
         w_gap = w * blinds_size_pct // 100
@@ -391,37 +393,12 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color, w, h):
-    return ImageFile(get_bg(color)).scale(w, h, out_file="bg.tmp.jpg")
+    return ImageFile(__get_background__(color)).scale(w, h, out_file="bg.tmp.jpg")
 
 
-def get_bg(color):
+def __get_background__(color):
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
     return bgfile
-
-
-def stack(*files, direction='vertical', out_file=None):
-    util.logger.debug("stack(%s, %s)", str(files), direction)
-    files_to_stack = [ImageFile(f) for f in util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)]
-    total_width = sum([f.width for f in files_to_stack])
-    total_height = sum([f.height for f in files_to_stack])
-    out_file = util.automatic_output_file_name(out_file, files_to_stack[0].filename, "stacked")
-    max_w = max([f.width for f in files_to_stack])
-    max_w = (max_w * min(total_width, 65536)) // total_width
-    max_h = max([f.height for f in files_to_stack])
-    max_w = (max_w * min(total_height, 65536)) // total_height
-    if direction == 'horizontal':
-        final_list = [f.scale(-1, max_h) for f in files_to_stack]
-        filter_name = 'hstack'
-    else:
-        final_list = [f.scale(max_w, -1) for f in files_to_stack]
-        filter_name = 'vstack'
-
-    fcomp = ''
-    for i in range(len(final_list)):
-        fcomp += "[{}:v]".format(i)
-    fcomp += "{}=inputs={}".format(filter_name, len(final_list))
-    util.run_ffmpeg('{} -filter_complex "{}" "{}"'.format(filters.inputs_str(final_list), fcomp, out_file))
-    return out_file
 
 
 def get_widths(files):
@@ -444,47 +421,115 @@ def avg_width(files):
     return sum(values) // len(values)
 
 
-def posterize(*files, out_file=None, background_color="black", margin=5):
-    util.logger.debug("posterize(%s)", str(files))
+def __get_layout__(nb_files, **kwargs):
+    if 'rows' in kwargs and 'columns' in kwargs:
+        return (int(kwargs['rows']), int(kwargs['columns']))
+    if 'disposition' in kwargs:
+        return [int(s) for s in kwargs['layout'].split('x')]
+    rows = math.ceil(math.sqrt(nb_files))
+    cols = (nb_files + rows - 1) // rows
+    return (rows, cols)
 
-    input_files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
-    files_to_posterize = [ImageFile(f) for f in input_files]
-    input_files.insert(0, get_bg(background_color))
 
-    max_h = max([f.height for f in files_to_posterize])
-    max_w = max([f.width for f in files_to_posterize])
-    util.logger.debug("Max W x H = %d x %d", max_w, max_h)
-    gap = (max_w * margin) // 100
+def __downsize__(full_w, full_h, max_w, max_h, gap):
+    full_pix = (full_w * 8 + 1024) * (full_h + 128)
+    util.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d",
+        max_w, max_h, gap, full_pix)
 
-    rows = math.ceil(math.sqrt(len(files)))
-    cols = (len(files) + rows - 1) // rows
+    reduction_factor = 1
+    if full_pix > MAX_INT:
+        reduction_factor = math.sqrt(MAX_INT / full_pix) - 0.05
+        if max_h != -1:
+            max_h = int(reduction_factor * max_h)
+        if max_w != -1:
+            max_w = int(reduction_factor * max_w)
+        gap = int(reduction_factor * gap)
+        full_w = int(reduction_factor * full_w)
+        full_h = int(reduction_factor * full_h)
+    util.logger.debug("After reduction of %4.2f Max W x H + G = %d x %d + %d", reduction_factor, max_w, max_h, gap)
+    return (full_w, full_h, max_w, max_h, gap, reduction_factor)
 
+
+def posterize(*file_list, out_file=None, **kwargs):
+    ''' Creates a poster image. Allowed parameters:
+    - columns / rows
+    - layout (of images eg 4x3 4 rows 3 columns)
+    - background_color
+    - margin (% of widest image)
+    - stretch: stretch images to be all the same width and height
+    '''
+    util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
+
+    input_files = util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)
+    files = [ImageFile(f) for f in input_files]
+    input_files.insert(0, __get_background__(kwargs['background_color']))
+
+    max_h = max([f.height for f in files])
+    max_w = max([f.width for f in files])
+
+    gap = max_w * int(kwargs['margin']) // 100
+
+    rows, cols = __get_layout__(len(files), **kwargs)
+
+    # Max image size = ((Width * 8) + 1024)*(Height + 128) < INT_MAX
     full_w = (cols * max_w) + (cols + 1) * gap
     full_h = (rows * max_h) + (rows + 1) * gap
+    if cols == 1:
+        full_h = sum([f.height * max_w / f.width for f in files]) + (len(files) + 1) * gap
+        max_h = -1
+    if rows == 1:
+        full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
+        max_w = -1
+    util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
-    util.logger.debug("max W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
-        max_w, max_h, gap, cols, rows, full_w, full_h)
+    (full_w, full_h, max_w, max_h, gap, reduction) = __downsize__(full_w, full_h, max_w, max_h, gap)
 
     filter_list = []
-    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "ovl0"))
-    i_photo = 0
-    for irow in range(rows):
-        for icol in range(cols):
-            i_photo += 1
-            if i_photo > len(files_to_posterize):
-                break
-            x = gap + icol * (max_w + gap)
-            y = gap + irow * (max_h + gap)
-            last_ovl = "ovl{}".format(i_photo)
-            filter_list.append(filters.overlay(
-                "ovl{}".format(i_photo - 1), "{}".format(i_photo), last_ovl, x, y)
-            )
+    in_fmt = '{}'
+    ovl_fmt = 'ovl{}'
+    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "in0"))
+    if kwargs.get('stretch', True):
+        in_fmt = 'in{}'
+        for i in range(len(files)):
+            filter_list.append(filters.wrap_in_streams(
+                filters.scale(max_w, max_h), str(i + 1), in_fmt.format(i + 1)))
 
-    out_file = util.automatic_output_file_name(out_file, files[0], "poster")
+    fmt = in_fmt
+    for i_photo in range(len(files)):
+        if i_photo // cols == 0:
+            y = gap
+        if i_photo % cols == 0:
+            x = gap
+        in1s = fmt.format(i_photo)
+        in2s = in_fmt.format(i_photo + 1)
+        outs = ovl_fmt.format(i_photo + 1)
+        filter_list.append(filters.overlay(in1s, in2s, outs, x, y))
+        fmt = ovl_fmt
+        if rows == 1:
+            x += gap + int(files[i_photo].width * reduction * max_h / files[i_photo].height)
+        else:
+            x += gap + max_w
+        if cols == 1:
+            y += gap + int(files[i_photo].height * reduction * max_w / files[i_photo].width)
+        else:
+            y += gap + max_h
+
+    out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
     util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
-        filters.inputs_str(input_files), filters.filtercomplex(filter_list), last_ovl, out_file))
-    util.logger.info("Generated %s", out_file)
+        filters.inputs_str(input_files), filters.filtercomplex(filter_list), outs, out_file))
     return out_file
+
+
+def stack(*files, out_file=None, **kwargs):
+    util.logger.debug("stack(%s, %s)", str(files), str(kwargs))
+    out_file = util.automatic_output_file_name(out_file, files[0], "stack")
+    files_to_stack = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
+    rows, cols = 1, 1
+    if kwargs['direction'] == 'vertical':
+        rows = len(files_to_stack)
+    else:
+        cols = len(files_to_stack)
+    return posterize(*files_to_stack, out_file=out_file, rows=rows, columns=cols, **kwargs)
 
 
 def __get_random_panorama__():

@@ -36,35 +36,40 @@ DEFAULT_RESCALING = '512x512'
 def main():
     file_list = []
     dir_list = []
-    background = "black"
-    margin = 5
     sys.argv.pop(0)
+    kwargs = {'background_color': 'black', 'margin': 5}
     while sys.argv:
         arg = sys.argv.pop(0)
         if arg == "-g":
             util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--background":
-            background = sys.argv.pop(0)
-        elif arg == "--dry_run":
-            util.set_dry_run(True)
+        elif arg in ('-b', "--background_color"):
+            kwargs['background_color'] = sys.argv.pop(0)
         elif arg == "--bottom":
-            bottom = sys.argv.pop(0)
+            kwargs['bottom'] = sys.argv.pop(0)
         elif arg == "--top":
-            top = sys.argv.pop(0)
+            kwargs['top'] = sys.argv.pop(0)
         elif arg == "--left":
-            left = sys.argv.pop(0)
+            kwargs['left'] = sys.argv.pop(0)
         elif arg == "--right":
-            left = sys.argv.pop(0)
-        elif arg == "--margin":
-            margin = int(sys.argv.pop(0))
+            kwargs['right'] = sys.argv.pop(0)
+        elif arg == "--layout":
+            kwargs['layout'] = sys.argv.pop(0)
+        elif arg in ('-m', "--margin"):
+            kwargs['margin'] = int(sys.argv.pop(0))
+        elif arg in ('-r', "--rows"):
+            kwargs['rows'] = int(sys.argv.pop(0))
+        elif arg in ('-c', "--columns"):
+            kwargs['columns'] = int(sys.argv.pop(0))
+        elif arg == "--stretch":
+            kwargs['stretch'] = True
         elif os.path.isdir(arg):
             dir_list.append(arg)
         else:
             util.logger.info("Adding file %s to poster", arg)
             file_list.append(arg)
 
-    posterfile = image.posterize(*file_list, out_file=None, background_color=background, margin=margin)
-    print("Generated {}".format(posterfile))
+    posterfile = image.posterize(*file_list, out_file=None, **kwargs)
+    util.generated_file(posterfile)
 
 
 if __name__ == "__main__":
