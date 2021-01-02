@@ -36,6 +36,8 @@ STEP_FMT = "[step%d]; "
 OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
 OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
+MAX_INT = 2147483647
+
 
 class ImageFile(media.MediaFile):
 
@@ -178,7 +180,7 @@ class ImageFile(media.MediaFile):
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
-        input_list = [self.filename, get_bg(kwargs.pop('background_color', 'black'))]
+        input_list = [self.filename, __get_background__(kwargs.pop('background_color', 'black'))]
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.dimensions()
         w_gap = w * blinds_size_pct // 100
@@ -391,10 +393,10 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color, w, h):
-    return ImageFile(get_bg(color)).scale(w, h, out_file="bg.tmp.jpg")
+    return ImageFile(__get_background__(color)).scale(w, h, out_file="bg.tmp.jpg")
 
 
-def get_bg(color):
+def __get_background__(color):
     bgfile = "white-square.jpg" if color == "white" else "black-square.jpg"
     return bgfile
 
@@ -444,29 +446,65 @@ def avg_width(files):
     return sum(values) // len(values)
 
 
-def posterize(*files, out_file=None, background_color="black", margin=5):
-    util.logger.debug("posterize(%s)", str(files))
+def __get_layout__(nb_files, **kwargs):
+    if 'rows' in kwargs and 'columns' in kwargs:
+        return (int(kwargs['rows']), int(kwargs['columns']))
+    if 'disposition' in kwargs:
+        return [int(s) for s in kwargs['layout'].split('x')]
+    rows = math.ceil(math.sqrt(nb_files))
+    cols = (nb_files + rows - 1) // rows
+    return (rows, cols)
+
+
+def posterize(*files, out_file=None, **kwargs):
+    ''' Creates a poster image. Allowed parameters:
+    - columns / rows
+    - layout (of images eg 4x3 4 rows 3 columns)
+    - background_color
+    - margin (% of widest image)
+    - stretch: stretch images to be all the same width and height
+    '''
+    util.logger.debug("posterize(%s, %s)", str(files), str(kwargs))
 
     input_files = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
     files_to_posterize = [ImageFile(f) for f in input_files]
-    input_files.insert(0, get_bg(background_color))
+    input_files.insert(0, __get_background__(kwargs['background_color']))
 
     max_h = max([f.height for f in files_to_posterize])
     max_w = max([f.width for f in files_to_posterize])
-    util.logger.debug("Max W x H = %d x %d", max_w, max_h)
-    gap = (max_w * margin) // 100
 
-    rows = math.ceil(math.sqrt(len(files)))
-    cols = (len(files) + rows - 1) // rows
+    gap = max_w * int(kwargs['margin']) // 100
 
+    rows, cols = __get_layout__(len(files), **kwargs)
+
+    # Max image size = ((Width * 8) + 1024)*(Height + 128) < INT_MAX
     full_w = (cols * max_w) + (cols + 1) * gap
     full_h = (rows * max_h) + (rows + 1) * gap
 
-    util.logger.debug("max W x H = %d x %d / Gap = %d / c,r = %d, %d => Full W x H = %d x %d",
-        max_w, max_h, gap, cols, rows, full_w, full_h)
+    util.logger.debug("Max W x H = %d x %d, margin = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
+
+    full_pix = (full_w * 8 + 1024) * (full_h + 128)
+    util.logger.debug("Total poster pixels = %d", full_pix)
+    if full_pix > MAX_INT:
+        reduction_factor = math.sqrt(MAX_INT / full_pix) - 0.05
+        max_h = int(reduction_factor * max_h)
+        max_w = int(reduction_factor * max_w)
+        gap = int(reduction_factor * gap)
+        full_w = int(reduction_factor * full_w)
+        full_h = int(reduction_factor * full_h)
+
+    util.logger.debug("After reduction Max W x H + G = %d x %d + %d", max_w, max_h, gap)
 
     filter_list = []
-    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "ovl0"))
+    in_fmt = '{}'
+    ovl_fmt = 'ovl{}'
+    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "in0"))
+    if kwargs.get('stretch', True):
+        in_fmt = 'in{}'
+        for i in range(len(files)):
+            filter_list.append(filters.wrap_in_streams(
+                filters.scale(max_w, max_h), str(i + 1), in_fmt.format(i + 1)))
+
     i_photo = 0
     for irow in range(rows):
         for icol in range(cols):
@@ -475,15 +513,16 @@ def posterize(*files, out_file=None, background_color="black", margin=5):
                 break
             x = gap + icol * (max_w + gap)
             y = gap + irow * (max_h + gap)
-            last_ovl = "ovl{}".format(i_photo)
-            filter_list.append(filters.overlay(
-                "ovl{}".format(i_photo - 1), "{}".format(i_photo), last_ovl, x, y)
-            )
+            if i_photo == 1:
+                in1 = in_fmt.format(i_photo - 1)
+            else:
+                in1 = ovl_fmt.format(i_photo - 1)
+            last_ovl = ovl_fmt.format(i_photo)
+            filter_list.append(filters.overlay(in1, in_fmt.format(i_photo), last_ovl, x, y))
 
     out_file = util.automatic_output_file_name(out_file, files[0], "poster")
     util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
         filters.inputs_str(input_files), filters.filtercomplex(filter_list), last_ovl, out_file))
-    util.logger.info("Generated %s", out_file)
     return out_file
 
 
