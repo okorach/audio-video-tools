@@ -29,21 +29,17 @@ import mediatools.videofile as video
 def main():
     parser = util.get_common_args('video-stabilize', 'Apply deshake filter')
     parser = video.add_video_args(parser)
-    parser.add_argument('--rx', required=False, type=int, default=64, choices=range(65),
+    parser.add_argument('--rx', required=False, type=int, default=32, choices=range(65),
         help='Deshake rx', metavar="[0-64]")
-    parser.add_argument('--ry', required=False, type=int, default=64, choices=range(65),
+    parser.add_argument('--ry', required=False, type=int, default=32, choices=range(65),
         help='Deshake ry', metavar="[0-64]")
-    parser.add_argument('--crop', dest='crop', action='store_true', help='Crop video after stabilization')
-    parser.add_argument('--nocrop', dest='crop', action='store_false', help='Do not crop video after stabilization')
+    parser.add_argument('--crop', dest='nocrop', action='store_false', help='Crop video after stabilization')
+    parser.add_argument('--nocrop', dest='nocrop', action='store_true', help='Do not crop video after stabilization')
     parser.set_defaults(crop=True)
     kwargs = util.parse_media_args(parser)
 
-    rx = kwargs.pop('rx')
-    ry = kwargs.pop('ry')
-    if 'timeranges' in kwargs:
-        kwargs['ss'], kwargs['to'] = kwargs['timeranges'].split(',')[0].split('-')
-    outputfile = video.VideoFile(kwargs['inputfile']).deshake(rx=rx, ry=ry,
-        out_file=kwargs.get('outputfile', None), **kwargs)
+    kwargs['deshake'] = '{}x{}'.format(kwargs.pop('rx'), kwargs.pop('ry'))
+    outputfile = video.deshake(kwargs['inputfile'], out_file=kwargs.get('outputfile', None), **kwargs)
     print('Generated {}'.format(outputfile))
 
 

@@ -334,24 +334,6 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg('{0} {1} -dn -codec copy "{2}"'.format(inputs, maps, output_file))
         return output_file
 
-    def deshake(self, rx=64, ry=64, out_file=None, **kwargs):
-        ''' Applies deshake video filter for width x height pixels '''
-        media_opts = self.get_properties()
-        media_opts.update({opt.Option.DEINTERLACE: None, opt.Option.ASPECT: self.get_aspect_ratio()})
-        media_opts.update(util.cleanup_options(kwargs))
-
-        vfilters = [filters.deshake(rx=rx, ry=ry)]
-        w, h = self.dimensions()
-        if kwargs.get('crop', True):
-            vfilters.append(filters.crop(w - rx, h - ry, rx // 2, ry // 2))
-
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'deshake', extension="mp4")
-        ffopts = opt.media2ffmpeg(media_opts)
-        util.run_ffmpeg(
-            '-i "{}" {} {} "{}"'.format(self.filename, util.dict2str(ffopts), filters.vfilter(vfilters), out_file))
-        util.logger.info("Generated %s", out_file)
-        return out_file
-
     def set_author(self, author):
         self.author = author
 
@@ -418,6 +400,13 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.reverse())
         if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
             vfilters.append(filters.areverse())
+        if 'deshake' in kwargs:
+            rx, ry = [int(x) for x in kwargs['deshake'].split('x')]
+            vfilters.append(filters.deshake(rx=rx, ry=ry))
+            if not kwargs.get('no_crop', False):
+                w, h = self.dimensions()
+                vfilters.append(filters.crop(w - rx, h - ry, rx // 2, ry // 2))
+
         if kwargs.get('fade', False):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
             vfilters.append(filters.fade_out(
@@ -533,9 +522,6 @@ def get_crop_filter_options(width, height, top, left):
     return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
 
 
-def deshake(video_file, rx=64, ry=64, out_file=None, **kwargs):
-    ''' Applies deshake video filter for width x height pixels '''
-    return VideoFile(video_file).deshake(rx=rx, ry=ry, out_file=out_file, **kwargs)
 
 
 def concat(target_file, file_list, with_audio=True):
@@ -700,4 +686,9 @@ def volume(filename, vol, output=None, **kwargs):
 
 def reverse(filename, output=None, **kwargs):
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='reverse')
+    return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
+
+
+def deshake(filename, output=None, **kwargs):
+    output = util.automatic_output_file_name(infile=filename, outfile=output, postfix='deshake')
     return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
