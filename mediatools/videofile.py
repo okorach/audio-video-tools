@@ -707,7 +707,9 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
             kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
             output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
             output = VideoFile(filename).encode(target_file=output, **kwargs)
+            util.generated_file(output)
             i += 1
+        return output
     else:
         output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
         return VideoFile(filename).encode(target_file=output, start=start, stop=stop, **kwargs)
