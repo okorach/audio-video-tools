@@ -86,6 +86,9 @@ class Complex:
 
     def add_filtergraph(self, inputs, simple_filter):
         outs = 'out{}'.format(len(self.filtergraph))
+        if not isinstance(inputs, (list, tuple)):
+            inputs = [str(inputs)]
+        util.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
         self.filtergraph.append((inputs, simple_filter, outs))
         return outs
 
@@ -149,7 +152,7 @@ def fade_out(start=0, duration=0.5, alpha=1):
 
 
 def overlay(x=0, y=0):
-    return "overlay={}:{}".format(x, y)
+    return "overlay={}:{}".format(int(x), int(y))
 
 
 def trim(duration=None, start=None, stop=None):
