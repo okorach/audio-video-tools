@@ -76,6 +76,9 @@ class Resolution:
         self.ratio = self.width / self.height
         self.pixels = self.width * self.height
 
+    def __str__(self):
+        return str(vars(self))
+
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
