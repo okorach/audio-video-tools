@@ -7,7 +7,7 @@ for f in ./*.jpg
 do
     for n in 2 7 11 17 29
     do
-        for r in 1 3 7
+        for r in 1% 3% 7% 10 20
         do
             let i=$i+1
             let k=(3*$i+1)%2
@@ -22,7 +22,7 @@ do
             else
                 c=white
             fi
-            run_cmd "image-blinds -i $f -n $n -d $d -c $c -r $r"
+            run_cmd "image-blinds -i $f -n $n -d $d -c $c -b $r"
         done
     done
 done
