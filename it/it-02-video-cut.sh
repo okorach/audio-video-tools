@@ -10,5 +10,5 @@ done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.cut_*.mp4 2>/dev/null
+rm ./*.cut*.mp4 2>/dev/null
 exit 0
