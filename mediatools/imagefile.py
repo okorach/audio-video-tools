@@ -56,6 +56,11 @@ class ImageFile(media.MediaFile):
         super().__init__(filename)
         self.probe()
 
+    def __str__(self):
+        d = vars(self)
+        d['resolution'] = str(d.resolution)
+        return str(d)
+
     def get_properties(self):
         '''Returns file media properties as a dict'''
         all_props = self.get_file_properties()
@@ -496,6 +501,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     for i in range(1, len(fcomplex.inputs)):
         if (i - 1) % cols == 0:
             x = gap
+        util.logger.debug("File %d, %s - overlay(x,y) = %d, %d", x, y)
         out_stream = fcomplex.add_filtergraph([out_stream, img_outs[i]], filters.overlay(x, y))
         if rows == 1:
             x += gap + int(fcomplex.inputs[i].width / fcomplex.inputs[i].height * max_h)
