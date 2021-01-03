@@ -621,18 +621,19 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
         fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
         total_duration += f.duration
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i * (f.duration - transition_duration)))
-        last_out = fcomp.add_filtergraph(str(i) + ':v', ','.join(pixfmt, fade_in, fade_out, pts))
+        last_out = fcomp.add_filtergraph(str(i) + ':v', ','.join([pixfmt, fade_in, fade_out, pts]))
         outs.append(last_out)
         i += 1
 
-    for i in range(len(fcomp.inputs)):
-        last_out = fcomp.add_filtergraph([outs[i], last_out], filters.overlay())
-    last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
+    last_out = outs[0]
+    for i in range(len(fcomp.inputs) - 1):
+        last_out = fcomp.add_filtergraph([last_out, outs[i + 1]], filters.overlay())
 
     # Add fake input for the trim filter
-    fcomp.inputs.append(input_files[0])
-    last_out = fcomp.add_filtergraph(
-        last_out + ':v', filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
+    fcomp.inputs.append(VideoFile(input_files[0]))
+    last_out = fcomp.add_filtergraph(last_out,
+        filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
+    last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
     util.run_ffmpeg('{} {} {} -map "[{}]" {} -s "{}" "{}"'.format(filters.hw_accel_input(**kwargs),
         fcomp.format_inputs(), str(fcomp), last_out, filters.hw_accel_output(**kwargs), resolution, outfile))
