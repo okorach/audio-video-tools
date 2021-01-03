@@ -191,8 +191,6 @@ class ImageFile(media.MediaFile):
         w_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.width))
         h_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.height))
 
-        i = 0
-
         if direction == 'horizontal':
             scale_f = filters.scale(w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
         else:
