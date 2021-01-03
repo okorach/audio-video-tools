@@ -458,7 +458,7 @@ def __get_acodec__(**kwargs):
 
 def __must_encode_video__(**kwargs):
     for k in kwargs:
-        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
+        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse', 'deshake'):
             return True
         if k == 'vcodec' and kwargs[k] != 'copy':
             return True
