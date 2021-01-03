@@ -36,7 +36,7 @@ STEP_FMT = "[step%d]; "
 OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
 OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
-MAX_INT = 2147483647
+MAX_INT = 2000000000
 
 
 class ImageFile(media.MediaFile):
@@ -82,12 +82,12 @@ class ImageFile(media.MediaFile):
     def exif_read(self):
         f = open(self.filename, 'rb')
         tags = exifread.process_file(f)
-        for tag in tags:
-            if not re.search("thumbnail", tag, re.IGNORECASE):
-                util.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
+        # for tag in tags:
+        #     if not re.search("thumbnail", tag, re.IGNORECASE):
+        #         util.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
         if re.search('Rotated 90', str(tags.get('Image Orientation', ''))):
-            self.width, self.height = self.height, self.width
-            self.resolution = res.Resolution(width=self.width, height=self.height)
+            # self.width, self.height = self.height, self.width
+            # self.resolution = res.Resolution(width=self.width, height=self.height)
             self.orientation = 'portrait'
             util.logger.debug('Portrait orientation: %s', str(self.resolution))
 
@@ -398,7 +398,7 @@ def get_rectangle(color, w, h):
 
 def __get_background__(color):
     bgfile = "white.jpg" if color == "white" else "black.jpg"
-    return util.package_home() / bgfile
+    return str(util.package_home() / bgfile)
 
 
 def get_widths(files):
@@ -438,7 +438,8 @@ def __downsize__(full_w, full_h, max_w, max_h, gap):
 
     reduction_factor = 1
     if full_pix > MAX_INT:
-        reduction_factor = math.sqrt(MAX_INT / full_pix) - 0.05
+        util.logger.debug("Target image too big by %6.2f%%, reducing", full_pix / MAX_INT)
+        reduction_factor = math.sqrt(MAX_INT / full_pix)
         if max_h != -1:
             max_h = int(reduction_factor * max_h)
         if max_w != -1:
@@ -459,16 +460,14 @@ def posterize(*file_list, out_file=None, **kwargs):
     - stretch: stretch images to be all the same width and height
     '''
     util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
+    files = [ImageFile(f) for f in util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)]
+    fcomplex = filters.Complex(*files)
 
-    input_files = util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)
-    files = [ImageFile(f) for f in input_files]
-    input_files.insert(0, __get_background__(kwargs['background_color']))
-
-    max_h = max([f.height for f in files])
     max_w = max([f.width for f in files])
+    max_h = max([f.height for f in files])
 
     gap = int(util.percent_to_float(kwargs['margin'], max_w))
-    rows, cols = __get_layout__(len(files), **kwargs)
+    rows, cols = __get_layout__(len(fcomplex.inputs), **kwargs)
 
     # Max image size = ((Width * 8) + 1024)*(Height + 128) < INT_MAX
     full_w = (cols * max_w) + (cols + 1) * gap
@@ -481,40 +480,36 @@ def posterize(*file_list, out_file=None, **kwargs):
         max_w = -1
     util.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
-    (full_w, full_h, max_w, max_h, gap, reduction) = __downsize__(full_w, full_h, max_w, max_h, gap)
+    (full_w, full_h, max_w, max_h, gap, red) = __downsize__(full_w, full_h, max_w, max_h, gap)
 
-    filter_list = []
-    in_fmt = '{}'
-    ovl_fmt = 'ovl{}'
-    filter_list.append(filters.wrap_in_streams(filters.scale(full_w, full_h), "0", "in0"))
+    fcomplex.insert_input(0, ImageFile(__get_background__(kwargs['background_color'])))
+
+    img_outs = [i for i in range(len(fcomplex.inputs))]
+    img_outs[0] = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
     if kwargs.get('stretch', True):
-        in_fmt = 'in{}'
-        for i in range(len(files)):
-            filter_list.append(filters.wrap_in_streams(
-                filters.scale(max_w, max_h), str(i + 1), in_fmt.format(i + 1)))
+        for i in range(1, len(fcomplex.inputs)):
+            img_outs[i] = fcomplex.add_filtergraph([i], filters.scale(-1, max_h))
 
-    fmt = in_fmt
     y = gap
-    for i_photo in range(len(files)):
-        if i_photo % cols == 0:
+    x = gap
+    out_stream = img_outs[0]
+    for i in range(1, len(fcomplex.inputs)):
+        if (i - 1) % cols == 0:
             x = gap
-        in1s = fmt.format(i_photo)
-        in2s = in_fmt.format(i_photo + 1)
-        outs = ovl_fmt.format(i_photo + 1)
-        filter_list.append(filters.overlay(in1s, in2s, outs, x, y))
-        fmt = ovl_fmt
+        out_stream = fcomplex.add_filtergraph([out_stream, img_outs[i]], filters.overlay(x, y))
         if rows == 1:
-            x += gap + int(files[i_photo].width * reduction * max_h / files[i_photo].height)
+            x += gap + int(fcomplex.inputs[i].width / fcomplex.inputs[i].height * max_h)
+            util.logger.debug("File %d, %s dimensions to gap = %d x %d, red = %6.4f, max_h = %d, gap = %d => x = %d",
+                i, fcomplex.inputs[i].filename, fcomplex.inputs[i].width, fcomplex.inputs[i].height, red, max_h, gap, x)
         else:
             x += gap + max_w
         if cols == 1:
-            y += gap + int(files[i_photo].height * reduction * max_w / files[i_photo].width)
-        elif (i_photo + 1) % cols == 0:
+            y += gap + int(fcomplex.inputs[i].height / fcomplex.inputs[i].width * max_w)
+        elif i % cols == 0:
             y += gap + max_h
 
     out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
-    util.run_ffmpeg('{} {} -map [{}] "{}"'.format(
-        filters.inputs_str(input_files), filters.filtercomplex(filter_list), outs, out_file))
+    util.run_ffmpeg('{} {} -map [{}] "{}"'.format(fcomplex.format_inputs(), str(fcomplex), out_stream, out_file))
     return out_file
 
 
