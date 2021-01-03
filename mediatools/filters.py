@@ -19,11 +19,66 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import mediatools.utilities as util
+
 
 class FilterError(Exception):
     def __init__(self, message):
         super().__init__()
         self.message = message
+
+
+VIDEO_TYPE = 0
+AUDIO_TYPE = 1
+
+
+class Simple:
+    def __init__(self, filter_type=VIDEO_TYPE, stream_in=None, stream_out=None, filters=None):
+        self.filter_type = filter_type
+        self.stream_in = stream_in
+        self.stream_out = stream_out
+        if filters is None:
+            self.filters = []
+        elif isinstance(filters, list):
+            self.filters = filters
+        else:
+            self.filters = [filters]
+
+    def __str__(self):
+        if len(self.filters) == 0:
+            return ''
+        f = ','.join(self.filters)
+        s_in = '' if self.stream_in is None else '[{}]'.format(self.stream_in)
+        s_out = '' if self.stream_in is None else '[{}]'.format(self.stream_out)
+        t = '-af' if self.filter_type == AUDIO_TYPE else '-vf'
+        return '{} "{}{}{}"'.format(t, s_in, f, s_out)
+
+    def insert(self, pos, a_filter):
+        self.filters.insert(pos, a_filter)
+
+    def append(self, a_filter):
+        self.filters.append(a_filter)
+
+    def extend(self, filters):
+        self.filters.extend(filters)
+
+
+class Complex:
+    def __init__(self, inputs):
+        self.inputs = inputs
+        self.serial_filters = None
+
+    def add_inputs(self, *inputs):
+        self.inputs.extend(inputs)
+
+    def insert(self, pos, a_filter):
+        self.serial_filters.insert(pos, a_filter)
+
+    def append(self, a_filter):
+        self.serial_filters.append(a_filter)
+
+    def extend(self, filters):
+        self.serial_filters.extend(filters)
 
 
 def __str_streams__(streams):
@@ -137,10 +192,11 @@ def volume(vol):
 
 
 def speed(target_speed):
-    if target_speed > 1:
-        return select('not(mod(n,{}))'.format(target_speed)) + ',' + setpts('N/FRAME_RATE/TB')
+    s = util.percent_to_float(target_speed)
+    if s > 1:
+        return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
     else:
-        return setpts("{}*PTS".format(1 / float(target_speed)))
+        return setpts("{}*PTS".format(1 / float(s)))
 
 
 def select(expr):
