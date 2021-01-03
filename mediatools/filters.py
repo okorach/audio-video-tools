@@ -204,7 +204,7 @@ def volume(vol):
 
 
 def speed(target_speed):
-    s = util.percent_to_float(target_speed)
+    s = util.percent_or_absolute(target_speed)
     if s > 1:
         return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
     else:
