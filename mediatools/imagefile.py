@@ -184,38 +184,34 @@ class ImageFile(media.MediaFile):
 
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
-        blinds_size_pct = int(kwargs.pop('blinds_ratio', 3))
-        input_list = [self.filename, __get_background__(kwargs.pop('background_color', 'black'))]
+        files = [ImageFile(__get_background__(kwargs.pop('background_color', 'black'))), self]
+        fcomp = filters.Complex(*files)
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.dimensions()
-        w_gap = w * blinds_size_pct // 100
-        h_gap = h * blinds_size_pct // 100
+        w_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.width))
+        h_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.height))
 
-        crop_filters = self.get_crop_filters(nbr_slices, direction)
-        filter_list = crop_filters.copy()
-        for i in range(len(filter_list)):
-            filter_list[i] = filters.wrap_in_streams(filter_list[i], "0", "slice{}".format(i))
+        i = 0
 
         if direction == 'horizontal':
-            background = filters.scale(w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
+            scale_f = filters.scale(w, (h // nbr_slices * nbr_slices) + h_gap * (nbr_slices - 1))
         else:
-            background = filters.scale((w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
+            scale_f = filters.scale((w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
+        ovl = fcomp.add_filtergraph([0], scale_f)
+        crop_filters = self.get_crop_filters(nbr_slices, direction)
+        out_slices = []
+        for f in crop_filters:
+            out_slices.append(fcomp.add_filtergraph(1, f))
 
-        filter_list.append(filters.wrap_in_streams(background, "1", "bg"))
-        filter_list.append(filters.overlay("bg", "slice0", "overlay0"))
-        for i in range(1, len(crop_filters)):
-            in1 = "overlay{}".format(i - 1)
-            in2 = "slice{}".format(i)
-            outstream = "overlay{}".format(i)
+        for i in range(len(crop_filters)):
             if direction == 'horizontal':
-                overlay = filters.overlay(in1, in2, outstream, 0, i * (h // nbr_slices + h_gap))
+                overlay_filter = filters.overlay(0, i * (h // nbr_slices + h_gap))
             else:
-                overlay = filters.overlay(in1, in2, outstream, i * (w // nbr_slices + w_gap), 0)
-            filter_list.append(overlay)
+                overlay_filter = filters.overlay(i * (w // nbr_slices + w_gap), 0)
+            ovl = fcomp.add_filtergraph([ovl, out_slices[i]], overlay_filter)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
-        util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(
-            filters.inputs_str(input_list), filters.filtercomplex(filter_list), outstream, out_file))
+        util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(fcomp.format_inputs(), str(fcomp), ovl, out_file))
         return out_file
 
     def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
@@ -471,7 +467,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     max_w = max([f.width for f in files])
     max_h = max([f.height for f in files])
 
-    gap = int(util.percent_to_float(kwargs['margin'], max_w))
+    gap = int(util.percent_or_absolute(kwargs['margin'], max_w))
     rows, cols = __get_layout__(len(fcomplex.inputs), **kwargs)
 
     # Max image size = ((Width * 8) + 1024)*(Height + 128) < INT_MAX
@@ -513,7 +509,7 @@ def posterize(*file_list, out_file=None, **kwargs):
             y += gap + max_h
 
     out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
-    util.run_ffmpeg('{} {} -map [{}] "{}"'.format(fcomplex.format_inputs(), str(fcomplex), out_stream, out_file))
+    util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(fcomplex.format_inputs(), str(fcomplex), out_stream, out_file))
     return out_file
 
 
