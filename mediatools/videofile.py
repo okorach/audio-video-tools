@@ -364,7 +364,7 @@ class VideoFile(media.MediaFile):
         util.logger.debug('Afilters options = %s', str(kwargs))
         afilters = filters.Simple(filters.AUDIO_TYPE)
         if kwargs.get('volume', None) is not None:
-            vol = util.percent_to_float(kwargs['volume'])
+            vol = util.percent_or_absolute(kwargs['volume'])
             afilters.append(filters.volume(vol))
         if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
             afilters.append(filters.areverse())
