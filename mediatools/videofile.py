@@ -452,7 +452,7 @@ class VideoFile(media.MediaFile):
 
 def must_encode_video(**kwargs):
     for k in kwargs:
-        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse','deshake'):
+        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse', 'deshake'):
             return True
         if k == 'vcodec' and kwargs[k] != 'copy':
             return True
