@@ -59,7 +59,6 @@ def main():
             util.logger.debug("Adding file %s to poster", arg)
             file_list.append(arg)
 
-
     posterfile = image.posterize(*file_list, out_file=None, **kwargs)
     util.generated_file(posterfile)
 

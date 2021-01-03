@@ -501,12 +501,10 @@ def posterize(*file_list, out_file=None, **kwargs):
     for i in range(1, len(fcomplex.inputs)):
         if (i - 1) % cols == 0:
             x = gap
-        util.logger.debug("File %d, %s - overlay(x,y) = %d, %d", x, y)
+        util.logger.debug("File %d, %s - overlay(%d, %d)", i, fcomplex.inputs[i].filename, x, y)
         out_stream = fcomplex.add_filtergraph([out_stream, img_outs[i]], filters.overlay(x, y))
         if rows == 1:
             x += gap + int(fcomplex.inputs[i].width / fcomplex.inputs[i].height * max_h)
-            util.logger.debug("File %d, %s dimensions to gap = %d x %d, red = %6.4f, max_h = %d, gap = %d => x = %d",
-                i, fcomplex.inputs[i].filename, fcomplex.inputs[i].width, fcomplex.inputs[i].height, red, max_h, gap, x)
         else:
             x += gap + max_w
         if cols == 1:

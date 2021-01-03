@@ -93,9 +93,6 @@ class Resolution:
         h = int(height) if len(a) == 1 else int(ih * int(a[0]) / 100)
         return (w, h)
 
-    def __str__(self):
-        return self.as_string('x')
-
     def as_string(self, separator="x"):
         return "{}{}{}".format(self.width, separator, self.height)
 
