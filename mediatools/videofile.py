@@ -395,7 +395,7 @@ class VideoFile(media.MediaFile):
     def __get_input_settings__(self, **kwargs):
         util.logger.debug('Input options = %s', str(kwargs))
         settings = []
-        if must_encode_video(**kwargs):
+        if __must_encode_video__(**kwargs):
             if kwargs.get('hw_accel', False):
                 settings.append('-hwaccel cuvid -c:v h264_cuvid')
         elif 'start' in kwargs and kwargs['start'] != '':
@@ -411,35 +411,10 @@ class VideoFile(media.MediaFile):
     def __get_output_settings__(self, **kwargs):
         settings = []
         util.logger.debug('Output options = %s', str(kwargs))
-        audio_encode = False
-        audio_copy = True
 
-        for k in kwargs:
-            if k in ('acodec', 'abirate', 'volume'):
-                audio_encode = True
-                audio_copy = False
-        for k in kwargs:
-            if k in ('speed', 'reverse') and not kwargs.get('audio', False):
-                settings.append('-an')
-                audio_encode = False
-                audio_copy = False
+        settings.append(__get_vcodec__(**kwargs))
+        settings.append(__get_acodec__(**kwargs))
 
-        if audio_encode and kwargs.get('acodec', None) is not None:
-            settings.append('-acodec {}'.format(kwargs['acodec']))
-        elif audio_copy:
-            settings.append('-acodec copy')
-
-        if must_encode_video(**kwargs):
-            vcodec = kwargs.get('vcodec', None)
-            if kwargs.get('hw_accel', False):
-                if vcodec is not None and re.search(r'[xh]265', vcodec):
-                    settings.append('-vcodec hevc_nvenc')
-                else:
-                    settings.append('-vcodec h264_nvenc')
-            elif vcodec is not None:
-                settings.append('-vcodec {}'.format(vcodec))
-        else:
-            settings.append('-vcodec copy')
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
 
@@ -449,7 +424,39 @@ class VideoFile(media.MediaFile):
 # ---------------- Class methods ---------------------------------
 
 
-def must_encode_video(**kwargs):
+def __get_vcodec__(**kwargs):
+    if __must_encode_video__(**kwargs):
+        vcodec = kwargs.get('vcodec', None)
+        if kwargs.get('hw_accel', False):
+            if vcodec is not None and re.search(r'[xh]265', vcodec):
+                vcodec = 'hevc_nvenc'
+            else:
+                vcodec = 'h264_nvenc'
+    else:
+        vcodec = 'copy'
+    if vcodec is None:
+        return ''
+    else:
+        return '-vcodec {}'.format(vcodec)
+
+
+def __get_acodec__(**kwargs):
+    acodec = None
+    audio_encode = False
+    for k in kwargs:
+        if k in ('acodec', 'abirate', 'volume'):
+            audio_encode = True
+    if audio_encode and kwargs.get('acodec', None) is not None:
+        acodec = kwargs['acodec']
+    elif not audio_encode:
+        acodec = 'copy'
+    if acodec is None:
+        return ''
+    else:
+        return '-acodec {}'.format(acodec)
+
+
+def __must_encode_video__(**kwargs):
     for k in kwargs:
         if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse'):
             return True
@@ -458,7 +465,7 @@ def must_encode_video(**kwargs):
     return False
 
 
-def must_encode_audio(**kwargs):
+def __must_encode_audio__(**kwargs):
     for k in kwargs:
         if k in ('acodec', 'abitrate', 'volume'):
             return True
