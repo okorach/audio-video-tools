@@ -346,7 +346,7 @@ class VideoFile(media.MediaFile):
 
         util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
             ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
-            filters.vfilter(video_filters), filters.afilter(audio_filters), ' '.join(output_settings),
+            str(video_filters), str(audio_filters), ' '.join(output_settings),
             mapping, target_file))
         util.logger.info("File %s encoded", target_file)
         return target_file
@@ -362,23 +362,22 @@ class VideoFile(media.MediaFile):
 
     def __get_audio_filters__(self, **kwargs):
         util.logger.debug('Afilters options = %s', str(kwargs))
-        afilters = []
+        afilters = filters.Simple(filters.AUDIO_TYPE)
         if kwargs.get('volume', None) is not None:
             vol = util.percent_to_float(kwargs['volume'])
             afilters.append(filters.volume(vol))
-        util.logger.debug('Afilters = %s', str(afilters))
+        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
+            afilters.append(filters.areverse())
+        util.logger.debug('afilters = %s', str(afilters))
         return afilters
 
     def __get_video_filters__(self, **kwargs):
         util.logger.debug('Vfilters options = %s', str(kwargs))
-        vfilters = []
+        vfilters = filters.Simple(filters.VIDEO_TYPE)
         if kwargs.get('speed', None) is not None:
-            speed = util.percent_to_float(kwargs['speed'])
             vfilters.append(filters.speed(speed))
         if kwargs.get('reverse', False):
             vfilters.append(filters.reverse())
-        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
-            vfilters.append(filters.areverse())
         if 'deshake' in kwargs:
             rx, ry = [int(x) for x in kwargs['deshake'].split('x')]
             vfilters.append(filters.deshake(rx=rx, ry=ry))
@@ -390,7 +389,7 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
-        util.logger.debug('Vfilters = %s', str(vfilters))
+        util.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
 
     def __get_input_settings__(self, **kwargs):
