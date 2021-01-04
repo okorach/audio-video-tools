@@ -64,21 +64,33 @@ class Simple:
 
 
 class Complex:
-    def __init__(self, inputs):
-        self.inputs = inputs
+    def __init__(self, *inputs):
+        self.inputs = list(inputs)
         self.serial_filters = None
+        self.filtergraph = []
 
-    def add_inputs(self, *inputs):
-        self.inputs.extend(inputs)
+    def __str__(self):
+        s = ''
+        for f in self.filtergraph:
+            for inp in f[0]:
+                s += '[{}]'.format(inp)
+            s += str(f[1])
+            s += '[{}];'.format(f[2])
+        return '-filter_complex "{}"'.format(s[:-1])
 
-    def insert(self, pos, a_filter):
-        self.serial_filters.insert(pos, a_filter)
+    def format_inputs(self):
+        return ' '.join(['-i "{}"'.format(f.filename) for f in self.inputs])
 
-    def append(self, a_filter):
-        self.serial_filters.append(a_filter)
+    def insert_input(self, pos, an_input):
+        self.inputs.insert(pos, an_input)
 
-    def extend(self, filters):
-        self.serial_filters.extend(filters)
+    def add_filtergraph(self, inputs, simple_filter):
+        outs = 'out{}'.format(len(self.filtergraph))
+        if not isinstance(inputs, (list, tuple)):
+            inputs = [str(inputs)]
+        util.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
+        self.filtergraph.append((inputs, simple_filter, outs))
+        return outs
 
 
 def __str_streams__(streams):
@@ -139,8 +151,8 @@ def fade_out(start=0, duration=0.5, alpha=1):
     return fade('out', start, duration, alpha)
 
 
-def overlay(in_stream_1, in_stream_2, out_stream, x=0, y=0):
-    return "[{}][{}]overlay={}:{}[{}]".format(in_stream_1, in_stream_2, x, y, out_stream)
+def overlay(x=0, y=0):
+    return "overlay={}:{}".format(int(x), int(y))
 
 
 def trim(duration=None, start=None, stop=None):
@@ -161,7 +173,7 @@ def setpts(pts_formula):
 
 
 def scale(x, y):
-    return "scale={}:{}".format(x, y)
+    return "scale={}:{}".format(int(x), int(y))
 
 
 def crop(x, y, x_formula=None, y_formula=None):
@@ -192,7 +204,7 @@ def volume(vol):
 
 
 def speed(target_speed):
-    s = util.percent_to_float(target_speed)
+    s = util.percent_or_absolute(target_speed)
     if s > 1:
         return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
     else:

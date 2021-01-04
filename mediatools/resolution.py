@@ -76,6 +76,12 @@ class Resolution:
         self.ratio = self.width / self.height
         self.pixels = self.width * self.height
 
+    def __str__(self):
+        return "{}x{}".format(self.width, self.height)
+
+    # def __str__(self):
+    #     return str(vars(self))
+
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
@@ -89,9 +95,6 @@ class Resolution:
         a = str(height).split('%')
         h = int(height) if len(a) == 1 else int(ih * int(a[0]) / 100)
         return (w, h)
-
-    def __str__(self):
-        return self.as_string('x')
 
     def as_string(self, separator="x"):
         return "{}{}{}".format(self.width, separator, self.height)

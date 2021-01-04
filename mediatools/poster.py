@@ -37,6 +37,7 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 def main():
     file_list = []
     dir_list = []
+    util.set_logger('image-poster')
     sys.argv.pop(0)
     kwargs = {'background_color': 'black', 'margin': 5}
     while sys.argv:
@@ -47,6 +48,7 @@ def main():
             kwargs['background_color'] = sys.argv.pop(0)
         elif arg == "--layout":
             kwargs['layout'] = sys.argv.pop(0)
+            kwargs['rows'], kwargs['columns'] = [int(x) for x in kwargs['layout'].split('x')]
         elif arg in ('-m', "--margin"):
             kwargs['margin'] = int(sys.argv.pop(0))
         elif arg == "--stretch":

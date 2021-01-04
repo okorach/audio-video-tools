@@ -364,7 +364,7 @@ class VideoFile(media.MediaFile):
         util.logger.debug('Afilters options = %s', str(kwargs))
         afilters = filters.Simple(filters.AUDIO_TYPE)
         if kwargs.get('volume', None) is not None:
-            vol = util.percent_to_float(kwargs['volume'])
+            vol = util.percent_or_absolute(kwargs['volume'])
             afilters.append(filters.volume(vol))
         if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
             afilters.append(filters.areverse())
@@ -614,29 +614,30 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     nb_files = len(input_files)
 
     total_duration = 0
-    vfiles = list(map(lambda f: VideoFile(f), input_files))
-    cfilters = []
+    fcomp = filters.Complex(*[VideoFile(f) for f in input_files])
+    outs = []
     i = 0
-    for f in vfiles:
+    for f in fcomp.inputs:
         fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
         total_duration += f.duration
         pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i * (f.duration - transition_duration)))
-        cfilters.append(filters.wrap_in_streams((pixfmt, fade_in, fade_out, pts), str(i) + ':v', 'faded' + str(i)))
+        last_out = fcomp.add_filtergraph(str(i) + ':v', ','.join([pixfmt, fade_in, fade_out, pts]))
+        outs.append(last_out)
         i += 1
 
+    last_out = outs[0]
+    for i in range(len(fcomp.inputs) - 1):
+        last_out = fcomp.add_filtergraph([last_out, outs[i + 1]], filters.overlay())
+
     # Add fake input for the trim filter
-    input_files.append(input_files[0])
-    trim_f = filters.trim(duration=total_duration - transition_duration * (nb_files - 1))
-    cfilters.append(filters.wrap_in_streams(trim_f, str(nb_files) + ':v', 'trim'))
+    fcomp.inputs.append(VideoFile(input_files[0]))
+    last_out = fcomp.add_filtergraph(last_out,
+        filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
+    last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
-    for i in range(nb_files):
-        in_stream = 'trim' if i == 0 else 'over' + str(i)
-        cfilters.append(filters.overlay(in_stream, 'faded' + str(i), 'over' + str(i + 1)))
-    cfilters.append(filters.wrap_in_streams(filters.setsar("1:1"), "over{}".format(nb_files), "final"))
+    util.run_ffmpeg('{} {} {} {} -s "{}" -map "[{}]" "{}"'.format(filters.hw_accel_input(**kwargs),
+        fcomp.format_inputs(), str(fcomp), filters.hw_accel_output(**kwargs), resolution, last_out, outfile))
 
-    util.run_ffmpeg("{} {} {} {} -map [final] -s {} {}".format(
-        filters.hw_accel_input(**kwargs), filters.inputs_str(input_files), filters.filtercomplex(cfilters),
-        filters.hw_accel_output(**kwargs), resolution, outfile))
     return outfile
 
     # ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
