@@ -635,8 +635,8 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
         filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
-    util.run_ffmpeg('{} {} {} -map "[{}]" {} -s "{}" "{}"'.format(filters.hw_accel_input(**kwargs),
-        fcomp.format_inputs(), str(fcomp), last_out, filters.hw_accel_output(**kwargs), resolution, outfile))
+    util.run_ffmpeg('{} {} {} {} -s "{}" -map "[{}]" "{}"'.format(filters.hw_accel_input(**kwargs),
+        fcomp.format_inputs(), str(fcomp), filters.hw_accel_output(**kwargs), resolution, last_out, outfile))
 
     return outfile
 
