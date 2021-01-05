@@ -23,6 +23,12 @@ buildDir="build"
 pylintReport="$buildDir/pylint-report.out"
 banditReport="$buildDir/bandit-report.json"
 flake8Report="$buildDir/flake8-report.out"
+pytestReport="$buildDir/pytest-coverage.xml"
+coverageReport="$buildDir/coverage.xml"
+
+pytest --cov=mediatools --cov-report=xml:$pytestReport test/
+coverage run --source=. --branch -m unittest discover
+coverage xml -o $coverageReport
 
 if [ "$1" != "-nolint" ]; then
   echo "Running pylint"
@@ -59,7 +65,8 @@ done
 sonar-scanner \
   -Dsonar.projectVersion=$version \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
-  -Dsonar.python.pylint.reportPath=$pylintReport \
+  -Dsonar.python.pylint.reportPaths=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
+  -Dsonar.python.coverage.reportPaths=$coverageReport \
   $pr_branch \
   $*
