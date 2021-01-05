@@ -2,7 +2,12 @@
 
 . lib-it.sh
 
-for res in 720x400 1280x720 1920x1080 3840x2160
+res_list="$*"
+if [ "$res_list" == "" ]; then
+    res_list="360x200 720x400 1280x720 1920x1080 3840x2160"
+fi
+
+for res in $res_lsit
 do
     run_cmd "video-slideshow *.jpg --resolution $res"
 done
