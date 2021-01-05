@@ -35,3 +35,4 @@ it/*.zoom*.mp4
 it/*.pan*.mp4
 it/*.stacked.jpg
 .coverage
+test-reports/
