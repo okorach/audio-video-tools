@@ -70,7 +70,7 @@ if [ "$dolint" != "false" ]; then
 
   echo "Running bandit"
   rm -f $banditReport
-  bandit -f json --skip B311 -r . >$banditReport
+  bandit -f json --skip B311 -r . -x test-pytest/*,test-unittest/* >$banditReport
 fi
 
 version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
