@@ -18,19 +18,44 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
+dolint=true
+tests=pytest
+while [ $# -ne 0 ]
+do
+  case "$1" in
+    -nolint)
+      dolint=false
+      ;;
+    -unittest)
+      tests=unittest
+      ;;
+    *)
+      scanOpts="$scanOpts $1"
+      ;;
+  esac
+  shift
+done
+
 buildDir="build"
-[ ! -d $buildDir ] && mkdir $buildDir
 pylintReport="$buildDir/pylint-report.out"
 banditReport="$buildDir/bandit-report.json"
 flake8Report="$buildDir/flake8-report.out"
-pytestReport="$buildDir/pytest-coverage.xml"
 coverageReport="$buildDir/coverage.xml"
 
-pytest --cov=mediatools --cov-report=xml:$pytestReport test/
-coverage run --source=. --branch -m unittest discover
+[ ! -d $buildDir ] && mkdir $buildDir
+rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
+
+echo "Running tests"
+if [ "$tests" == "pytest" ]; then
+  coverage run -m pytest
+  # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
+else
+  coverage run --source=. --branch -m unittest discover
+fi
 coverage xml -o $coverageReport
 
-if [ "$1" != "-nolint" ]; then
+if [ "$dolint" != "false" ]; then
   echo "Running pylint"
   rm -f $pylintReport
   pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" | tee $pylintReport
@@ -46,21 +71,29 @@ if [ "$1" != "-nolint" ]; then
 
   echo "Running bandit"
   rm -f $banditReport
-  bandit -f json --skip B311 -r . >$banditReport
-else
-  shift
+  bandit -f json --skip B311 -r . -x .vscode,./testpytest,./testunittest >$banditReport
 fi
 
 version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
 
 pr_branch=""
-for o in $*
+for o in $scanOpts
 do
   key="$(echo $o | cut -d '=' -f 1)"
   if [ "$key" = "-Dsonar.pullrequest.key" ]; then
     pr_branch="-Dsonar.pullrequest.branch=foo"
   fi
 done
+
+
+echo "Running: sonar-scanner \
+  -Dsonar.projectVersion=$version \
+  -Dsonar.python.flake8.reportPaths=$flake8Report \
+  -Dsonar.python.pylint.reportPaths=$pylintReport \
+  -Dsonar.python.bandit.reportPaths=$banditReport \
+  -Dsonar.python.coverage.reportPaths=$coverageReport \
+  $pr_branch \
+  $scanOpts"
 
 sonar-scanner \
   -Dsonar.projectVersion=$version \
@@ -69,4 +102,4 @@ sonar-scanner \
   -Dsonar.python.bandit.reportPaths=$banditReport \
   -Dsonar.python.coverage.reportPaths=$coverageReport \
   $pr_branch \
-  $*
+  $scanOpts
