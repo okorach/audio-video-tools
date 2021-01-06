@@ -44,7 +44,7 @@ flake8Report="$buildDir/flake8-report.out"
 coverageReport="$buildDir/coverage.xml"
 
 [ ! -d $buildDir ] && mkdir $buildDir
-rm -rf $buildDir/* .coverage */__pycache__ # mediatools/__pycache__  test-pytest/__pycache__ test-unittest/__pycache__
+rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  test-pytest/__pycache__ test-unittest/__pycache__
 
 if [ "$tests" == "pytest" ]; then
   coverage run -m pytest
