@@ -1,1 +1,1 @@
-import test_unittest.test_resolution
+import test-unittest.test_resolution
