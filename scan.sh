@@ -44,12 +44,12 @@ flake8Report="$buildDir/flake8-report.out"
 coverageReport="$buildDir/coverage.xml"
 
 [ ! -d $buildDir ] && mkdir $buildDir
-rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  test-pytest/__pycache__ test-unittest/__pycache__
+rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
 
 echo "Running tests"
 if [ "$tests" == "pytest" ]; then
   coverage run -m pytest
-  # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport test-pytest/
+  # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
 else
   coverage run --source=. --branch -m unittest discover
 fi
@@ -71,7 +71,7 @@ if [ "$dolint" != "false" ]; then
 
   echo "Running bandit"
   rm -f $banditReport
-  bandit -f json --skip B311 -r . -x .vscode,./test-pytest,./test-unittest >$banditReport
+  bandit -f json --skip B311 -r . -x .vscode,./testpytest,./testunittest >$banditReport
 fi
 
 version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
