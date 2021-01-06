@@ -46,6 +46,7 @@ coverageReport="$buildDir/coverage.xml"
 [ ! -d $buildDir ] && mkdir $buildDir
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  test-pytest/__pycache__ test-unittest/__pycache__
 
+echo "Running tests"
 if [ "$tests" == "pytest" ]; then
   coverage run -m pytest
   # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport test-pytest/
@@ -70,7 +71,7 @@ if [ "$dolint" != "false" ]; then
 
   echo "Running bandit"
   rm -f $banditReport
-  bandit -f json --skip B311 -r . -x test-pytest/*,test-unittest/* >$banditReport
+  bandit -f json --skip B311 -r . -x .vscode,./test-pytest,./test-unittest >$banditReport
 fi
 
 version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
@@ -84,8 +85,17 @@ do
   fi
 done
 
+
+echo "Running: sonar-scanner \
+  -Dsonar.projectVersion=$version \
+  -Dsonar.python.flake8.reportPaths=$flake8Report \
+  -Dsonar.python.pylint.reportPaths=$pylintReport \
+  -Dsonar.python.bandit.reportPaths=$banditReport \
+  -Dsonar.python.coverage.reportPaths=$coverageReport \
+  $pr_branch \
+  $scanOpts"
+
 sonar-scanner \
-  -Dsonar.verbose=true \
   -Dsonar.projectVersion=$version \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
   -Dsonar.python.pylint.reportPaths=$pylintReport \
