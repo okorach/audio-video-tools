@@ -54,7 +54,7 @@ else
 fi
 coverage xml -o $coverageReport
 
-if [ "dolint" != "false" ]; then
+if [ "$dolint" != "false" ]; then
   echo "Running pylint"
   rm -f $pylintReport
   pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" | tee $pylintReport
