@@ -317,30 +317,41 @@ class ImageFile(media.MediaFile):
         return u_res
 
     def panorama(self, **kwargs):
-        out_file = kwargs.get('out_file', None)
-        (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
+        util.logger.debug("panorama(%s)", str(kwargs))
+
         framerate = kwargs.get('framerate', 50)
-        duration = kwargs.get('duration', 5)
+
         v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
         # Filters used for panorama are incompatible with hw acceleration
         # hw_accel = kwargs.get('hw_accel', False)
         hw_accel = False
 
-        util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
         vfilters = []
         u_res = self.__compute_upscaling_for_video__(v_res)
         vfilters.append(filters.scale(u_res.width, u_res.height))
 
-        if self.ratio >= v_res.ratio * 1.2:
-            # if img ratio > video ratio + 20%, no vertical drift
-            (ystart, ystop) = (0.5, 0.5)
-            # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.width - res.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / u_res.width)
-            if xstart < xstop:
+        ystart, ystop = 0.5, 0.5
+        if kwargs.get('effect', None) is None:
+            util.logger.info("Computing xstart/xstop from duration and speed")
+            duration = float(kwargs['duration'])
+            speed = util.percent_or_absolute(kwargs['speed'])
+            bound = round(max(0, (1 - speed * duration) / 2), 3)
+            if kwargs.get('direction', 'from-left') == 'from-left':
                 (xstart, xstop) = (bound, 1 - bound)
             else:
                 (xstart, xstop) = (1 - bound, bound)
-        elif self.ratio < v_res.ratio / 1.3:
+        elif kwargs.get('duration', None) is None:
+            util.logger.info("Computing duration from speed and xstart/xstop")
+            speed = util.percent_or_absolute(kwargs['speed'])
+            (xstart, xstop, ystart, ystop) = [float(x) for x in kwargs['effect']]
+            duration = (xstop - xstart) / speed
+        elif kwargs.get('speed', None) is None:
+            util.logger.info("Computing speed from duration and xstart/xstop")
+            duration = float(kwargs['duration'])
+            (xstart, xstop, ystart, ystop) = [float(x) for x in kwargs['effect']]
+            speed = (xstop - xstart) / duration
+
+        if self.ratio < v_res.ratio / 1.3:
             # if img ratio > video ratio - 30%, no horizontal drift
             (xstart, xstop) = (0.5, 0.5)
             # Compute left/right bound to allow video to move only +/-2% per second of video
@@ -349,11 +360,11 @@ class ImageFile(media.MediaFile):
                 (ystart, ystop) = (bound, 1 - bound)
             else:
                 (ystart, ystop) = (1 - bound, bound)
-        x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
-        y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
+        x_formula = "'(iw-ow)*({0}+{1}*t)'".format(xstart, (xstop - xstart) / duration)
+        y_formula = "'(ih-oh)*({0}+{1}*t)'".format(ystart, (ystop - ystart) / duration)
         vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
 
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
 
         vcodec = ''
         gpu_codec = ''
