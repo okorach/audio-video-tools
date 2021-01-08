@@ -335,33 +335,35 @@ class ImageFile(media.MediaFile):
             util.logger.info("Computing xstart/xstop from duration and speed")
             duration = float(kwargs['duration'])
             speed = util.percent_or_absolute(kwargs['speed'])
-            bound = round(max(0, (1 - speed * duration) / 2), 3)
-            if kwargs.get('direction', 'from-left') == 'from-left':
+            bound = round(max(0, (1 - abs(speed) * duration) / 2), 3)
+            if speed >= 0:
                 (xstart, xstop) = (bound, 1 - bound)
             else:
                 (xstart, xstop) = (1 - bound, bound)
         elif kwargs.get('duration', None) is None:
             util.logger.info("Computing duration from speed and xstart/xstop")
             speed = util.percent_or_absolute(kwargs['speed'])
-            (xstart, xstop, ystart, ystop) = [float(x) for x in kwargs['effect']]
+            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             duration = (xstop - xstart) / speed
         elif kwargs.get('speed', None) is None:
             util.logger.info("Computing speed from duration and xstart/xstop")
             duration = float(kwargs['duration'])
-            (xstart, xstop, ystart, ystop) = [float(x) for x in kwargs['effect']]
-            speed = (xstop - xstart) / duration
+            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
+            # speed = (xstop - xstart) / duration
 
-        if self.ratio < v_res.ratio / 1.3:
-            # if img ratio > video ratio - 30%, no horizontal drift
-            (xstart, xstop) = (0.5, 0.5)
-            # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.height - res.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / u_res.height)
-            if ystart < ystop:
+        if kwargs.get('effect', None) is None:
+            util.logger.info("Computing ystart/ystop from duration and speed")
+            speed = util.percent_or_absolute(kwargs['vspeed'])
+            bound = round(max(0, (1 - abs(speed) * duration) / 2), 3)
+            if speed >= 0:
                 (ystart, ystop) = (bound, 1 - bound)
             else:
                 (ystart, ystop) = (1 - bound, bound)
-        x_formula = "'(iw-ow)*({0}+{1}*t)'".format(xstart, (xstop - xstart) / duration)
-        y_formula = "'(ih-oh)*({0}+{1}*t)'".format(ystart, (ystop - ystart) / duration)
+        else:
+            (_, _, ystart, ystop) = [float(x) for x in kwargs['effect']]
+
+        x_formula = "'(iw-ow)*({0}+{1}*t)'".format(xstart, round((xstop - xstart) / duration, 5))
+        y_formula = "'(ih-oh)*({0}+{1}*t)'".format(ystart, round((ystop - ystart) / duration, 5))
         vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
 
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")

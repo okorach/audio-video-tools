@@ -29,6 +29,7 @@ def main():
     parser.add_argument('-e', '--effect', required=True, default="zoom", help='Effect to generate')
     parser.add_argument('--bounds', required=False, help='bounds of the panorama or zoom')
     parser.add_argument('--speed', required=False, help='Panorama or zoom speed')
+    parser.add_argument('--vspeed', required=False, default=0, help='Panorama or zoom vertical speed')
     parser.add_argument('--duration', required=False, help='Panorama or zoom duration')
     kwargs = util.parse_media_args(parser)
 
