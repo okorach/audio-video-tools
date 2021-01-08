@@ -339,12 +339,6 @@ class ImageFile(media.MediaFile):
             util.logger.info("Computing xstart/xstop from duration and speed")
             duration = float(kwargs['duration'])
             speed = util.percent_or_absolute(kwargs['speed'])
-
-            bound = round(max(0, (1 - abs(speed) * duration) / 2), 3)
-            if speed >= 0:
-                (xstart, xstop) = (bound, 1 - bound)
-            else:
-                (xstart, xstop) = (1 - bound, bound)
         elif kwargs.get('duration', None) is None:
             util.logger.info("Computing duration from speed and xstart/xstop")
             speed = util.percent_or_absolute(kwargs['speed'])
@@ -360,11 +354,6 @@ class ImageFile(media.MediaFile):
         if kwargs.get('effect', None) is None:
             util.logger.info("Computing ystart/ystop from duration and speed")
             vspeed = util.percent_or_absolute(kwargs['vspeed'])
-            bound = round(max(0, (1 - abs(vspeed) * duration) / 2), 3)
-            if vspeed >= 0:
-                (ystart, ystop) = (bound, 1 - bound)
-            else:
-                (ystart, ystop) = (1 - bound, bound)
         else:
             (_, _, ystart, ystop) = [float(x) for x in kwargs['effect']]
             if self.resolution.ratio < 16 / 9:
