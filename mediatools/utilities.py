@@ -546,7 +546,7 @@ def find_key(hashlist, keylist):
 
 
 def percent_or_absolute(x, reference=1):
-    if isinstance(x, str) and re.match(r'\d+(.\d+)?%', x):
+    if isinstance(x, str) and re.match(r'-?\d+(.\d+)?%', x):
         return float(x[:-1]) * reference / 100
     return x
 

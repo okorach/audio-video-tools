@@ -302,7 +302,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def __compute_upscaling_for_video__(self, video_res):
+    def __compute_upscaling_for_video__(self, video_res, xdrift, ydrift):
         u_res = res.Resolution(resolution=res.Resolution.RES_4K)
         if self.ratio >= video_res.ratio * 1.2:
             u_res.width = int(u_res.height * self.ratio)
@@ -314,46 +314,86 @@ class ImageFile(media.MediaFile):
             u_res.height = int(u_res.width / self.ratio)
         else:
             u_res.height = int(u_res.width / self.ratio)
+
+        if u_res.height < (res.RES_VIDEO_4K.height * (1 + ydrift)):
+            u_res.height = res.RES_VIDEO_4K.height * (1 + ydrift)
+            u_res.width = u_res.height * self.resolution.ratio
+        if u_res.width < (res.RES_VIDEO_4K.width * (1 + xdrift)):
+            u_res.width = res.RES_VIDEO_4K.width * (1 + ydrift)
+            u_res.height = u_res.width / self.resolution.ratio
+
         return u_res
 
     def panorama(self, **kwargs):
-        out_file = kwargs.get('out_file', None)
-        (xstart, xstop, ystart, ystop) = kwargs.get('effect', (0, 1, 0.5, 0.5))
+        util.logger.debug("panorama(%s)", str(kwargs))
+
         framerate = kwargs.get('framerate', 50)
-        duration = kwargs.get('duration', 5)
+
         v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
         # Filters used for panorama are incompatible with hw acceleration
         # hw_accel = kwargs.get('hw_accel', False)
         hw_accel = False
 
-        util.logger.debug("panorama(%5.2f,%5.2f,%5.2f,%5.2f) of image %s", xstart, xstop, ystart, ystop, self.filename)
-        vfilters = []
-        u_res = self.__compute_upscaling_for_video__(v_res)
-        vfilters.append(filters.scale(u_res.width, u_res.height))
+        ystart, ystop = 0.5, 0.5
+        if kwargs.get('effect', None) is None:
+            util.logger.info("Computing xstart/xstop from duration and speed")
+            duration = float(kwargs['duration'])
+            speed = util.percent_or_absolute(kwargs['speed'])
+        elif kwargs.get('duration', None) is None:
+            util.logger.info("Computing duration from speed and xstart/xstop")
+            speed = util.percent_or_absolute(kwargs['speed'])
+            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
+            duration = (xstop - xstart) / speed
+        elif kwargs.get('speed', None) is None:
+            util.logger.info("Computing speed from duration and xstart/xstop")
+            duration = float(kwargs['duration'])
+            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
+            speed = (xstop - xstart) / duration
 
-        if self.ratio >= v_res.ratio * 1.2:
-            # if img ratio > video ratio + 20%, no vertical drift
-            (ystart, ystop) = (0.5, 0.5)
-            # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.width - res.RES_VIDEO_4K.width * (1 + duration * 0.02)) / 2 / u_res.width)
-            if xstart < xstop:
-                (xstart, xstop) = (bound, 1 - bound)
+        vspeed = 0
+        if kwargs.get('effect', None) is None:
+            util.logger.info("Computing ystart/ystop from duration and speed")
+            vspeed = util.percent_or_absolute(kwargs['vspeed'])
+        else:
+            (_, _, ystart, ystop) = [float(x) for x in kwargs['effect']]
+            if self.resolution.ratio < 16 / 9:
+                vspeed = (ystop - ystart) / self.resolution.ratio * 16 / 9 / duration
+
+        needed_width = int(res.RES_VIDEO_4K.width * (1 + abs(speed) * duration))
+        needed_height = int(res.RES_VIDEO_4K.height * (1 + abs(vspeed) * duration))
+
+        vfilters = []
+        if needed_width > self.resolution.width:
+            if needed_height > self.resolution.height * needed_width / self.resolution.width:
+                vfilters.append(filters.scale(-1, needed_height))
+                total_height = needed_height
+                total_width = total_height * self.resolution.ratio
             else:
-                (xstart, xstop) = (1 - bound, bound)
-        elif self.ratio < v_res.ratio / 1.3:
-            # if img ratio > video ratio - 30%, no horizontal drift
-            (xstart, xstop) = (0.5, 0.5)
-            # Compute left/right bound to allow video to move only +/-2% per second of video
-            bound = max(0, (u_res.height - res.RES_VIDEO_4K.height * (1 + duration * 0.04)) / 2 / u_res.height)
-            if ystart < ystop:
-                (ystart, ystop) = (bound, 1 - bound)
-            else:
-                (ystart, ystop) = (1 - bound, bound)
-        x_formula = "'(iw-ow)*({0}+{1}*t/{2})'".format(xstart, xstop - xstart, duration)
-        y_formula = "'(ih-oh)*({0}+{1}*t/{2})'".format(ystart, ystop - ystart, duration)
+                vfilters.append(filters.scale(needed_width, -1))
+                total_width = needed_width
+                total_height = total_width / self.resolution.ratio
+        elif needed_height > self.resolution.height:
+            vfilters.append(filters.scale(-1, needed_height))
+            total_height = needed_height
+            total_width = total_height * self.resolution.ratio
+
+        util.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
+            self.width, self.height, needed_width, needed_height, int(total_width), int(total_height))
+        util.logger.debug("Duration = %s, Speed = %s", str(duration), str(speed))
+
+        vfilters.append(filters.crop(needed_width, needed_height))
+        if speed < 0:
+            x_formula = "'(iw-ow)-(ow*{0}*t)'".format(round(-speed, 5))
+        else:
+            x_formula = "'ow*{0}*t'".format(round(speed, 5))
+        if vspeed < 0:
+            y_formula = "'(ih-oh)-(oh*{0}*t)'".format(round(-vspeed, 5))
+        else:
+            y_formula = "'oh*{0}*t'".format(round(vspeed, 5))
+
         vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
 
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'pan', extension="mp4")
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
 
         vcodec = ''
         gpu_codec = ''
