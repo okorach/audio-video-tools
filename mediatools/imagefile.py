@@ -355,7 +355,6 @@ class ImageFile(media.MediaFile):
             duration = float(kwargs['duration'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             speed = (xstop - xstart) / duration
-        needed_width = int(self.resolution.width * abs(speed) * duration)
 
         vspeed = 0
         if kwargs.get('effect', None) is None:
@@ -389,9 +388,9 @@ class ImageFile(media.MediaFile):
             total_height = needed_height
             total_width = total_height * self.resolution.ratio
 
-        util.logger.debug("Image WxH %d, %d", self.width, self.height)
-        util.logger.debug("Duration = %s, Speed = %s, Needed WxH %d, %d", str(duration), str(speed), needed_width, needed_height)
-        util.logger.debug("Total WxH %d, %d", int(total_width), int(total_height))
+        util.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
+            self.width, self.height, needed_width, needed_height, int(total_width), int(total_height))
+        util.logger.debug("Duration = %s, Speed = %s", str(duration), str(speed))
 
         vfilters.append(filters.crop(needed_width, needed_height))
         if speed < 0:
