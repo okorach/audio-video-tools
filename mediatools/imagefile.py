@@ -415,7 +415,7 @@ class ImageFile(media.MediaFile):
             speed = 0.08 * random.randrange(-1, 3, 2)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=0.1, resolution=resolution, hw_accel=hw_accel)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, resolution=resolution, hw_accel=hw_accel)
         else:
             return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
 
