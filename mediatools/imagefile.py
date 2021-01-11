@@ -302,29 +302,14 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def __compute_upscaling_for_video__(self, video_res, xdrift, ydrift):
-        u_res = res.Resolution(resolution=res.Resolution.RES_4K)
-        if self.ratio >= video_res.ratio * 1.2:
-            u_res.width = int(u_res.height * self.ratio)
-        elif self.ratio >= video_res.ratio:
-            u_res.height = int(u_res.height * 1.3)
-            u_res.width = int(u_res.height * self.ratio)
-        elif self.ratio >= video_res.ratio / 1.3:
-            u_res.width = int(u_res.width * 1.5)
-            u_res.height = int(u_res.width / self.ratio)
-        else:
-            u_res.height = int(u_res.width / self.ratio)
-
-        if u_res.height < (res.RES_VIDEO_4K.height * (1 + ydrift)):
-            u_res.height = res.RES_VIDEO_4K.height * (1 + ydrift)
-            u_res.width = u_res.height * self.resolution.ratio
-        if u_res.width < (res.RES_VIDEO_4K.width * (1 + xdrift)):
-            u_res.width = res.RES_VIDEO_4K.width * (1 + ydrift)
-            u_res.height = u_res.width / self.resolution.ratio
-
-        return u_res
-
     def panorama(self, **kwargs):
+        '''
+        Creates a panorama video of an image. Accepted inputs
+        - framerate
+        - effect: Defines bounds of the panorama as a 4-tuple
+        - Duration
+        - Speed: % of the image traveled in 1 sec
+        '''
         util.logger.debug("panorama(%s)", str(kwargs))
 
         framerate = kwargs.get('framerate', 50)
@@ -343,7 +328,9 @@ class ImageFile(media.MediaFile):
             util.logger.info("Computing duration from speed and xstart/xstop")
             speed = util.percent_or_absolute(kwargs['speed'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
-            duration = (xstop - xstart) / speed
+            if xstop < xstart and speed > 0:
+                speed = - speed
+            duration = abs((xstop - xstart) / speed)
         elif kwargs.get('speed', None) is None:
             util.logger.info("Computing speed from duration and xstart/xstop")
             duration = float(kwargs['duration'])
@@ -413,20 +400,22 @@ class ImageFile(media.MediaFile):
 
         (w, h) = self.dimensions()
         if w / h <= (3 / 4 + 0.00001):
-            r = random.randint(0, 1)
-            offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
-            r = r + offset if r == 0 else r - offset
-            return self.panorama(effect=(0.5, 0.5, r, 1 - r), resolution=resolution, hw_accel=hw_accel)
+            return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), resolution=resolution, hw_accel=hw_accel)
         elif w / h >= (16 / 9 + 0.00001):
-            r = random.randint(0, 1)
+            r = random.randint(0, 10)
             # Allow up to 20% crop if image ratio < 9 / 16
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
+            speed = 0.08 * random.randrange(-1, 3, 2)
+            x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(r, 1 - r, 0.5 + drift, 0.5 - drift), resolution=resolution, hw_accel=hw_accel)
-        elif random.randint(0, 2) >= 2:
-            return self.panorama(effect=__get_random_panorama__(), resolution=resolution, hw_accel=hw_accel)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, resolution=resolution, hw_accel=hw_accel)
+        elif random.randint(0, 1) == 0:
+            speed = 0.08 * random.randrange(-1, 3, 2)
+            drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
+            x = random.randint(0, 1)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, resolution=resolution, hw_accel=hw_accel)
         else:
             return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
 

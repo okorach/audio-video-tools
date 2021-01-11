@@ -619,8 +619,8 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     i = 0
     for f in fcomp.inputs:
         fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
-        total_duration += f.duration
-        pts = filters.setpts("PTS-STARTPTS+{}/TB".format(i * (f.duration - transition_duration)))
+        pts = filters.setpts("PTS-STARTPTS+{}/TB".format(total_duration))
+        total_duration += f.duration - transition_duration
         last_out = fcomp.add_filtergraph(str(i) + ':v', ','.join([pixfmt, fade_in, fade_out, pts]))
         outs.append(last_out)
         i += 1
