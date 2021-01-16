@@ -323,18 +323,22 @@ class ImageFile(media.MediaFile):
             scale_filter = filters.scale(-1, needed_height)
             total_height = needed_height
             total_width = total_height * self.resolution.ratio
+        else:
+            total_height = self.resolution.height
+            total_width = self.resolution.width
+            scale_filter = filters.scale(total_width, total_height)
         return (scale_filter, total_width, total_height)
 
     def __get_panorama_params__(self, **kwargs):
         if ((kwargs.get('effect', None) is None and kwargs.get('duration', None) is None) or
            (kwargs.get('effect', None) is None and kwargs.get('speed', None) is None) or
-           (kwargs.get('duration', None) is None or kwargs.get('speed', None) is None)):
+           (kwargs.get('duration', None) is None and kwargs.get('speed', None) is None)):
             raise ex.InputError("2 arguments out of 3 mandatory in effect, duration or speed", "panorama")
         if kwargs.get('effect', None) is None:
             util.logger.info("Computing bounds from duration and speed")
             duration = float(kwargs['duration'])
-            if duration < 0:
-                raise ex.InputError("duration must be a positive number", "panorama")
+            if duration <= 0:
+                raise ex.InputError("duration must be a strictly positive number", "panorama")
             speed = util.percent_or_absolute(kwargs['speed'])
         elif kwargs.get('duration', None) is None:
             util.logger.info("Computing duration from speed and bounds")
