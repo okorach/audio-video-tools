@@ -272,6 +272,13 @@ class ImageFile(media.MediaFile):
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
     def zoom(self, **kwargs):
+        '''
+        Converts an image in a video with a zoom effect
+        Allowed inputs:
+        - zstart, zstop: Start/stop for the zoom (as percentage or float), proportion of original image
+        - duration in seconds
+        - All video usual parameters (resolution, fps etc...)
+        '''
         (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
         fps = int(kwargs.get('framerate', 50))
         duration = float(kwargs.get('duration', 5))
@@ -302,45 +309,69 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return out_file
 
-    def panorama(self, **kwargs):
-        '''
-        Creates a panorama video of an image. Accepted inputs
-        - framerate
-        - effect: Defines bounds of the panorama as a 4-tuple
-        - Duration
-        - Speed: % of the image traveled in 1 sec
-        '''
-        util.logger.debug("panorama(%s)", str(kwargs))
+    def __compute_total_frame__(self, needed_width, needed_height):
+        if needed_width > self.resolution.width:
+            if needed_height > self.resolution.height * needed_width / self.resolution.width:
+                scale_filter = filters.scale(-1, needed_height)
+                total_height = needed_height
+                total_width = total_height * self.resolution.ratio
+            else:
+                scale_filter = filters.scale(needed_width, -1)
+                total_width = needed_width
+                total_height = total_width / self.resolution.ratio
+        elif needed_height > self.resolution.height:
+            scale_filter = filters.scale(-1, needed_height)
+            total_height = needed_height
+            total_width = total_height * self.resolution.ratio
+        return (scale_filter, total_width, total_height)
 
-        framerate = kwargs.get('framerate', 50)
-
-        v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
-        # Filters used for panorama are incompatible with hw acceleration
-        # hw_accel = kwargs.get('hw_accel', False)
-        hw_accel = False
-
-        ystart, ystop = 0.5, 0.5
+    def __get_panorama_params__(self, **kwargs):
+        if ((kwargs.get('effect', None) is None and kwargs.get('duration', None) is None) or
+           (kwargs.get('effect', None) is None and kwargs.get('speed', None) is None) or
+           (kwargs.get('duration', None) is None or kwargs.get('speed', None) is None)):
+            raise ex.InputError("2 arguments out of 3 mandatory in effect, duration or speed", "panorama")
         if kwargs.get('effect', None) is None:
-            util.logger.info("Computing xstart/xstop from duration and speed")
+            util.logger.info("Computing bounds from duration and speed")
             duration = float(kwargs['duration'])
+            if duration < 0:
+                raise ex.InputError("duration must be a positive number", "panorama")
             speed = util.percent_or_absolute(kwargs['speed'])
         elif kwargs.get('duration', None) is None:
-            util.logger.info("Computing duration from speed and xstart/xstop")
+            util.logger.info("Computing duration from speed and bounds")
             speed = util.percent_or_absolute(kwargs['speed'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             if xstop < xstart and speed > 0:
                 speed = - speed
             duration = abs((xstop - xstart) / speed)
         elif kwargs.get('speed', None) is None:
-            util.logger.info("Computing speed from duration and xstart/xstop")
+            util.logger.info("Computing speed from duration and bounds")
             duration = float(kwargs['duration'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             speed = (xstop - xstart) / duration
+        return (speed, duration)
+
+    def panorama(self, **kwargs):
+        '''
+        Creates a panorama video of an image. Accepted inputs
+        - framerate
+        - effect: Defines bounds of the panorama as a 4-tuple
+        - Duration in seconds
+        - Speed: % of the image traveled in 1 sec (0.1 or 10%)
+        '''
+        util.logger.debug("panorama(%s)", str(kwargs))
+        self.__check_panorama_inputs__(**kwargs)
+        framerate = kwargs.get('framerate', 50)
+
+        v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
+        # Filters used for panorama are incompatible with hw acceleration
+
+        (speed, duration) = self.__get_panorama_params__(**kwargs)
+        ystart, ystop = 0.5, 0.5
 
         vspeed = 0
         if kwargs.get('effect', None) is None:
             util.logger.info("Computing ystart/ystop from duration and speed")
-            vspeed = util.percent_or_absolute(kwargs['vspeed'])
+            vspeed = util.percent_or_absolute(kwargs.get('vspeed', 0))
         else:
             (_, _, ystart, ystop) = [float(x) for x in kwargs['effect']]
             if self.resolution.ratio < 16 / 9:
@@ -349,20 +380,8 @@ class ImageFile(media.MediaFile):
         needed_width = int(res.RES_VIDEO_4K.width * (1 + abs(speed) * duration))
         needed_height = int(res.RES_VIDEO_4K.height * (1 + abs(vspeed) * duration))
 
-        vfilters = []
-        if needed_width > self.resolution.width:
-            if needed_height > self.resolution.height * needed_width / self.resolution.width:
-                vfilters.append(filters.scale(-1, needed_height))
-                total_height = needed_height
-                total_width = total_height * self.resolution.ratio
-            else:
-                vfilters.append(filters.scale(needed_width, -1))
-                total_width = needed_width
-                total_height = total_width / self.resolution.ratio
-        elif needed_height > self.resolution.height:
-            vfilters.append(filters.scale(-1, needed_height))
-            total_height = needed_height
-            total_width = total_height * self.resolution.ratio
+        (scale, total_width, total_height) = self.__compute_total_frame(needed_width, needed_height)
+        vfilters = [scale]
 
         util.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
             self.width, self.height, needed_width, needed_height, int(total_width), int(total_height))
@@ -382,26 +401,26 @@ class ImageFile(media.MediaFile):
 
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
 
-        vcodec = ''
-        gpu_codec = ''
-        if hw_accel:
-            gpu_codec = '-hwaccel cuvid -c:v h264_cuvid'
-            vcodec = '-c:v h264_nvenc'
-
-        cmd = "-framerate {} -loop 1 {} -i \"{}\" -filter_complex \"[0:v]{}\" -t {} {} -s {} \"{}\"".format(
-            framerate, gpu_codec, self.filename, ','.join(vfilters), duration, vcodec, str(v_res), out_file)
+        cmd = '-framerate {} -loop 1 -i "{}" -filter_complex "[0:v]{}" -t {} -s {} "{}"'.format(
+            framerate, self.filename, ','.join(vfilters), duration, str(v_res), out_file)
         util.run_ffmpeg(cmd)
         return out_file
 
-    def to_video(self, with_effect=True, resolution=res.Resolution.RES_4K, hw_accel=True):
+    def to_video(self, with_effect=True, **kwargs):
+        '''
+        Converts an image to a video.
+        Allowed inputs:
+        - with_effect: Slight panorama or zoom effect will be generated
+        - All typical video parameters (resolution, hw_accel, fps, ...)
+        '''
         util.logger.info("Converting %s to video", self.filename)
         if not with_effect:
-            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), resolution=resolution)
+            return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
         (w, h) = self.dimensions()
-        if w / h <= (3 / 4 + 0.00001):
-            return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), resolution=resolution, hw_accel=hw_accel)
-        elif w / h >= (16 / 9 + 0.00001):
+        if self.resolution.ratio <= (3 / 4 + 0.00001):
+            return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), **kwargs)
+        elif self.resolution.ratio >= (16 / 9 + 0.00001):
             r = random.randint(0, 10)
             # Allow up to 20% crop if image ratio < 9 / 16
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
@@ -410,14 +429,14 @@ class ImageFile(media.MediaFile):
             speed = 0.08 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, resolution=resolution, hw_accel=hw_accel)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         elif random.randint(0, 1) == 0:
             speed = 0.08 * random.randrange(-1, 3, 2)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, resolution=resolution, hw_accel=hw_accel)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         else:
-            return self.zoom(effect=__get_random_zoom__(), resolution=resolution, hw_accel=hw_accel)
+            return self.zoom(effect=__get_random_zoom__(), **kwargs)
 
 
 def get_rectangle(color, w, h):
