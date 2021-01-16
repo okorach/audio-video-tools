@@ -47,7 +47,7 @@ coverageReport="$buildDir/coverage.xml"
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
 
 echo "Running tests"
-if [ "$tests" == "pytest" ]; then
+if [ "$tests" != "unittest" ]; then
   coverage run -m pytest
   # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
 else

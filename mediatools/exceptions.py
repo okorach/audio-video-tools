@@ -19,11 +19,28 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+
+ERR_FILE_TYPE = 1
+ERR_INPUT = 2
+
+
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
     def __init__(self, file="file", expected_type='media', message=None):
         self.file = file
         self.message = message
         if message is None:
-            self.message = "File {} is not of th expected {} type".format(file, expected_type)
+            self.message = "File {} is not of the expected {} type".format(file, expected_type)
+        super().__init__(self.message)
+
+
+class InputError(Exception):
+    '''Error when passing wrong input arguments for media transformation'''
+    def __init__(self, message=None, operation=None):
+        self.message = message
+        self.operation = operation
+        if message is None:
+            self.message = "Input parameters error"
+        if operation is not None:
+            self.message = "{}: {}".format(operation, self.message)
         super().__init__(self.message)
