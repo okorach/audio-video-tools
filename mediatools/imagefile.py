@@ -359,7 +359,6 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         util.logger.debug("panorama(%s)", str(kwargs))
-        self.__check_panorama_inputs__(**kwargs)
         framerate = kwargs.get('framerate', 50)
 
         v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
@@ -380,7 +379,7 @@ class ImageFile(media.MediaFile):
         needed_width = int(res.RES_VIDEO_4K.width * (1 + abs(speed) * duration))
         needed_height = int(res.RES_VIDEO_4K.height * (1 + abs(vspeed) * duration))
 
-        (scale, total_width, total_height) = self.__compute_total_frame(needed_width, needed_height)
+        (scale, total_width, total_height) = self.__compute_total_frame__(needed_width, needed_height)
         vfilters = [scale]
 
         util.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
