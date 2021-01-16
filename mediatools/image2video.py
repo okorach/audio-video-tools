@@ -19,7 +19,9 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import sys
 import mediatools.utilities as util
+import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.resolution as res
 
@@ -40,13 +42,17 @@ def main():
     if kwargs.get('bounds', None) is not None:
         effect = [float(x) for x in kwargs['bounds'].split(",")]
 
-    if kwargs['effect'] == 'panorama':
-        kwargs.pop('effect')
-        output = image.ImageFile(inputfile).panorama(resolution=resolution, effect=effect, **kwargs)
-    else:
-        kwargs.pop('effect')
-        output = image.ImageFile(inputfile).zoom(resolution=resolution, effect=effect, **kwargs)
+    try:
+        if kwargs.pop('effect', 'zoom') == 'panorama':
+            output = image.ImageFile(inputfile).panorama(resolution=resolution, effect=effect, **kwargs)
+        else:
+            output = image.ImageFile(inputfile).zoom(resolution=resolution, effect=effect, **kwargs)
+    except ex.InputError as e:
+        util.logger.critical(e.message)
+        print("ERROR: {}", e.message)
+        sys.exit(ex.ERR_INPUT)
     util.generated_file(output)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
