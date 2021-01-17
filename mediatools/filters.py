@@ -22,6 +22,11 @@
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 
+ROTATION_VALUES = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
+
+ERR_ROTATION_ARG_1 = 'rotation must be one of {}'.format(', '.join(ROTATION_VALUES))
+ERR_ROTATION_ARG_2 = 'rotation must be between 0 and 7'
+
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -204,11 +209,17 @@ def volume(vol):
     return "volume={}".format(vol)
 
 
-def rotate(degrees=90):
-    if degrees not in (90, -90):
-        raise ex.InputError('rotate', 'degrees must be 90 or -90')
-
-    return "transpose={}".format(int(degrees / 90))
+def rotate(rotation=90):
+    if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
+        raise ex.InputError('rotate', ERR_ROTATION_ARG_1)
+    if isinstance(rotation, int):
+        if rotation == 90:
+            rotation = 1
+        if rotation == -90:
+            rotation = 2
+        if rotation < 0 or rotation > 7:
+            raise ex.InputError('rotate', ERR_ROTATION_ARG_2)
+    return "transpose={}".format(rotation)
 
 
 def speed(target_speed):
