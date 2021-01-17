@@ -130,7 +130,7 @@ class ImageFile(media.MediaFile):
 
     def slice_vertical(self, nbr_slices, round_to=16):
         filter_list = []
-        w, h = self.dimensions()
+        w, h = w, h = self.resolution.width, self.resolution.height
         slice_w = max(w // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (w // slice_w) + 1)
         for i in range(nbr_slices):
@@ -139,7 +139,7 @@ class ImageFile(media.MediaFile):
 
     def slice_horizontal(self, nbr_slices, round_to=16):
         filter_list = []
-        w, h = self.dimensions()
+        w, h = w, h = self.resolution.width, self.resolution.height
         slice_h = max(h // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (h // slice_h) + 1)
         for i in range(nbr_slices):
@@ -188,7 +188,7 @@ class ImageFile(media.MediaFile):
         files = [ImageFile(__get_background__(kwargs.pop('background_color', 'black'))), self]
         fcomp = filters.Complex(*files)
         direction = kwargs.pop('direction', 'vertical')
-        w, h = self.dimensions()
+        w, h = self.resolution.width, self.resolution.height
         w_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.width))
         h_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.height))
 
