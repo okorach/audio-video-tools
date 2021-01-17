@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import math
 import re
 import random
@@ -94,7 +95,7 @@ class ImageFile(media.MediaFile):
             # self.width, self.height = self.height, self.width
             # self.resolution = res.Resolution(width=self.width, height=self.height)
             self.orientation = 'portrait'
-            util.logger.debug('Portrait orientation: %s', str(self.resolution))
+            util.logger.debug('Portrait orientation: %s', str(self.orientation))
 
         return tags
 
@@ -238,6 +239,13 @@ class ImageFile(media.MediaFile):
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
+    def rotate(self, degrees=90, **kwargs):
+        vfilters = [filters.rotate(degrees)]
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, "rotate")
+        cmd = '-i "{}" -vf {} "{}"'.format(self.filename, ','.join(vfilters), out_file)
+        util.run_ffmpeg(cmd)
+        return out_file
+
     def shake_horizontal(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
         w, h = self.dimensions()
         w_jitter = w * shake_pct // 100
@@ -363,6 +371,16 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         util.logger.debug("panorama(%s)", str(kwargs))
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
+
+        if self.orientation == 'portrait':
+            rot_args = kwargs.copy()
+            rot_args.pop('out_file')
+            rotated_file = self.rotate(degrees=90, **rot_args)
+            vid_file = ImageFile(rotated_file).panorama(**kwargs)
+            os.remove(rotated_file)
+            return vid_file
+
         framerate = kwargs.get('framerate', 50)
 
         v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
@@ -401,8 +419,6 @@ class ImageFile(media.MediaFile):
             y_formula = "'oh*{0}*t'".format(round(vspeed, 5))
 
         vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
-
-        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
 
         cmd = '-framerate {} -loop 1 -i "{}" -filter_complex "[0:v]{}" -t {} -s {} "{}"'.format(
             framerate, self.filename, ','.join(vfilters), duration, str(v_res), out_file)

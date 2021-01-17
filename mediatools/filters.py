@@ -203,6 +203,10 @@ def volume(vol):
     return "volume={}".format(vol)
 
 
+def rotate(degrees=90):
+    return "transpose={}".format(int(degrees / 90))
+
+
 def speed(target_speed):
     s = util.percent_or_absolute(target_speed)
     if s > 1:
