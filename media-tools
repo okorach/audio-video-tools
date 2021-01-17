@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
 # media-tools
-# Copyright (C) 2017-2020 Olivier Korach
+# Copyright (C) 2017-2021 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,6 +18,27 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
-print('''Collections of utilities to manipulate media file
+print('''
+Collections of utilities to manipulate media file
 See tools built-in -h help and https://github.com/okorach/audio-video-tools for more documentation
+Available tools:
+- video-encode
+- media-specs
+- video-speed
+- image-poster
+- image-blinds
+- image-shake
+- image-scale
+- image-stack
+- video-mux
+- video-concat
+- media-crop
+- media-volume
+- video-cut
+- video-stabilize
+- audio-album-art
+- image-to-video
+- video-slideshow
+- video-reverse
+- video-metadata
 ''')
