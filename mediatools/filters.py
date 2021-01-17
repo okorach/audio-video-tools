@@ -212,18 +212,16 @@ def volume(vol):
 def rotate(rotation=90):
     if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
         raise ex.InputError('rotate', ERR_ROTATION_ARG_1)
-    elif isinstance(rotation, int):
-        rotation = int(rotation)
-        if rotation == 90:
-            rotation = 1
-        if rotation == -90:
-            rotation = 2
-        if rotation < 0 or rotation > 7:
-            raise ex.InputError('rotate', ERR_ROTATION_ARG_2)
-    else:
+    if not isinstance(rotation, int):
         raise ex.InputError('rotate', ERR_ROTATION_ARG_3)
+    rotation = int(rotation)
+    if rotation == 90:
+        rotation = 1
+    if rotation == -90:
+        rotation = 2
+    if rotation < 0 or rotation > 7:
+        raise ex.InputError('rotate', ERR_ROTATION_ARG_2)
     return "transpose={}".format(rotation)
-
 
 def speed(target_speed):
     s = util.percent_or_absolute(target_speed)
