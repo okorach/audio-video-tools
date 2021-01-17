@@ -20,6 +20,7 @@
 #
 
 import mediatools.utilities as util
+import mediatools.exceptions as ex
 
 
 class FilterError(Exception):
@@ -204,6 +205,9 @@ def volume(vol):
 
 
 def rotate(degrees=90):
+    if degrees not in (90, -90):
+        raise ex.InputError('rotate', 'degrees must be 90 or -90')
+
     return "transpose={}".format(int(degrees / 90))
 
 
