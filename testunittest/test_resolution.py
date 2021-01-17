@@ -11,7 +11,7 @@ class TestResolution(unittest.TestCase):
         self.assertEqual(res.canonical('1080p'), '1920x1080')
 
     def test_4K(self):
-        self.assertEqual(res.canonical('4k'), '1920x1080')
+        self.assertEqual(res.canonical('4k'), '3840x2160')
 
 
 if __name__ == '__main__':

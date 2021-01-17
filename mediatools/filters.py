@@ -20,7 +20,13 @@
 #
 
 import mediatools.utilities as util
+import mediatools.exceptions as ex
 
+ROTATION_VALUES = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
+
+ERR_ROTATION_ARG_1 = 'rotation must be one of {}'.format(', '.join(ROTATION_VALUES))
+ERR_ROTATION_ARG_2 = 'rotation must be between 0 and 7'
+ERR_ROTATION_ARG_3 = 'incorrect value for rotation'
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -202,6 +208,20 @@ def volume(vol):
     Can pass vol as a multiplier of current volume or absolute value like -6.0dB '''
     return "volume={}".format(vol)
 
+
+def rotate(rotation=90):
+    if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
+        raise ex.InputError(ERR_ROTATION_ARG_1, 'rotate')
+    if not isinstance(rotation, int):
+        raise ex.InputError(ERR_ROTATION_ARG_3, 'rotate')
+    rotation = int(rotation)
+    if rotation == 90:
+        rotation = 1
+    if rotation == -90:
+        rotation = 2
+    if rotation < 0 or rotation > 7:
+        raise ex.InputError(ERR_ROTATION_ARG_2, 'rotate')
+    return "transpose={}".format(rotation)
 
 def speed(target_speed):
     s = util.percent_or_absolute(target_speed)

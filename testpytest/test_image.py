@@ -25,8 +25,11 @@ import mediatools.imagefile as image
 import mediatools.videofile as video
 import mediatools.exceptions as ex
 
+EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
+EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
 TMP_VID = "/tmp/vid.mp4"
 large_img = None
+portrait_img = None
 
 
 def get_large_img(w, h):
@@ -38,6 +41,18 @@ def get_large_img(w, h):
     large_file = image.ImageFile(small_img).scale(w, h, out_file="/tmp/large.jpg")
     large_img = image.ImageFile(large_file)
     return large_img
+
+
+def get_portrait_img(w, h):
+    global portrait_img
+    if portrait_img is not None:
+        return portrait_img
+
+    small_img = image.__get_background__('black')
+    large_file = image.ImageFile(small_img).scale(w, h, out_file="/tmp/portrait.jpg")
+    portrait_img = image.ImageFile(large_file)
+    portrait_img.orientation = 'portrait'
+    return portrait_img
 
 
 def del_large_img():
@@ -82,7 +97,7 @@ def test_pan_input_1():
     try:
         _ = large_img.panorama(effect=(0, 1, 0.5, 0.5), out_file=TMP_VID)
     except ex.InputError as e:
-        assert e.message == "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
+        assert e.message == EX_PAN_MIN_2_PARAMS
 
 
 def test_pan_input_2():
@@ -90,7 +105,7 @@ def test_pan_input_2():
     try:
         _ = large_img.panorama(speed="10%", out_file=TMP_VID)
     except ex.InputError as e:
-        assert e.message == "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
+        assert e.message == EX_PAN_MIN_2_PARAMS
 
 
 def test_pan_input_3():
@@ -98,7 +113,7 @@ def test_pan_input_3():
     try:
         _ = large_img.panorama(duration=5, out_file=TMP_VID)
     except ex.InputError as e:
-        assert e.message == "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
+        assert e.message == EX_PAN_MIN_2_PARAMS
 
 
 def test_pan_input_4():
@@ -106,7 +121,7 @@ def test_pan_input_4():
     try:
         _ = large_img.panorama(duration=-5, speed=0.1, out_file=TMP_VID)
     except ex.InputError as e:
-        assert e.message == "panorama: duration must be a strictly positive number"
+        assert e.message == EX_PAN_DURATION_POSITIVE
 
 
 def test_pan_input_5():
@@ -114,7 +129,7 @@ def test_pan_input_5():
     try:
         _ = large_img.panorama(duration=0, speed=0.1, out_file=TMP_VID)
     except ex.InputError as e:
-        assert e.message == "panorama: duration must be a strictly positive number"
+        assert e.message == EX_PAN_DURATION_POSITIVE
 
 
 def test_pan_1():
@@ -160,6 +175,14 @@ def test_pan_5():
 def test_pan_6():
     large_img = get_large_img(4000, 3000)
     vid = large_img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
+    vid_o = video.VideoFile(vid)
+    assert vid_o.duration == 3
+    os.remove(vid)
+
+
+def test_pan_portrait():
+    img = get_portrait_img(3000, 4000)
+    vid = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
