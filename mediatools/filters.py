@@ -26,7 +26,7 @@ ROTATION_VALUES = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
 
 ERR_ROTATION_ARG_1 = 'rotation must be one of {}'.format(', '.join(ROTATION_VALUES))
 ERR_ROTATION_ARG_2 = 'rotation must be between 0 and 7'
-
+ERR_ROTATION_ARG_3 = 'incorrect value for rotation'
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -212,13 +212,16 @@ def volume(vol):
 def rotate(rotation=90):
     if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
         raise ex.InputError('rotate', ERR_ROTATION_ARG_1)
-    if isinstance(rotation, int):
+    elif isinstance(rotation, int):
+        rotation = int(rotation)
         if rotation == 90:
             rotation = 1
         if rotation == -90:
             rotation = 2
         if rotation < 0 or rotation > 7:
             raise ex.InputError('rotate', ERR_ROTATION_ARG_2)
+    else:
+        raise ex.InputError('rotate', ERR_ROTATION_ARG_3)
     return "transpose={}".format(rotation)
 
 
