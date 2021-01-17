@@ -21,17 +21,35 @@
 import mediatools.filters as fil
 import mediatools.exceptions as ex
 
-
 def test_rotate_1():
     assert fil.rotate(90) == 'transpose=1'
 
-
 def test_rotate_2():
-    assert fil.rotate(-90) == 'transpose=-1'
-
+    assert fil.rotate(-90) == 'transpose=2'
 
 def test_rotate_3():
+    assert fil.rotate(1) == 'transpose=1'
+
+def test_rotate_err_1():
     try:
         _ = fil.rotate(17)
     except ex.InputError as e:
-        assert e.message("rotate: degrees must be 90 or -90")
+        assert e.message == "rotate: " + fil.ERR_ROTATION_ARG_2
+
+def test_rotate_err_2():
+    try:
+        _ = fil.rotate('counterclockwise')
+    except ex.InputError as e:
+        assert e.message == "rotate: " + fil.ERR_ROTATION_ARG_1
+
+def test_rotate_err_3():
+    try:
+        _ = fil.rotate(1.5)
+    except ex.InputError as e:
+        assert e.message == "rotate: " + fil.ERR_ROTATION_ARG_3
+
+def test_rotate_err_4():
+    try:
+        _ = fil.rotate([2])
+    except ex.InputError as e:
+        assert e.message == "rotate: " + fil.ERR_ROTATION_ARG_3
