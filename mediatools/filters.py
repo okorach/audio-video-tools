@@ -224,7 +224,7 @@ def rotate(rotation=90):
     return "transpose={}".format(rotation)
 
 def speed(target_speed):
-    s = util.percent_or_absolute(target_speed)
+    s = float(util.percent_or_absolute(target_speed))
     if s > 1:
         return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
     else:
