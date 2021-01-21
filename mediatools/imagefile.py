@@ -99,7 +99,7 @@ class ImageFile(media.MediaFile):
 
         return tags
 
-    def dimensions(self, ignore_orientation=False):
+    def dimensions(self, ignore_orientation=True):
         if not ignore_orientation and self.orientation == 'portrait':
             return (self.height, self.width)
         return (self.width, self.height)
@@ -112,7 +112,7 @@ class ImageFile(media.MediaFile):
 
     def crop(self, out_file=None, **kwargs):
         width, height = kwargs.pop('width'), kwargs.pop('height')
-        (w, h) = self.resolution.calc_resolution(width, height, orientation=self.orientation)
+        (w, h) = self.dimensions()
         (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop_{0}x{1}-{2}".format(w, h, pos))
 
@@ -188,7 +188,7 @@ class ImageFile(media.MediaFile):
         files = [ImageFile(__get_background__(kwargs.pop('background_color', 'black'))), self]
         fcomp = filters.Complex(*files)
         direction = kwargs.pop('direction', 'vertical')
-        w, h = self.dimensions()
+        w, h = self.resolution.width, self.resolution.height
         w_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.width))
         h_gap = int(util.percent_or_absolute(kwargs.pop('blinds_size', "3%"), self.height))
 
@@ -375,7 +375,7 @@ class ImageFile(media.MediaFile):
 
         if self.orientation == 'portrait':
             rot_args = kwargs.copy()
-            rot_args.pop('out_file')
+            rot_args.pop('out_file', None)
             rotated_file = self.rotate(degrees=90, **rot_args)
             vid_file = ImageFile(rotated_file).panorama(**kwargs)
             os.remove(rotated_file)

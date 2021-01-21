@@ -375,7 +375,7 @@ class VideoFile(media.MediaFile):
         util.logger.debug('Vfilters options = %s', str(kwargs))
         vfilters = filters.Simple(filters.VIDEO_TYPE)
         if kwargs.get('speed', None) is not None:
-            vfilters.append(filters.speed(speed))
+            vfilters.append(filters.speed(kwargs['speed']))
         if kwargs.get('reverse', False):
             vfilters.append(filters.reverse())
         if 'deshake' in kwargs:

@@ -550,7 +550,6 @@ def percent_or_absolute(x, reference=1):
         return float(x[:-1]) * reference / 100
     return x
 
-
 def generated_file(filename):
     logger.info("Generated %s", filename)
     print("Generated {}".format(filename))
