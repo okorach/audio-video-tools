@@ -62,6 +62,9 @@ def __to_std__(specs, all_props):
             continue
         u = ''
         v = specs[prop]
+        if v is None:
+            s += "{}: - {}\n".format("%-20s" % prop, u)
+            continue
         if prop not in UNITS:
             s += "{}: {} {}\n".format("%-20s" % prop, v, u)
             continue
