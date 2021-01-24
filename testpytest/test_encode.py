@@ -21,9 +21,7 @@
 
 import os
 import mediatools.utilities as util
-import mediatools.imagefile as image
 import mediatools.videofile as video
-import mediatools.exceptions as ex
 
 large_img = None
 portrait_img = None
