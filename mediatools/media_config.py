@@ -66,4 +66,4 @@ def get_property(name, settings=None):
     if settings is None:
         global CONFIG_SETTINGS
         settings = CONFIG_SETTINGS
-    return settings.get(name, '')
+    return settings.get(name, None)
