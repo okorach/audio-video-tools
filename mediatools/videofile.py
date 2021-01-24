@@ -416,6 +416,9 @@ class VideoFile(media.MediaFile):
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
 
+        if kwargs.get('size', None) is not None:
+            settings.append('-s "{}"'.format(kwargs['size']))
+
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
 
@@ -600,10 +603,8 @@ def __get_audio_channel_mapping__(**kwargs):
     return mapping
 
 
-def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
+def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
-    if resolution is None:
-        resolution = conf.get_property('video.default.resolution')
 
     transition_duration = float(conf.get_property('fade.default.duration'))
     fade_in = filters.fade_in(duration=transition_duration)
@@ -648,7 +649,7 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
 
 
 def slideshow(*inputs, resolution=None):
-    util.logger.info("slideshow(%s)", *inputs)
+    util.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = util.file_list(*inputs)
     video_files = []
@@ -672,14 +673,14 @@ def slideshow(*inputs, resolution=None):
             util.logger.info("File %s is neither an image not a video, skipped", slide_file)
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
-            slideshows.append(build_slideshow(video_files, resolution=resolution,
+            slideshows.append(__build_slideshow__(video_files, resolution=resolution,
                 outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
             all_video_files.append(video_files)
             video_files = []
     if len(all_video_files) == 0:
-        return build_slideshow(video_files, resolution=resolution, outfile='slideshow.{}'.format(fmt))
+        return __build_slideshow__(video_files, resolution=resolution, outfile='slideshow.{}'.format(fmt))
     else:
-        slideshows.append(build_slideshow(video_files, resolution=resolution,
+        slideshows.append(__build_slideshow__(video_files, resolution=resolution,
             outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
         return concat(target_file='slideshow.{}'.format(fmt), file_list=slideshows, with_audio=False)
 
