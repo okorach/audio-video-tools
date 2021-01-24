@@ -247,10 +247,9 @@ def build_ffmpeg_complex_prep(input_file_list):
 
 def get_media_properties():
     """Returns all properties found in the properties file as dictionary"""
-    import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
-        PROPERTIES_VALUES = mediaconf.load()
+        PROPERTIES_VALUES = conf.load()
         logger.debug("Props = %s", str(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
 
