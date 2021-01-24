@@ -605,7 +605,7 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     if resolution is None:
         resolution = conf.get_property('video.default.resolution')
 
-    transition_duration = conf.get_property('fade.default.duration')
+    transition_duration = float(conf.get_property('fade.default.duration'))
     fade_in = filters.fade_in(duration=transition_duration)
 
     pixfmt = filters.format('yuva420p')
