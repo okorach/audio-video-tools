@@ -19,31 +19,27 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
+import os
 import mediatools.utilities as util
 import mediatools.videofile as video
-import mediatools.media_config as conf
 
-def main():
-    files = []
-    util.set_logger('video-slideshow')
-    resolution = conf.get_property('video.default.resolution')
-    sys.argv.pop(0)
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--resolution":
-            resolution = sys.argv.pop(0)
-        else:
-            files.append(arg)
-    if len(files) > 0:
-        output = video.slideshow(*files, resolution=resolution)
-        util.logger.info("File %s generated", output)
-        print("File {} generated".format(output))
-    else:
-        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
+large_img = None
+portrait_img = None
 
+images = (
+    "it/img-1770x1291.jpg", "it/img-3000x1682.jpg", "it/img-large.jpg",
+    "it/img-2320x4000.jpg", "it/img-superwide.jpg", "it/img-2880x1924.jpg",
+    "it/img-3000x4000.jpg", "it/img-640x480.jpg"
+)
 
-if __name__ == "__main__":
-    main()
+def test_slideshow():
+    util.set_debug_level(5)
+    vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200"))
+    assert vid2_o.duration > 20
+    os.remove('slideshow.mp4')
+
+def test_slideshow_without_resolution():
+    util.set_debug_level(5)
+    vid2_o = video.VideoFile(video.slideshow(*images))
+    assert vid2_o.duration > 20
+    os.remove('slideshow.mp4')

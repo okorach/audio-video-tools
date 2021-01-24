@@ -30,6 +30,7 @@ import subprocess
 import shlex
 import mediatools.options as opt
 import mediatools.resolution as res
+import mediatools.media_config as conf
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
@@ -127,6 +128,8 @@ def __match_extension__(file, regex):
 
 def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
+    if extension is None:
+        extension = conf.get_property(get_file_type(file) + '.default.format')
     if extension is None:
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
@@ -244,10 +247,9 @@ def build_ffmpeg_complex_prep(input_file_list):
 
 def get_media_properties():
     """Returns all properties found in the properties file as dictionary"""
-    import mediatools.media_config as mediaconf
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
-        PROPERTIES_VALUES = mediaconf.load()
+        PROPERTIES_VALUES = conf.load()
         logger.debug("Props = %s", str(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
 

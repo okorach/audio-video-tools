@@ -68,7 +68,7 @@ def test_scale_1():
     assert large_img.resolution.height == h
 
 
-def tes_needed_frame_1():
+def test_needed_frame_1():
     w, h = 4000, 3000
     large_img = get_large_img(w, h)
     (_, tot_w, tot_h) = large_img.__compute_total_frame__(6000, 3500)

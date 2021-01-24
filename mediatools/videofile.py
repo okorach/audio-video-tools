@@ -30,6 +30,7 @@ import mediatools.imagefile as image
 import mediatools.mediafile as media
 import mediatools.options as opt
 import mediatools.filters as filters
+import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
@@ -415,6 +416,9 @@ class VideoFile(media.MediaFile):
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
 
+        if kwargs.get('size', None) is not None:
+            settings.append('-s "{}"'.format(kwargs['size']))
+
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
 
@@ -426,7 +430,7 @@ class VideoFile(media.MediaFile):
 
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
-        vcodec = kwargs.get('vcodec', None)
+        vcodec = kwargs.get('vcodec', conf.get_property('video.default.codec'))
         if kwargs.get('hw_accel', False):
             if vcodec is not None and re.search(r'[xh]265', vcodec):
                 vcodec = 'hevc_nvenc'
@@ -442,14 +446,11 @@ def __get_vcodec__(**kwargs):
 
 def __get_acodec__(**kwargs):
     acodec = None
-    audio_encode = False
-    for k in kwargs:
-        if k in ('acodec', 'abirate', 'volume'):
-            audio_encode = True
-    if audio_encode and kwargs.get('acodec', None) is not None:
-        acodec = kwargs['acodec']
-    elif not audio_encode:
+    audio_encode = __must_encode_audio__(**kwargs)
+    if not audio_encode:
         acodec = 'copy'
+    else:
+        acodec = kwargs.get('acodec', conf.get_property('video.default.audio.codec'))
     if acodec is None:
         return ''
     else:
@@ -602,12 +603,10 @@ def __get_audio_channel_mapping__(**kwargs):
     return mapping
 
 
-def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
+def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
-    if resolution is None:
-        resolution = res.Resolution.DEFAULT_VIDEO
 
-    transition_duration = 0.5
+    transition_duration = float(conf.get_property('fade.default.duration'))
     fade_in = filters.fade_in(duration=transition_duration)
 
     pixfmt = filters.format('yuva420p')
@@ -649,13 +648,17 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     # -vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(*inputs, resolution="1920x1080"):
-    util.logger.info("slideshow(%s)", *inputs)
+def slideshow(*inputs, resolution=None):
+    util.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = util.file_list(*inputs)
     video_files = []
     all_video_files = []
     slideshows = []
+
+    if resolution is None:
+        resolution = conf.get_property('video.default.resolution')
+    fmt = conf.get_property('video.default.format')
 
     for slide_file in slideshow_files:
         if util.is_image_file(slide_file):
@@ -670,16 +673,16 @@ def slideshow(*inputs, resolution="1920x1080"):
             util.logger.info("File %s is neither an image not a video, skipped", slide_file)
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
-            slideshows.append(build_slideshow(video_files, resolution=resolution,
-                outfile='slideshow.part{}.mp4'.format(len(slideshows))))
+            slideshows.append(__build_slideshow__(video_files, resolution=resolution,
+                outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
             all_video_files.append(video_files)
             video_files = []
     if len(all_video_files) == 0:
-        return build_slideshow(video_files, resolution=resolution, outfile='slideshow.mp4')
+        return __build_slideshow__(video_files, resolution=resolution, outfile='slideshow.{}'.format(fmt))
     else:
-        slideshows.append(build_slideshow(video_files, resolution=resolution,
-            outfile='slideshow.part{}.mp4'.format(len(slideshows))))
-        return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)
+        slideshows.append(__build_slideshow__(video_files, resolution=resolution,
+            outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
+        return concat(target_file='slideshow.{}'.format(fmt), file_list=slideshows, with_audio=False)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
