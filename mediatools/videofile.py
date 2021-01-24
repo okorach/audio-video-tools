@@ -657,6 +657,7 @@ def slideshow(*inputs, resolution=None):
 
     if resolution is None:
         resolution = conf.get_property('video.default.resolution')
+    fmt = conf.get_property('video.default.format')
 
     for slide_file in slideshow_files:
         if util.is_image_file(slide_file):
@@ -672,15 +673,15 @@ def slideshow(*inputs, resolution=None):
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(build_slideshow(video_files, resolution=resolution,
-                outfile='slideshow.part{}.mp4'.format(len(slideshows))))
+                outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
             all_video_files.append(video_files)
             video_files = []
     if len(all_video_files) == 0:
-        return build_slideshow(video_files, resolution=resolution, outfile='slideshow.mp4')
+        return build_slideshow(video_files, resolution=resolution, outfile='slideshow.{}'.format(fmt))
     else:
         slideshows.append(build_slideshow(video_files, resolution=resolution,
-            outfile='slideshow.part{}.mp4'.format(len(slideshows))))
-        return concat(target_file='slideshow.mp4', file_list=slideshows, with_audio=False)
+            outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
+        return concat(target_file='slideshow.{}'.format(fmt), file_list=slideshows, with_audio=False)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
