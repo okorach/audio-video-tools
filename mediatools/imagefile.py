@@ -294,8 +294,7 @@ class ImageFile(media.MediaFile):
         resolution = kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO)
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
-        out_file = util.automatic_output_file_name(out_file, self.filename,
-            'zoom-{}-{}'.format(zstart, zstop), extension="mp4")
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop))
         util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
 
         vfilters = []
@@ -372,7 +371,7 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         util.logger.debug("panorama(%s)", str(kwargs))
-        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan', extension="mp4")
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan')
 
         if self.orientation == 'portrait':
             rot_args = kwargs.copy()
