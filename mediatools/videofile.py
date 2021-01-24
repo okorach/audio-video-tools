@@ -30,6 +30,7 @@ import mediatools.imagefile as image
 import mediatools.mediafile as media
 import mediatools.options as opt
 import mediatools.filters as filters
+import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
@@ -426,7 +427,7 @@ class VideoFile(media.MediaFile):
 
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
-        vcodec = kwargs.get('vcodec', None)
+        vcodec = kwargs.get('vcodec', conf.get_property('video.default.codec'))
         if kwargs.get('hw_accel', False):
             if vcodec is not None and re.search(r'[xh]265', vcodec):
                 vcodec = 'hevc_nvenc'
@@ -442,14 +443,11 @@ def __get_vcodec__(**kwargs):
 
 def __get_acodec__(**kwargs):
     acodec = None
-    audio_encode = False
-    for k in kwargs:
-        if k in ('acodec', 'abirate', 'volume'):
-            audio_encode = True
-    if audio_encode and kwargs.get('acodec', None) is not None:
-        acodec = kwargs['acodec']
-    elif not audio_encode:
+    audio_encode = __must_encode_audio__(**kwargs)
+    if not audio_encode:
         acodec = 'copy'
+    else:
+        acodec = kwargs.get('acodec', conf.get_property('video.default.audio.codec'))
     if acodec is None:
         return ''
     else:
@@ -605,9 +603,9 @@ def __get_audio_channel_mapping__(**kwargs):
 def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     if resolution is None:
-        resolution = res.Resolution.DEFAULT_VIDEO
+        resolution = conf.get_property('video.default.resolution')
 
-    transition_duration = 0.5
+    transition_duration = conf.get_property('fade.default.duration')
     fade_in = filters.fade_in(duration=transition_duration)
 
     pixfmt = filters.format('yuva420p')
@@ -649,13 +647,16 @@ def build_slideshow(input_files, outfile="slideshow.mp4", resolution=None, **kwa
     # -vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(*inputs, resolution="1920x1080"):
+def slideshow(*inputs, resolution=None):
     util.logger.info("slideshow(%s)", *inputs)
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = util.file_list(*inputs)
     video_files = []
     all_video_files = []
     slideshows = []
+
+    if resolution is None:
+        resolution = conf.get_property('video.default.resolution')
 
     for slide_file in slideshow_files:
         if util.is_image_file(slide_file):
