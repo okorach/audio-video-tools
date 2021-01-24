@@ -235,14 +235,16 @@ class ImageFile(media.MediaFile):
             if j < n_slices - 1:
                 cmplx = cmplx + STEP_FMT % (j + 1)
             j += 1
-        out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
+        out_file = util.automatic_output_file_name(out_file, self.filename, "shake",
+            util.get_file_extension(self.filename))
         util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
     def rotate(self, degrees=90, **kwargs):
         vfilters = [filters.rotate(degrees)]
-        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, "rotate")
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, "rotate",
+            extension=util.get_file_extension(self.filename))
         cmd = '-i "{}" -vf {} "{}"'.format(self.filename, ','.join(vfilters), out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -294,7 +296,8 @@ class ImageFile(media.MediaFile):
         resolution = kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO)
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
-        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop))
+        out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop),
+            extension=conf.get_property('video.default.format'))
         util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
 
         vfilters = []
@@ -371,7 +374,8 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         util.logger.debug("panorama(%s)", str(kwargs))
-        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan')
+        out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan',
+            extension=conf.get_property('video.default.format'))
 
         if self.orientation == 'portrait':
             rot_args = kwargs.copy()
