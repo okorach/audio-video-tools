@@ -129,7 +129,7 @@ def __match_extension__(file, regex):
 def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
     if extension is None:
-        extension = conf.get_property('video.default.format')
+        extension = conf.get_property(get_file_type(file) + '.default.format')
     if extension is None:
         extension = get_file_extension(file)
     return strip_file_extension(file) + r'.' + postfix + r'.' + extension
