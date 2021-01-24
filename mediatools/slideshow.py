@@ -23,12 +23,12 @@ import sys
 import mediatools.utilities as util
 import mediatools.resolution as res
 import mediatools.videofile as video
-
+import mediatools.media_config as conf
 
 def main():
     files = []
     util.set_logger('video-slideshow')
-    resolution = res.Resolution.DEFAULT_VIDEO
+    resolution = conf.get_property('video.default.resolution')
     sys.argv.pop(0)
     while sys.argv:
         arg = sys.argv.pop(0)
