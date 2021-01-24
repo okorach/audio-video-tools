@@ -25,7 +25,7 @@ import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.filters as filters
 import mediatools.options as opt
-
+import mediatools.media_config as conf
 
 class MediaFile:
     '''Media file abstraction
@@ -179,6 +179,8 @@ class MediaFile:
 
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
+    if extension is None:
+        extension = conf.get_property(util.get_file_type(source_file) + '.default.format')
     if extension is None:
         extension = util.get_file_extension(source_file)
     return util.add_postfix(source_file, profile, extension)
