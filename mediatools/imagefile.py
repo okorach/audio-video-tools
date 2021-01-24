@@ -31,6 +31,7 @@ import mediatools.resolution as res
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
 import mediatools.filters as filters
+import mediatools.media_config as conf
 
 INPUT_FILE_FMT = ' -i "%s"'
 STEP_FMT = "[step%d]; "
@@ -433,6 +434,8 @@ class ImageFile(media.MediaFile):
         - All typical video parameters (resolution, hw_accel, fps, ...)
         '''
         util.logger.info("Converting %s to video", self.filename)
+        if kwargs.get('resolution', None) is None:
+            kwargs['resolution'] = conf.get_property('video.default.resolution')
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
