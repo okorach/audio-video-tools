@@ -434,8 +434,7 @@ class ImageFile(media.MediaFile):
         - All typical video parameters (resolution, hw_accel, fps, ...)
         '''
         util.logger.info("Converting %s to video", self.filename)
-        if kwargs.get('resolution', None) is None:
-            kwargs['resolution'] = conf.get_property('video.default.resolution')
+        kwargs['resolution'] = kwargs.get('resolution', conf.get_property('video.default.resolution'))
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
