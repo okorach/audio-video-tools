@@ -291,9 +291,10 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
-        fps = int(kwargs.get('framerate', 50))
+        fps = res.Resolution(resolution=kwargs.get('framerate', conf.get_property('video.default.fps')))
         duration = float(kwargs.get('duration', 5))
-        resolution = kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO)
+        resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property('video.default.resolution')))
+        scale_res = resolution * 1.5
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop),
@@ -302,10 +303,10 @@ class ImageFile(media.MediaFile):
 
         vfilters = []
         if self.get_ratio() > (16 / 9):
-            vfilters.append(filters.scale(-1, 3240))
+            vfilters.append(filters.scale(-1, scale_res.height))
         else:
-            vfilters.append(filters.scale(5760, -1))
-        vfilters.append(filters.crop(5760, 3240))
+            vfilters.append(filters.scale(scale_res.width, -1))
+        vfilters.append(filters.crop(scale_res.width, scale_res.height))
 
         step = abs(zstop - zstart) / 100 / duration / fps
         if zstop < zstart:
