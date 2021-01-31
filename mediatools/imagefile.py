@@ -291,9 +291,9 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
-        fps = kwargs.get('framerate', conf.get_property('video.default.fps'))
-        duration = float(kwargs.get('duration', conf.get_property('slideshow.default.duration')))
-        resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property('video.default.resolution')))
+        fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
+        duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
+        resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 1.5
         out_file = kwargs.get('out_file', None)
         util.logger.debug("zoom video of image %s", self.filename)
@@ -386,9 +386,9 @@ class ImageFile(media.MediaFile):
             os.remove(rotated_file)
             return vid_file
 
-        framerate = kwargs.get('framerate', conf.get_property('video.default.fps'))
+        framerate = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
 
-        v_res = res.Resolution(resolution=kwargs.get('resolution', conf.get_property('video.default.resolution')))
+        v_res = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = v_res * 1.5
         # Filters used for panorama are incompatible with hw acceleration
 
@@ -439,7 +439,7 @@ class ImageFile(media.MediaFile):
         - All typical video parameters (resolution, hw_accel, fps, ...)
         '''
         util.logger.info("Converting %s to video", self.filename)
-        kwargs['resolution'] = kwargs.get('resolution', conf.get_property('video.default.resolution'))
+        kwargs['resolution'] = kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY))
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 

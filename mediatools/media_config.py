@@ -24,7 +24,9 @@ import jprops
 
 CONFIG_SETTINGS = {}
 CONFIG_FILE = '.mediatools.properties'
-
+VIDEO_RESOLUTION_KEY = 'video.default.resolution'
+VIDEO_FPS_KEY = 'video.default.fps'
+SLIDESHOW_DURATION_KEY = 'slideshow.default.duration'
 
 def load():
     import mediatools.utilities as util
