@@ -291,7 +291,7 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
-        fps = res.Resolution(resolution=kwargs.get('framerate', conf.get_property('video.default.fps')))
+        fps = kwargs.get('framerate', conf.get_property('video.default.fps'))
         duration = float(kwargs.get('duration', conf.get_property('slideshow.default.duration')))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property('video.default.resolution')))
         scale_res = resolution * 1.5
