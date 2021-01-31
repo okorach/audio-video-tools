@@ -186,3 +186,10 @@ def test_pan_portrait():
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
+
+def test_zoom_1():
+    img = get_large_img(4000, 3000)
+    vid = img.zoom(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
+    vid_o = video.VideoFile(vid)
+    assert vid_o.duration == 3
+    os.remove(vid)
