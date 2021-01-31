@@ -385,9 +385,10 @@ class ImageFile(media.MediaFile):
             os.remove(rotated_file)
             return vid_file
 
-        framerate = kwargs.get('framerate', 50)
+        framerate = kwargs.get('framerate', conf.get_property('video.default.fps'))
 
-        v_res = res.Resolution(resolution=kwargs.get('resolution', res.Resolution.DEFAULT_VIDEO))
+        v_res = res.Resolution(resolution=kwargs.get('resolution', conf.get_property('video.default.resolution')))
+        scale_res = v_res * 1.5
         # Filters used for panorama are incompatible with hw acceleration
 
         (speed, duration) = self.__get_panorama_params__(**kwargs)
@@ -402,8 +403,8 @@ class ImageFile(media.MediaFile):
             if self.resolution.ratio < 16 / 9:
                 vspeed = (ystop - ystart) / self.resolution.ratio * 16 / 9 / duration
 
-        needed_width = int(res.RES_VIDEO_4K.width * (1 + abs(speed) * duration))
-        needed_height = int(res.RES_VIDEO_4K.height * (1 + abs(vspeed) * duration))
+        needed_width = int(scale_res.width * (1 + abs(speed) * duration))
+        needed_height = int(scale_res.height * (1 + abs(vspeed) * duration))
 
         (scale, total_width, total_height) = self.__compute_total_frame__(needed_width, needed_height)
         vfilters = [scale]
@@ -422,7 +423,7 @@ class ImageFile(media.MediaFile):
         else:
             y_formula = "'oh*{0}*t'".format(round(vspeed, 5))
 
-        vfilters.append(filters.crop(res.RES_VIDEO_4K.width, res.RES_VIDEO_4K.height, x_formula, y_formula))
+        vfilters.append(filters.crop(scale_res.width, scale_res.height, x_formula, y_formula))
 
         cmd = '-framerate {} -loop 1 -i "{}" -filter_complex "[0:v]{}" -t {} -s {} "{}"'.format(
             framerate, self.filename, ','.join(vfilters), duration, str(v_res), out_file)
