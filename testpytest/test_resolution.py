@@ -34,8 +34,6 @@ def test_canonical_2():
 def test_canonical_3():
     assert res.canonical('4k') == '3840x2160'
 
-
-
 def test_multiply():
     x, y = 1000, 200
     r = res.Resolution(width=x, height=y)
