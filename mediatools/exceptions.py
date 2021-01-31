@@ -20,10 +20,6 @@
 #
 
 
-ERR_FILE_TYPE = 1
-ERR_INPUT = 2
-
-
 class FileTypeError(Exception):
     '''Error when passing a non media file'''
     def __init__(self, file="file", expected_type='media', message=None):
@@ -41,6 +37,18 @@ class InputError(Exception):
         self.operation = operation
         if message is None:
             self.message = "Input parameters error"
+        if operation is not None:
+            self.message = "{}: {}".format(operation, self.message)
+        super().__init__(self.message)
+
+
+class DimensionError(Exception):
+    '''Error when copputing image or video dimensions'''
+    def __init__(self, message=None, operation=None):
+        self.message = message
+        self.operation = operation
+        if message is None:
+            self.message = "Dimensions error"
         if operation is not None:
             self.message = "{}: {}".format(operation, self.message)
         super().__init__(self.message)

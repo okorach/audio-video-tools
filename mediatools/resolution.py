@@ -21,7 +21,7 @@
 
 import re
 import mediatools.options as opt
-
+import mediatools.exceptions as ex
 
 def canonical(res):
     if res == '720p':
@@ -71,6 +71,8 @@ class Resolution:
             r = canonical(kwargs.get('resolution', kwargs.get(opt.Option.SIZE, None)))
             if re.search(r'[x:]', r):
                 (w, h) = re.split(r'[x:]', r, maxsplit=2)
+        if int(w) <= 0 or int(h) <= 0:
+            raise ex.DimensionError("width and height must be strictly positive")
         self.width = int(w)
         self.height = int(h)
         self.ratio = self.width / self.height
@@ -78,6 +80,11 @@ class Resolution:
 
     def __str__(self):
         return "{}x{}".format(self.width, self.height)
+
+
+    def __mul__(self, factor):
+        return Resolution(width=self.width * factor, height=self.height * factor)
+
 
     # def __str__(self):
     #     return str(vars(self))
