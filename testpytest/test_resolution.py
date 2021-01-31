@@ -35,27 +35,24 @@ def test_canonical_3():
     assert res.canonical('4k') == '3840x2160'
 
 
-def test_canonical_4():
-    assert res.canonical('4k') == '3840x2160'
-
 
 def test_multiply():
     x, y = 1000, 200
-    r = res.Resolution(x, y)
+    r = res.Resolution(width=x, height=y)
     r2 = r * 2
     assert r2.width == x * 2
     assert r2.height == y * 2
 
 def test_multiply_by_0():
-    r = res.Resolution(300, 17)
+    r = res.Resolution(width=300, height=17)
     try:
         _ = r * 0
-    except ex.NegativeDimensions as e:
+    except ex.DimensionError as e:
         assert e.message == 'width and height must be strictly positive'
 
 def test_multiply_by_negative():
-    r = res.Resolution(100, 100)
+    r = res.Resolution(width=100, height=100)
     try:
         _ = r * -1
-    except ex.NegativeDimensions as e:
+    except ex.DimensionError as e:
         assert e.message == 'width and height must be strictly positive'
