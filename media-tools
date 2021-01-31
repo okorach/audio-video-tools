@@ -30,6 +30,7 @@ Available tools:
 - image-shake
 - image-scale
 - image-stack
+- image-to-video
 - video-mux
 - video-concat
 - media-crop
