@@ -24,6 +24,7 @@ import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.resolution as res
+import mediatools.media_config as conf
 
 
 def main():
@@ -36,7 +37,7 @@ def main():
     kwargs = util.parse_media_args(parser)
 
     inputfile = kwargs.pop('inputfile')
-    resolution = kwargs.get('size', res.Resolution.DEFAULT_VIDEO)
+    resolution = kwargs.get('size', conf.get_property('video.default.resolution'))
 
     effect = None
     if kwargs.get('bounds', None) is not None:
