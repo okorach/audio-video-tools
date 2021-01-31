@@ -22,11 +22,7 @@
 
 import os
 import mediatools.imagefile as image
-import mediatools.videofile as video
-import mediatools.exceptions as ex
 
-EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
-EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
 TMP_VID = "/tmp/vid.mp4"
 large_img = None
 portrait_img = None
