@@ -23,7 +23,6 @@ import sys
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
-import mediatools.resolution as res
 import mediatools.media_config as conf
 
 
