@@ -290,7 +290,7 @@ class ImageFile(media.MediaFile):
         - duration in seconds
         - All video usual parameters (resolution, fps etc...)
         '''
-        (zstart, zstop) = [max(x, 100) for x in kwargs.get('effect', (100, 130))]
+        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', (1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
