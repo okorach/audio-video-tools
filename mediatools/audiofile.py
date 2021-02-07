@@ -61,21 +61,47 @@ class AudioFile(media.MediaFile):
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
         return self.specs
 
-    def get_tags(self):
+    def get_tags_per_version(self, version=None):
         """Returns all file MP3 tags"""
         if util.get_file_extension(self.filename).lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
         if self.title is None:
             mp3 = MP3File(self.filename)
-            self.artist = mp3.artist
-            self.title = mp3.song
-            self.album = mp3.album
-            self.year = mp3.year
-            self.track = mp3.track
-            self.genre = mp3.genre
-            self.comment = mp3.comment
+            tags = mp3.get_tags()
+            tags_v1 = tags['ID3TagV1']
+            tags_v2 = tags['ID3TagV2']
+            if version is None or version not in (1, 2):
+                tags = {**tags_v1, **tags_v2}
+            elif version == 1:
+                tags = tags_v1
+            elif version == 2:
+                tags = tags_v2
+            for k in tags.keys():
+                tags[k] = tags[k][0:-1]
+            self.artist = tags['artist']
+            self.title = tags['song']
+            self.album = tags['album']
+            self.year = tags['year']
+            self.track = tags['track']
+            self.genre = tags['genre']
+            self.comment = tags['comment']
         return vars(self)
+
+    def get_tags(self, version=None):
+        if self.specs is None:
+            self.probe()
+        try:
+            tags = self.specs['format']['tags']
+        except KeyError:
+            return None
+        self.title = tags.get('title', None)
+        self.artist = tags.get('artist', None)
+        self.year = tags.get('date', None)
+        self.track = tags.get('track', None)
+        self.album = tags.get('album', None)
+        # self.genre = tags.get('genre', None)
+        # self.comment = tags.get('comment', None)
 
     def get_title(self):
         if self.title is None:
