@@ -568,9 +568,6 @@ def is_symlink(file):
 def get_symlink_target(symlink):
     if platform.system() == 'Windows':
         import win32com.client
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(symlink)
-        tgt = shortcut.Targetpath
+        return win32com.client.Dispatch("WScript.Shell").CreateShortCut(symlink).Targetpath
     else:
-        tgt = os.readlink(symlink)
-    return tgt
+        return os.readlink(symlink)
