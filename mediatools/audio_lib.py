@@ -22,6 +22,7 @@
 import os
 import sys
 import platform
+import win32com.client
 import shutil
 import mediatools.utilities as util
 import mediatools.audiofile as audio
@@ -42,11 +43,9 @@ def main():
     filelist = util.dir_list(directory, recurse=False)
 
     for file in filelist:
-        if file.endswith('.lnk') or os.path.islink():
+        if file.endswith('.lnk') or os.path.islink(file):
             util.logger.info("Checking %s: SYMLINK", file)
-
             if platform.system() == 'Windows':
-                import win32com.client
                 shell = win32com.client.Dispatch("WScript.Shell")
                 shortcut = shell.CreateShortCut(file)
                 tgt = shortcut.Targetpath
