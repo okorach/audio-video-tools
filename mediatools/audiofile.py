@@ -90,8 +90,6 @@ class AudioFile(media.MediaFile):
         return vars(self)
 
     def get_tags(self, version=None):
-        if self.specs is None:
-            self.probe()
         try:
             tags = self.specs['format']['tags']
         except KeyError:
