@@ -99,8 +99,8 @@ class AudioFile(media.MediaFile):
         self.year = tags.get('date', None)
         self.track = tags.get('track', None)
         self.album = tags.get('album', None)
-        # self.genre = tags.get('genre', None)
-        # self.comment = tags.get('comment', None)
+        self.genre = tags.get('genre', None)
+        self.comment = tags.get('comment', None)
         return vars(self)
 
     def get_title(self):
