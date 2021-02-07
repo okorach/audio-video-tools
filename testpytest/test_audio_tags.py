@@ -1,4 +1,3 @@
-
 #!python3
 #
 # media-tools
@@ -20,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
 import mediatools.audiofile as audio
 
 SONG = "it/song.mp3"

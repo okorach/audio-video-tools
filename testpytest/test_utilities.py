@@ -21,7 +21,6 @@
 #
 
 import os
-import mediatools.audiofile as audio
 import mediatools.utilities as util
 
 SYMLINK = "it/symlink-song.mp3"
@@ -29,8 +28,8 @@ FILE = "it/song.mp3"
 
 
 def test_symlink_1():
-    assert util.is_symlink(SYMLINK) == True
-    assert util.is_symlink(FILE) == False
+    assert util.is_symlink(SYMLINK)
+    assert util.is_symlink(FILE)
 
 
 def test_symlink_2():
