@@ -21,8 +21,6 @@
 
 import os
 import sys
-import platform
-import win32com.client
 import shutil
 import mediatools.utilities as util
 import mediatools.audiofile as audio
@@ -40,33 +38,23 @@ def main():
     if directory is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
-    filelist = util.dir_list(directory, recurse=False)
 
-    for file in filelist:
-        if file.endswith('.lnk') or os.path.islink(file):
-            util.logger.info("Checking %s: SYMLINK", file)
-            if platform.system() == 'Windows':
-                shell = win32com.client.Dispatch("WScript.Shell")
-                shortcut = shell.CreateShortCut(file)
-                tgt = shortcut.Targetpath
-            else:
-                tgt = os.readlink(file)
-
-            util.logger.info("Target = %s", tgt)
-            f_audio = audio.AudioFile(tgt)
-            tags = f_audio.get_tags()
-            util.logger.debug("TAGS = %s", util.json_fmt(tags))
-            # if 'title' in tags and 'artist' in tags:
-            #     base = "{} - {}".format(tags['title'], tags['artist'])
-            # elif 'title' in tags:
-            #     base = tags['title']
-            # else:
-            #     base = tgt.split(os.path.sep)[-1]
-            base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
-            util.logger.info("Copy to = %s", dir + os.path.sep + base)
-            shutil.copy(tgt, dir + os.path.sep + base)
-        else:
-            util.logger.debug("Checking %s: Not a symlink", file)
+    for file in util.dir_list(directory, recurse=False):
+        if not util.is_symlink(file):
+            continue
+        tgt = util.get_symlink_target(file)
+        util.logger.info("Symlink %s --> Target = %s", file, tgt)
+        f_audio = audio.AudioFile(tgt)
+        # tags = f_audio.get_tags()
+        # if 'title' in tags and 'artist' in tags:
+        #     base = "{} - {}".format(tags['title'], tags['artist'])
+        # elif 'title' in tags:
+        #     base = tags['title']
+        # else:
+        #     base = tgt.split(os.path.sep)[-1]
+        base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
+        util.logger.info("Copy to = %s", dir + os.path.sep + base)
+        shutil.copy(tgt, dir + os.path.sep + base)
     sys.exit(0)
 
 
