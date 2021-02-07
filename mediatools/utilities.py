@@ -28,7 +28,6 @@ import argparse
 import pathlib
 import subprocess
 import shlex
-import win32com.client
 import mediatools.options as opt
 import mediatools.resolution as res
 import mediatools.media_config as conf
@@ -568,9 +567,10 @@ def is_symlink(file):
 
 def get_symlink_target(symlink):
     if platform.system() == 'Windows':
+        import win32com.client
         shell = win32com.client.Dispatch("WScript.Shell")
-        shortcut = shell.CreateShortCut(file)
+        shortcut = shell.CreateShortCut(symlink)
         tgt = shortcut.Targetpath
     else:
-        tgt = os.readlink(file)
+        tgt = os.readlink(symlink)
     return tgt
