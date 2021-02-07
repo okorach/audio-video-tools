@@ -35,4 +35,4 @@ def test_symlink_1():
 
 def test_symlink_2():
     file = util.get_symlink_target(SYMLINK)
-    assert file == FILE
+    assert file == FILE.split(os.path.sep)[-1]
