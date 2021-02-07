@@ -44,3 +44,9 @@ def test_tags_v2():
     tags = aud.get_tags_by_version(2)
     assert tags['title'] == TITLE
     assert tags['artist'] == ARTIST
+
+def test_tags_vall():
+    aud = audio.AudioFile(SONG)
+    tags = aud.get_tags_by_version()
+    assert tags['title'] == TITLE
+    assert tags['artist'] == ARTIST
