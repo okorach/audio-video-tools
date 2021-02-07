@@ -23,7 +23,6 @@
 import os
 import mediatools.imagefile as image
 import mediatools.videofile as video
-import mediatools.exceptions as ex
 
 TMP_VID = "/tmp/vid.mp4"
 

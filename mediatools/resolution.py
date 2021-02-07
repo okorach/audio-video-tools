@@ -81,10 +81,8 @@ class Resolution:
     def __str__(self):
         return "{}x{}".format(self.width, self.height)
 
-
     def __mul__(self, factor):
         return Resolution(width=self.width * factor, height=self.height * factor)
-
 
     # def __str__(self):
     #     return str(vars(self))
