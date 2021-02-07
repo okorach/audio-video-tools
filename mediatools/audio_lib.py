@@ -24,19 +24,22 @@ import sys
 import shutil
 import win32com.client
 import mediatools.utilities as util
-# import mediatools.audiofile as audio
+import mediatools.audiofile as audio
 # import mediatools.media_config as conf
 
 
 def main():
-    sys.argv.pop(0)
+    me = sys.argv.pop(0)
+    dir = None
     while sys.argv:
         arg = sys.argv.pop(0)
         if arg == "-g":
             util.set_debug_level(sys.argv.pop(0))
         elif os.path.isdir(arg):
             dir = arg
-
+    if dir is None:
+        print('Usage: {} [-g <debug_level>] <directory>', me)
+        sys.exit(1)
     filelist = util.dir_list(dir, recurse=False)
 
     for file in filelist:
@@ -48,7 +51,16 @@ def main():
             tgt = shortcut.Targetpath
 
             util.logger.info("Target = %s", tgt)
-            base = tgt.split(os.path.sep)[-1]
+            f_audio = audio.AudioFile(tgt)
+            tags = f_audio.get_tags()
+            util.logger.debug("TAGS = %s", util.json_fmt(tags))
+            # if 'title' in tags and 'artist' in tags:
+            #     base = "{} - {}".format(tags['title'], tags['artist'])
+            # elif 'title' in tags:
+            #     base = tags['title']
+            # else:
+            #     base = tgt.split(os.path.sep)[-1]
+            base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
             util.logger.info("Copy to = %s", dir + os.path.sep + base)
             shutil.copy(tgt, dir + os.path.sep + base)
         else:
