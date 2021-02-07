@@ -78,7 +78,7 @@ class AudioFile(media.MediaFile):
             elif version == 2:
                 tags = tags_v2
             for k in tags.keys():
-                tags[k] = tags[k][0:-1]
+                tags[k] = tags[k].decode('utf-8')
             self.artist = tags['artist']
             self.title = tags['song']
             self.album = tags['album']
