@@ -597,6 +597,14 @@ def stack(*files, out_file=None, **kwargs):
     return posterize(*files_to_stack, out_file=out_file, rows=rows, columns=cols, **kwargs)
 
 
+def zoom(file, zoom_level, **kwargs):
+    if zoom_level < 0:
+        z = (-zoom_level, 1)
+    else:
+        z = (1, zoom_level)
+    return ImageFile(file).zoom(effect=z, **kwargs)
+
+
 def __get_random_panorama__():
     xstart = 0
     xstop = 0
@@ -618,28 +626,13 @@ def __get_random_panorama__():
     return (xstart, xstop, ystart, ystop)
 
 
-def __get_random_zoom__(zmin=100, zmax=150):
-    rmin = zmin + 10 * random.randint(0, 2)
-    rmax = zmax - 10 * random.randint(0, 2)
-    if rmax - rmin < 20:
-        rmin -= 10
-        rmax += 10
+def __get_random_zoom__(zmin=1, zmax=1.5):
+    rmin = zmin + random.randint(0, 2) / 10
+    rmax = zmax - random.randint(0, 2) / 10
+    if rmax - rmin < 0.2:
+        rmin -= 0.1
+        rmax += 0.1
 
     if random.randint(0, 1) == 0:
         return (rmin, rmax)
     return (rmax, rmin)
-
-
-def __panorama_bounds__(img_x, img_y, video_x, video_y, duration):
-    bound = 0
-    if (img_x / img_y) > 1.2 * (video_x / video_y):
-        bound = (1 - (video_x * (1 + duration * 0.02)) / img_x) / 2
-    return bound
-
-
-def __find_tag__(stream, taglist):
-    for tag in stream:
-        if tag not in taglist:
-            continue
-        return stream[tag]
-    return None
