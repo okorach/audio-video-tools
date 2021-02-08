@@ -22,6 +22,7 @@
 
 import os
 import mediatools.imagefile as image
+import mediatools.videofile as video
 
 TMP_VID = "/tmp/vid.mp4"
 large_img = None
@@ -86,3 +87,17 @@ def test_needed_frame_3():
     (_, tot_w, tot_h) = large_img.__compute_total_frame__(3000, 3600)
     assert tot_w == 4800
     assert tot_h == 3600
+
+def test_to_image_effect():
+    w, h = 4000, 3000
+    large_img = get_large_img(w, h)
+    image.ImageFile(large_img).to_video(with_effect=True, duration=3, speed=0.02, out_file=TMP_VID)
+    vid_o = video.VideoFile(TMP_VID)
+    assert vid_o.duration == 3
+
+def test_to_image_still():
+    w, h = 4000, 3000
+    large_img = get_large_img(w, h)
+    image.ImageFile(large_img).to_video(with_effect=False, duration=3, out_file=TMP_VID)
+    vid_o = video.VideoFile(TMP_VID)
+    assert vid_o.duration == 3
