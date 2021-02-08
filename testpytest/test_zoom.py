@@ -23,7 +23,6 @@
 import os
 import mediatools.imagefile as image
 import mediatools.videofile as video
-import mediatools.exceptions as ex
 
 TMP_VID = "/tmp/vid.mp4"
 
@@ -41,7 +40,6 @@ def test_zoom_landscape():
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
-
 
 def test_zoom_portrait():
     img = get_img(2000, 3000, 'portrait')
@@ -61,3 +59,4 @@ def test_zoom_glob_2():
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
+
