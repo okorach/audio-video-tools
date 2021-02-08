@@ -12,5 +12,5 @@ done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.volume.*.mp4 2>/dev/null
+rm ./*.volume*.mp4 2>/dev/null
 exit 0

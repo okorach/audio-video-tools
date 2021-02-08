@@ -28,11 +28,12 @@ import mediatools.media_config as conf
 
 def main():
     parser = util.get_common_args('image2video', 'Converts an image to a video')
-    parser.add_argument('-e', '--effect', required=True, default="zoom", help='Effect to generate')
+    parser.add_argument('-e', '--effect', required=True, choices=['zoom', 'panorama'], default="zoom",
+        help='Effect to generate')
     parser.add_argument('--bounds', required=False, help='bounds of the panorama or zoom')
     parser.add_argument('--speed', required=False, help='Panorama or zoom speed')
-    parser.add_argument('--vspeed', required=False, default=0, help='Panorama or zoom vertical speed')
-    parser.add_argument('--duration', required=False, help='Panorama or zoom duration')
+    parser.add_argument('--vspeed', required=False, type=float, default=0, help='Panorama or zoom vertical speed')
+    parser.add_argument('--duration', required=False, type=float, help='Panorama or zoom duration')
     kwargs = util.parse_media_args(parser)
 
     inputfile = kwargs.pop('inputfile')
