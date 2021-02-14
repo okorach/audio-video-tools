@@ -71,10 +71,10 @@ class ImageFile(media.MediaFile):
         util.logger.debug("Returning image props %s", str(all_props))
         return all_props
 
-    def probe(self):
+    def probe(self, force=False):
         if self.specs is not None:
             return
-        super().probe()
+        super().probe(force=force)
         stream = self.__get_stream_by_codec__('codec_name', ImageFile.SUPPORTED_IMG_CODECS)
         self.format = stream['codec_name']
         self.width = int(util.find_key(stream, ('width', 'codec_width', 'coded_width')))

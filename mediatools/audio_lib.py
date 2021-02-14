@@ -25,22 +25,21 @@ import shutil
 import win32com.client
 import mediatools.utilities as util
 import mediatools.audiofile as audio
-# import mediatools.media_config as conf
 
 
 def main():
     me = sys.argv.pop(0)
-    dir = None
+    directory = None
     while sys.argv:
         arg = sys.argv.pop(0)
         if arg == "-g":
             util.set_debug_level(sys.argv.pop(0))
         elif os.path.isdir(arg):
-            dir = arg
-    if dir is None:
+            directory = arg
+    if directory is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
-    filelist = util.dir_list(dir, recurse=False)
+    filelist = util.dir_list(directory, recurse=False)
 
     for file in filelist:
         if file.lower().endswith('.lnk'):  # os.path.islink() does not work :-(
@@ -54,15 +53,9 @@ def main():
             f_audio = audio.AudioFile(tgt)
             tags = f_audio.get_tags()
             util.logger.debug("TAGS = %s", util.json_fmt(tags))
-            # if 'title' in tags and 'artist' in tags:
-            #     base = "{} - {}".format(tags['title'], tags['artist'])
-            # elif 'title' in tags:
-            #     base = tags['title']
-            # else:
-            #     base = tgt.split(os.path.sep)[-1]
             base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
-            util.logger.info("Copy to = %s", dir + os.path.sep + base)
-            shutil.copy(tgt, dir + os.path.sep + base)
+            util.logger.info("Copy to = %s", directory + os.path.sep + base)
+            shutil.copy(tgt, directory + os.path.sep + base)
         else:
             util.logger.debug("Checking %s: Not a symlink", file)
     sys.exit(0)
