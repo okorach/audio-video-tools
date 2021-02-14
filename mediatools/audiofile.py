@@ -63,12 +63,12 @@ class AudioFile(media.MediaFile):
 
     def hash(self, algo='audio', force=False):
         if algo != 'audio':
-            return super().get_hash(algo=algo, force=force)
-        if self.artist is None or force:
+            return super().hash(algo=algo, force=force)
+        if self._hash is None or force:
             self.get_tags()
-        h = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
-        util.logger.debug("Audio Hash(%s) = %s", self.filename, h)
-        return h
+            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
+            util.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
+        return self._hash
 
     def get_tags_per_version(self, version=None):
         """Returns all file MP3 tags"""
