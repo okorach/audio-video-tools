@@ -58,8 +58,9 @@ def main():
         if h not in hashes.keys():
             util.logger.warning("Can't find master file for %s", file)
             continue
-        srcfile = fil.File(hashes[h][0])
-        srcfile.create_link(dir + os.sep + srcfile.basename(ext='mp3'))
+        srcfile = audio.AudioFile(hashes[h][0])
+        base = "{} - {}".format(srcfile.title, srcfile.artist)
+        srcfile.create_link(dir + os.sep + base)
 
     sys.exit(0)
 
