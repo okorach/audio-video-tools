@@ -28,7 +28,7 @@ import mediatools.audiofile as audio
 
 def main():
     me = sys.argv.pop(0)
-    dir = None
+    directory = None
     master_dir = None
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -37,16 +37,16 @@ def main():
         elif arg == "-m":
             master_dir = sys.argv.pop(0)
         elif arg == "-d":
-            dir = sys.argv.pop(0)
+            directory = sys.argv.pop(0)
         else:
             sys.argv.pop(0)
-    if dir is None or master_dir is None:
+    if directory is None or master_dir is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
 
     filelist = fil.dir_list(master_dir, recurse=True)
     hashes = audio.get_hash_list(filelist)
-    collection = fil.dir_list(dir, recurse=False)
+    collection = fil.dir_list(directory, recurse=False)
 
     for file in collection:
         if fil.is_link(file):
@@ -60,7 +60,7 @@ def main():
             continue
         srcfile = audio.AudioFile(hashes[h][0])
         base = "{} - {}".format(srcfile.title, srcfile.artist)
-        srcfile.create_link(dir + os.sep + base)
+        srcfile.create_link(directory + os.sep + base)
 
     sys.exit(0)
 
