@@ -43,7 +43,7 @@ def main():
     filelist = util.dir_list(dir, recurse=False)
 
     for file in filelist:
-        if file.endswith('.lnk'):  # os.path.islink() does not work :-(
+        if file.lower().endswith('.lnk'):  # os.path.islink() does not work :-(
             util.logger.info("Checking %s: SYMLINK", file)
 
             shell = win32com.client.Dispatch("WScript.Shell")
