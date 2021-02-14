@@ -61,10 +61,10 @@ class AudioFile(media.MediaFile):
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
         return self.specs
 
-    def get_hash(self, algo='audio'):
+    def hash(self, algo='audio', force=False):
         if algo != 'audio':
-            return super().get_hash(algo)
-        if self.artist is None:
+            return super().get_hash(algo=algo, force=force)
+        if self.artist is None or force:
             self.get_tags()
         h = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
         util.logger.debug("Audio Hash(%s) = %s", self.filename, h)
