@@ -34,18 +34,18 @@ class File:
     def __init__(self, filename):
         self.filename = filename
         self.size = None
-        self.stats = None
-        self.hash = None
+        self._stat = None
+        self._hash = None
         self.algo = None
         self.created = None
         self.modified = None
 
     def stat(self):
         try:
-            self.stats = os.stat(self.filename)
-            self.modified = time.localtime(self.stats[stat.ST_MTIME])
-            self.created = time.localtime(self.stats[stat.ST_CTIME])
-            self.size = self.stats[stat.ST_SIZE]
+            self._stat = os.stat(self.filename)
+            self.modified = time.localtime(self._stat[stat.ST_MTIME])
+            self.created = time.localtime(self._stat[stat.ST_CTIME])
+            self.size = self._stat[stat.ST_SIZE]
         except FileNotFoundError:
             return None
 
@@ -97,9 +97,9 @@ class File:
     def dirname(self):
         return os.sep.join(self.filename.split(os.sep)[0:-1])
 
-    def get_hash(self, algo='md5'):
-        if self.hash is not None and self.algo is not None and self.algo == algo:
-            return self.hash
+    def hash(self, algo='md5', force=False):
+        if self._hash is not None and self.algo is not None and self.algo == algo and not force:
+            return self._hash
         BLOCK_SIZE = 65536  # The size of each read from the file
         try:
             file_hash = hashlib.md5()
@@ -108,9 +108,9 @@ class File:
                 while len(fb) > 0:
                     file_hash.update(fb)
                     fb = f.read(BLOCK_SIZE)
-            self.hash = file_hash.hexdigest()  # Get the hexadecimal digest of the hash
+            self._hash = file_hash.hexdigest()  # Get the hexadecimal digest of the hash
             self.algo = algo
-            return self.hash
+            return self._hash
         except FileNotFoundError:
             return None
 
