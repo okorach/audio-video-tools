@@ -65,10 +65,9 @@ class AudioFile(media.MediaFile):
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
-            elif stream['codec_type'] in ('mjpeg', 'png'):
-                if 'coded_width' in stream and 'coded_height' in stream:
-                    self.has_album_art = True
-                    self.album_art_size = '{}x{}'.format(stream['coded_width'], stream['coded_height'])
+            elif stream['codec_type'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
+                self.has_album_art = True
+                self.album_art_size = '{}x{}'.format(stream['coded_width'], stream['coded_height'])
         self.get_tags()
         return self.specs
 

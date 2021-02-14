@@ -49,7 +49,7 @@ def main():
     collection = fil.dir_list(directory, recurse=False)
 
     for file in collection:
-        if fil.is_link(file):
+        if fil.is_link(file) or not fil.is_audio_file(file):
             continue
         h = audio.AudioFile(file).hash('audio')
         if h is None:
