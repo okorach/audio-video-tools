@@ -77,7 +77,8 @@ setuptools.setup(
             'video-slideshow = mediatools.slideshow:main',
             'video-reverse = mediatools.reverse:main',
             'video-metadata = mediatools.metadata:main',
-            'audio-lib = mediatools.audio_lib:main'
+            'audio-lib = mediatools.audio_lib:main',
+            'linker = mediatools.linker:main'
         ]
     },
     python_requires='>=3.6',
