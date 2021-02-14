@@ -26,6 +26,22 @@ import mediatools.file as fil
 import mediatools.audiofile as audio
 
 
+def link_file(file, directory, hashes):
+    if fil.is_link(file) or not fil.is_audio_file(file):
+        return None
+    h = audio.AudioFile(file).hash('audio')
+    if h is None:
+        util.logger.warning("Can't hash %s", file)
+        return None
+    if h not in hashes.keys():
+        util.logger.warning("Can't find master file for %s", file)
+        return None
+    srcfile = audio.AudioFile(hashes[h][0])
+    base = "{}{}{} - {}".format(directory, os.sep, srcfile.title, srcfile.artist)
+    srcfile.create_link(base)
+    return directory + os.sep + base
+
+
 def main():
     me = sys.argv.pop(0)
     directory = None
@@ -49,18 +65,7 @@ def main():
     collection = fil.dir_list(directory, recurse=False)
 
     for file in collection:
-        if fil.is_link(file) or not fil.is_audio_file(file):
-            continue
-        h = audio.AudioFile(file).hash('audio')
-        if h is None:
-            util.logger.warning("Can't hash %s", file)
-            continue
-        if h not in hashes.keys():
-            util.logger.warning("Can't find master file for %s", file)
-            continue
-        srcfile = audio.AudioFile(hashes[h][0])
-        base = "{} - {}".format(srcfile.title, srcfile.artist)
-        srcfile.create_link(directory + os.sep + base)
+        link_file(file, directory, hashes)
 
     sys.exit(0)
 
