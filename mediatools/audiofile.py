@@ -61,6 +61,15 @@ class AudioFile(media.MediaFile):
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
         return self.specs
 
+    def get_hash(self, algo='audio'):
+        if algo != 'audio':
+            return super().get_hash(algo)
+        if self.artist is None:
+            self.get_tags()
+        h = "{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.year, self.track, self.duration, self.acodec)
+        util.logger.debug("Audio Hash(%s) = %s", self.filename, h)
+        return h
+
     def get_tags_per_version(self, version=None):
         """Returns all file MP3 tags"""
         if util.get_file_extension(self.filename).lower() != 'mp3':
@@ -203,3 +212,22 @@ def album_art(*file_list, scale=None):
     if scale is not None:
         os.remove(cover_file)
     return True
+
+
+def get_hash_list(filelist):
+    util.logger.info("Getting audio hashes of %d files", len(filelist))
+    hashes = {}
+    i = 0
+    for f in filelist:
+        try:
+            h = AudioFile(f).get_hash('audio')
+        except ex.FileTypeError:
+            continue
+        if h in hashes:
+            hashes[h].append(f)
+        else:
+            hashes[h] = [f]
+        i += 1
+        if (i % 100) == 0:
+            util.logger.info("%d audio hashes computed", i)
+    return hashes
