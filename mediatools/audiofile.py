@@ -221,13 +221,15 @@ def album_art(*file_list, scale=None):
     return True
 
 
-def get_hash_list(filelist):
+def get_hash_list(filelist, algo='audio'):
     util.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes = {}
     i = 0
+    if algo != 'audio':
+        return fil.get_hash_list(filelist, algo)
     for f in filelist:
         try:
-            h = AudioFile(f).hash('audio')
+            h = AudioFile(f).hash(algo)
         except ex.FileTypeError:
             continue
         if h in hashes:
