@@ -73,7 +73,7 @@ def main():
     parser = video.add_video_args(parser)
     kwargs = util.parse_media_args(parser)
 
-    file_list = util.file_list(kwargs['inputfile'], file_type=fil.FileType.VIDEO_FILE)
+    file_list = fil.file_list(kwargs['inputfile'], file_type=fil.FileType.VIDEO_FILE)
     nb_files = len(file_list)
     for i in range(nb_files):
         util.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
