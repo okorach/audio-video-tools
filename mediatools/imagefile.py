@@ -235,8 +235,7 @@ class ImageFile(media.MediaFile):
             if j < n_slices - 1:
                 cmplx = cmplx + STEP_FMT % (j + 1)
             j += 1
-        out_file = util.automatic_output_file_name(out_file, self.filename, "shake",
-            util.get_file_extension(self.filename))
+        out_file = util.automatic_output_file_name(out_file, self.filename, "shake", self.extension())
         util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
@@ -244,7 +243,7 @@ class ImageFile(media.MediaFile):
     def rotate(self, degrees=90, **kwargs):
         vfilters = [filters.rotate(degrees)]
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, "rotate",
-            extension=util.get_file_extension(self.filename))
+            extension=self.extension())
         cmd = '-i "{}" -vf {} "{}"'.format(self.filename, ','.join(vfilters), out_file)
         util.run_ffmpeg(cmd)
         return out_file
@@ -533,7 +532,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     - stretch: stretch images to be all the same width and height
     '''
     util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
-    files = [ImageFile(f) for f in util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)]
+    files = [ImageFile(f) for f in util.file_list(*file_list, file_type=util.FileType.IMAGE_FILE)]
     fcomplex = filters.Complex(*files)
 
     max_w = max([f.width for f in files])
@@ -588,7 +587,7 @@ def posterize(*file_list, out_file=None, **kwargs):
 def stack(*files, out_file=None, **kwargs):
     util.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
-    files_to_stack = util.file_list(*files, file_type=util.MediaType.IMAGE_FILE)
+    files_to_stack = util.file_list(*files, file_type=util.FileType.IMAGE_FILE)
     rows, cols = 1, 1
     if kwargs['direction'] == 'vertical':
         rows = len(files_to_stack)

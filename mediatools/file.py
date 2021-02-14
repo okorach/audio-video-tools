@@ -20,6 +20,7 @@
 #
 
 import os
+import re
 import time
 import stat
 import platform
@@ -28,24 +29,38 @@ import win32com.client
 import mediatools.utilities as util
 
 
+class FileType:
+    AUDIO_FILE = 'audio'
+    VIDEO_FILE = 'video'
+    IMAGE_FILE = 'image'
+    UNKNOWN_FILE = 'unknown'
+    FILE_EXTENSIONS = {
+        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
+        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
+        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$'
+    }
+
+
 class File:
     '''File abstraction'''
 
     def __init__(self, filename):
         self.filename = filename
         self.size = None
-        self._stat = None
-        self._hash = None
-        self.algo = None
         self.created = None
         self.modified = None
+        self.stat = None
+        self._hash = None
+        self.algo = None
 
-    def stat(self):
+    def probe(self, force=False):
+        if self.stat is not None and not force:
+            return
         try:
-            self._stat = os.stat(self.filename)
-            self.modified = time.localtime(self._stat[stat.ST_MTIME])
-            self.created = time.localtime(self._stat[stat.ST_CTIME])
-            self.size = self._stat[stat.ST_SIZE]
+            self.stat = os.stat(self.filename)
+            self.modified = time.localtime(self.stat[stat.ST_MTIME])
+            self.created = time.localtime(self.stat[stat.ST_CTIME])
+            self.size = self.stat[stat.ST_SIZE]
         except FileNotFoundError:
             return None
 
@@ -74,6 +89,8 @@ class File:
     def create_link(self, link, dir=None, icon=None):
         if platform.system() == 'Windows':
             shell = win32com.client.Dispatch('WScript.Shell')
+            if not link.endswith('.lnk'):
+                link += '.lnk'
             shortcut = shell.CreateShortCut(link)
             shortcut.Targetpath = self.filename
             if dir is not None:
@@ -161,3 +178,78 @@ def get_hash_list(filelist, algo='md5'):
         if (i % 100) == 0:
             util.logger.info("%d hashes computed", i)
     return hashes
+
+
+def strip_file_extension(filename):
+    """Removes the file extension and returns the string"""
+    return '.'.join(filename.split('.')[:-1])
+
+
+def __match_extension__(file, regex):
+    """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
+    ext = '.' + extension(file)
+    p = re.compile(regex, re.IGNORECASE)
+    return not re.search(p, ext) is None
+
+
+def dir_list(root_dir, recurse=False, file_type=None):
+    """Returns and array of all files under a given root directory
+    going down into sub directories"""
+    util.logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
+    files = []
+    # 3 params are r=root, _=directories, f = files
+    for r, _, f in os.walk(root_dir):
+        for file in f:
+            if os.path.isdir(file) and recurse:
+                files.append(dir_list(file, recurse=recurse, file_type=file_type))
+            elif __is_type_file(os.path.join(r, file), file_type):
+                files.append(os.path.join(r, file))
+    util.logger.info("Found %d files in %s", len(files), root_dir)
+    return files
+
+
+def file_list(*args, file_type=None, recurse=False):
+    util.logger.debug("Searching files in %s", str(args))
+    files = []
+    for arg in args:
+        util.logger.debug("Check file %s", str(arg))
+        if os.path.isdir(arg):
+            files.extend(dir_list(arg, file_type=file_type, recurse=recurse))
+        elif file_type is None or __is_type_file(arg, file_type):
+            files.append(arg)
+    return files
+
+
+def __is_type_file(file, type_of_media):
+    return type_of_media is None or (
+        os.path.isfile(file) and __match_extension__(file, FileType.FILE_EXTENSIONS[type_of_media]))
+
+
+def is_audio_file(file):
+    return __is_type_file(file, FileType.AUDIO_FILE)
+
+
+def is_video_file(file):
+    return __is_type_file(file, FileType.VIDEO_FILE)
+
+
+def is_image_file(file):
+    return __is_type_file(file, FileType.IMAGE_FILE)
+
+
+def is_media_file(file):
+    """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
+    return is_audio_file(file) or is_image_file(file) or is_video_file(file)
+
+
+def get_type(file):
+    if is_audio_file(file):
+        t = FileType.AUDIO_FILE
+    elif is_video_file(file):
+        t = FileType.VIDEO_FILE
+    elif is_image_file(file):
+        t = FileType.IMAGE_FILE
+    else:
+        t = FileType.UNKNOWN_FILE
+    util.logger.debug("Filetype of %s is %s", file, t)
+    return t

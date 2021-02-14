@@ -22,7 +22,7 @@
 import os
 import sys
 import mediatools.utilities as util
-import mediatools.fileutils as futil
+import mediatools.file as fil
 import mediatools.audiofile as audio
 
 
@@ -44,23 +44,22 @@ def main():
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
 
-    filelist = util.dir_list(master_dir, recurse=True)
+    filelist = fil.dir_list(master_dir, recurse=True)
     hashes = audio.get_hash_list(filelist)
-    collection = util.dir_list(dir, recurse=False)
+    collection = fil.dir_list(dir, recurse=False)
 
     for file in collection:
-        if futil.is_link(file):
+        if fil.is_link(file):
             continue
-        h = audio.AudioFile(file).get_hash('audio')
+        h = audio.AudioFile(file).hash('audio')
         if h is None:
             util.logger.warning("Can't hash %s", file)
             continue
         if h not in hashes.keys():
             util.logger.warning("Can't find master file for %s", file)
             continue
-        srcfile = hashes[h][0]
-        symlink = dir + os.sep + srcfile.split(os.sep)[-1].split('.')[0]
-        futil.create_link(srcfile, symlink)
+        srcfile = fil.File(hashes[h][0])
+        srcfile.create_link(dir + os.sep + srcfile.basename(ext='mp3'))
 
     sys.exit(0)
 
