@@ -66,7 +66,7 @@ class AudioFile(media.MediaFile):
             return super().get_hash(algo)
         if self.artist is None:
             self.get_tags()
-        h = "{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.year, self.track, self.duration, self.acodec)
+        h = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
         util.logger.debug("Audio Hash(%s) = %s", self.filename, h)
         return h
 
