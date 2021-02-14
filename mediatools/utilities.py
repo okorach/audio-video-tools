@@ -86,6 +86,7 @@ def set_logger(name):
 def dir_list(root_dir, recurse=False, file_type=None):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
+    logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
     files = []
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
@@ -94,6 +95,7 @@ def dir_list(root_dir, recurse=False, file_type=None):
                 files.append(dir_list(file, recurse=recurse, file_type=file_type))
             elif __is_type_file(os.path.join(r, file), file_type):
                 files.append(os.path.join(r, file))
+    logger.info("Found %d files in %s", len(files), root_dir)
     return files
 
 
@@ -551,6 +553,7 @@ def percent_or_absolute(x, reference=1):
     if isinstance(x, str) and re.match(r'-?\d+(.\d+)?%', x):
         return float(x[:-1]) * reference / 100
     return x
+
 
 def generated_file(filename):
     logger.info("Generated %s", filename)
