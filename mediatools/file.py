@@ -94,6 +94,9 @@ class File:
         else:
             return '.'.join(f.split('.')[0:-1])
 
+    def dirname(self):
+        return os.sep.join(self.filename.split(os.sep)[0:-1])
+
     def get_hash(self, algo='md5'):
         if self.hash is not None and self.algo is not None and self.algo == algo:
             return self.hash
@@ -120,6 +123,10 @@ def extension(f):
 
 def basename(f, ext=None):
     return File(f).extension()
+
+
+def dirname(f):
+    return File(f).dirname()
 
 
 def is_link(f):
