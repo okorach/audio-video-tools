@@ -37,6 +37,7 @@ def link_file(file, directory, hashes):
         util.logger.warning("Can't find master file for %s", file)
         return None
     srcfile = audio.AudioFile(hashes[h][0])
+    srcfile.get_tags()
     base = "{}{}{} - {}".format(directory, os.sep, srcfile.title, srcfile.artist)
     srcfile.create_link(base)
     return directory + os.sep + base
