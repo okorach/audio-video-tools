@@ -27,6 +27,7 @@
 # - Author of video
 
 import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.videofile as video
 
 
@@ -41,7 +42,7 @@ def main():
     kwargs = util.parse_media_args(parser)
 
     inputfile = kwargs.pop('inputfile')
-    if util.is_video_file(inputfile):
+    if fil.is_video_file(inputfile):
         output = video.VideoFile(inputfile).add_metadata(**kwargs)
         util.generated_file(output)
     else:

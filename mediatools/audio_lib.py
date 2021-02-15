@@ -43,7 +43,7 @@ def main():
 
     for file in filelist:
         if fil.is_link(file):  # os.path.islink() does not work :-(
-            tgt = fil.read_link()
+            tgt = fil.read_link(file)
             f_audio = audio.AudioFile(tgt)
             tags = f_audio.get_tags()
             util.logger.debug("TAGS = %s", util.json_fmt(tags))

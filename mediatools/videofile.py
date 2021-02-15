@@ -26,8 +26,9 @@ import re
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
-import mediatools.imagefile as image
+import mediatools.file as fil
 import mediatools.mediafile as media
+import mediatools.imagefile as image
 import mediatools.options as opt
 import mediatools.filters as filters
 import mediatools.media_config as conf
@@ -40,7 +41,7 @@ class VideoFile(media.MediaFile):
 
     '''Video file abstraction'''
     def __init__(self, filename):
-        if not util.is_video_file(filename):
+        if not fil.is_video_file(filename):
             raise ex.FileTypeError(file=filename, expected_type='video')
 
         self.aspect = None
@@ -666,7 +667,7 @@ def slideshow(*inputs, resolution=None):
                 video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
             except OSError:
                 util.logger.error("Failed to use %s for slideshow, skipped", slide_file)
-        elif util.is_video_file(slide_file):
+        elif fil.is_video_file(slide_file):
             # video_files.append(slide_file)
             util.logger.info("File %s is a video, skipped", slide_file)
         else:

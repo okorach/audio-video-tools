@@ -23,6 +23,7 @@
 # in a video file with already one audio track
 
 import sys
+import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util
 
@@ -35,7 +36,7 @@ def main():
         arg = sys.argv.pop(0)
         if arg == '-g':
             util.set_debug_level(sys.argv.pop(0))
-        elif util.is_video_file(arg):
+        elif fil.is_video_file(arg):
             vfile = arg
             util.logger.info("Video file %s will be muxed", arg)
         elif util.is_audio_file(arg):
