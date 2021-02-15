@@ -25,7 +25,8 @@ import time
 import stat
 import platform
 import hashlib
-import win32com.client
+if platform.system() == 'Windows':
+    import win32com.client
 import mediatools.utilities as util
 
 
@@ -55,14 +56,15 @@ class File:
 
     def probe(self, force=False):
         if self.stat is not None and not force:
-            return
+            return True
         try:
             self.stat = os.stat(self.filename)
             self.modified = time.localtime(self.stat[stat.ST_MTIME])
             self.created = time.localtime(self.stat[stat.ST_CTIME])
             self.size = self.stat[stat.ST_SIZE]
+            return True
         except FileNotFoundError:
-            return None
+            return False
 
     def is_shortcut(self):
         if platform.system() != 'Windows':
@@ -74,7 +76,7 @@ class File:
         if platform.system() == 'Windows':
             return self.filename.lower().endswith('.lnk')
         else:
-            return os.path.islink()
+            return os.path.islink(self.filename)
 
     def read_link(self):
         if not is_link(self.filename):
@@ -84,7 +86,7 @@ class File:
             shell = win32com.client.Dispatch("WScript.Shell")
             return shell.CreateShortCut(self.filename).Targetpath
         else:
-            return os.path.readlink()
+            return os.path.readlink(self.filename)
 
     def create_link(self, link, dir=None, icon=None):
         if platform.system() == 'Windows':
@@ -141,7 +143,7 @@ def extension(f):
 
 
 def basename(f, ext=None):
-    return File(f).extension()
+    return File(f).basename(ext)
 
 
 def dirname(f):

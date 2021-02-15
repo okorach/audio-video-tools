@@ -76,13 +76,14 @@ class AudioFile(media.MediaFile):
             return super().hash(algo=algo, force=force)
         if self._hash is None or force:
             self.get_tags()
-            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
+            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
+                self.year, self.track, self.duration, self.acodec)
             util.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
         return self._hash
 
     def get_tags_per_version(self, version=None):
         """Returns all file MP3 tags"""
-        if self.extension(self).lower() != 'mp3':
+        if self.extension().lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
         if self.title is None:
@@ -202,7 +203,7 @@ class AudioFile(media.MediaFile):
 
 def album_art(*file_list, scale=None):
     util.logger.debug("Album art(%s)", str(file_list))
-    album_cover = util.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
+    album_cover = fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
     if len(album_cover) != 1:
         util.logger.critical("Zero or too many image files in selection")
         return False
@@ -213,7 +214,7 @@ def album_art(*file_list, scale=None):
     else:
         cover_file = album_cover[0]
 
-    for f in [AudioFile(f) for f in util.file_list(*file_list, file_type=fil.FileType.AUDIO_FILE)]:
+    for f in [AudioFile(f) for f in fil.file_list(*file_list, file_type=fil.FileType.AUDIO_FILE)]:
         f.encode_album_art(cover_file)
 
     if scale is not None:
