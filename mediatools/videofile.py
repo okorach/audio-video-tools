@@ -652,7 +652,7 @@ def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, *
 def slideshow(*inputs, resolution=None):
     util.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
-    slideshow_files = util.file_list(*inputs)
+    slideshow_files = fil.file_list(*inputs)
     video_files = []
     all_video_files = []
     slideshows = []
