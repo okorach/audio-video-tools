@@ -30,7 +30,6 @@ if platform.system() == 'Windows':
     import win32com.client
 
 
-
 class FileType:
     AUDIO_FILE = 'audio'
     VIDEO_FILE = 'video'
@@ -120,7 +119,7 @@ class File:
         return os.sep.join(self.filename.split(os.sep)[0:-1])
 
     def strip_extension(self):
-        return '.'.join(f.split('.')[0:-1])
+        return '.'.join(self.filename.split('.')[0:-1])
 
     def hash(self, algo='md5', force=False):
         if self._hash is not None and self.algo is not None and self.algo == algo and not force:
