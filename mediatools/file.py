@@ -25,9 +25,10 @@ import time
 import stat
 import platform
 import hashlib
+import mediatools.utilities as util
 if platform.system() == 'Windows':
     import win32com.client
-import mediatools.utilities as util
+
 
 
 class FileType:
@@ -86,7 +87,7 @@ class File:
             shell = win32com.client.Dispatch("WScript.Shell")
             return shell.CreateShortCut(self.filename).Targetpath
         else:
-            return os.path.readlink(self.filename)
+            return os.readlink(self.filename)
 
     def create_link(self, link, dir=None, icon=None):
         if platform.system() == 'Windows':
@@ -118,6 +119,9 @@ class File:
     def dirname(self):
         return os.sep.join(self.filename.split(os.sep)[0:-1])
 
+    def strip_extension(self):
+        return '.'.join(f.split('.')[0:-1])
+
     def hash(self, algo='md5', force=False):
         if self._hash is not None and self.algo is not None and self.algo == algo and not force:
             return self._hash
@@ -144,6 +148,10 @@ def extension(f):
 
 def basename(f, ext=None):
     return File(f).basename(ext)
+
+
+def strip_extension(f):
+    return File(f).strip_extension()
 
 
 def dirname(f):
