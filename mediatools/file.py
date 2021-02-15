@@ -91,6 +91,7 @@ class File:
             shell = win32com.client.Dispatch('WScript.Shell')
             if not link.endswith('.lnk'):
                 link += '.lnk'
+            util.logger.debug("Create shortcut: %s --> %s", link, self.filename)
             shortcut = shell.CreateShortCut(link)
             shortcut.Targetpath = self.filename
             if dir is not None:
@@ -99,6 +100,7 @@ class File:
                 shortcut.IconLocation = icon
             shortcut.save()
         else:
+            util.logger.debug("Create symlink: %s --> %s", link, self.filename)
             os.symlink(self.filename, link)
 
     def extension(self):
