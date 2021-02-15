@@ -20,25 +20,24 @@
 
 import mediatools.file as fil
 import mediatools.videofile as video
-import mediatools.exceptions as ex
 
 FILE = 'it/video-720p.mp4'
 FILE_SIZE = 2001067
 
 def test_file_std():
     f = fil.File(FILE)
-    assert f.probe() == True
-    assert f.probe() == True
+    assert f.probe()
+    assert f.probe()
     assert f.size == FILE_SIZE
 
 def test_file_video():
     f = video.VideoFile(FILE)
-    assert f.probe() == True
+    assert f.probe()
     assert f.size == FILE_SIZE
 
 def test_file_unexisting():
     f = fil.File('/tmp/nonexist.txt')
-    assert f.probe() == False
+    assert not f.probe()
 
 def test_extension():
     assert fil.extension(FILE) == 'mp4'
