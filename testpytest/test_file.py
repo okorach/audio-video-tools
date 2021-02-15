@@ -29,12 +29,12 @@ def test_file_std():
     f = fil.File(FILE)
     assert f.probe() == True
     assert f.probe() == True
-    assert fil.size == FILE_SIZE
+    assert f.size == FILE_SIZE
 
 def test_file_video():
     f = fil.VideoFile(FILE)
     assert f.probe() == True
-    assert fil.size == FILE_SIZE
+    assert f.size == FILE_SIZE
 
 def test_file_unexisting():
     f = fil.File('/tmp/nonexist.txt')
