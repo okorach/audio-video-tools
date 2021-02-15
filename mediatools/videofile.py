@@ -661,7 +661,7 @@ def slideshow(*inputs, resolution=None):
     fmt = conf.get_property('video.default.format')
 
     for slide_file in slideshow_files:
-        if util.is_image_file(slide_file):
+        if fil.is_image_file(slide_file):
             try:
                 video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
             except OSError:
