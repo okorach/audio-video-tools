@@ -60,9 +60,9 @@ class VideoFile(media.MediaFile):
 
     def get_specs(self):
         '''Returns video file complete specs as dict'''
-        if self.specs is None:
-            self.probe()
-            self.decode_specs()
+        # if self.specs is None:
+        self.probe()
+        self.decode_specs()
 
     def decode_specs(self):
         self.get_file_specs()

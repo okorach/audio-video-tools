@@ -47,7 +47,7 @@ class ImageFile(media.MediaFile):
     SUPPORTED_IMG_CODECS = ('mjpeg', 'png', 'gif')
 
     def __init__(self, filename):
-        if not util.is_image_file(filename):
+        if not fil.is_image_file(filename):
             raise ex.FileTypeError(file=filename, expected_type='image')
         self.resolution = None
         self.dar = None
