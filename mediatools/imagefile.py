@@ -27,6 +27,7 @@ import shutil
 import exifread
 
 import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.resolution as res
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
@@ -532,7 +533,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     - stretch: stretch images to be all the same width and height
     '''
     util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
-    files = [ImageFile(f) for f in util.file_list(*file_list, file_type=util.FileType.IMAGE_FILE)]
+    files = [ImageFile(f) for f in fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)]
     fcomplex = filters.Complex(*files)
 
     max_w = max([f.width for f in files])
@@ -587,7 +588,7 @@ def posterize(*file_list, out_file=None, **kwargs):
 def stack(*files, out_file=None, **kwargs):
     util.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
-    files_to_stack = util.file_list(*files, file_type=util.FileType.IMAGE_FILE)
+    files_to_stack = fil.file_list(*files, file_type=fil.FileType.IMAGE_FILE)
     rows, cols = 1, 1
     if kwargs['direction'] == 'vertical':
         rows = len(files_to_stack)

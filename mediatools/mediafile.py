@@ -45,6 +45,7 @@ class MediaFile(fil.File):
         self.author = None
         self.copyright = None
         self.format = None
+        self.duration = None
         self.format_long = None
         self.nb_streams = None
         self.title = None
@@ -89,7 +90,7 @@ class MediaFile(fil.File):
         self.nb_streams = int(fmt.get('nb_streams', 0))
         if fmt.get('bit_rate', None) is not None:
             self.bitrate = int(fmt.get('bit_rate', 0))
-        if fmt.get('bit_rate', None) is not None:
+        if fmt.get('duration', None) is not None:
             self.duration = float(fmt.get('duration', 0))
 
     def get_file_properties(self):

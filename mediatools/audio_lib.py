@@ -22,8 +22,8 @@
 import os
 import sys
 import shutil
-import win32com.client
 import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.audiofile as audio
 
 
@@ -39,17 +39,11 @@ def main():
     if directory is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
-    filelist = util.dir_list(directory, recurse=False)
+    filelist = fil.dir_list(directory, recurse=False)
 
     for file in filelist:
-        if file.lower().endswith('.lnk'):  # os.path.islink() does not work :-(
-            util.logger.info("Checking %s: SYMLINK", file)
-
-            shell = win32com.client.Dispatch("WScript.Shell")
-            shortcut = shell.CreateShortCut(file)
-            tgt = shortcut.Targetpath
-
-            util.logger.info("Target = %s", tgt)
+        if fil.is_link(file):  # os.path.islink() does not work :-(
+            tgt = fil.read_link()
             f_audio = audio.AudioFile(tgt)
             tags = f_audio.get_tags()
             util.logger.debug("TAGS = %s", util.json_fmt(tags))
