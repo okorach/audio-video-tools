@@ -32,7 +32,7 @@ def test_file_std():
     assert f.size == FILE_SIZE
 
 def test_file_video():
-    f = fil.VideoFile(FILE)
+    f = video.VideoFile(FILE)
     assert f.probe() == True
     assert f.size == FILE_SIZE
 
