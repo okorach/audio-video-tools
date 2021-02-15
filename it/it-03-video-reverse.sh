@@ -12,5 +12,5 @@ done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.reverse.*.mp4 2>/dev/null
+rm ./*.reverse*.mp4 2>/dev/null
 exit 0
