@@ -96,9 +96,6 @@ class MediaFile(fil.File):
     def get_file_properties(self):
         '''Returns file properties as dict'''
         d = vars(self)
-        # d.pop('specs')
-        r = vars(d.get('resolution'))
-        d.update(r)
         return d
 
     def __get_first_video_stream__(self):
