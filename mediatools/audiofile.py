@@ -102,7 +102,7 @@ class AudioFile(media.MediaFile):
             self.artist = tags['artist']
             self.title = tags['song']
             self.album = tags['album']
-            self.year = tags['year']
+            self.year = int(tags['year'])
             self.track = tags['track']
             self.genre = tags['genre']
             self.comment = tags['comment']
@@ -117,7 +117,7 @@ class AudioFile(media.MediaFile):
             return
         self.title = tags.get('title', None)
         self.artist = tags.get('artist', None)
-        self.year = tags.get('date', None)
+        self.year = int(tags.get('date', None))
         self.track = tags.get('track', None)
         self.album = tags.get('album', None)
         self.genre = tags.get('genre', None)
@@ -230,7 +230,9 @@ def get_hash_list(filelist, algo='audio'):
         return fil.get_hash_list(filelist, algo)
     for f in filelist:
         try:
-            h = AudioFile(f).hash(algo)
+            obj = AudioFile(f)
+            obj.get_specs()
+            h = obj.hash(algo)
         except ex.FileTypeError:
             continue
         if h in hashes:
