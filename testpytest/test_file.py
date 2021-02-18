@@ -78,7 +78,7 @@ def test_link():
 
 def test_hash():
     f = fil.File("/tmp/nonexisting")
-    assert f.hash() is None    
+    assert f.hash() is None
     f = fil.File(FILE)
     assert f.hash() is not None
 
