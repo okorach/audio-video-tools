@@ -30,6 +30,7 @@ import subprocess
 import shlex
 import mediatools.options as opt
 import mediatools.resolution as res
+import mediatools.file as fil
 import mediatools.media_config as conf
 
 DEBUG_LEVEL = 0
@@ -44,18 +45,6 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
-
-
-class MediaType:
-    AUDIO_FILE = 1
-    VIDEO_FILE = 2
-    IMAGE_FILE = 3
-    FILE_EXTENSIONS = {
-        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
-        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
-        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$'
-    }
-
 
 LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
@@ -83,56 +72,13 @@ def set_logger(name):
     new_ch.setFormatter(formatter)
 
 
-def dir_list(root_dir, recurse=False, file_type=None):
-    """Returns and array of all files under a given root directory
-    going down into sub directories"""
-    files = []
-    # 3 params are r=root, _=directories, f = files
-    for r, _, f in os.walk(root_dir):
-        for file in f:
-            if os.path.isdir(file) and recurse:
-                files.append(dir_list(file, recurse=recurse, file_type=file_type))
-            elif __is_type_file(os.path.join(r, file), file_type):
-                files.append(os.path.join(r, file))
-    return files
-
-
-def file_list(*args, file_type=None, recurse=False):
-    logger.debug("Searching files in %s", str(args))
-    files = []
-    for arg in args:
-        logger.debug("Check file %s", str(arg))
-        if os.path.isdir(arg):
-            files.extend(dir_list(arg, file_type=file_type, recurse=recurse))
-        elif file_type is None or __is_type_file(arg, file_type):
-            files.append(arg)
-    return files
-
-
-def get_file_extension(filename):
-    """Returns a file extension"""
-    return filename.split('.').pop()
-
-
-def strip_file_extension(filename):
-    """Removes the file extension and returns the string"""
-    return '.'.join(filename.split('.')[:-1])
-
-
-def __match_extension__(file, regex):
-    """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
-    ext = '.' + get_file_extension(file)
-    p = re.compile(regex, re.IGNORECASE)
-    return not re.search(p, ext) is None
-
-
 def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
     if extension is None:
-        extension = conf.get_property(get_file_type(file) + '.default.format')
+        extension = conf.get_property(fil.get_type(file) + '.default.format')
     if extension is None:
-        extension = get_file_extension(file)
-    return strip_file_extension(file) + r'.' + postfix + r'.' + extension
+        extension = fil.extension(file)
+    return fil.strip_extension(file) + r'.' + postfix + r'.' + extension
 
 
 def automatic_output_file_name(outfile, infile, postfix, extension=None):
@@ -140,41 +86,6 @@ def automatic_output_file_name(outfile, infile, postfix, extension=None):
         return outfile
     postfix.replace(':', '-')
     return add_postfix(infile, postfix, extension)
-
-
-def __is_type_file(file, type_of_media):
-    return type_of_media is None or (
-        os.path.isfile(file) and __match_extension__(file, MediaType.FILE_EXTENSIONS[type_of_media]))
-
-
-def is_audio_file(file):
-    return __is_type_file(file, MediaType.AUDIO_FILE)
-
-
-def is_video_file(file):
-    return __is_type_file(file, MediaType.VIDEO_FILE)
-
-
-def is_image_file(file):
-    return __is_type_file(file, MediaType.IMAGE_FILE)
-
-
-def is_media_file(file):
-    """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
-    return is_audio_file(file) or is_image_file(file) or is_video_file(file)
-
-
-def get_file_type(file):
-    if is_audio_file(file):
-        filetype = 'audio'
-    elif is_video_file(file):
-        filetype = 'video'
-    elif is_image_file(file):
-        filetype = 'image'
-    else:
-        filetype = 'unknown'
-    logger.debug("Filetype of %s is %s", file, filetype)
-    return filetype
 
 
 def get_ffbin(ffprop):
@@ -263,7 +174,7 @@ def get_conf_property(prop):
 
 def to_hms(seconds, fmt='tuple'):
     try:
-        s = int(seconds)
+        s = int(float(seconds))
         hours = s // 3600
         minutes = s // 60 - hours * 60
         secs = float(seconds) - hours * 3600 - minutes * 60
@@ -551,6 +462,7 @@ def percent_or_absolute(x, reference=1):
     if isinstance(x, str) and re.match(r'-?\d+(.\d+)?%', x):
         return float(x[:-1]) * reference / 100
     return x
+
 
 def generated_file(filename):
     logger.info("Generated %s", filename)

@@ -21,6 +21,7 @@
 
 import sys
 import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.videofile as video
 
 
@@ -36,7 +37,7 @@ def main():
             opts['audio'] = True
         elif arg == "--hw_accel":
             opts['hw_accel'] = True
-        elif util.is_video_file(arg):
+        elif fil.is_video_file(arg):
             file = arg
 
     output = video.reverse(file, **opts)

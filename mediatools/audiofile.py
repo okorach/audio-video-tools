@@ -24,6 +24,7 @@ import os
 import shutil
 from mp3_tagger import MP3File
 import mediatools.exceptions as ex
+import mediatools.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
@@ -33,9 +34,16 @@ import mediatools.options as opt
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename):
-        if not util.is_audio_file(filename):
+        if not fil.is_audio_file(filename):
             raise ex.FileTypeError(file=filename, expected_type='audio')
+        self.abitrate = None
+        self.duration = None
         self.acodec = None
+        self.audio_sample_rate = None
+
+        self.has_album_art = False
+        self.album_art_size = None
+
         self.artist = None
         self.title = None
         self.author = None
@@ -44,12 +52,10 @@ class AudioFile(media.MediaFile):
         self.track = None
         self.genre = None
         self.comment = None
-        self.abitrate = None
-        self.duration = None
-        self.audio_sample_rate = None
+
         super().__init__(filename)
 
-    def get_audio_specs(self):
+    def get_specs(self):
         for stream in self.specs['streams']:
             if stream['codec_type'] == 'audio':
                 try:
@@ -59,11 +65,25 @@ class AudioFile(media.MediaFile):
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
                     util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
+            elif stream['codec_type'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
+                self.has_album_art = True
+                self.album_art_size = '{}x{}'.format(stream['coded_width'], stream['coded_height'])
+        self.get_tags()
         return self.specs
+
+    def hash(self, algo='audio', force=False):
+        if algo != 'audio':
+            return super().hash(algo=algo, force=force)
+        if self._hash is None or force:
+            self.get_tags()
+            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
+                self.year, self.track, self.duration, self.acodec)
+            util.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
+        return self._hash
 
     def get_tags_by_version(self, version=None):
         """Returns all file MP3 tags"""
-        if util.get_file_extension(self.filename).lower() != 'mp3':
+        if self.extension().lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
             # Create MP3File instance.
         if self.title is None:
@@ -93,15 +113,14 @@ class AudioFile(media.MediaFile):
         try:
             tags = self.specs['format']['tags']
         except KeyError:
-            return None
+            return
         self.title = tags.get('title', None)
         self.artist = tags.get('artist', None)
-        self.year = tags.get('date', None)
+        self.year = int(tags.get('date', None))
         self.track = tags.get('track', None)
         self.album = tags.get('album', None)
         self.genre = tags.get('genre', None)
-        self.comment = tags.get('comment', None)
-        return vars(self)
+        # self.comment = tags.get('comment', None)
 
     def get_title(self):
         if self.title is None:
@@ -132,9 +151,6 @@ class AudioFile(media.MediaFile):
         if self.genre is None:
             self.get_tags()
         return self.genre
-
-    def get_specs(self):
-        self.get_audio_specs()
 
     def get_audio_properties(self):
         if self.acodec is None:
@@ -186,7 +202,7 @@ class AudioFile(media.MediaFile):
 
 def album_art(*file_list, scale=None):
     util.logger.debug("Album art(%s)", str(file_list))
-    album_cover = util.file_list(*file_list, file_type=util.MediaType.IMAGE_FILE)
+    album_cover = fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
     if len(album_cover) != 1:
         util.logger.critical("Zero or too many image files in selection")
         return False
@@ -197,9 +213,32 @@ def album_art(*file_list, scale=None):
     else:
         cover_file = album_cover[0]
 
-    for f in [AudioFile(f) for f in util.file_list(*file_list, file_type=util.MediaType.AUDIO_FILE)]:
+    for f in [AudioFile(f) for f in fil.file_list(*file_list, file_type=fil.FileType.AUDIO_FILE)]:
         f.encode_album_art(cover_file)
 
     if scale is not None:
         os.remove(cover_file)
     return True
+
+
+def get_hash_list(filelist, algo='audio'):
+    util.logger.info("Getting audio hashes of %d files", len(filelist))
+    hashes = {}
+    i = 0
+    if algo != 'audio':
+        return fil.get_hash_list(filelist, algo)
+    for f in filelist:
+        try:
+            obj = AudioFile(f)
+            obj.get_specs()
+            h = obj.hash(algo)
+        except ex.FileTypeError:
+            continue
+        if h in hashes:
+            hashes[h].append(f)
+        else:
+            hashes[h] = [f]
+        i += 1
+        if (i % 100) == 0:
+            util.logger.info("%d audio hashes computed", i)
+    return hashes

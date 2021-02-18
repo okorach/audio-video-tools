@@ -20,18 +20,18 @@
 #
 
 import mediatools.exceptions as ex
-import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.audiofile as audio
 import mediatools.videofile as video
 import mediatools.imagefile as image
 
 
 def file(filename):
-    if util.is_audio_file(filename):
+    if fil.is_audio_file(filename):
         return audio.AudioFile(filename)
-    elif util.is_video_file(filename):
+    elif fil.is_video_file(filename):
         return video.VideoFile(filename)
-    elif util.is_image_file(filename):
+    elif fil.is_image_file(filename):
         return image.ImageFile(filename)
     else:
         raise ex.FileTypeError(file=filename)

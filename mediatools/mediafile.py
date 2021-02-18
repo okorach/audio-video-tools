@@ -21,13 +21,15 @@
 
 import re
 import ffmpeg
+import mediatools.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.filters as filters
 import mediatools.options as opt
 import mediatools.media_config as conf
 
-class MediaFile:
+
+class MediaFile(fil.File):
     '''Media file abstraction
     A media file can be:
     - A video file
@@ -35,24 +37,20 @@ class MediaFile:
     - An image file'''
 
     def __init__(self, filename):
-        if not util.is_media_file(filename):
+        if not fil.is_media_file(filename):
             raise ex.FileTypeError(file=filename)
-        self.type = util.get_file_type(filename)
-        self.filename = filename
+        super().__init__(filename)
+        self.type = fil.get_type(filename)
         self.specs = None
         self.author = None
-        self.year = None
         self.copyright = None
         self.format = None
+        self.duration = None
         self.format_long = None
         self.nb_streams = None
-        self.filesize = None
         self.title = None
         self.bitrate = None
-        self.date_created = None
-        self.date_modified = None
         self.comment = None
-        self.duration = None
         self.probe()
 
     def __str__(self):
@@ -61,10 +59,11 @@ class MediaFile:
     def __format__(self, format_spec):
         return self.filename
 
-    def probe(self):
+    def probe(self, force=False):
         '''Returns media file general specs'''
-        if self.specs is not None:
+        if self.specs is not None and not force:
             return self.specs
+        super().probe(force)
         try:
             util.logger.debug('%s(%s)', util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
@@ -72,42 +71,32 @@ class MediaFile:
         except ffmpeg.Error as e:
             util.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
             raise
-        self.decode_specs()
-        return self.specs
-
-    def decode_specs(self):
         self.get_file_specs()
+        return self.specs
 
     def get_file_specs(self):
         '''Reads file format specs'''
-        self.format = self.specs['format']['format_name']
+        try:
+            fmt = self.specs['format']
+        except KeyError as e:
+            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
+        self.format = fmt.get('format_name', None)
         if self.format == 'mov,mp4,m4a,3gp,3g2,mj2':
-            ext = util.get_file_extension(self.filename)
-            if re.match('^(mp4|mov)', ext, re.IGNORECASE):
-                self.format = ext.lower()
+            ext = self.extension().lower()
+            if re.match('^(mp4|mov)', ext):
+                self.format = ext
 
-        self.format_long = self.specs['format']['format_long_name']
-        self.nb_streams = int(self.specs['format']['nb_streams'])
-        self.filesize = int(self.specs['format']['size'])
-        try:
-            self.bitrate = int(self.specs['format']['bit_rate'])
-        except KeyError as e:
-            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
-        try:
-            self.duration = float(self.specs['format']['duration'])
-        except KeyError as e:
-            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
+        self.format_long = fmt.get('format_long_name', None)
+        self.nb_streams = int(fmt.get('nb_streams', 0))
+        if fmt.get('bit_rate', None) is not None:
+            self.bitrate = int(fmt.get('bit_rate', 0))
+        if fmt.get('duration', None) is not None:
+            self.duration = float(fmt.get('duration', 0))
 
     def get_file_properties(self):
         '''Returns file properties as dict'''
         d = vars(self)
-        # d.pop('specs')
-        r = vars(d.get('resolution'))
-        d.update(r)
         return d
-
-    def get_file_extension(self):
-        return self.filename.split('.').pop()
 
     def __get_first_video_stream__(self):
         util.logger.debug('Searching first video stream')
@@ -180,9 +169,9 @@ class MediaFile:
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
-        extension = conf.get_property(util.get_file_type(source_file) + '.default.format')
+        extension = conf.get_property(fil.get_type(source_file) + '.default.format')
     if extension is None:
-        extension = util.get_file_extension(source_file)
+        extension = fil.extension(source_file)
     return util.add_postfix(source_file, profile, extension)
 
 

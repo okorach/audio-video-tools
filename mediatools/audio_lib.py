@@ -23,6 +23,7 @@ import os
 import sys
 import shutil
 import mediatools.utilities as util
+import mediatools.file as fil
 import mediatools.audiofile as audio
 
 
@@ -38,7 +39,6 @@ def main():
     if directory is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
-
     for file in util.dir_list(directory, recurse=False):
         if not util.is_symlink(file):
             continue

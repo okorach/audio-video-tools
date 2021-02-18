@@ -21,6 +21,7 @@
 #
 
 import os
+import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.videofile as video
 
@@ -88,6 +89,18 @@ def test_needed_frame_3():
     assert tot_w == 4800
     assert tot_h == 3600
 
+def test_type():
+    try:
+        _ = image.ImageFile('it/seal.mp3')
+        assert False
+    except ex.FileTypeError:
+        assert True
+    try:
+        _ = image.ImageFile('it/video-720p.mp4')
+        assert False
+    except ex.FileTypeError:
+        assert True
+
 def test_to_image_effect():
     w, h = 4000, 3000
     large_img = get_large_img(w, h)
@@ -101,3 +114,4 @@ def test_to_image_still():
     image.ImageFile(large_img).to_video(with_effect=False, duration=3, out_file=TMP_VID)
     vid_o = video.VideoFile(TMP_VID)
     assert vid_o.duration == 3
+
