@@ -81,7 +81,7 @@ class AudioFile(media.MediaFile):
             util.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
         return self._hash
 
-    def get_tags_per_version(self, version=None):
+    def get_tags_by_version(self, version=None):
         """Returns all file MP3 tags"""
         if self.extension().lower() != 'mp3':
             raise ex.FileTypeError(self.filename, expected_type='mp3')
@@ -98,19 +98,18 @@ class AudioFile(media.MediaFile):
             elif version == 2:
                 tags = tags_v2
             for k in tags.keys():
-                tags[k] = tags[k][0:-1]
-            self.artist = tags['artist']
-            self.title = tags['song']
-            self.album = tags['album']
-            self.year = int(tags['year'])
-            self.track = tags['track']
-            self.genre = tags['genre']
-            self.comment = tags['comment']
+                if isinstance(tags[k], str):
+                    tags[k] = tags[k].rstrip('\u0000')
+            self.artist = tags.get('artist', None)
+            self.title = tags.get('song', None)
+            self.album = tags.get('album', None)
+            self.year = tags.get('year', None)
+            self.track = tags.get('track', None)
+            self.genre = tags.get('genre', None)
+            self.comment = tags.get('comment', None)
         return vars(self)
 
     def get_tags(self, version=None):
-        if self.specs is None:
-            self.probe()
         try:
             tags = self.specs['format']['tags']
         except KeyError:

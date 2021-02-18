@@ -471,3 +471,15 @@ def generated_file(filename):
 
 def package_home():
     return pathlib.Path(__file__).parent
+
+
+def is_symlink(file):
+    return file.endswith('.lnk') or os.path.islink(file)
+
+
+def get_symlink_target(symlink):
+    if platform.system() == 'Windows':
+        import win32com.client
+        return win32com.client.Dispatch("WScript.Shell").CreateShortCut(symlink).Targetpath
+    else:
+        return os.readlink(symlink)
