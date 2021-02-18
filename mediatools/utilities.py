@@ -174,7 +174,7 @@ def get_conf_property(prop):
 
 def to_hms(seconds, fmt='tuple'):
     try:
-        s = int(seconds)
+        s = int(float(seconds))
         hours = s // 3600
         minutes = s // 60 - hours * 60
         secs = float(seconds) - hours * 3600 - minutes * 60
