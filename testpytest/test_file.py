@@ -23,6 +23,7 @@ import mediatools.file as fil
 import mediatools.videofile as video
 
 FILE = 'it/video-720p.mp4'
+FILE_2 = 'it/video-1920x1080.mp4'
 FILE_SIZE = 2001067
 
 def test_file_std():
@@ -74,3 +75,19 @@ def test_link():
     assert fil.read_link(lnk) == FILE
 
     os.remove(lnk)
+
+def test_hash():
+    f = fil.File("/tmp/nonexisting")
+    assert f.hash() is None    
+    f = fil.File(FILE)
+    assert f.hash() is not None
+
+
+def test_hash_list():
+    l = [FILE, FILE_2, FILE]
+    hashes = fil.get_hash_list(l)
+    h = list(hashes.keys())[0]
+    assert h is not None
+    assert len(hashes[h]) == 2
+    assert list(hashes.keys())[1] is not None
+    assert len(hashes.keys()) == 2

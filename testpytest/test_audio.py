@@ -21,6 +21,7 @@
 #
 
 import os
+import mediatools.exceptions as ex
 import mediatools.audiofile as audio
 
 AUDIO_FILE = "it/seal.mp3"
@@ -53,3 +54,16 @@ def test_tags():
     assert f.album == 'Seal'
     assert f.year == 1991
     assert f.genre == 'Pop'
+
+
+def test_type():
+    try:
+        _ = audio.AudioFile('it/img-2320x4000.jpg')
+        assert False
+    except ex.FileTypeError:
+        assert True
+    try:
+        _ = audio.AudioFile('it/video-720p.mp4')
+        assert False
+    except ex.FileTypeError:
+        assert True
