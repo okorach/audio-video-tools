@@ -18,6 +18,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import mediatools.file as fil
 import mediatools.videofile as video
 
@@ -55,3 +56,21 @@ def test_dirname():
     assert fil.dirname('/usr/local/bin/python3') == '/usr/local/bin'
     f = fil.File('/usr/local/bin/python3')
     assert f.dirname() == '/usr/local/bin'
+
+def test_link():
+    assert not fil.is_link(FILE)
+    assert not fil.is_shortcut(FILE)
+    f = fil.File(FILE)
+    assert not f.is_link()
+    assert not f.is_shortcut()
+    lnk = f.create_link("link_to_video")
+    assert fil.is_link(lnk)
+
+    obj = fil.File(lnk)
+    assert obj.is_link()
+    assert not obj.is_shortcut()
+
+    assert obj.read_link() == FILE
+    assert fil.read_link(lnk) == FILE
+
+    os.remove(lnk)
