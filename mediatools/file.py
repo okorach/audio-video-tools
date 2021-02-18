@@ -101,9 +101,11 @@ class File:
             if icon is not None:
                 shortcut.IconLocation = icon
             shortcut.save()
+            return link
         else:
             util.logger.debug("Create symlink: %s --> %s", link, self.filename)
             os.symlink(self.filename, link)
+            return link
 
     def extension(self):
         return self.filename.split('.').pop()
