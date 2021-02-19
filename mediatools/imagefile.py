@@ -113,8 +113,7 @@ class ImageFile(media.MediaFile):
         return {'format': self.format, 'width': self.width, 'height': self.height, 'pixels': self.pixels}
 
     def crop(self, out_file=None, **kwargs):
-        width, height = kwargs.pop('width'), kwargs.pop('height')
-        (w, h) = self.dimensions()
+        w, h = kwargs.pop('width'), kwargs.pop('height')
         (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop_{0}x{1}-{2}".format(w, h, pos))
 
