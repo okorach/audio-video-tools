@@ -444,6 +444,10 @@ class ImageFile(media.MediaFile):
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
         (w, h) = self.dimensions()
+        speed = None
+        if 'speed' in kwargs:
+            speed = float(kwargs.pop('speed'))
+
         if self.resolution.ratio <= (3 / 4 + 0.00001):
             return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), **kwargs)
         elif self.resolution.ratio >= (16 / 9 + 0.00001):
@@ -452,12 +456,14 @@ class ImageFile(media.MediaFile):
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
-            speed = 0.08 * random.randrange(-1, 3, 2)
+            if speed is None:
+                speed = 0.08 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         elif random.randint(0, 1) == 0:
-            speed = 0.08 * random.randrange(-1, 3, 2)
+            if speed is None:
+                speed = 0.08 * random.randrange(-1, 3, 2)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
