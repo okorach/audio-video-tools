@@ -60,8 +60,8 @@ class ImageFile(media.MediaFile):
         self.probe()
 
     def __str__(self):
-        d = vars(self)
-        d['resolution'] = str(d.resolution)
+        d = vars(self).copy()
+        d['resolution'] = str(self.resolution)
         return str(d)
 
     def get_properties(self):
@@ -341,6 +341,8 @@ class ImageFile(media.MediaFile):
         return (scale_filter, total_width, total_height)
 
     def __get_panorama_params__(self, **kwargs):
+        speed = kwargs.get('speed', None)
+        duration = kwargs.get('duration', None)
         if ((kwargs.get('effect', None) is None and kwargs.get('duration', None) is None) or
            (kwargs.get('effect', None) is None and kwargs.get('speed', None) is None) or
            (kwargs.get('duration', None) is None and kwargs.get('speed', None) is None)):
