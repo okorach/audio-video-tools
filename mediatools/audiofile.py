@@ -121,6 +121,7 @@ class AudioFile(media.MediaFile):
         self.album = tags.get('album', None)
         self.genre = tags.get('genre', None)
         # self.comment = tags.get('comment', None)
+        return vars(self)
 
     def get_title(self):
         if self.title is None:
