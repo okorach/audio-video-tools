@@ -27,6 +27,7 @@ ARTIST = 'Sade'
 
 def test_tags_all():
     aud = audio.AudioFile(SONG)
+    aud.get_specs()
     tags = aud.get_tags()
     assert tags['title'] == TITLE
     assert tags['artist'] == ARTIST
