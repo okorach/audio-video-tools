@@ -26,6 +26,10 @@ import mediatools.imagefile as image
 import mediatools.videofile as video
 
 TMP_VID = "/tmp/vid.mp4"
+TMP2 = '/tmp/file2.jpg'
+LARGE_LANDSCAPE = "/tmp/large.jpg"
+LARGE_PORTRAIT = "/tmp/portrait.jpg"
+
 large_img = None
 portrait_img = None
 
@@ -73,6 +77,78 @@ def test_needed_frame_1():
     assert tot_w == 6000
     assert tot_h == 4500
 
+def test_properties():
+    w, h = 4000, 3000
+    large_img = get_large_img(w, h)
+    props = large_img.get_properties()
+    assert props['format'] == 'mjpeg'
+    assert props['width'] == 4000
+    props = large_img.get_image_properties()
+    assert props['format'] == 'mjpeg'
+    assert props['height'] == 3000
+
+def test_dimensions_2():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    (w, h) = large_img.dimensions(ignore_orientation=False)
+    assert w == 3000
+    assert h == 4000
+
+def test_crop():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    f = image.ImageFile(large_img.crop(out_file=TMP2, position='center-top', width=3500, height=2000))
+    assert f.width == 3500
+    assert f.height == 2000
+    os.remove(TMP2)
+
+def test_scale():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    f = image.ImageFile(large_img.scale(out_file=TMP2), w=2000)
+    assert f.width == 2000
+    assert f.height == 1500
+    f = image.ImageFile(large_img.scale(out_file=TMP2), h=6000)
+    assert f.width == 8000
+    assert f.height == 6000
+    os.remove(TMP2)
+
+def test_no_scale():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    f = image.ImageFile(large_img.scale(out_file=TMP2))
+    assert f.width == 4000
+    assert f.height == 3000
+    os.remove(TMP2)
+
+def test_blindify():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    f = image.ImageFile(large_img.blindify(out_file=TMP2, blinds=4, direction='vertical', blinds_size=50))
+    assert f.width == 4200
+    f = image.ImageFile(large_img.blindify(out_file=TMP2, blinds=10, direction='horizontal', blinds_size='1%'))
+    assert f.height == 3300
+    os.remove(TMP2)
+
+def test_rotate():
+    w, h = 4000, 3000
+    large_img = get_portrait_img(w, h)
+    f = image.ImageFile(large_img.rotate(out_file=TMP2))
+    assert f.width == 3000
+    assert f.height == 4000
+    f = image.ImageFile(large_img.rotate(out_file=TMP2, degrees=180))
+    assert f.width == 4000
+    assert f.width == 3000
+    os.remove(TMP2)
+
+
+def test_str():
+    w, h = 4000, 3000
+    large_img = get_large_img(w, h)
+    s = str(large_img)
+    assert '"filename": "/tmp/large.jpg"' in s
+    assert '"width": 4000' in s
+
 
 def test_needed_frame_2():
     w, h = 4000, 3000
@@ -115,3 +191,13 @@ def test_to_image_still():
     vid_o = video.VideoFile(TMP_VID)
     assert vid_o.duration == 3
 
+def test_widths_and_heights():
+    w, h = 4000, 3000
+    img = get_large_img(w, h)
+    pt = get_portrait_img(w, h)
+    widths = image.get_widths(img.filename, pt.filename, LARGE_LANDSCAPE)
+    assert widths == [4000, 3000, 4000]
+    assert image.avg_width(img.filename, pt.filename, LARGE_LANDSCAPE, LARGE_PORTRAIT) == 3500
+    heights = image.get_heights(img.filename, pt.filename, LARGE_LANDSCAPE)
+    assert heights == [3000, 4000, 3000]
+    assert image.avg_height(img.filename, pt.filename, LARGE_PORTRAIT, LARGE_PORTRAIT) == 3250
