@@ -124,4 +124,3 @@ def test_cut():
     assert abs(1 - v.duration) <= 0.05
     v = video.VideoFile(video.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
     assert abs(2 - v.duration) <= 0.05
-
