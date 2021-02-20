@@ -63,10 +63,10 @@ def test_str():
     testf = fil.Simple(filters=f)
     assert str(testf) == '-vf "{}"'.format(f)
     testf.append(f)
-    assert str(testf) == '-vf "{},{}"'.format(f,f)
+    assert str(testf) == '-vf "{0},{0}"'.format(f)
     o = fil.overlay()
     testf.insert(1, o)
-    assert str(testf) == '-vf "{},{},{}"'.format(f,o,f)
-    
+    assert str(testf) == '-vf "{0},{1},{0}"'.format(f,o)
+
     testf = fil.Simple(filters=[f,f])
-    assert str(testf) == '-vf "{},{}"'.format(f,f)
+    assert str(testf) == '-vf "{0},{0}"'.format(f)
