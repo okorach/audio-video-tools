@@ -55,6 +55,7 @@ class VideoFile(media.MediaFile):
         self.audio_codec = None
         self.audio_language = None
         self.audio_sample_rate = None
+        self.year = None
         super().__init__(filename)
         self.get_specs()
 
@@ -208,7 +209,7 @@ class VideoFile(media.MediaFile):
         if self.video_codec is None:
             self.get_specs()
         return {
-            'file_size': self.filesize, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
+            'file_size': self.size, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
             opt.Option.VCODEC: self.video_codec, opt.Option.FPS: self.video_fps,
             'width': self.get_width(), 'height': self.get_height(), opt.Option.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,

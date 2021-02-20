@@ -55,3 +55,18 @@ def test_rotate_err_4():
         _ = fil.rotate([2])
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
+
+def test_str():
+    testf = fil.Simple()
+    assert str(testf) == ''
+    f = fil.rotate(90)
+    testf = fil.Simple(filters=f)
+    assert str(testf) == '-vf "{}"'.format(f)
+    testf.append(f)
+    assert str(testf) == '-vf "{},{}"'.format(f,f)
+    o = fil.overlay()
+    testf.insert(1, o)
+    assert str(testf) == '-vf "{},{},{}"'.format(f,o,f)
+    
+    testf = fil.Simple(filters=[f,f])
+    assert str(testf) == '-vf "{},{}"'.format(f,f)
