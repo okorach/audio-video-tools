@@ -84,6 +84,11 @@ class VideoFile(media.MediaFile):
             except KeyError:
                 util.logger.error("Can't find video_bitrate in %s", str(self.specs))
         self.duration = float(stream.get('duration', 0))
+        try:
+            self.copyright = self.specs['format']['copyright']
+        except KeyError:
+            pass
+
         if self.duration == 0.0:
             util.logger.error("Can't find duration in %s", str(stream))
         return self.specs
