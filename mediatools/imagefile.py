@@ -153,37 +153,6 @@ class ImageFile(media.MediaFile):
         else:
             return self.slice_vertical(nbr_slices, round_to)
 
-    def crop_any(self, width_height_ratio="1.5", align="center", out_file=None):
-        if re.match(r"^\d+:\d+$", width_height_ratio):
-            a, b = [float(x) for x in width_height_ratio.split(':')]
-            ratio = a / b
-        else:
-            ratio = float(width_height_ratio)
-
-        w, h = self.dimensions()
-        current_ratio = w / h
-        crop_w = w
-        crop_h = h
-        if current_ratio > ratio:
-            crop_w = h * ratio
-        else:
-            crop_h = w // ratio
-
-        x = 0
-        y = 0
-        if align == 'right':
-            if ratio > current_ratio:
-                y = h - crop_h
-            else:
-                x = w - crop_w
-        elif align == 'center':
-            if ratio > current_ratio:
-                y = (h - crop_h) // 2
-            else:
-                x = (w - crop_w) // 2
-
-        self.crop(crop_w, crop_h, x, y, out_file)
-
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
         files = [ImageFile(__get_background__(kwargs.pop('background_color', 'black'))), self]

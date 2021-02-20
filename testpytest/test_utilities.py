@@ -24,14 +24,35 @@ import os
 import mediatools.utilities as util
 
 SYMLINK = "it/symlink-song.mp3"
-FILE = "it/song.mp3"
-
+FILE = "it/seal.mp3"
 
 def test_symlink_1():
     assert util.is_symlink(SYMLINK)
-    assert util.is_symlink(FILE)
-
+    assert not util.is_symlink(FILE)
 
 def test_symlink_2():
     file = util.get_symlink_target(SYMLINK)
     assert file == FILE.split(os.path.sep)[-1]
+
+def test_conf():
+    assert util.get_conf_property('image.default.format') == 'jpg'
+
+def test_hms():
+    assert util.to_hms('3727.21') == (1, 2, 7.21)
+    assert util.to_hms('7227.33', fmt='string') == "02:00:27.330"
+    assert util.to_hms('notfloat') == (0, 0, 0)
+    assert util.to_hms('notfloat', fmt='string') == "00:00:00"
+
+def test_to_seconds():
+    assert util.to_seconds("02:00:07.327") == 7207.327
+    assert util.to_seconds("02:19.111") == 139.111
+    assert util.to_seconds("319.111") == 319.111
+
+def test_profile():
+    assert util.get_profile_extension(None) == 'mp4'
+    assert util.get_profile_extension('mp3_128k') == 'mp3'
+    assert util.get_profile_extension('nonexisting') == 'mp4'
+
+def test_generated():
+    util.generated_file("foo.txt")
+    assert True

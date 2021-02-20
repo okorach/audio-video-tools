@@ -184,6 +184,17 @@ def test_blindify():
     del_img(img)
     del_img(f)
 
+def test_shake():
+    w, h = 1000, 200
+    img = get_img(w, h, IMG1)
+    util.set_debug_level(5)
+    f = image.ImageFile(img.shake(out_file=TMP2, nbr_slices=20, direction='vertical', shake_pct=5))
+    assert f.height == 210
+    f = image.ImageFile(img.shake(out_file=TMP2, nbr_slices=20, direction='horizontal', shake_pct=10))
+    assert f.width == 1100
+    del_img(img)
+    del_img(f)
+
 
 def test_rotate():
     w, h = 4000, 3000

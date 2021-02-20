@@ -55,6 +55,7 @@ class VideoFile(media.MediaFile):
         self.audio_codec = None
         self.audio_language = None
         self.audio_sample_rate = None
+        self.year = None
         super().__init__(filename)
         self.get_specs()
 
@@ -85,6 +86,11 @@ class VideoFile(media.MediaFile):
         self.duration = float(stream.get('duration', 0))
         if self.duration == 0.0:
             util.logger.error("Can't find duration in %s", str(stream))
+        try:
+            self.copyright = self.specs['format']['tags']['copyright']
+            util.logger.info("%s copyright = %s", self.filename, self.copyright)
+        except KeyError:
+            util.logger.info("%s has no copyright", self.filename)
         return self.specs
 
     def get_audio_specs(self):
@@ -208,7 +214,7 @@ class VideoFile(media.MediaFile):
         if self.video_codec is None:
             self.get_specs()
         return {
-            'file_size': self.filesize, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
+            'file_size': self.size, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
             opt.Option.VCODEC: self.video_codec, opt.Option.FPS: self.video_fps,
             'width': self.get_width(), 'height': self.get_height(), opt.Option.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
