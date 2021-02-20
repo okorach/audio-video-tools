@@ -45,7 +45,7 @@ def test_type():
         assert True
     except Exception:
         assert False
-    
+
     try:
         _ = video.VideoFile(FILE)
         assert True
