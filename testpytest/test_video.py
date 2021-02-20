@@ -35,22 +35,15 @@ def test_type():
         assert False
     except ex.FileTypeError:
         assert True
-    except Exception:
-        assert False
 
     try:
         _ = video.VideoFile('it/img-640x480.jpg')
         assert False
     except ex.FileTypeError:
         assert True
-    except Exception:
-        assert False
 
-    try:
-        _ = video.VideoFile(FILE)
-        assert True
-    except Exception:
-        assert False
+    v = video.VideoFile(FILE)
+    assert v.filename == FILE
 
 def test_video_specs():
     v = video.VideoFile(FILE)
