@@ -261,8 +261,11 @@ def remove_nones(p):
     return dict((k, v) for k, v in p.items() if v is not None)
 
 
-def parse_media_args(parser):
-    kwargs = remove_nones(vars(parser.parse_args()))
+def parse_media_args(parser, args=None):
+    if args is None:
+        kwargs = remove_nones(vars(parser.parse_args()))
+    else:
+        kwargs = remove_nones(vars(parser.parse_args(args)))
     set_debug_level(kwargs.pop('debug', 1))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
             kwargs.get(opt.Option.RESOLUTION, None) is not None:
