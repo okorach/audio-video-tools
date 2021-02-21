@@ -1,4 +1,3 @@
-
 #!python3
 #
 # media-tools
@@ -20,7 +19,6 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
 import mediatools.utilities as util
 import mediatools.videofile as video
 
