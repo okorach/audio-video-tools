@@ -23,16 +23,6 @@
 import os
 import mediatools.utilities as util
 
-SYMLINK = "it/symlink-song.mp3"
-FILE = "it/seal.mp3"
-
-def test_symlink_1():
-    assert util.is_symlink(SYMLINK)
-    assert not util.is_symlink(FILE)
-
-def test_symlink_2():
-    file = util.get_symlink_target(SYMLINK)
-    assert file == FILE.split(os.path.sep)[-1]
 
 def test_conf():
     assert util.get_conf_property('image.default.format') == 'jpg'
