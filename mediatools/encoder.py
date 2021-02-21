@@ -33,7 +33,7 @@ class Encoder:
     def __init__(self, **kwargs):
         self.format = None
         self.aspect = None
-        self.size = None
+        self.resolution = None
         self.vcodec = 'copy'
         self.vbitrate = None
         self.video_fps = None
@@ -62,8 +62,8 @@ class Encoder:
             self.abitrate = kwsettings[opt.Option.ABITRATE]
         if 'aspect' in kwsettings:
             self.aspect = kwsettings[opt.Option.ASPECT]
-        if 'size' in kwsettings:
-            self.size = kwsettings[opt.Option.SIZE]
+        if 'resolution' in kwsettings:
+            self.resolution = kwsettings[opt.Option.RESOLUTION]
         if 'start' in kwsettings:
             self.start = kwsettings[opt.Option.START]
         if 'stop' in kwsettings:

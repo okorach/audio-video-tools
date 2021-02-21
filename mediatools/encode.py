@@ -42,7 +42,7 @@ def encode_file(file, **kwargs):
             new_h = int(kwargs.get('vheight', 0))
         else:
             new_h = (int(h * new_w / w) // 8) * 8
-        kwargs[opt.Option.SIZE] = "%dx%d" % (new_w, new_h)
+        kwargs[opt.Option.RESOLUTION] = "%dx%d" % (new_w, new_h)
     if kwargs.get('timeranges', None) is None:
         file_object.encode(kwargs.get('outputfile', None), **kwargs)
         return

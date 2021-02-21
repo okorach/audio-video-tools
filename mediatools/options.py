@@ -32,7 +32,7 @@ in mediatools library
 class OptionFfmpeg:
     '''Documents supported ffmpeg options'''
     FORMAT = 'f'
-    SIZE = 's'
+    RESOLUTION = 's'
     VCODEC = 'vcodec'
     VCODEC2 = 'c:v'
     VCODEC3 = 'codec:v'
@@ -41,7 +41,6 @@ class OptionFfmpeg:
     ACODEC3 = 'codec:a'
     VBITRATE = 'b:v'
     ABITRATE = 'b:a'
-    SIZE = 's'
     FPS = 'r'
     ASPECT = 'aspect'
     DEINTERLACE = 'deinterlace'
@@ -54,7 +53,7 @@ class OptionFfmpeg:
 class Option:
     '''Documents supported audio-video-tools encoding options'''
     FORMAT = 'format'
-    SIZE = 'size'
+    RESOLUTION = 'resolution'
     VCODEC = 'vcodec'
     ACODEC = 'acodec'
     VBITRATE = 'vbitrate'
@@ -87,7 +86,7 @@ M2F_MAPPING = {
     Option.ABITRATE: OptionFfmpeg.ABITRATE,
     Option.FPS: OptionFfmpeg.FPS,
     Option.ASPECT: OptionFfmpeg.ASPECT,
-    Option.SIZE: OptionFfmpeg.SIZE,
+    Option.RESOLUTION: OptionFfmpeg.RESOLUTION,
     Option.DEINTERLACE: OptionFfmpeg.DEINTERLACE,
     Option.ACHANNEL: OptionFfmpeg.ACHANNEL,
     Option.VFILTER: OptionFfmpeg.VFILTER,

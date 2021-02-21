@@ -67,8 +67,8 @@ class Resolution:
         if 'width' in kwargs and 'height' in kwargs:
             w = kwargs['width']
             h = kwargs['height']
-        elif 'resolution' in kwargs or opt.Option.SIZE in kwargs:
-            r = canonical(kwargs.get('resolution', kwargs.get(opt.Option.SIZE, None)))
+        elif 'resolution' in kwargs or opt.Option.RESOLUTION in kwargs:
+            r = canonical(kwargs.get('resolution', kwargs.get(opt.Option.RESOLUTION, None)))
             if re.search(r'[x:]', r):
                 (w, h) = re.split(r'[x:]', r, maxsplit=2)
         if int(w) <= 0 or int(h) <= 0:

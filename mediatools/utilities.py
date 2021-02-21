@@ -248,7 +248,7 @@ def get_common_args(executable, desc):
 
     parser.add_argument('--' + opt.Option.WIDTH, required=False, type=int, help='width of video/image')
     parser.add_argument('--' + opt.Option.HEIGHT, required=False, type=int, help='height of video/image')
-    parser.add_argument('-s', '--' + opt.Option.SIZE, required=False, help='Media size HxW for videos and images')
+    parser.add_argument('-s', '--' + opt.Option.RESOLUTION, required=False, help='Media size HxW for videos and images')
 
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
@@ -261,13 +261,16 @@ def remove_nones(p):
     return dict((k, v) for k, v in p.items() if v is not None)
 
 
-def parse_media_args(parser):
-    kwargs = remove_nones(vars(parser.parse_args()))
+def parse_media_args(parser, args=None):
+    if args is None:
+        kwargs = remove_nones(vars(parser.parse_args()))
+    else:
+        kwargs = remove_nones(vars(parser.parse_args(args)))
     set_debug_level(kwargs.pop('debug', 1))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
-            kwargs.get(opt.Option.SIZE, None) is not None:
-        kwargs[opt.Option.SIZE] = res.canonical(kwargs[opt.Option.SIZE])
-        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.SIZE].split('x', maxsplit=2)
+            kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
+        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.RESOLUTION].split('x', maxsplit=2)
         if kwargs[opt.Option.WIDTH] == '':
             kwargs[opt.Option.WIDTH] = -1
         else:
@@ -373,7 +376,7 @@ def get_ffmpeg_cmdline_acodec(cmdline):
 
 
 def get_ffmpeg_cmdline_framesize(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.SIZE)
+    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.RESOLUTION)
 
 
 def get_ffmpeg_cmdline_framerate(cmdline):
@@ -418,7 +421,7 @@ def get_ffmpeg_cmdline_params(cmdline):
     p[opt.Option.VBITRATE] = get_ffmpeg_cmdline_vbitrate(cmdline)
     p[opt.Option.ACODEC] = get_ffmpeg_cmdline_acodec(cmdline)
     p[opt.Option.VCODEC] = get_ffmpeg_cmdline_vcodec(cmdline)
-    p[opt.Option.SIZE] = get_ffmpeg_cmdline_framesize(cmdline)
+    p[opt.Option.RESOLUTION] = get_ffmpeg_cmdline_framesize(cmdline)
     p[opt.Option.FPS] = get_ffmpeg_cmdline_framerate(cmdline)
     p[opt.Option.ASPECT] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
     p[opt.Option.VFILTER] = get_ffmpeg_cmdline_vfilter(cmdline)
@@ -471,15 +474,3 @@ def generated_file(filename):
 
 def package_home():
     return pathlib.Path(__file__).parent
-
-
-def is_symlink(file):
-    return file.endswith('.lnk') or os.path.islink(file)
-
-
-def get_symlink_target(symlink):
-    if platform.system() == 'Windows':
-        import win32com.client
-        return win32com.client.Dispatch("WScript.Shell").CreateShortCut(symlink).Targetpath
-    else:
-        return os.readlink(symlink)
