@@ -226,7 +226,7 @@ class VideoFile(media.MediaFile):
         all_props.update(self.get_audio_properties())
         all_props.update(self.get_video_properties())
         all_props = all_props.copy()
-        all_props.pop('resolution')
+        all_props['resolution'] = str(all_props['resolution'])
         util.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
@@ -242,11 +242,12 @@ class VideoFile(media.MediaFile):
         media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
 
         media_opts.update(util.cleanup_options(kwargs))
+        media_opts[opt.Option.RESOLUTION] = "{}x{}".format(width, height)
         util.logger.debug("Cmd line settings = %s", str(media_opts))
         out_file = util.automatic_output_file_name(out_file, self.filename,
             "crop_{0}x{1}-{2}".format(width, height, pos))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
-
+        
         cmd = '-i "{}" {} -vf "{}" -aspect {} "{}"'.format(self.filename,
             media.build_ffmpeg_options(media_opts), filters.crop(width, height, left, top),
             aspect, out_file)
@@ -423,8 +424,8 @@ class VideoFile(media.MediaFile):
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
 
-        if kwargs.get('size', None) is not None:
-            settings.append('-s "{}"'.format(kwargs['size']))
+        if kwargs.get('resolution', None) is not None:
+            settings.append('-s "{}"'.format(kwargs['resolution']))
 
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
@@ -466,7 +467,7 @@ def __get_acodec__(**kwargs):
 
 def __must_encode_video__(**kwargs):
     for k in kwargs:
-        if k in ('size', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse', 'deshake'):
+        if k in ('resolution', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse', 'deshake'):
             return True
         if k == 'vcodec' and kwargs[k] != 'copy':
             return True

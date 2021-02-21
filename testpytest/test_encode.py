@@ -34,7 +34,7 @@ def get_video():
 
 def test_encode_size():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_FILE, size='1280x720', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_FILE, resolution='1280x720', start=1, stop=3))
     util.logger.debug("TEST WIDTH = {}".format(vid2_o.resolution.width))
     assert vid2_o.resolution.width == 1280
     assert vid2_o.duration == 2

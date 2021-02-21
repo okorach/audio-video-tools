@@ -77,6 +77,7 @@ def test_attributes():
 
 def test_crop():
     v = video.VideoFile(FILE)
+    util.set_debug_level(5)
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position='center'))
     cropv.probe()
     assert cropv.aspect == '1:1'
@@ -84,7 +85,6 @@ def test_crop():
 def test_add_metadata():
     shutil.copy(FILE, TMP1)
     v = video.VideoFile(TMP1)
-    util.set_debug_level(5)
     outf = v.add_metadata(author='John Doe', year='2027', copyright='JDoe Corp', default_track=0, language=['0:fr:Croatian'])
     v2 = video.VideoFile(outf)
     v2.get_video_specs()
