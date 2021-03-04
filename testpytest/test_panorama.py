@@ -27,12 +27,12 @@ import mediatools.exceptions as ex
 
 EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
-TMP_VID = "/tmp/vid.mp4"
+TMP_VID = "tmp/vid.mp4"
 
 
 def get_img(w, h, orientation='landscape'):
     small_img = image.__get_background__('black')
-    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file="/tmp/portrait.jpg"))
+    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file="tmp/portrait.jpg"))
     portrait_img.orientation = orientation
     return portrait_img
 

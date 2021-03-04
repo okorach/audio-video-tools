@@ -26,7 +26,7 @@ import mediatools.videofile as video
 large_img = None
 portrait_img = None
 
-TMP_FILE = '/tmp/video_test2.mp4'
+TMP_FILE = 'tmp/video_test2.mp4'
 
 def get_video():
     return 'it/video-1920x1080.mp4'

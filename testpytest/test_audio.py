@@ -27,7 +27,6 @@ AUDIO_FILE = "it/seal.mp3"
 H1 = "Seal-Crazy-Seal-1991-03-357.093878-mp3"
 AUDIO_FILE_2 = "it/ub40.mp3"
 H2 = "UB40-I got you babe-The best of UB40-1987-14-190.119184-mp3"
-TMP_AUDIO = "/tmp/audio.mp3"
 
 
 def test_hash():
