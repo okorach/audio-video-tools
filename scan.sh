@@ -101,6 +101,5 @@ sonar-scanner \
   -Dsonar.python.pylint.reportPaths=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
   -Dsonar.python.coverage.reportPaths=$coverageReport \
-  -Dsonar.coverage.exclusions=**/*.sh \
   $pr_branch \
   $scanOpts
