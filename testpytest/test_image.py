@@ -92,23 +92,19 @@ def test_to_image_effect():
     w, h = 3000, 2000
     img = get_img(w, h)
     tmp_vid = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-    img.to_video(with_effect=True, duration=3, speed=0.02, out_file=tmp_vid)
-    vid_o = video.VideoFile(tmp_vid)
+    vid_o = video.VideoFile(img.to_video(with_effect=True, duration=3, speed=0.02, out_file=tmp_vid))
     assert vid_o.duration == 3
     del_img(img)
     del_img(vid_o)
-    os.remove(tmp_vid)
 
 def test_to_image_still():
     w, h = 2000, 2000
     img = get_img(w, h)
     tmp_vid = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-    img.to_video(with_effect=False, duration=3, out_file=tmp_vid)
-    vid_o = video.VideoFile(tmp_vid)
+    vid_o = video.VideoFile(img.to_video(with_effect=False, duration=3, out_file=tmp_vid))
     assert vid_o.duration == 3
     del_img(img)
     del_img(vid_o)
-    os.remove(tmp_vid)
 
 def test_widths_and_heights():
     w, h = 4000, 3000
