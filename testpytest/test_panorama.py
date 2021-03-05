@@ -28,13 +28,12 @@ import mediatools.exceptions as ex
 
 EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
-TMP_VID = tmpfile = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-
+TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP_IMG = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
 
 def get_img(w, h, orientation='landscape'):
     small_img = image.__get_background__('black')
-    tmpfile = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
-    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=tmpfile))
+    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
 
@@ -47,6 +46,8 @@ def test_pan_input_1():
         assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_2():
@@ -57,6 +58,8 @@ def test_pan_input_2():
         assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_3():
@@ -67,6 +70,8 @@ def test_pan_input_3():
         assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_4():
@@ -77,6 +82,8 @@ def test_pan_input_4():
         assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_5():
@@ -87,6 +94,8 @@ def test_pan_input_5():
         assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_1():

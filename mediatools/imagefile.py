@@ -24,8 +24,8 @@ import math
 import re
 import random
 import shutil
-import exifread
 import tempfile
+import exifread
 
 import mediatools.utilities as util
 import mediatools.file as fil
