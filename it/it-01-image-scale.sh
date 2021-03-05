@@ -12,13 +12,12 @@ do
                 # Generates a too wide image, skip
                 continue
             fi
-            run_cmd "image-scale -i $f -s ${w}x${h}"
-            rm ./$f*.scale-*.jpg 2>/dev/null
+            run_cmd "image-scale -i $f -o tmp/$f.scale.$w.$h.jpg -s ${w}x${h}"
         done
     done
 done
 echo "----------------------------------------"
 echo "SUCCESS: $(basename $0)"
 echo "----------------------------------------"
-rm ./*.scale-*.jpg 2>/dev/null
+rm tmp/*.scale.* 2>/dev/null
 exit 0

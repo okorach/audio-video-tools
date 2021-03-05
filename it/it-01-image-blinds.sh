@@ -22,12 +22,12 @@ do
             else
                 c=white
             fi
-            run_cmd "image-blinds -i $f -n $n -d $d -c $c -b $r"
+            run_cmd "image-blinds -i $f -o tmp/$f.blind.$n.$r.jpg -n $n -d $d -c $c -b $r"
         done
     done
 done
 echo "----------------------------------------"
 echo "SUCCESS: $(basename $0)"
 echo "----------------------------------------"
-rm ./*.blind.jpg 2>/dev/null
+rm ./*.blind.* tmp/*.blind.* 2>/dev/null
 exit 0

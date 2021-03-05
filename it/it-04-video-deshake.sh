@@ -9,10 +9,10 @@ do
     else
         r=64
     fi
-    run_cmd "video-stabilize -i video-1920x1080.mp4 --$c --rx $r --ry $r"
+    run_cmd "video-stabilize -i video-1920x1080.mp4 -o tmp/video-1920x1080.deshake.$c.mp4 --$c --rx $r --ry $r"
 done
 echo "----------------------------------------"
 echo "SUCCESS: $(basename $0)"
 echo "----------------------------------------"
-rm ./*.deshake*.mp4 2>/dev/null
+rm tmp/*.deshake.* 2>/dev/null
 exit 0
