@@ -19,8 +19,10 @@
 #
 
 import os
+import re
 import mediatools.file as fil
 import mediatools.videofile as video
+import mediatools.version as version
 
 FILE = 'it/video-720p.mp4'
 FILE_2 = 'it/video-1920x1080.mp4'
@@ -91,3 +93,6 @@ def test_hash_list():
     assert len(hashes[h]) == 2
     assert list(hashes.keys())[1] is not None
     assert len(hashes.keys()) == 2
+
+def test_version():
+    assert re.match(r'^[0-9.]+$', version.MEDIA_TOOLS_VERSION)
