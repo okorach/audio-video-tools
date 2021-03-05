@@ -20,10 +20,10 @@ do
             keep_audio=""
             ;;
     esac
-    run_cmd "video-speed -i $file $keep_audio --speed $speed -o video.speed.$speed.mp4"
+    run_cmd "video-speed -i $file -o tmp/$file.speed.$speed.mp4 $keep_audio --speed $speed -o video.speed.$speed.mp4"
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.speed.*.mp4 2>/dev/null
+rm ./*.speed.* 2>/dev/null
 exit 0

@@ -6,11 +6,11 @@ for file in ./*.mp4
 do
     for keep_audio in "" "--keep_audio"
     do
-        run_cmd "video-reverse -i $file $keep_audio"
+        run_cmd "video-reverse -i $file -o tmp/$file.reverse.mp4 $keep_audio"
     done
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./*.reverse*.mp4 2>/dev/null
+rm tmp/*.reverse.* 2>/dev/null
 exit 0

@@ -40,7 +40,7 @@ def main():
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
     for file in util.dir_list(directory, recurse=False):
-        if not util.is_symlink(file):
+        if not fil.is_link(file):
             continue
         tgt = util.get_symlink_target(file)
         util.logger.info("Symlink %s --> Target = %s", file, tgt)

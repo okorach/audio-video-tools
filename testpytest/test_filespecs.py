@@ -31,8 +31,8 @@ def test_1():
     csv = spec.__to_csv__(specs, allp)
     assert ',192000,' in csv
     assert 'Seal' in csv
-    assert ',Crazy,' in csv
-    assert ',it/seal.mp3,' in csv
+    assert 'Crazy' in csv
+    assert 'it/seal.mp3' in csv
 
 def test_2():
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))

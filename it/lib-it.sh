@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p tmp
+
 function run_cmd() {
     echo "Running: $*"
 	$*

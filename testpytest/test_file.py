@@ -19,8 +19,10 @@
 #
 
 import os
+import re
 import mediatools.file as fil
 import mediatools.videofile as video
+import mediatools.version as version
 
 FILE = 'it/video-720p.mp4'
 FILE_2 = 'it/video-1920x1080.mp4'
@@ -38,7 +40,7 @@ def test_file_video():
     assert f.size == FILE_SIZE
 
 def test_file_unexisting():
-    f = fil.File('/tmp/nonexist.txt')
+    f = fil.File('tmp/nonexist.txt')
     assert not f.probe()
 
 def test_extension():
@@ -77,7 +79,7 @@ def test_link():
     os.remove(lnk)
 
 def test_hash():
-    f = fil.File("/tmp/nonexisting")
+    f = fil.File("tmp/nonexisting")
     assert f.hash() is None
     f = fil.File(FILE)
     assert f.hash() is not None
@@ -91,3 +93,6 @@ def test_hash_list():
     assert len(hashes[h]) == 2
     assert list(hashes.keys())[1] is not None
     assert len(hashes.keys()) == 2
+
+def test_version():
+    assert re.match(r'^[0-9.]+$', version.MEDIA_TOOLS_VERSION)

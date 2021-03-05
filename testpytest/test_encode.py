@@ -20,13 +20,11 @@
 #
 
 import os
+import tempfile
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-large_img = None
-portrait_img = None
-
-TMP_FILE = '/tmp/video_test2.mp4'
+TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
 
 def get_video():
     return 'it/video-1920x1080.mp4'
@@ -34,21 +32,19 @@ def get_video():
 
 def test_encode_size():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_FILE, resolution='1280x720', start=1, stop=3))
-    util.logger.debug("TEST WIDTH = {}".format(vid2_o.resolution.width))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=3))
     assert vid2_o.resolution.width == 1280
     assert vid2_o.duration == 2
-    os.remove(TMP_FILE)
+    os.remove(TMP_VID)
 
 def test_encode_acodec():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_FILE, acodec='libmp3lame', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, acodec='libmp3lame', start=1, stop=3))
     assert vid2_o.audio_codec == 'mp3'
-    os.remove(TMP_FILE)
+    os.remove(TMP_VID)
 
 def test_encode_vcodec():
     vid_o = video.VideoFile(get_video())
-    util.set_debug_level(5)
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_FILE, vcodec='libx265', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vcodec='libx265', start=1, stop=3))
     assert vid2_o.video_codec == 'hevc'
-    os.remove(TMP_FILE)
+    os.remove(TMP_VID)

@@ -21,18 +21,19 @@
 #
 
 import os
+import tempfile
 import mediatools.imagefile as image
 import mediatools.videofile as video
 import mediatools.exceptions as ex
 
 EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
-TMP_VID = "/tmp/vid.mp4"
-
+TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP_IMG = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
 
 def get_img(w, h, orientation='landscape'):
     small_img = image.__get_background__('black')
-    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file="/tmp/portrait.jpg"))
+    portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
 
@@ -41,88 +42,114 @@ def test_pan_input_1():
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(effect=(0, 1, 0.5, 0.5), out_file=TMP_VID)
+        os.remove(TMP_VID)
+        assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_2():
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(speed="10%", out_file=TMP_VID)
+        os.remove(TMP_VID)
+        assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_3():
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(duration=5, out_file=TMP_VID)
+        os.remove(TMP_VID)
+        assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_MIN_2_PARAMS
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_4():
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(duration=-5, speed=0.1, out_file=TMP_VID)
+        os.remove(TMP_VID)
+        assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_input_5():
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(duration=0, speed=0.1, out_file=TMP_VID)
+        os.remove(TMP_VID)
+        assert False
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
+    finally:
+        os.remove(large_img.filename)
 
 
 def test_pan_1():
-    large_img = get_img(4000, 3000)
-    vid = large_img.panorama(duration=5, speed="10%", resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.panorama(duration=5, speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_2():
-    large_img = get_img(4000, 3000)
-    vid = large_img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 10
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_3():
-    large_img = get_img(4000, 3000)
-    vid = large_img.panorama(effect=(0, 1, 0.5, 0.5), duration=5, resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.panorama(effect=(0, 1, 0.5, 0.5), duration=5, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_4():
-    large_img = get_img(4000, 3000)
-    vid = large_img.panorama(effect=(1, 0, 0.5, 0.5), speed=0.2, resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.panorama(effect=(1, 0, 0.5, 0.5), speed=0.2, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_5():
-    large_img = get_img(4000, 3000)
-    vid = large_img.to_video(with_effect=False, duration=3, resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.to_video(with_effect=False, duration=3, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_6():
-    large_img = get_img(4000, 3000)
-    vid = large_img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
+    img = get_img(4000, 3000)
+    vid = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
+    os.remove(img.filename)
 
 
 def test_pan_portrait():
@@ -131,3 +158,4 @@ def test_pan_portrait():
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
+    os.remove(img.filename)
