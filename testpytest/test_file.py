@@ -25,7 +25,8 @@ import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.version as version
 
-FILE = 'it' + os.sep + 'video-720p.mp4'
+BASE = 'video-720p.mp4'
+FILE = 'it' + os.sep + BASE
 FILE_2 = 'it' + os.sep + 'video-1920x1080.mp4'
 FILE_SIZE = 2001067
 
@@ -50,14 +51,13 @@ def test_extension():
     assert f.extension() == 'mp4'
 
 def test_basename():
-    assert fil.basename(FILE) == 'video-720p.mp4'
+    assert fil.basename(FILE) == BASE
     assert fil.basename(FILE, 'mp4') == 'video-720p'
     f = fil.File(FILE)
-    assert f.basename() == 'video-720p.mp4'
+    assert f.basename() == BASE
     assert f.basename('mp4') == 'video-720p'
 
 def test_dirname():
-    file = os.sep.join('/usr/local/bin/python3'.split('/'))
     dirname = os.sep.join('/usr/local/bin'.split('/'))
     file = dirname + os.sep + 'python3'
     assert fil.dirname(file) == dirname
