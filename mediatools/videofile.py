@@ -99,7 +99,7 @@ class VideoFile(media.MediaFile):
             if stream['codec_type'] != 'audio':
                 continue
             self.audio_codec = self.__get_audio_stream_attribute__('codec_name')
-            self.audio_bitrate = self.__get_audio_stream_attribute__('bit_rate')
+            self.audio_bitrate = int(self.__get_audio_stream_attribute__('bit_rate'))
             self.audio_sample_rate = self.__get_audio_stream_attribute__('sample_rate')
             if 'tags' in stream and 'language' in stream['tags']:
                 self.audio_language = stream['tags']['language']
@@ -247,7 +247,7 @@ class VideoFile(media.MediaFile):
         out_file = util.automatic_output_file_name(out_file, self.filename,
             "crop_{0}x{1}-{2}".format(width, height, pos))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
-        
+
         cmd = '-i "{}" {} -vf "{}" -aspect {} "{}"'.format(self.filename,
             media.build_ffmpeg_options(media_opts), filters.crop(width, height, left, top),
             aspect, out_file)
@@ -426,6 +426,9 @@ class VideoFile(media.MediaFile):
 
         if kwargs.get('resolution', None) is not None:
             settings.append('-s "{}"'.format(kwargs['resolution']))
+
+        if kwargs.get('vbitrate', None) is not None:
+            settings.append('-b:v "{}"'.format(kwargs['vbitrate']))
 
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
