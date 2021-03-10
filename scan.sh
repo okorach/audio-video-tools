@@ -100,6 +100,6 @@ sonar-scanner \
   -Dsonar.python.flake8.reportPaths=$flake8Report \
   -Dsonar.python.pylint.reportPaths=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
-  -Dsonar.python.coverage.reportPaths=$coverageReport \
+  -Dsonar.python.coverage.reportPaths=$coverageReport,tests_windows/coverage_windows.xml \
   $pr_branch \
   $scanOpts
