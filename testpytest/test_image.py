@@ -1,5 +1,4 @@
 
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -23,7 +22,6 @@
 import os
 import tempfile
 import mediatools.exceptions as ex
-import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.videofile as video
 
@@ -42,8 +40,9 @@ def del_files(*imgs):
 def test_str():
     img = get_img(400, 300)
     s = str(img)
-    assert "'filename': '" + img.filename + "'" in s
+    print("STR = %s" % s)
     assert "'width': 400" in s
+    assert "'filename': '{}'".format(img.filename) in s
     del_files(img)
 
 def test_scale_1():

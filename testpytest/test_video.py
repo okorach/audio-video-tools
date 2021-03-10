@@ -21,23 +21,24 @@
 
 import os
 import shutil
+import tempfile
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-FILE = 'it/video-720p.mp4'
-TMP1 = '/tmp/vid1.mp4'
-TMP2 = "/tmp/vid2.mp4"
+FILE = 'it' + os.sep + 'video-720p.mp4'
+TMP1 = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP2 = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
 
 def test_type():
     try:
-        _ = video.VideoFile('it/seal.mp3')
+        _ = video.VideoFile('it' + os.sep + 'seal.mp3')
         assert False
     except ex.FileTypeError:
         assert True
 
     try:
-        _ = video.VideoFile('it/img-640x480.jpg')
+        _ = video.VideoFile('it' + os.sep + 'img-640x480.jpg')
         assert False
     except ex.FileTypeError:
         assert True
@@ -81,6 +82,7 @@ def test_crop():
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position='center'))
     cropv.probe()
     assert cropv.aspect == '1:1'
+    os.remove(cropv.filename)
 
 def test_add_metadata():
     shutil.copy(FILE, TMP1)
@@ -115,6 +117,8 @@ def test_reverse():
 def test_cut():
     util.set_debug_level(5)
     v = video.VideoFile(video.cut(FILE, output=TMP1, start=0.5, stop=1.5))
-    assert abs(1 - v.duration) <= 0.05
+    print("DURATION = {}".format(v.duration))
+    assert abs(1 - v.duration) <= 0.06
     v = video.VideoFile(video.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
-    assert abs(2 - v.duration) <= 0.05
+    assert abs(2 - v.duration) <= 0.06
+    os.remove(v.filename)

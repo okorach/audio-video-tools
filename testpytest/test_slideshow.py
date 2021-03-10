@@ -27,9 +27,9 @@ large_img = None
 portrait_img = None
 
 images = (
-    "it/img-1770x1291.jpg", "it/img-3000x1682.jpg", "it/img-large.jpg",
-    "it/img-2320x4000.jpg", "it/img-superwide.jpg", "it/img-2880x1924.jpg",
-    "it/img-3000x4000.jpg", "it/img-640x480.jpg"
+    "it" + os.sep + "img-1770x1291.jpg", "it" + os.sep + "img-3000x1682.jpg", "it" + os.sep + "img-large.jpg",
+    "it" + os.sep + "img-2320x4000.jpg", "it" + os.sep + "img-superwide.jpg", "it" + os.sep + "img-2880x1924.jpg",
+    "it" + os.sep + "img-3000x4000.jpg", "it" + os.sep + "img-640x480.jpg"
 )
 
 def test_slideshow():

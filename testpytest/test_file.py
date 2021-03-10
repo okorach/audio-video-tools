@@ -20,12 +20,14 @@
 
 import os
 import re
+import platform
 import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.version as version
 
-FILE = 'it/video-720p.mp4'
-FILE_2 = 'it/video-1920x1080.mp4'
+BASE = 'video-720p.mp4'
+FILE = 'it' + os.sep + BASE
+FILE_2 = 'it' + os.sep + 'video-1920x1080.mp4'
 FILE_SIZE = 2001067
 
 def test_file_std():
@@ -40,7 +42,7 @@ def test_file_video():
     assert f.size == FILE_SIZE
 
 def test_file_unexisting():
-    f = fil.File('tmp/nonexist.txt')
+    f = fil.File('nonexist.txt')
     assert not f.probe()
 
 def test_extension():
@@ -49,16 +51,18 @@ def test_extension():
     assert f.extension() == 'mp4'
 
 def test_basename():
-    assert fil.basename(FILE) == 'video-720p.mp4'
+    assert fil.basename(FILE) == BASE
     assert fil.basename(FILE, 'mp4') == 'video-720p'
     f = fil.File(FILE)
-    assert f.basename() == 'video-720p.mp4'
+    assert f.basename() == BASE
     assert f.basename('mp4') == 'video-720p'
 
 def test_dirname():
-    assert fil.dirname('/usr/local/bin/python3') == '/usr/local/bin'
-    f = fil.File('/usr/local/bin/python3')
-    assert f.dirname() == '/usr/local/bin'
+    dirname = os.sep.join('/usr/local/bin'.split('/'))
+    file = dirname + os.sep + 'python3'
+    assert fil.dirname(file) == dirname
+    f = fil.File(file)
+    assert f.dirname() == dirname
 
 def test_link():
     assert not fil.is_link(FILE)
@@ -71,15 +75,20 @@ def test_link():
 
     obj = fil.File(lnk)
     assert obj.is_link()
-    assert not obj.is_shortcut()
-
-    assert obj.read_link() == FILE
-    assert fil.read_link(lnk) == FILE
+    if platform.system() == "Windows":
+        assert obj.is_shortcut()
+        reg = r'^[A-Za-z]:' + re.escape(os.sep) + re.escape(FILE) + r'$'
+        assert re.match(reg, obj.read_link())
+        assert re.match(reg, fil.read_link(lnk))
+    else:
+        assert not obj.is_shortcut()
+        assert obj.read_link() == FILE
+        assert fil.read_link(lnk) == FILE
 
     os.remove(lnk)
 
 def test_hash():
-    f = fil.File("tmp/nonexisting")
+    f = fil.File("nonexisting")
     assert f.hash() is None
     f = fil.File(FILE)
     assert f.hash() is not None
@@ -91,6 +100,7 @@ def test_hash_list():
     h = list(hashes.keys())[0]
     assert h is not None
     assert len(hashes[h]) == 2
+    print(str(hashes))
     assert list(hashes.keys())[1] is not None
     assert len(hashes.keys()) == 2
 

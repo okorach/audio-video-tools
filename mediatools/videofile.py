@@ -83,7 +83,7 @@ class VideoFile(media.MediaFile):
                 self.video_bitrate = self.specs['format']['bit_rate']
             except KeyError:
                 util.logger.error("Can't find video_bitrate in %s", str(self.specs))
-        self.duration = float(stream.get('duration', 0))
+        self.duration = round(float(stream.get('duration', 0)), 3)
         if self.duration == 0.0:
             util.logger.error("Can't find duration in %s", str(stream))
         try:
@@ -141,7 +141,7 @@ class VideoFile(media.MediaFile):
 
     def get_video_duration(self):
         if self.duration is None:
-            self.duration = float(self.__get_video_stream_attribute__('duration'))
+            self.duration = round(float(self.__get_video_stream_attribute__('duration')), 3)
         return self.duration
 
     def get_audio_codec(self):
