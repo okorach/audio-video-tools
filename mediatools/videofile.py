@@ -430,6 +430,9 @@ class VideoFile(media.MediaFile):
         if kwargs.get('vbitrate', None) is not None:
             settings.append('-b:v "{}"'.format(kwargs['vbitrate']))
 
+        if kwargs.get('abitrate', None) is not None:
+            settings.append('-b:a "{}"'.format(kwargs['abitrate']))
+
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
 
