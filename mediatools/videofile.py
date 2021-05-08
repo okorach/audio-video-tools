@@ -290,7 +290,7 @@ class VideoFile(media.MediaFile):
                     options.append(filters.metadata('language', value, track))
 
         output_file = util.add_postfix(self.filename, "meta")
-        util.run_ffmpeg('-i "{}" {} "{}"'.format(self.filename, filters.format_options(options), output_file))
+        util.run_ffmpeg('-i "{}" -map 0 {} "{}"'.format(self.filename, filters.format_options(options), output_file))
         return output_file
 
     def add_stream_property(self, stream_index, prop, value=None):
