@@ -39,7 +39,7 @@ def main():
         elif fil.is_video_file(arg):
             vfile = arg
             util.logger.info("Video file %s will be muxed", arg)
-        elif util.is_audio_file(arg):
+        elif fil.is_audio_file(arg):
             util.logger.info("Audio file %s will be muxed", arg)
             afiles.append(arg)
 
