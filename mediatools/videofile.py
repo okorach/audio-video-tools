@@ -98,13 +98,17 @@ class VideoFile(media.MediaFile):
         for stream in self.specs['streams']:
             if stream['codec_type'] != 'audio':
                 continue
-            self.audio_codec = self.__get_audio_stream_attribute__('codec_name')
-            self.audio_bitrate = int(self.__get_audio_stream_attribute__('bit_rate'))
-            self.audio_sample_rate = self.__get_audio_stream_attribute__('sample_rate')
+            self.audio_codec = self.__get_audio_stream_attribute__('codec_name', stream)
+            self.audio_bitrate = self.__get_audio_stream_attribute__('bit_rate', stream)
+            self.audio_sample_rate = self.__get_audio_stream_attribute__('sample_rate', stream)
             if 'tags' in stream and 'language' in stream['tags']:
                 self.audio_language = stream['tags']['language']
+                if self.audio_bitrate is None:
+                    self.audio_bitrate = stream['tags']['BPS-eng']
                 if self.audio_language in util.LANGUAGE_MAPPING:
                     self.audio_language = util.LANGUAGE_MAPPING[self.audio_language]
+            if self.audio_bitrate is not None:
+                self.audio_bitrate = int(self.audio_bitrate)
             break
         return self.specs
 
