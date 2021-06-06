@@ -18,5 +18,5 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-image-stack -g 5 "%~1" "%~2" "%~3" "%~4" "%~5" "%~6" "%~7" "%~8" "%~9" -m "2%%" -d horizontal
-pause
+image-stack -g 5 "%~1" "%~2" "%~3" "%~4" "%~5" "%~6" "%~7" "%~8" "%~9" -m "4%%" -d horizontal
+:: pause
