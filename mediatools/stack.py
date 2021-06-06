@@ -45,7 +45,7 @@ def main():
         elif arg in ('-b', '--background_color'):
             kwargs['background_color'] = sys.argv.pop(0)
         elif arg in ('-m', '--margin'):
-            kwargs['margin'] = int(sys.argv.pop(0))
+            kwargs['margin'] = sys.argv.pop(0)
         elif arg == '--stretch':
             kwargs['stretch'] = True
         elif arg in ('-h', '--help'):
