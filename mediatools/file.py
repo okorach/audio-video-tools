@@ -25,7 +25,7 @@ import time
 import stat
 import platform
 import hashlib
-import mediatools.utilities as util
+import mediatools.log as log
 if platform.system() == 'Windows':
     import win32com.client
 
@@ -81,7 +81,7 @@ class File:
     def read_link(self):
         if not is_link(self.filename):
             return None
-        util.logger.info("Checking symlink %s", self.filename)
+        log.logger.info("Checking symlink %s", self.filename)
         if platform.system() == 'Windows':
             shell = win32com.client.Dispatch("WScript.Shell")
             return shell.CreateShortCut(self.filename).Targetpath
@@ -93,7 +93,7 @@ class File:
             shell = win32com.client.Dispatch('WScript.Shell')
             if not link.endswith('.lnk'):
                 link += '.lnk'
-            util.logger.debug("Create shortcut: %s --> %s", link, self.filename)
+            log.logger.debug("Create shortcut: %s --> %s", link, self.filename)
             shortcut = shell.CreateShortCut(link)
             shortcut.Targetpath = self.filename
             if dir is not None:
@@ -103,7 +103,7 @@ class File:
             shortcut.save()
             return link
         else:
-            util.logger.debug("Create symlink: %s --> %s", link, self.filename)
+            log.logger.debug("Create symlink: %s --> %s", link, self.filename)
             os.symlink(self.filename, link)
             return link
 
@@ -176,7 +176,7 @@ def create_link(f, link):
 
 
 def get_hash_list(filelist, algo='md5'):
-    util.logger.info("Getting hashes of %d files", len(filelist))
+    log.logger.info("Getting hashes of %d files", len(filelist))
     hashes = {}
     i = 0
     for f in filelist:
@@ -189,7 +189,7 @@ def get_hash_list(filelist, algo='md5'):
             hashes[h] = [f]
         i += 1
         if (i % 100) == 0:
-            util.logger.info("%d hashes computed", i)
+            log.logger.info("%d hashes computed", i)
     return hashes
 
 
@@ -208,7 +208,7 @@ def __match_extension__(file, regex):
 def dir_list(root_dir, recurse=False, file_type=None):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
-    util.logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
+    log.logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
     files = []
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
@@ -217,15 +217,15 @@ def dir_list(root_dir, recurse=False, file_type=None):
                 files.append(dir_list(file, recurse=recurse, file_type=file_type))
             elif __is_type_file(os.path.join(r, file), file_type):
                 files.append(os.path.join(r, file))
-    util.logger.info("Found %d files in %s", len(files), root_dir)
+    log.logger.info("Found %d files in %s", len(files), root_dir)
     return files
 
 
 def file_list(*args, file_type=None, recurse=False):
-    util.logger.debug("Searching files in %s", str(args))
+    log.logger.debug("Searching files in %s", str(args))
     files = []
     for arg in args:
-        util.logger.debug("Check file %s", str(arg))
+        log.logger.debug("Check file %s", str(arg))
         if os.path.isdir(arg):
             files.extend(dir_list(arg, file_type=file_type, recurse=recurse))
         elif file_type is None or __is_type_file(arg, file_type):
@@ -264,5 +264,5 @@ def get_type(file):
         t = FileType.IMAGE_FILE
     else:
         t = FileType.UNKNOWN_FILE
-    util.logger.debug("Filetype of %s is %s", file, t)
+    log.logger.debug("Filetype of %s is %s", file, t)
     return t

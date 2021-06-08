@@ -20,13 +20,14 @@
 #
 
 import sys
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.media_config as conf
 
 def main():
     files = []
-    util.set_logger('video-slideshow')
+    log.set_logger('video-slideshow')
     resolution = conf.get_property('video.default.resolution')
     sys.argv.pop(0)
     while sys.argv:
@@ -39,10 +40,10 @@ def main():
             files.append(arg)
     if len(files) > 0:
         output = video.slideshow(*files, resolution=resolution)
-        util.logger.info("File %s generated", output)
+        log.logger.info("File %s generated", output)
         print("File {} generated".format(output))
     else:
-        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
+        log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
 
 
 if __name__ == "__main__":

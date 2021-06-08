@@ -23,6 +23,7 @@
 
 from __future__ import print_function
 import re
+import mediatools.log as log
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
@@ -82,15 +83,15 @@ class VideoFile(media.MediaFile):
             try:
                 self.video_bitrate = self.specs['format']['bit_rate']
             except KeyError:
-                util.logger.error("Can't find video_bitrate in %s", str(self.specs))
+                log.logger.error("Can't find video_bitrate in %s", str(self.specs))
         self.duration = round(float(stream.get('duration', 0)), 3)
         if self.duration == 0.0:
-            util.logger.error("Can't find duration in %s", str(stream))
+            log.logger.error("Can't find duration in %s", str(stream))
         try:
             self.copyright = self.specs['format']['tags']['copyright']
-            util.logger.info("%s copyright = %s", self.filename, self.copyright)
+            log.logger.info("%s copyright = %s", self.filename, self.copyright)
         except KeyError:
-            util.logger.info("%s has no copyright", self.filename)
+            log.logger.info("%s has no copyright", self.filename)
         return self.specs
 
     def get_audio_specs(self):
@@ -133,14 +134,14 @@ class VideoFile(media.MediaFile):
 
     def get_video_codec(self, stream):
         '''Returns video file video codec'''
-        util.logger.debug('Getting video codec')
+        log.logger.debug('Getting video codec')
         if self.video_codec is not None:
             return self.video_codec
         if stream is None:
             stream = self.__get_first_video_stream__()
         self.video_codec = stream.get('codec_name', '')
         if self.video_codec == '':
-            util.logger.error("Can't find video codec in stream %s\n", util.json_fmt(stream))
+            log.logger.error("Can't find video codec in stream %s\n", util.json_fmt(stream))
         return self.video_codec
 
     def get_video_duration(self):
@@ -170,7 +171,7 @@ class VideoFile(media.MediaFile):
         if self.video_fps is None:
             if stream is None:
                 stream = self.__get_first_video_stream__()
-                util.logger.debug('Video stream is %s', util.json_fmt(stream))
+                log.logger.debug('Video stream is %s', util.json_fmt(stream))
             for tag in ['avg_frame_rate', 'r_frame_rate']:
                 if tag in stream:
                     self.video_fps = media.compute_fps(stream[tag])
@@ -178,14 +179,14 @@ class VideoFile(media.MediaFile):
         return self.video_fps
 
     def dimensions(self, stream=None, ignore_orientation=True):
-        util.logger.debug('Getting video dimensions')
+        log.logger.debug('Getting video dimensions')
         if self.resolution is None:
             if stream is None:
                 stream = self.__get_first_video_stream__()
             w = int(util.get_first_value(stream, ('width', 'codec_width', 'coded_width')))
             h = int(util.get_first_value(stream, ('height', 'codec_height', 'coded_height')))
             self.resolution = res.Resolution(width=w, height=h)
-        util.logger.debug("Resolution = %s", str(self.resolution))
+        log.logger.debug("Resolution = %s", str(self.resolution))
         return (self.resolution.width, self.resolution.height)
 
     def get_height(self):
@@ -231,7 +232,7 @@ class VideoFile(media.MediaFile):
         all_props.update(self.get_video_properties())
         all_props = all_props.copy()
         all_props['resolution'] = str(all_props['resolution'])
-        util.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
+        log.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
     def crop(self, out_file=None, **kwargs):
@@ -247,7 +248,7 @@ class VideoFile(media.MediaFile):
 
         media_opts.update(util.cleanup_options(kwargs))
         media_opts[opt.Option.RESOLUTION] = "{}x{}".format(width, height)
-        util.logger.debug("Cmd line settings = %s", str(media_opts))
+        log.logger.debug("Cmd line settings = %s", str(media_opts))
         out_file = util.automatic_output_file_name(out_file, self.filename,
             "crop_{0}x{1}-{2}".format(width, height, pos))
         aspect = __get_aspect_ratio__(width, height, **kwargs)
@@ -263,7 +264,7 @@ class VideoFile(media.MediaFile):
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
         # -metadata:s:v:0 language=fre -disposition:a:0 default -disposition:a:1 none "%~1.meta.mp4"
-        util.logger.debug("Add metadata: %s", str(metadatas))
+        log.logger.debug("Add metadata: %s", str(metadatas))
 
         options = [filters.vcodec('copy'), filters.acodec('copy')]
 
@@ -344,7 +345,7 @@ class VideoFile(media.MediaFile):
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
 
-        util.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
+        log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
@@ -352,16 +353,30 @@ class VideoFile(media.MediaFile):
         prefilter_settings = self.__get_prefilter_settings__(**kwargs)
         video_filters = self.__get_video_filters__(**kwargs)
         audio_filters = self.__get_audio_filters__(**kwargs)
+        raw_settings = util.get_profile_params(profile)
+        log.logger.debug("Profile settings = %s", str(raw_settings))
         output_settings = self.__get_output_settings__(**kwargs)
 
         # Hack for channels selection
         mapping = __get_audio_channel_mapping__(**kwargs)
 
-        util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
-            ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
-            str(video_filters), str(audio_filters), ' '.join(output_settings),
-            mapping, target_file))
-        util.logger.info("File %s encoded", target_file)
+        raw_params = ''
+        for k, v in raw_settings.items():
+            if v is None:
+                raw_params += ' ' + str(k)
+            else:
+                raw_params += ' ' + str(k) + ' ' + str(v)
+        if profile.find('mp3') != -1:
+            log.logger.info("Encoding mp3 %s", target_file)
+            util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
+                ' '.join(input_settings), self.filename, raw_params, ' '.join(prefilter_settings),
+                str(audio_filters), mapping, target_file))
+        else:
+            util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
+                ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
+                str(video_filters), str(audio_filters), ' '.join(output_settings),
+                mapping, target_file))
+        log.logger.info("File %s encoded", target_file)
         return target_file
 
     # ----------------- Private methods ------------------------------------------
@@ -374,18 +389,18 @@ class VideoFile(media.MediaFile):
         return n
 
     def __get_audio_filters__(self, **kwargs):
-        util.logger.debug('Afilters options = %s', str(kwargs))
+        log.logger.debug('Afilters options = %s', str(kwargs))
         afilters = filters.Simple(filters.AUDIO_TYPE)
         if kwargs.get('volume', None) is not None:
             vol = util.percent_or_absolute(kwargs['volume'])
             afilters.append(filters.volume(vol))
         if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
             afilters.append(filters.areverse())
-        util.logger.debug('afilters = %s', str(afilters))
+        log.logger.debug('afilters = %s', str(afilters))
         return afilters
 
     def __get_video_filters__(self, **kwargs):
-        util.logger.debug('Vfilters options = %s', str(kwargs))
+        log.logger.debug('Vfilters options = %s', str(kwargs))
         vfilters = filters.Simple(filters.VIDEO_TYPE)
         if kwargs.get('speed', None) is not None:
             vfilters.append(filters.speed(kwargs['speed']))
@@ -402,11 +417,11 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
-        util.logger.debug('vfilters = %s', str(vfilters))
+        log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
 
     def __get_input_settings__(self, **kwargs):
-        util.logger.debug('Input options = %s', str(kwargs))
+        log.logger.debug('Input options = %s', str(kwargs))
         settings = []
         if __must_encode_video__(**kwargs):
             if kwargs.get('hw_accel', False):
@@ -414,7 +429,7 @@ class VideoFile(media.MediaFile):
         elif 'start' in kwargs and kwargs['start'] != '':
             settings.append('-ss {}'.format(kwargs['start']))
 
-        util.logger.debug('Input settings = %s', str(settings))
+        log.logger.debug('Input settings = %s', str(settings))
         return settings
 
     def __get_prefilter_settings__(self, **kwargs):
@@ -423,7 +438,7 @@ class VideoFile(media.MediaFile):
 
     def __get_output_settings__(self, **kwargs):
         settings = []
-        util.logger.debug('Output options = %s', str(kwargs))
+        log.logger.debug('Output options = %s', str(kwargs))
 
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
@@ -440,7 +455,7 @@ class VideoFile(media.MediaFile):
         if 'stop' in kwargs and kwargs['stop'] != '':
             settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
 
-        util.logger.debug('Output settings = %s', str(settings))
+        log.logger.debug('Output settings = %s', str(settings))
         return settings
 
 # ---------------- Class methods ---------------------------------
@@ -552,7 +567,7 @@ def get_crop_filter_options(width, height, top, left):
 
 def concat(target_file, file_list, with_audio=True):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
-    util.logger.info("%s = %s", target_file, ' + '.join(file_list))
+    log.logger.info("%s = %s", target_file, ' + '.join(file_list))
     cmd = ''
     for file in file_list:
         cmd += (' -i "%s" ' % file)
@@ -622,7 +637,7 @@ def __get_audio_channel_mapping__(**kwargs):
 
 
 def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
-    util.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
+    log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
 
     transition_duration = float(conf.get_property('fade.default.duration'))
     fade_in = filters.fade_in(duration=transition_duration)
@@ -667,7 +682,7 @@ def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, *
 
 
 def slideshow(*inputs, resolution=None):
-    util.logger.info("slideshow(%s)", str(inputs))
+    log.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = fil.file_list(*inputs)
     video_files = []
@@ -683,12 +698,12 @@ def slideshow(*inputs, resolution=None):
             try:
                 video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
             except OSError:
-                util.logger.error("Failed to use %s for slideshow, skipped", slide_file)
+                log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
         elif fil.is_video_file(slide_file):
             # video_files.append(slide_file)
-            util.logger.info("File %s is a video, skipped", slide_file)
+            log.logger.info("File %s is a video, skipped", slide_file)
         else:
-            util.logger.info("File %s is neither an image not a video, skipped", slide_file)
+            log.logger.info("File %s is neither an image not a video, skipped", slide_file)
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(__build_slideshow__(video_files, resolution=resolution,

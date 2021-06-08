@@ -23,6 +23,7 @@ import re
 import os
 import shutil
 from mp3_tagger import MP3File
+import mediatools.log as log
 import mediatools.exceptions as ex
 import mediatools.file as fil
 import mediatools.mediafile as media
@@ -64,7 +65,7 @@ class AudioFile(media.MediaFile):
                     self.acodec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
-                    util.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
+                    log.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
             elif stream['codec_type'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
                 self.has_album_art = True
                 self.album_art_size = '{}x{}'.format(stream['coded_width'], stream['coded_height'])
@@ -78,7 +79,7 @@ class AudioFile(media.MediaFile):
             self.get_tags()
             self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
                 self.year, self.track, self.duration, self.acodec)
-            util.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
+            log.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
         return self._hash
 
     def get_tags_by_version(self, version=None):
@@ -170,22 +171,22 @@ class AudioFile(media.MediaFile):
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
 
-        util.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
+        log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
         media_opts = self.get_properties()
-        util.logger.debug("Input file settings = %s", str(media_opts))
+        log.logger.debug("Input file settings = %s", str(media_opts))
         media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
         media_opts.update({opt.Option.FORMAT: util.get_conf_property(profile + '.format')})
-        util.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
+        log.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
         media_opts.update(kwargs)
-        util.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
+        log.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
 
         ffopts = opt.media2ffmpeg(media_opts)
-        util.logger.debug("FFOPTS = %s", str(ffopts))
+        log.logger.debug("FFOPTS = %s", str(ffopts))
         util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, util.dict2str(ffopts), target_file))
-        util.logger.info("File %s encoded", target_file)
+        log.logger.info("File %s encoded", target_file)
         return target_file
 
     def encode_album_art(self, album_art_file):
@@ -202,10 +203,10 @@ class AudioFile(media.MediaFile):
 
 
 def album_art(*file_list, scale=None):
-    util.logger.debug("Album art(%s)", str(file_list))
+    log.logger.debug("Album art(%s)", str(file_list))
     album_cover = fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
     if len(album_cover) != 1:
-        util.logger.critical("Zero or too many image files in selection")
+        log.logger.critical("Zero or too many image files in selection")
         return False
 
     if scale is not None:
@@ -223,7 +224,7 @@ def album_art(*file_list, scale=None):
 
 
 def get_hash_list(filelist, algo='audio'):
-    util.logger.info("Getting audio hashes of %d files", len(filelist))
+    log.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes = {}
     i = 0
     if algo != 'audio':
@@ -241,5 +242,5 @@ def get_hash_list(filelist, algo='audio'):
             hashes[h] = [f]
         i += 1
         if (i % 100) == 0:
-            util.logger.info("%d audio hashes computed", i)
+            log.logger.info("%d audio hashes computed", i)
     return hashes

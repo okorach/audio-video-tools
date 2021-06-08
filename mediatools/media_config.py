@@ -21,6 +21,7 @@
 import os
 import shutil
 import jprops
+import mediatools.log as log
 
 CONFIG_SETTINGS = {}
 CONFIG_FILE = '.mediatools.properties'
@@ -35,15 +36,15 @@ def load():
     if not os.path.isfile(target_file):
         default_file = util.package_home() / 'media-tools.properties'
         if not os.path.isfile(default_file):
-            util.logger.critical("Default configuration file %s is missing, aborting...", default_file)
+            log.logger.critical("Default configuration file %s is missing, aborting...", default_file)
             raise FileNotFoundError
         shutil.copyfile(default_file, target_file)
-        util.logger.info("User configuration file %s created", target_file)
+        log.logger.info("User configuration file %s created", target_file)
     try:
-        util.logger.info("Trying to load media config %s", target_file)
+        log.logger.info("Trying to load media config %s", target_file)
         fp = open(target_file)
     except FileNotFoundError as e:
-        util.logger.critical("Default configuration file %s is missing, aborting...", target_file)
+        log.logger.critical("Default configuration file %s is missing, aborting...", target_file)
         raise FileNotFoundError from e
     CONFIG_SETTINGS = jprops.load_properties(fp)
     fp.close()

@@ -21,6 +21,7 @@
 
 import re
 import ffmpeg
+import mediatools.log as log
 import mediatools.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
@@ -65,11 +66,11 @@ class MediaFile(fil.File):
             return self.specs
         super().probe(force)
         try:
-            util.logger.debug('%s(%s)', util.get_ffprobe(), self.filename)
+            log.logger.debug('%s(%s)', util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            util.logger.debug("Specs = %s", util.json_fmt(self.specs))
+            log.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
-            util.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
+            log.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
             raise
         self.get_file_specs()
         return self.specs
@@ -79,7 +80,7 @@ class MediaFile(fil.File):
         try:
             fmt = self.specs['format']
         except KeyError as e:
-            util.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
+            log.logger.error("JSON %s has no key %s\n", util.json_fmt(self.specs), e.args[0])
         self.format = fmt.get('format_name', None)
         if self.format == 'mov,mp4,m4a,3gp,3g2,mj2':
             ext = self.extension().lower()
@@ -99,15 +100,15 @@ class MediaFile(fil.File):
         return d
 
     def __get_first_video_stream__(self):
-        util.logger.debug('Searching first video stream')
+        log.logger.debug('Searching first video stream')
         for stream in self.specs['streams']:
-            util.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
+            log.logger.debug('Found codec %s / %s', stream['codec_type'], stream['codec_name'])
             if stream['codec_type'] == 'video' and stream['codec_name'] != 'gif':
                 return stream
         return None
 
     def __get_first_audio_stream__(self):
-        util.logger.debug('Searching first audio stream')
+        log.logger.debug('Searching first audio stream')
         return self.__get_stream_by_codec__('codec_type', ('audio'))
 
     def __get_audio_stream_attribute__(self, attr, stream=None):
@@ -116,7 +117,7 @@ class MediaFile(fil.File):
         try:
             return stream[attr]
         except KeyError as e:
-            util.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+            log.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
     def __get_video_stream_attribute__(self, attr, stream=None):
         if stream is None:
@@ -124,12 +125,12 @@ class MediaFile(fil.File):
         try:
             return stream[attr]
         except KeyError as e:
-            util.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+            log.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
 
     def __get_stream_by_codec__(self, field, codec_list):
-        util.logger.debug('Searching stream for codec %s = %s', field, codec_list)
+        log.logger.debug('Searching stream for codec %s = %s', field, codec_list)
         for stream in self.specs['streams']:
-            util.logger.debug('Found codec %s', stream[field])
+            log.logger.debug('Found codec %s', stream[field])
             if stream[field] in codec_list:
                 return stream
         return None
@@ -187,7 +188,7 @@ def get_deshake_filter_options(width, height):
 
 def compute_fps(rate):
     ''' Simplifies the FPS calculation '''
-    util.logger.debug('Calling compute_fps(%s)', rate)
+    log.logger.debug('Calling compute_fps(%s)', rate)
     if re.match(r"^\d+\/\d+$", rate):
         a, b = [int(x) for x in rate.split('/')]
         return str(round(a / b, 1))
@@ -212,7 +213,7 @@ def concat(target_file, file_list):
     #  ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
     #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
     #  -map "[v]" -map "[a]" output.mkv
-    util.logger.info("Concatenating %s", str(file_list))
+    log.logger.info("Concatenating %s", str(file_list))
     cmd = filters.inputs_str(file_list)
     cmd = cmd + '-filter_complex "'
     for i in range(len(file_list)):
@@ -226,7 +227,7 @@ def strip_media_options(options):
     for k in options:
         if k not in opt.M2F_MAPPING:
             strip[k] = options[k]
-    util.logger.debug("stripped media options = %s", str(strip))
+    log.logger.debug("stripped media options = %s", str(strip))
     return strip
 
 
@@ -235,7 +236,7 @@ def strip_ffmpeg_options(options):
     for k in options:
         if k not in opt.F2M_MAPPING:
             strip[k] = options[k]
-    util.logger.debug("stripped ffmpeg options = %s", str(strip))
+    log.logger.debug("stripped ffmpeg options = %s", str(strip))
     return strip
 
 
@@ -250,5 +251,5 @@ def build_ffmpeg_options(options):
             cmd = cmd + " -%s" % (opt.M2F_MAPPING[k])
         else:
             cmd = cmd + " -%s %s" % (opt.M2F_MAPPING[k], v)
-    util.logger.debug("ffmpeg options = %s", cmd)
+    log.logger.debug("ffmpeg options = %s", cmd)
     return cmd

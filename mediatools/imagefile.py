@@ -27,6 +27,7 @@ import shutil
 import tempfile
 import exifread
 
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.resolution as res
@@ -70,7 +71,7 @@ class ImageFile(media.MediaFile):
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
         all_props.pop('resolution')
-        util.logger.debug("Returning image props %s", str(all_props))
+        log.logger.debug("Returning image props %s", str(all_props))
         return all_props
 
     def probe(self, force=False):
@@ -86,19 +87,19 @@ class ImageFile(media.MediaFile):
         self.pixels = self.width * self.height
         self.ratio = self.width / self.height
         self.exif_read()
-        util.logger.debug("Image = %s", str(vars(self)))
+        log.logger.debug("Image = %s", str(vars(self)))
 
     def exif_read(self):
         f = open(self.filename, 'rb')
         tags = exifread.process_file(f)
         # for tag in tags:
         #     if not re.search("thumbnail", tag, re.IGNORECASE):
-        #         util.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
+        #         log.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
         if re.search('Rotated 90', str(tags.get('Image Orientation', ''))):
             # self.width, self.height = self.height, self.width
             # self.resolution = res.Resolution(width=self.width, height=self.height)
             self.orientation = 'portrait'
-            util.logger.debug('Portrait orientation: %s', str(self.orientation))
+            log.logger.debug('Portrait orientation: %s', str(self.orientation))
 
         return tags
 
@@ -126,7 +127,7 @@ class ImageFile(media.MediaFile):
         if w == -1 and h == -1:
             shutil.copy(self.filename, out_file)
             return out_file
-        util.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
+        log.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
         util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
         return out_file
 
@@ -265,10 +266,10 @@ class ImageFile(media.MediaFile):
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 1.5
         out_file = kwargs.get('out_file', None)
-        util.logger.debug("zoom video of image %s", self.filename)
+        log.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop),
             extension=conf.get_property('video.default.format'))
-        util.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
+        log.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
 
         vfilters = []
         if self.get_ratio() > (16 / 9):
@@ -318,20 +319,20 @@ class ImageFile(media.MediaFile):
            (kwargs.get('duration', None) is None and kwargs.get('speed', None) is None)):
             raise ex.InputError("2 arguments out of 3 mandatory in effect, duration or speed", "panorama")
         if kwargs.get('effect', None) is None:
-            util.logger.info("Computing bounds from duration and speed")
+            log.logger.info("Computing bounds from duration and speed")
             duration = float(kwargs['duration'])
             if duration <= 0:
                 raise ex.InputError("duration must be a strictly positive number", "panorama")
             speed = util.percent_or_absolute(kwargs['speed'])
         elif kwargs.get('duration', None) is None:
-            util.logger.info("Computing duration from speed and bounds")
+            log.logger.info("Computing duration from speed and bounds")
             speed = util.percent_or_absolute(kwargs['speed'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             if xstop < xstart and speed > 0:
                 speed = - speed
             duration = abs((xstop - xstart) / speed)
         elif kwargs.get('speed', None) is None:
-            util.logger.info("Computing speed from duration and bounds")
+            log.logger.info("Computing speed from duration and bounds")
             duration = float(kwargs['duration'])
             (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
             speed = (xstop - xstart) / duration
@@ -345,7 +346,7 @@ class ImageFile(media.MediaFile):
         - Duration in seconds
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
-        util.logger.debug("panorama(%s)", str(kwargs))
+        log.logger.debug("panorama(%s)", str(kwargs))
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan',
             extension=conf.get_property('video.default.format'))
 
@@ -368,7 +369,7 @@ class ImageFile(media.MediaFile):
 
         vspeed = 0
         if kwargs.get('effect', None) is None:
-            util.logger.info("Computing ystart/ystop from duration and speed")
+            log.logger.info("Computing ystart/ystop from duration and speed")
             vspeed = util.percent_or_absolute(kwargs.get('vspeed', 0))
         else:
             (_, _, ystart, ystop) = [float(x) for x in kwargs['effect']]
@@ -381,9 +382,9 @@ class ImageFile(media.MediaFile):
         (scale, total_width, total_height) = self.__compute_total_frame__(needed_width, needed_height)
         vfilters = [scale]
 
-        util.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
+        log.logger.debug("Image WxH = %d, %d - Needed WxH %d, %d - Total WxH %d, %d",
             self.width, self.height, needed_width, needed_height, int(total_width), int(total_height))
-        util.logger.debug("Duration = %s, Speed = %s", str(duration), str(speed))
+        log.logger.debug("Duration = %s, Speed = %s", str(duration), str(speed))
 
         vfilters.append(filters.crop(needed_width, needed_height))
         if speed < 0:
@@ -409,7 +410,7 @@ class ImageFile(media.MediaFile):
         - with_effect: Slight panorama or zoom effect will be generated
         - All typical video parameters (resolution, hw_accel, fps, ...)
         '''
-        util.logger.info("Converting %s to video", self.filename)
+        log.logger.info("Converting %s to video", self.filename)
         kwargs['resolution'] = kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY))
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
@@ -484,12 +485,12 @@ def __get_layout__(nb_files, **kwargs):
 
 def __downsize__(full_w, full_h, max_w, max_h, gap):
     full_pix = (full_w * 8 + 1024) * (full_h + 128)
-    util.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d",
+    log.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d",
         max_w, max_h, gap, full_pix)
 
     reduction_factor = 1
     if full_pix > MAX_INT:
-        util.logger.debug("Target image too big by %6.2f%%, reducing", full_pix / MAX_INT)
+        log.logger.debug("Target image too big by %6.2f%%, reducing", full_pix / MAX_INT)
         reduction_factor = math.sqrt(MAX_INT / full_pix)
         if max_h != -1:
             max_h = int(reduction_factor * max_h)
@@ -498,7 +499,7 @@ def __downsize__(full_w, full_h, max_w, max_h, gap):
         gap = int(reduction_factor * gap)
         full_w = int(reduction_factor * full_w)
         full_h = int(reduction_factor * full_h)
-    util.logger.debug("After reduction of %4.2f Max W x H + G = %d x %d + %d", reduction_factor, max_w, max_h, gap)
+    log.logger.debug("After reduction of %4.2f Max W x H + G = %d x %d + %d", reduction_factor, max_w, max_h, gap)
     return (full_w, full_h, max_w, max_h, gap, reduction_factor)
 
 
@@ -510,7 +511,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     - margin (% of widest image or nb_of_pixels)
     - stretch: stretch images to be all the same width and height
     '''
-    util.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
+    log.logger.debug("posterize(%s, %s)", str(file_list), str(kwargs))
     files = [ImageFile(f) for f in fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)]
     fcomplex = filters.Complex(*files)
 
@@ -529,7 +530,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     if rows == 1:
         full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
         max_w = -1
-    util.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
+    log.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
     (full_w, full_h, max_w, max_h, gap, red) = __downsize__(full_w, full_h, max_w, max_h, gap)
 
@@ -547,7 +548,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     for i in range(1, len(fcomplex.inputs)):
         if (i - 1) % cols == 0:
             x = gap
-        util.logger.debug("File %d, %s - overlay(%d, %d)", i, fcomplex.inputs[i].filename, x, y)
+        log.logger.debug("File %d, %s - overlay(%d, %d)", i, fcomplex.inputs[i].filename, x, y)
         out_stream = fcomplex.add_filtergraph([out_stream, img_outs[i]], filters.overlay(x, y))
         if rows == 1:
             x += gap + int(fcomplex.inputs[i].width / fcomplex.inputs[i].height * max_h)
@@ -564,7 +565,7 @@ def posterize(*file_list, out_file=None, **kwargs):
 
 
 def stack(*files, out_file=None, **kwargs):
-    util.logger.debug("stack(%s, %s)", str(files), str(kwargs))
+    log.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
     files_to_stack = fil.file_list(*files, file_type=fil.FileType.IMAGE_FILE)
     rows, cols = 1, 1

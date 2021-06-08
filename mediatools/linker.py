@@ -21,6 +21,7 @@
 
 import os
 import sys
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
@@ -31,10 +32,10 @@ def link_file(file, directory, hashes):
         return None
     h = audio.AudioFile(file).hash('audio')
     if h is None:
-        util.logger.warning("Can't hash %s", file)
+        log.logger.warning("Can't hash %s", file)
         return None
     if h not in hashes.keys():
-        util.logger.warning("Can't find master file for %s", file)
+        log.logger.warning("Can't find master file for %s", file)
         return None
     srcfile = audio.AudioFile(hashes[h][0])
     srcfile.get_tags()

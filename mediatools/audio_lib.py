@@ -22,6 +22,7 @@
 import os
 import sys
 import shutil
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
@@ -39,11 +40,11 @@ def main():
     if directory is None:
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
-    for file in util.dir_list(directory, recurse=False):
+    for file in fil.dir_list(directory, recurse=False):
         if not fil.is_link(file):
             continue
-        tgt = util.get_symlink_target(file)
-        util.logger.info("Symlink %s --> Target = %s", file, tgt)
+        tgt = fil.get_symlink_target(file)
+        log.logger.info("Symlink %s --> Target = %s", file, tgt)
         f_audio = audio.AudioFile(tgt)
         # tags = f_audio.get_tags()
         # if 'title' in tags and 'artist' in tags:
@@ -53,7 +54,7 @@ def main():
         # else:
         #     base = tgt.split(os.path.sep)[-1]
         base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
-        util.logger.info("Copy to = %s", dir + os.path.sep + base)
+        log.logger.info("Copy to = %s", dir + os.path.sep + base)
         shutil.copy(tgt, dir + os.path.sep + base)
     sys.exit(0)
 

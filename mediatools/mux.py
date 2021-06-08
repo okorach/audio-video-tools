@@ -23,13 +23,14 @@
 # in a video file with already one audio track
 
 import sys
+import mediatools.log as log
 import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util
 
 
 def main():
-    util.set_logger('video-mux')
+    log.set_logger('video-mux')
     sys.argv.pop(0)
     afiles = []
     while sys.argv:
@@ -38,9 +39,9 @@ def main():
             util.set_debug_level(sys.argv.pop(0))
         elif fil.is_video_file(arg):
             vfile = arg
-            util.logger.info("Video file %s will be muxed", arg)
+            log.logger.info("Video file %s will be muxed", arg)
         elif fil.is_audio_file(arg):
-            util.logger.info("Audio file %s will be muxed", arg)
+            log.logger.info("Audio file %s will be muxed", arg)
             afiles.append(arg)
 
     videofile = video.VideoFile(vfile)
