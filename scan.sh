@@ -21,6 +21,8 @@
 
 dolint=true
 tests=pytest
+skiptests=0
+
 while [ $# -ne 0 ]
 do
   case "$1" in
@@ -29,6 +31,9 @@ do
       ;;
     -unittest)
       tests=unittest
+      ;;
+    -skiptests)
+      skiptests=1
       ;;
     *)
       scanOpts="$scanOpts $1"
@@ -42,18 +47,23 @@ pylintReport="$buildDir/pylint-report.out"
 banditReport="$buildDir/bandit-report.json"
 flake8Report="$buildDir/flake8-report.out"
 coverageReport="$buildDir/coverage.xml"
+owaspDependencyReport="$buildDir/dependency-check-report.json"
 
 [ ! -d $buildDir ] && mkdir $buildDir
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
 
-echo "Running tests"
-if [ "$tests" != "unittest" ]; then
-  coverage run -m pytest
-  # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
+if [ $skiptests -eq 0 ]; then
+  echo "Running tests"
+  if [ "$tests" != "unittest" ]; then
+    coverage run -m pytest
+    # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
+  else
+    coverage run --source=. --branch -m unittest discover
+  fi
+  coverage xml -o $coverageReport
 else
-  coverage run --source=. --branch -m unittest discover
+  echo "Skipping tests"
 fi
-coverage xml -o $coverageReport
 
 if [ "$dolint" != "false" ]; then
   echo "Running pylint"
@@ -73,6 +83,8 @@ if [ "$dolint" != "false" ]; then
   rm -f $banditReport
   bandit -f json --skip B311,B303 -r . -x .vscode,./testpytest,./testunittest >$banditReport
 fi
+
+dependency-check --scan . --format JSON --prettyPrint --out $owaspDependencyReport
 
 version=$(grep MEDIA_TOOLS_VERSION mediatools/version.py | cut -d "=" -f 2 | cut -d "'" -f 2)
 
@@ -101,5 +113,6 @@ sonar-scanner \
   -Dsonar.python.pylint.reportPaths=$pylintReport \
   -Dsonar.python.bandit.reportPaths=$banditReport \
   -Dsonar.python.coverage.reportPaths=$coverageReport,tests_windows/coverage_windows.xml \
+  -Dsonar.dependencyCheck.jsonReportPath=$owaspDependencyReport \
   $pr_branch \
   $scanOpts
