@@ -366,7 +366,7 @@ class VideoFile(media.MediaFile):
                 raw_params += ' ' + str(k)
             else:
                 raw_params += ' ' + str(k) + ' ' + str(v)
-        if profile.find('mp3') != -1:
+        if profile is not None and profile.find('mp3') != -1:
             log.logger.info("Encoding mp3 %s", target_file)
             util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
                 ' '.join(input_settings), self.filename, raw_params, ' '.join(prefilter_settings),
