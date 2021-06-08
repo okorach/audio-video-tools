@@ -272,6 +272,8 @@ def get_profile_extension(profile, properties=None):
 
 
 def get_profile_params(profile):
+    if profile is None:
+        return ''
     props = get_media_properties()
     return get_cmdline_params(props[profile + '.cmdline'])
 
