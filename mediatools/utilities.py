@@ -23,11 +23,11 @@ import os
 import platform
 import json
 import re
-import logging
 import argparse
 import pathlib
 import subprocess
 import shlex
+import mediatools.log as log
 import mediatools.options as opt
 import mediatools.resolution as res
 import mediatools.file as fil
@@ -35,16 +35,6 @@ import mediatools.media_config as conf
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
-logger = logging.getLogger('mediatools')
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh = logging.FileHandler('mediatools.log')
-# fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-logger.addHandler(fh)
-logger.addHandler(ch)
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
 
 LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
@@ -55,21 +45,10 @@ config_props.pop()
 config_props.pop()
 config_props.append("media-tools.properties")
 DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
-logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
+log.logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
-
-
-def set_logger(name):
-    global logger
-    logger = logging.getLogger(name)
-    new_fh = logging.FileHandler(name + '.log')
-    new_ch = logging.StreamHandler()
-    logger.addHandler(new_fh)
-    logger.addHandler(new_ch)
-    new_fh.setFormatter(formatter)
-    new_ch.setFormatter(formatter)
 
 
 def add_postfix(file, postfix, extension=None):
@@ -112,7 +91,7 @@ def get_first_value(a_dict, key_list):
 
 
 def run_os_cmd(cmd):
-    logger.info("Running: %s", cmd)
+    log.logger.info("Running: %s", cmd)
     try:
         last_error = None
         args = shlex.split(cmd)
@@ -123,23 +102,23 @@ def run_os_cmd(cmd):
             if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
                 last_error = line
             elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
-                logger.error(line)
+                log.logger.error(line)
             elif re.search(r"frame=\s*(\d+)\s+fps=\s*(\d+)", line, re.IGNORECASE):
-                logger.info(line)
+                log.logger.info(line)
             elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
-                logger.warning(line)
+                log.logger.warning(line)
             else:
-                logger.debug(line)
+                log.logger.debug(line)
             line = pipe.stdout.readline().rstrip()
         outs, errs = pipe.communicate()
-        logger.debug("Return code = %d", pipe.returncode)
+        log.logger.debug("Return code = %d", pipe.returncode)
         if pipe.returncode != 0:
             last_error = line if last_error is None else last_error
             raise subprocess.CalledProcessError(cmd=cmd, output=last_error, returncode=pipe.returncode)
-        logger.info("Successfully completed: %s", cmd)
+        log.logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
-        logger.error("Command: %s failed with return code %d", cmd, e.returncode)
-        logger.error("%s", e.output)
+        log.logger.error("Command: %s failed with return code %d", cmd, e.returncode)
+        log.logger.error("%s", e.output)
         raise
 
 
@@ -161,7 +140,7 @@ def get_media_properties():
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         PROPERTIES_VALUES = conf.load()
-        logger.debug("Props = %s", str(PROPERTIES_VALUES))
+        log.logger.debug("Props = %s", str(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
 
 
@@ -208,17 +187,6 @@ def to_hms_str(seconds):
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
 
-def get_logging_level(intlevel):
-    if intlevel >= 2:
-        lvl = logging.DEBUG
-    elif intlevel >= 1:
-        lvl = logging.INFO
-    elif intlevel >= 0:
-        lvl = logging.ERROR
-    else:
-        lvl = logging.CRITICAL
-    return lvl
-
 
 def json_fmt(json_data):
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
@@ -227,20 +195,20 @@ def json_fmt(json_data):
 def set_debug_level(level):
     global DEBUG_LEVEL
     DEBUG_LEVEL = 0 if level is None else int(level)
-    logger.setLevel(get_logging_level(DEBUG_LEVEL))
-    logger.info("Set debug level to %d", DEBUG_LEVEL)
+    log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
+    log.logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 
 def delete_files(*args):
     for f in args:
-        logger.debug("Deleting file %s", f)
+        log.logger.debug("Deleting file %s", f)
         os.remove(f)
 
 
 def get_common_args(executable, desc):
     """Parses options common to all media encoding scripts"""
 
-    set_logger(executable)
+    log.set_logger(executable)
 
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
@@ -281,7 +249,7 @@ def parse_media_args(parser, args=None):
             kwargs[opt.Option.HEIGHT] = int(kwargs[opt.Option.HEIGHT])
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
-    logger.debug('KW=%s', str(kwargs))
+    log.logger.debug('KW=%s', str(kwargs))
     return kwargs
 
 
@@ -304,6 +272,8 @@ def get_profile_extension(profile, properties=None):
 
 
 def get_profile_params(profile):
+    if profile is None:
+        return {}
     props = get_media_properties()
     return get_cmdline_params(props[profile + '.cmdline'])
 
@@ -319,13 +289,13 @@ def get_cmdline_params(cmdline):
         # Format -<option> <value>
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
-            parms[m.group(1)] = m.group(2)
+            parms['-' + m.group(1)] = m.group(2)
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             # Format -<option>
             m = re.search(r'^-(\S+)\s*', cmdline)
             if m:
-                parms[m.group(1)] = None
+                parms['-' + m.group(1)] = None
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
             else:
                 found = False
@@ -447,7 +417,7 @@ def dict2str(options):
         else:
             fmt = " -{0} {1}".format(k, options[k])
         cmd += fmt
-    logger.debug("cmd options = %s", cmd)
+    log.logger.debug("cmd options = %s", cmd)
     return cmd
 
 
@@ -457,7 +427,7 @@ def find_key(hashlist, keylist):
             continue
         return hashlist[key]
 
-    logger.warning("No key %s found in %s", str(keylist), str(hashlist))
+    log.logger.warning("No key %s found in %s", str(keylist), str(hashlist))
     return None
 
 
@@ -468,7 +438,7 @@ def percent_or_absolute(x, reference=1):
 
 
 def generated_file(filename):
-    logger.info("Generated %s", filename)
+    log.logger.info("Generated %s", filename)
     print("Generated {}".format(filename))
 
 

@@ -22,6 +22,7 @@
 # This script creates a venetian blinds effect on an image
 # ie interweaves slices of images and slices of black (or white)
 
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
@@ -34,7 +35,7 @@ def main():
     parser.add_argument('-b', '--blinds_size', required=False, default="3%", help='Size of the blind like 2%')
     kwargs = util.parse_media_args(parser)
     output = image.ImageFile(kwargs.pop('inputfile')).blindify(**kwargs)
-    util.logger.info("Generated file %s", output)
+    log.logger.info("Generated file %s", output)
     print("Generated file {}".format(output))
 
 

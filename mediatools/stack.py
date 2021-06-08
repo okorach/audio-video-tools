@@ -24,6 +24,7 @@
 # horizontally or vertically
 
 import sys
+import mediatools.log as log
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
@@ -33,7 +34,7 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 
 def main():
     files = []
-    util.set_logger('image-stack')
+    log.set_logger('image-stack')
     kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': True, 'background_color': 'black'}
     sys.argv.pop(0)
     while sys.argv:
@@ -56,10 +57,10 @@ def main():
 
     if len(files) > 0:
         output = image.stack(*files, out_file=None, **kwargs)
-        util.logger.info("File %s generated", output)
+        log.logger.info("File %s generated", output)
         print('Generated', output)
     else:
-        util.logger.error("No inputs files could be used for slideshow, no slideshow generated")
+        log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
         sys.exit(1)
     sys.exit(0)
 

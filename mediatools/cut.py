@@ -25,6 +25,7 @@ It will be improved soon
 '''
 
 import sys
+import mediatools.log as log
 import mediatools.videofile as video
 import mediatools.utilities as util
 
@@ -41,7 +42,7 @@ def main():
     if kwargs.get('start', None) is None and kwargs.get('stop', None) is None:
         ranges = kwargs.get('timeranges', None)
         if ranges is None:
-            util.logger.error(MISSING_PARAM)
+            log.logger.error(MISSING_PARAM)
             sys.exit(1)
 
     outputfile = video.cut(kwargs.pop('inputfile'), **kwargs)

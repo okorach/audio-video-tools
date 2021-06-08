@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 
@@ -94,7 +95,7 @@ class Complex:
         outs = 'out{}'.format(len(self.filtergraph))
         if not isinstance(inputs, (list, tuple)):
             inputs = [str(inputs)]
-        util.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
+        log.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
         self.filtergraph.append((inputs, simple_filter, outs))
         return outs
 

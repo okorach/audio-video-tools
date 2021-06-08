@@ -24,6 +24,7 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
+import mediatools.log as log
 import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util
@@ -58,13 +59,13 @@ def encode_file(file, **kwargs):
         target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, str(count), ext)
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
-        util.logger.info("File %s generated", outputfile)
+        log.logger.info("File %s generated", outputfile)
         print("File %s generated", outputfile)
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
         target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, "combined", ext)
         video.concat(target_file, filelist)
-        util.logger.info("Concatenated file %s generated", target_file)
+        log.logger.info("Concatenated file %s generated", target_file)
         print("Concatenated file %s generated", target_file)
 
 
@@ -76,7 +77,7 @@ def main():
     file_list = fil.file_list(kwargs['inputfile'], file_type=fil.FileType.VIDEO_FILE)
     nb_files = len(file_list)
     for i in range(nb_files):
-        util.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
+        log.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
         encode_file(file_list[i], **kwargs)
 
 

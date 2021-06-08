@@ -25,6 +25,7 @@ This script slows down or accelerate a video
 
 import sys
 import re
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.videofile as video
 
@@ -40,7 +41,7 @@ def main():
     kwargs = util.parse_media_args(parser)
     speed = kwargs.pop('speed')
     if re.match(r"%$", speed) and speed not in ALLOWED_SPEEDS:
-        util.logger.critical("Speed value %s is not allowed, it must be less than 100%% or one of %s",
+        log.logger.critical("Speed value %s is not allowed, it must be less than 100%% or one of %s",
             speed, ', '.join(ALLOWED_SPEEDS))
         sys.exit(1)
 

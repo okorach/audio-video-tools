@@ -20,6 +20,7 @@
 #
 
 import argparse
+import mediatools.log as log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.file as fil
@@ -117,7 +118,7 @@ def main():
         except ex.FileTypeError:
             continue
         specs = file_object.get_properties()
-        util.logger.debug("Specs = %s", util.json_fmt(specs))
+        log.logger.debug("Specs = %s", util.json_fmt(specs))
         if fmt == 'csv':
             print(__to_csv__(specs, all_props))
         else:

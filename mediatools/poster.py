@@ -27,6 +27,7 @@
 
 import sys
 import os
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
@@ -37,7 +38,7 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 def main():
     file_list = []
     dir_list = []
-    util.set_logger('image-poster')
+    log.set_logger('image-poster')
     sys.argv.pop(0)
     kwargs = {'background_color': 'black', 'margin': 5}
     while sys.argv:
@@ -56,7 +57,7 @@ def main():
         elif os.path.isdir(arg):
             dir_list.append(arg)
         else:
-            util.logger.debug("Adding file %s to poster", arg)
+            log.logger.debug("Adding file %s to poster", arg)
             file_list.append(arg)
 
     posterfile = image.posterize(*file_list, out_file=None, **kwargs)

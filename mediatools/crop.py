@@ -24,6 +24,7 @@
 # --box <width>x<height> : The size of the video to crop
 # --top <y>/ --left <x>: Coordinates of the top left corner of the video crop
 
+import mediatools.log as log
 import mediatools.creator as creator
 import mediatools.videofile as video
 import mediatools.utilities as util
@@ -39,9 +40,9 @@ def main():
     kwargs = util.parse_media_args(parser)
 
     kwargs['width'], kwargs['height'] = kwargs['box'].split("x", maxsplit=2)
-    util.logger.debug("KW=%s", str(kwargs))
+    log.logger.debug("KW=%s", str(kwargs))
     outputfile = creator.file(kwargs['inputfile']).crop(out_file=kwargs.get('outputfile', None), **kwargs)
-    util.logger.info('Generated %s', outputfile)
+    log.logger.info('Generated %s', outputfile)
     print("Generated {}".format(outputfile))
 
 

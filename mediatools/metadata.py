@@ -26,6 +26,7 @@
 # - Languages of audio tracks
 # - Author of video
 
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.videofile as video
@@ -46,7 +47,7 @@ def main():
         output = video.VideoFile(inputfile).add_metadata(**kwargs)
         util.generated_file(output)
     else:
-        util.logger.error('File %s is not a video file', inputfile)
+        log.logger.error('File %s is not a video file', inputfile)
 
 
 if __name__ == "__main__":

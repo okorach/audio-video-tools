@@ -20,6 +20,7 @@
 #
 
 import sys
+import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
@@ -49,7 +50,7 @@ def main():
         else:
             output = image.ImageFile(inputfile).zoom(resolution=resolution, effect=effect, **kwargs)
     except ex.InputError as e:
-        util.logger.critical(e.message)
+        log.logger.critical(e.message)
         print("ERROR: {}", e.message)
         sys.exit(ex.ERR_INPUT)
     util.generated_file(output)
