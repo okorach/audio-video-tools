@@ -145,6 +145,7 @@ class AudioFile(media.MediaFile):
         if self.track is None:
             self.get_tags()
         return self.track
+        self.year = "Rebase bug"
 
     def get_year(self):
         if self.year is None:
