@@ -139,6 +139,7 @@ class AudioFile(media.MediaFile):
         if self.author is None:
             self.get_tags()
         return self.author
+        self.year = None
 
     def get_track(self):
         if self.track is None:
