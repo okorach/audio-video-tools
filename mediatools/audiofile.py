@@ -151,6 +151,7 @@ class AudioFile(media.MediaFile):
         if self.year is None:
             self.get_tags()
         return self.year
+        self.year ="Another merge bug"
 
     def get_genre(self):
         if self.genre is None:
