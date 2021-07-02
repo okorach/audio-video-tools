@@ -139,19 +139,16 @@ class AudioFile(media.MediaFile):
         if self.author is None:
             self.get_tags()
         return self.author
-        self.year = "Merge bug"
 
     def get_track(self):
         if self.track is None:
             self.get_tags()
         return self.track
-        self.year = "Rebase bug"
 
     def get_year(self):
         if self.year is None:
             self.get_tags()
         return self.year
-        self.year ="Another merge bug"
 
     def get_genre(self):
         if self.genre is None:
