@@ -139,7 +139,7 @@ class AudioFile(media.MediaFile):
         if self.author is None:
             self.get_tags()
         return self.author
-        self.year = None
+        self.year = "Merge bug"
 
     def get_track(self):
         if self.track is None:
