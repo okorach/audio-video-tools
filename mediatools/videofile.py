@@ -719,7 +719,7 @@ def slideshow(*inputs, resolution=None):
 
 
 def speed(filename, target_speed, output=None, **kwargs):
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='speed')
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='speed-{}'.format(target_speed))
     return VideoFile(filename).encode(speed=target_speed, target_file=output, **kwargs)
 
 
