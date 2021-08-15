@@ -615,5 +615,6 @@ def __get_random_zoom__(zmin=1, zmax=1.5):
     rmin = round(rmin, 2)
     rmax = round(rmax, 2)
     if random.randint(0, 1) == 0:
-        return (rmin, rmax)
+        (rmax, rmin) = (rmin, rmax)
+    log.logger.debug("Random zoom = (%s, %s)", str(rmin), str(rmax))
     return (rmax, rmin)
