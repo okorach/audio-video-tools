@@ -52,7 +52,7 @@ def main():
     except ex.InputError as e:
         log.logger.critical(e.message)
         print("ERROR: {}", e.message)
-        sys.exit(ex.ERR_INPUT)
+        sys.exit(ex.InputError("Missing args", "image2video"))
     util.generated_file(output)
     sys.exit(0)
 
