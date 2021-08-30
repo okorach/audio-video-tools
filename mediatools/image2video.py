@@ -32,13 +32,14 @@ def main():
     parser.add_argument('--style', required=True, choices=['zoom', 'panorama'], default="zoom",
         help='Effect to generate')
     parser.add_argument('--bounds', required=False, help='bounds of the panorama or zoom')
-    parser.add_argument('--speed', required=False, help='Panorama or zoom speed')
+    parser.add_argument('--speed', required=False, type=float, help='Panorama or zoom speed')
     parser.add_argument('--vspeed', required=False, type=float, default=0, help='Panorama or zoom vertical speed')
     parser.add_argument('--duration', required=False, type=float, help='Panorama or zoom duration')
     kwargs = util.parse_media_args(parser)
 
     inputfile = kwargs.pop('inputfile')
-    resolution = kwargs.get('size', conf.get_property('video.default.resolution'))
+    resolution = kwargs.get('resolution', conf.get_property('video.default.resolution'))
+    kwargs.pop('resolution')
 
     if kwargs.get('bounds', None) is not None:
         kwargs['effect'] = [float(x) for x in kwargs['bounds'].split(",")]
