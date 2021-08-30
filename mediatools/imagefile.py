@@ -612,9 +612,8 @@ def __get_random_panorama__():
 
 
 def __get_random_zoom__(zmin=1, zmax=1.3):
-    rmin = zmin
-    rmax = zmax + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
-    rmin = round(rmin, 2)
+    rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
+    rmin = round(zmin, 2)
     rmax = round(rmax, 2)
     if random.randint(0, 1) == 0:
         (rmax, rmin) = (rmin, rmax)
