@@ -261,7 +261,7 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         log.logger.debug("zoom(%s)", str(kwargs))
-        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom__(1, 1.2))]
+        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom__(1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
@@ -606,13 +606,9 @@ def __get_random_panorama__():
     return (xstart, xstop, ystart, ystop)
 
 
-def __get_random_zoom__(zmin=1, zmax=1.5):
-    rmin = zmin + random.randint(0, 2) / 10
-    rmax = zmax - random.randint(0, 2) / 10
-    if rmax - rmin < 0.2:
-        rmin -= 0.1
-        rmax += 0.1
-
+def __get_random_zoom__(zmin=1, zmax=1.3):
+    rmin = zmin
+    rmax = zmax + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
     rmin = round(rmin, 2)
     rmax = round(rmax, 2)
     if random.randint(0, 1) == 0:
