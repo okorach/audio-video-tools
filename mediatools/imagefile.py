@@ -335,8 +335,11 @@ class ImageFile(media.MediaFile):
         elif kwargs.get('speed', None) is None:
             log.logger.info("Computing speed from duration and bounds")
             duration = float(kwargs['duration'])
-            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
-            speed = (xstop - xstart) / duration
+            # (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
+            # speed = (xstop - xstart) / duration
+            speed = 0.05
+            if random.randint(0, 1) == 1:
+                speed = - speed
         return (speed, duration)
 
     def panorama(self, **kwargs):
@@ -348,6 +351,9 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         log.logger.debug("panorama(%s)", str(kwargs))
+        if 'effect' not in kwargs:
+            kwargs['effect'] = (0, 1, 0.45, 0.55)
+
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan',
             extension=conf.get_property('video.default.format'))
 
@@ -417,29 +423,28 @@ class ImageFile(media.MediaFile):
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
         (w, h) = self.dimensions()
-        speed = None
+        speed = 0.05 * random.randrange(-1, 3, 2)
         if 'speed' in kwargs:
             speed = float(kwargs.pop('speed'))
+        duration = 5
+        if 'duration' in kwargs:
+            duration = float(kwargs.pop('duration'))
+        drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
 
         if self.resolution.ratio <= (3 / 4 + 0.00001):
-            return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), **kwargs)
+            return self.panorama(duration=duration, speed=speed, effect=(0.5 + drift, 0.5 - drift, 0.2, 0.8), **kwargs)
         elif self.resolution.ratio >= (16 / 9 + 0.00001):
             r = random.randint(0, 10)
             # Allow up to 20% crop if image ratio < 9 / 16
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
-            if speed is None:
-                speed = 0.08 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
+            return self.panorama(duration=duration, effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         elif random.randint(0, 1) == 0:
-            if speed is None:
-                speed = 0.08 * random.randrange(-1, 3, 2)
-            drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
         else:
             return self.zoom(effect=__get_random_zoom__(), **kwargs)
 
