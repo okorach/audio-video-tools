@@ -260,16 +260,17 @@ class ImageFile(media.MediaFile):
         - duration in seconds
         - All video usual parameters (resolution, fps etc...)
         '''
-        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', (1, 1.3))]
+        log.logger.debug("zoom(%s)", str(kwargs))
+        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom__(1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
-        scale_res = resolution * 1.5
+        scale_res = resolution * 2
         out_file = kwargs.get('out_file', None)
         log.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop),
             extension=conf.get_property('video.default.format'))
-        log.logger.debug("zoom(%d,%d) of image %s", zstart, zstop, self.filename)
+        log.logger.debug("zoom(%s,%s) of image %s", str(zstart), str(zstop), self.filename)
 
         vfilters = []
         if self.get_ratio() > (16 / 9):
@@ -278,11 +279,11 @@ class ImageFile(media.MediaFile):
             vfilters.append(filters.scale(scale_res.width, -1))
         vfilters.append(filters.crop(scale_res.width, scale_res.height))
 
-        step = abs(zstop - zstart) / 100 / duration / fps
+        step = (zstop - zstart) / duration / fps
         if zstop < zstart:
-            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart / 100, zstop / 100, step)
+            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart, zstop, -step)
         else:
-            zformula = "min(zoom+{},{})".format(step, zstop / 100)
+            zformula = "min(zoom+{},{})".format(step, zstop)
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
@@ -334,8 +335,11 @@ class ImageFile(media.MediaFile):
         elif kwargs.get('speed', None) is None:
             log.logger.info("Computing speed from duration and bounds")
             duration = float(kwargs['duration'])
-            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
-            speed = (xstop - xstart) / duration
+            # (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
+            # speed = (xstop - xstart) / duration
+            speed = 0.05
+            if random.randint(0, 1) == 1:
+                speed = - speed
         return (speed, duration)
 
     def panorama(self, **kwargs):
@@ -347,6 +351,9 @@ class ImageFile(media.MediaFile):
         - Speed: % of the image traveled in 1 sec (0.1 or 10%)
         '''
         log.logger.debug("panorama(%s)", str(kwargs))
+        if 'effect' not in kwargs:
+            kwargs['effect'] = (0, 1, 0.45, 0.55)
+
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan',
             extension=conf.get_property('video.default.format'))
 
@@ -361,7 +368,7 @@ class ImageFile(media.MediaFile):
         framerate = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
 
         v_res = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
-        scale_res = v_res * 1.5
+        scale_res = v_res * 2
         # Filters used for panorama are incompatible with hw acceleration
 
         (speed, duration) = self.__get_panorama_params__(**kwargs)
@@ -416,29 +423,28 @@ class ImageFile(media.MediaFile):
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
         (w, h) = self.dimensions()
-        speed = None
+        speed = 0.05 * random.randrange(-1, 3, 2)
         if 'speed' in kwargs:
             speed = float(kwargs.pop('speed'))
+        duration = 5
+        if 'duration' in kwargs:
+            duration = float(kwargs.pop('duration'))
+        drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
 
         if self.resolution.ratio <= (3 / 4 + 0.00001):
-            return self.panorama(duration=8, effect=(0.5, 0.5, 0.2, 0.8), **kwargs)
+            return self.panorama(duration=duration, speed=speed, effect=(0.5 + drift, 0.5 - drift, 0.2, 0.8), **kwargs)
         elif self.resolution.ratio >= (16 / 9 + 0.00001):
             r = random.randint(0, 10)
             # Allow up to 20% crop if image ratio < 9 / 16
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
             r = r + offset if r == 0 else r - offset
             # Allow up to 10% vertical drift
-            if speed is None:
-                speed = 0.08 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
+            return self.panorama(duration=duration, effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         elif random.randint(0, 1) == 0:
-            if speed is None:
-                speed = 0.08 * random.randrange(-1, 3, 2)
-            drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             x = random.randint(0, 1)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
+            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
         else:
             return self.zoom(effect=__get_random_zoom__(), **kwargs)
 
@@ -605,16 +611,11 @@ def __get_random_panorama__():
     return (xstart, xstop, ystart, ystop)
 
 
-def __get_random_zoom__(zmin=1, zmax=1.5):
-    rmin = zmin + random.randint(0, 2) / 10
-    rmax = zmax - random.randint(0, 2) / 10
-    if rmax - rmin < 0.2:
-        rmin -= 0.1
-        rmax += 0.1
-
-    rmin = round(rmin, 2)
+def __get_random_zoom__(zmin=1, zmax=1.3):
+    rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
+    rmin = round(zmin, 2)
     rmax = round(rmax, 2)
     if random.randint(0, 1) == 0:
         (rmax, rmin) = (rmin, rmax)
     log.logger.debug("Random zoom = (%s, %s)", str(rmin), str(rmax))
-    return (rmax, rmin)
+    return (rmin, rmax)

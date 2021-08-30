@@ -133,7 +133,6 @@ class AudioFile(media.MediaFile):
         if self.album is None:
             self.get_tags()
         return self.album
-        self.year = None
 
     def get_author(self):
         if self.author is None:
