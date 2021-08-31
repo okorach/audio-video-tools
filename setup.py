@@ -25,9 +25,9 @@ import mediatools.version as version
 with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
-    name='media-tools',
+    name='audio-video-tools',
     version=version.MEDIA_TOOLS_VERSION,
-    scripts=['media-tools'],
+    scripts=['audio-video-tools'],
     author="Olivier Korach",
     author_email="olivier.korach@gmail.com",
     description="A collection of utility scripts to manipulate media files (audio, video, image)",
