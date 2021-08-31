@@ -26,7 +26,6 @@ test/
 build/
 .idea/
 dist/
-media_tools.egg-info/
 *.code-workspace
 it/*.scale-*.mp4
 it/*.scale-*.jpg
@@ -36,3 +35,4 @@ it/*.pan*.mp4
 it/*.stacked.jpg
 .coverage
 test-reports/
+audio_video_tools.egg-info/
