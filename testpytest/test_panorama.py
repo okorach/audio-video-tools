@@ -26,7 +26,6 @@ import mediatools.imagefile as image
 import mediatools.videofile as video
 import mediatools.exceptions as ex
 
-EX_PAN_MIN_2_PARAMS = "panorama: 2 arguments out of 3 mandatory in effect, duration or speed"
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
 TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
 TMP_IMG = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
@@ -36,42 +35,6 @@ def get_img(w, h, orientation='landscape'):
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
-
-
-def test_pan_input_1():
-    large_img = get_img(4000, 3000)
-    try:
-        _ = large_img.panorama(effect=(0, 1, 0.5, 0.5), out_file=TMP_VID)
-        os.remove(TMP_VID)
-        assert False
-    except ex.InputError as e:
-        assert e.message == EX_PAN_MIN_2_PARAMS
-    finally:
-        os.remove(large_img.filename)
-
-
-def test_pan_input_2():
-    large_img = get_img(4000, 3000)
-    try:
-        _ = large_img.panorama(speed="10%", out_file=TMP_VID)
-        os.remove(TMP_VID)
-        assert False
-    except ex.InputError as e:
-        assert e.message == EX_PAN_MIN_2_PARAMS
-    finally:
-        os.remove(large_img.filename)
-
-
-def test_pan_input_3():
-    large_img = get_img(4000, 3000)
-    try:
-        _ = large_img.panorama(duration=5, out_file=TMP_VID)
-        os.remove(TMP_VID)
-        assert False
-    except ex.InputError as e:
-        assert e.message == EX_PAN_MIN_2_PARAMS
-    finally:
-        os.remove(large_img.filename)
 
 
 def test_pan_input_4():

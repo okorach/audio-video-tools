@@ -313,33 +313,14 @@ class ImageFile(media.MediaFile):
         return (scale_filter, total_width, total_height)
 
     def __get_panorama_params__(self, **kwargs):
-        speed = kwargs.get('speed', None)
-        duration = kwargs.get('duration', None)
-        if ((kwargs.get('effect', None) is None and kwargs.get('duration', None) is None) or
-           (kwargs.get('effect', None) is None and kwargs.get('speed', None) is None) or
-           (kwargs.get('duration', None) is None and kwargs.get('speed', None) is None)):
-            raise ex.InputError("2 arguments out of 3 mandatory in effect, duration or speed", "panorama")
-        if kwargs.get('effect', None) is None:
-            log.logger.info("Computing bounds from duration and speed")
-            duration = float(kwargs['duration'])
-            if duration <= 0:
-                raise ex.InputError("duration must be a strictly positive number", "panorama")
-            speed = util.percent_or_absolute(kwargs['speed'])
-        elif kwargs.get('duration', None) is None:
-            log.logger.info("Computing duration from speed and bounds")
-            speed = util.percent_or_absolute(kwargs['speed'])
-            (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
-            if xstop < xstart and speed > 0:
-                speed = - speed
-            duration = abs((xstop - xstart) / speed)
-        elif kwargs.get('speed', None) is None:
-            log.logger.info("Computing speed from duration and bounds")
-            duration = float(kwargs['duration'])
-            # (xstart, xstop, _, _) = [float(x) for x in kwargs['effect']]
-            # speed = (xstop - xstart) / duration
+        speed = util.percent_or_absolute(kwargs.get('speed', None))
+        if speed is None:
             speed = 0.05
             if random.randint(0, 1) == 1:
                 speed = - speed
+        duration = util.percent_or_absolute(kwargs.get('duration', 5))
+        if duration <= 0:
+            raise ex.InputError("duration must be a strictly positive number", "panorama")
         return (speed, duration)
 
     def panorama(self, **kwargs):
