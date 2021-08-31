@@ -20,6 +20,7 @@
 #
 
 import sys
+import os
 import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.videofile as video
@@ -29,13 +30,16 @@ def main():
     files = []
     log.set_logger('video-slideshow')
     resolution = conf.get_property('video.default.resolution')
-    sys.argv.pop(0)
+    me = sys.argv.pop(0).split(os.sep)[-1]
     while sys.argv:
         arg = sys.argv.pop(0)
         if arg == "-g":
             util.set_debug_level(sys.argv.pop(0))
         elif arg == "--resolution":
             resolution = sys.argv.pop(0)
+        elif arg[0] == "-":
+            print("Usage: {} [-g <LEVEL>] [-h] [--resolution WxH] <file1> ... <filen>".format(me))
+            sys.exit(1)
         else:
             files.append(arg)
     if len(files) > 0:
