@@ -22,7 +22,7 @@ rm -rf build dist
 python3 setup.py bdist_wheel
 
 # Deploy locally for tests
-echo "y" | python3 -m pip uninstall media-tools
+echo "y" | python3 -m pip uninstall audio-video-tools
 python3 -m pip install dist/*-py3-*.whl
 
 # Deploy on pypi.org once released
