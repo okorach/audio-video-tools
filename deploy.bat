@@ -23,7 +23,7 @@ del dist/*
 python setup.py sdist bdist_wheel
 
 :: Deploy locally for tests
-python -m pip uninstall media-tools
+python -m pip uninstall audio-video-tools
 for %%a in (dist\*.whl) do (
     echo "y" | python -m pip install %%a
 )
