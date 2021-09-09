@@ -22,6 +22,7 @@
 '''Video file tools'''
 
 from __future__ import print_function
+import os
 import re
 import mediatools.log as log
 import mediatools.exceptions as ex
@@ -688,13 +689,16 @@ def slideshow(*inputs, resolution=None):
     video_files = []
     all_video_files = []
     slideshows = []
-
+    slideshow_root_filename = None
     if resolution is None:
         resolution = conf.get_property('video.default.resolution')
     fmt = conf.get_property('video.default.format')
 
     for slide_file in slideshow_files:
         if fil.is_image_file(slide_file):
+            if slideshow_root_filename is None:
+                slideshow_root_filename = '{}.slideshow.{}'.format(fil.strip_extension(slide_file), os.getpid())
+                log.logger.info("Final slideshow file will be %s.%s", slideshow_root_filename, fmt)
             try:
                 video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
             except OSError:
@@ -707,15 +711,16 @@ def slideshow(*inputs, resolution=None):
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(__build_slideshow__(video_files, resolution=resolution,
-                outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
+                outfile='{}.part{}.{}'.format(fil.strip_extension(slideshow_root_filename), len(slideshows), fmt)))
             all_video_files.append(video_files)
             video_files = []
+    final_file = '{}.{}'.format(fil.strip_extension(slideshow_root_filename), fmt)
     if len(all_video_files) == 0:
-        return __build_slideshow__(video_files, resolution=resolution, outfile='slideshow.{}'.format(fmt))
+        return __build_slideshow__(video_files, resolution=resolution, outfile=final_file)
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
-            outfile='slideshow.part{}.{}'.format(len(slideshows), fmt)))
-        return concat(target_file='slideshow.{}'.format(fmt), file_list=slideshows, with_audio=False)
+            outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
+        return concat(target_file=final_file, file_list=slideshows, with_audio=False)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
