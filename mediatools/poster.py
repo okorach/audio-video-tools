@@ -38,7 +38,7 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 def main():
     file_list = []
     dir_list = []
-    log.set_logger('image-poster')
+    util.init('image-poster')
     sys.argv.pop(0)
     kwargs = {'background_color': 'black', 'margin': 5}
     while sys.argv:

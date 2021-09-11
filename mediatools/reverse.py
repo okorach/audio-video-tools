@@ -26,7 +26,7 @@ import mediatools.videofile as video
 
 
 def main():
-    util.set_logger('video-reverse')
+    util.init('video-reverse')
     sys.argv.pop(0)
     opts = {'audio': False, 'hw_accel': False}
     while sys.argv:
