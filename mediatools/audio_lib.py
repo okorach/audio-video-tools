@@ -29,6 +29,7 @@ import mediatools.audiofile as audio
 
 
 def main():
+    util.init('audio-lib')
     me = sys.argv.pop(0)
     directory = None
     while sys.argv:

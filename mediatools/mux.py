@@ -30,7 +30,7 @@ import mediatools.utilities as util
 
 
 def main():
-    log.set_logger('video-mux')
+    util.init('video-mux')
     sys.argv.pop(0)
     afiles = []
     while sys.argv:

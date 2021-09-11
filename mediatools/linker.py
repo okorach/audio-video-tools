@@ -45,6 +45,7 @@ def link_file(file, directory, hashes):
 
 
 def main():
+    util.init('audio-linker')
     me = sys.argv.pop(0)
     directory = None
     master_dir = None

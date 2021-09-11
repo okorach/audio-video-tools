@@ -34,7 +34,7 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 
 def main():
     files = []
-    log.set_logger('image-stack')
+    util.init('image-stack')
     kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': True, 'background_color': 'black'}
     sys.argv.pop(0)
     while sys.argv:
