@@ -28,6 +28,7 @@ import mediatools.videofile as video
 
 
 def main():
+    util.init('video-concat')
     sys.argv.pop(0)
     target_file = sys.argv.pop(0)
     filelist = []

@@ -27,6 +27,7 @@ import argparse
 import pathlib
 import subprocess
 import shlex
+import mediatools.version as version
 import mediatools.log as log
 import mediatools.options as opt
 import mediatools.resolution as res
@@ -187,16 +188,21 @@ def to_hms_str(seconds):
     return "%d:%02d:%06.3f" % (hours, minutes, secs)
 
 
-
 def json_fmt(json_data):
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(',', ': '))
 
 
 def set_debug_level(level):
     global DEBUG_LEVEL
-    DEBUG_LEVEL = 0 if level is None else int(level)
+    DEBUG_LEVEL = 3 if level is None else int(level)
     log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
     log.logger.info("Set debug level to %d", DEBUG_LEVEL)
+
+
+def init(logger_name):
+    log.set_logger(logger_name)
+    log.logger.setLevel(log.get_logging_level(3))
+    log.logger.info('audio-video-tools version %s', version.MEDIA_TOOLS_VERSION)
 
 
 def delete_files(*args):
@@ -208,7 +214,7 @@ def delete_files(*args):
 def get_common_args(executable, desc):
     """Parses options common to all media encoding scripts"""
 
-    log.set_logger(executable)
+    init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')

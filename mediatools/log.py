@@ -45,11 +45,13 @@ def set_logger(name):
 
 
 def get_logging_level(intlevel):
-    if intlevel >= 2:
+    if intlevel >= 4:
         lvl = logging.DEBUG
-    elif intlevel >= 1:
+    elif intlevel >= 3:
         lvl = logging.INFO
-    elif intlevel >= 0:
+    elif intlevel >= 2:
+        lvl = logging.WARNING
+    elif intlevel >= 1:
         lvl = logging.ERROR
     else:
         lvl = logging.CRITICAL
