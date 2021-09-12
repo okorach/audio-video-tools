@@ -21,10 +21,22 @@
 
 import sys
 import os
+import json
 import mediatools.log as log
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.media_config as conf
+
+def _dump_report_(report, file):
+    if file is None:
+        f = sys.stdout
+        log.logger.info("Dumping report to stdout")
+    else:
+        f = open(file, "w")
+        log.logger.info("Dumping report to file '%s'", file)
+    print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')), file=f)
+    if file is not None:
+        f.close()
 
 def main():
     files = []
@@ -43,9 +55,10 @@ def main():
         else:
             files.append(arg)
     if len(files) > 0:
-        output = video.slideshow(*files, resolution=resolution)
-        log.logger.info("File %s generated", output)
-        print("File {} generated".format(output))
+        (output, operations) = video.slideshow(*files, resolution=resolution)
+        _dump_report_(operations, output + '.json')
+        log.logger.info("File {} generated, report is {}".format(output, output + '.json'))
+        print("File {} generated, report is {}".format(output, output + '.json'))
     else:
         log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
 

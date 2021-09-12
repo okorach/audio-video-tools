@@ -290,7 +290,10 @@ class ImageFile(media.MediaFile):
         cmd = '-i "{}" -framerate {} -filter_complex "[0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
             self.filename, fps, ','.join(vfilters), resolution, out_file)
         util.run_ffmpeg(cmd)
-        return out_file
+        return (
+            out_file, {'input': self.filename, 'output': out_file, 'cmd': cmd,
+            'duration': duration, 'zoom': zstop}
+        )
 
     def __compute_total_frame__(self, needed_width, needed_height):
         if needed_width > self.resolution.width:
@@ -389,7 +392,10 @@ class ImageFile(media.MediaFile):
         cmd = '-framerate {} -loop 1 -i "{}" -filter_complex "[0:v]{}" -t {} -s {} "{}"'.format(
             framerate, self.filename, ','.join(vfilters), duration, str(v_res), out_file)
         util.run_ffmpeg(cmd)
-        return out_file
+        return (out_file, {
+            'input': self.filename, 'output': out_file, 'cmd': cmd,
+            'duration': duration, 'speed': speed, 'vspeed': vspeed}
+        )
 
     def to_video(self, with_effect=True, **kwargs):
         '''
