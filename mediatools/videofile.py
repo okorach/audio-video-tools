@@ -690,6 +690,7 @@ def slideshow(*inputs, resolution=None):
     all_video_files = []
     slideshows = []
     slideshow_root_filename = None
+    operations = []
     if resolution is None:
         resolution = conf.get_property('video.default.resolution')
     fmt = conf.get_property('video.default.format')
@@ -697,10 +698,12 @@ def slideshow(*inputs, resolution=None):
     for slide_file in slideshow_files:
         if fil.is_image_file(slide_file):
             if slideshow_root_filename is None:
-                slideshow_root_filename = '{}.slideshow.{}'.format(fil.strip_extension(slide_file), os.getpid())
+                slideshow_root_filename = fil.random_name(slide_file, 'slideshow')
                 log.logger.info("Final slideshow file will be %s.%s", slideshow_root_filename, fmt)
             try:
-                video_files.append(image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution))
+                (out_file, details) = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution)
+                video_files.append(out_file)
+                operations.append(details)
             except OSError:
                 log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
         elif fil.is_video_file(slide_file):
@@ -711,16 +714,20 @@ def slideshow(*inputs, resolution=None):
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(__build_slideshow__(video_files, resolution=resolution,
-                outfile='{}.part{}.{}'.format(fil.strip_extension(slideshow_root_filename), len(slideshows), fmt)))
+                outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
             all_video_files.append(video_files)
             video_files = []
-    final_file = '{}.{}'.format(fil.strip_extension(slideshow_root_filename), fmt)
+    final_file = '{}.{}'.format(slideshow_root_filename, fmt)
     if len(all_video_files) == 0:
-        return __build_slideshow__(video_files, resolution=resolution, outfile=final_file)
+        return (
+            __build_slideshow__(video_files, resolution=resolution, outfile=final_file),
+            operations )
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
             outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
-        return concat(target_file=final_file, file_list=slideshows, with_audio=False)
+        return (
+            concat(target_file=final_file, file_list=slideshows, with_audio=False),
+            operations )
 
 
 def speed(filename, target_speed, output=None, **kwargs):

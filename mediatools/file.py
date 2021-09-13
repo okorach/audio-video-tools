@@ -266,3 +266,12 @@ def get_type(file):
         t = FileType.UNKNOWN_FILE
     log.logger.debug("Filetype of %s is %s", file, t)
     return t
+
+def random_name(original_file, pattern, extension=None):
+    extension = '' if extension is None else '.'.extension
+    return '{}.{}.{}{}'.format(
+        strip_extension(original_file),
+        pattern,
+        os.getpid(),
+        extension
+    )
