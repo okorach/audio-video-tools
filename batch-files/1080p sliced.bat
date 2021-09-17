@@ -18,7 +18,8 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
-for %%F in (%*) do (
-   video-encode -i "%%~F" -p 2mbps --width 960 --vbitrate 1200k -o "%%~F.1mbps.960x.mp4" -g 5
-)
+set /p timeranges=Time ranges ?
+
+video-encode -i %1 -p 1080p -g 5 -t %timeranges% --fade 2 --vcodec h264 --acodec aac --vbitrate 4096k --abitrate 128k
+
+pause
