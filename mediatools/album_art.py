@@ -32,7 +32,7 @@ DEFAULT_RESCALING = '512x512'
 
 
 def main():
-    util.set_logger('album-art')
+    util.init('album-art')
     sys.argv.pop(0)
     files = []
     scale = DEFAULT_RESCALING
