@@ -453,9 +453,13 @@ class VideoFile(media.MediaFile):
         if kwargs.get('abitrate', None) is not None:
             settings.append('-b:a "{}"'.format(kwargs['abitrate']))
 
-        if 'stop' in kwargs and kwargs['stop'] != '':
-            settings.append('-t {}'.format(util.difftime(kwargs['stop'], kwargs.get('start', 0))))
+        if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+            settings.append('-ss {}'.format(kwargs[opt.Option.START]))
 
+        if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
+            settings.append('-t {}'.format(util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
+
+        settings.append('-deinterlace')
         log.logger.debug('Output settings = %s', str(settings))
         return settings
 
