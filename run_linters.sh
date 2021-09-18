@@ -42,4 +42,4 @@ flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391 --max-line-len
 
 echo "Running bandit"
 rm -f $banditReport
-bandit -f json --skip B311,B303 -r . -x .vscode,./testpytest,./testunittest >$banditReport
+bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./testpytest,./testunittest >$banditReport
