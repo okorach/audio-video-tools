@@ -38,10 +38,14 @@ jobs:
       #       pytest
       - name: Run tests
         working-directory: .
-        run: ./run_tests.sh
+        run: |
+          chmod +x ./run_tests.sh
+          ./run_tests.sh
       - name: Run linters
         working-directory: .
-        run: ./run_linters.sh
+        run: |
+          chmod +x ./run_linters.sh
+          ./run_linters.sh
       - name: Cache SonarQube packages
         uses: actions/cache@v1
         with:
