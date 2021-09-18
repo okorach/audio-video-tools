@@ -43,45 +43,19 @@ do
 done
 
 buildDir="build"
-pylintReport="$buildDir/pylint-report.out"
-banditReport="$buildDir/bandit-report.json"
-flake8Report="$buildDir/flake8-report.out"
-coverageReport="$buildDir/coverage.xml"
 owaspDependencyReport="$buildDir/dependency-check-report.json"
 
 [ ! -d $buildDir ] && mkdir $buildDir
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
 
 if [ $skiptests -eq 0 ]; then
-  echo "Running tests"
-  if [ "$tests" != "unittest" ]; then
-    coverage run -m pytest
-    # pytest --cov=mediatools --cov-branch --cov-report=xml:$coverageReport testpytest/
-  else
-    coverage run --source=. --branch -m unittest discover
-  fi
-  coverage xml -o $coverageReport
+  ./run_tests.sh
 else
   echo "Skipping tests"
 fi
 
 if [ "$dolint" != "false" ]; then
-  echo "Running pylint"
-  rm -f $pylintReport
-  pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" | tee $pylintReport
-  re=$?
-  if [ "$re" == "32" ]; then
-    >&2 echo "ERROR: pylint execution failed, errcode $re, aborting..."
-    exit $re
-  fi
-
-  echo "Running flake8"
-  rm -f $flake8Report
-  flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391 --max-line-length=150 . >$flake8Report
-
-  echo "Running bandit"
-  rm -f $banditReport
-  bandit -f json --skip B311,B303 -r . -x .vscode,./testpytest,./testunittest >$banditReport
+  ./run_linters.sh
 fi
 
 dependency-check --scan . --format JSON --prettyPrint --out $owaspDependencyReport
