@@ -243,16 +243,18 @@ def parse_media_args(parser, args=None):
     set_debug_level(kwargs.pop('debug', 1))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
             kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = (-1, -1)
         kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
         kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.RESOLUTION].split('x', maxsplit=2)
-        if kwargs[opt.Option.WIDTH] == '':
-            kwargs[opt.Option.WIDTH] = -1
-        else:
+        if kwargs[opt.Option.WIDTH] != '':
             kwargs[opt.Option.WIDTH] = int(kwargs[opt.Option.WIDTH])
-        if kwargs[opt.Option.HEIGHT] == '':
-            kwargs[opt.Option.HEIGHT] = -1
-        else:
+        if kwargs[opt.Option.HEIGHT] != '':
             kwargs[opt.Option.HEIGHT] = int(kwargs[opt.Option.HEIGHT])
+    elif opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT in kwargs:
+        kwargs[opt.Option.WIDTH] = -1
+    elif opt.Option.WIDTH in kwargs and opt.Option.HEIGHT not in kwargs:
+        kwargs[opt.Option.HEIGHT] = -1
+
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     log.logger.debug('KW=%s', str(kwargs))
