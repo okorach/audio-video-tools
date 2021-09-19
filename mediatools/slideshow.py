@@ -31,12 +31,11 @@ def _dump_report_(report, file):
     if file is None:
         f = sys.stdout
         log.logger.info("Dumping report to stdout")
+        print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')))
     else:
-        f = open(file, "w")
-        log.logger.info("Dumping report to file '%s'", file)
-    print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')), file=f)
-    if file is not None:
-        f.close()
+        with open(file, "w") as f:
+            log.logger.info("Dumping report to file '%s'", file)
+            print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')), file=f)
 
 def main():
     files = []
@@ -50,15 +49,17 @@ def main():
         elif arg == "--resolution":
             resolution = sys.argv.pop(0)
         elif arg[0] == "-":
-            print("Usage: {} [-g <LEVEL>] [-h] [--resolution WxH] <file1> ... <filen>".format(me))
+            print(f"Usage: {me} [-g <LEVEL>] [-h] [--resolution WxH] <file1> ... <filen>")
             sys.exit(1)
         else:
             files.append(arg)
-    if len(files) > 0:
+    if files:
         (output, operations) = video.slideshow(*files, resolution=resolution)
-        _dump_report_(operations, output + '.json')
-        log.logger.info("File {} generated, report is {}".format(output, output + '.json'))
-        print("File {} generated, report is {}".format(output, output + '.json'))
+        json_file = output + '.json'
+        _dump_report_(operations, json_file)
+        msg = f"File {output} generated, report is {json_file}"
+        log.logger.info(msg)
+        print(msg)
     else:
         log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
 

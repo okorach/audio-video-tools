@@ -268,10 +268,5 @@ def get_type(file):
     return t
 
 def random_name(original_file, pattern, extension=None):
-    extension = '' if extension is None else '.'.extension
-    return '{}.{}.{}{}'.format(
-        strip_extension(original_file),
-        pattern,
-        os.getpid(),
-        extension
-    )
+    extension = '' if extension is None else f'.{extension}'
+    return f'{strip_extension(original_file)}.{pattern}.{os.getpid()}{extension}'
