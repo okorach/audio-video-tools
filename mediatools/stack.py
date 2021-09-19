@@ -29,7 +29,7 @@ import mediatools.imagefile as image
 import mediatools.utilities as util
 
 USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
-[--stretch] [-g 0-5] file1 file2 ... filen"
+[--stretch] [-g 0-4] file1 file2 ... filen"
 
 
 def main():
