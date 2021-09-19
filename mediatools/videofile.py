@@ -780,7 +780,7 @@ def hardware_accel_present():
     output = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
     input = VideoFile('it/video-720p.mp4')
     try:
-        res_video = VideoFile(input.encode(target_file=output, resolution='1280x720', start=1, stop=3))
+        res_video = VideoFile(input.encode(target_file=output, resolution='640x360', start=1, stop=2))
         os.remove(res_video.filename)
     except subprocess.CalledProcessError:
         return False
