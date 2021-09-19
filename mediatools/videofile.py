@@ -417,7 +417,7 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get(opt.Option.STOP, self.duration)) - 0.5, duration=0.5))
         if 'hw_accel' in kwargs and kwargs.get(opt.Option.RESOLUTION, None) is not None:
-            vfilters.append('scale_cuda={}:{}'.format(kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]))
+            vfilters.append(f'scale_cuda="{kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}"')
         log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
 
@@ -446,22 +446,22 @@ class VideoFile(media.MediaFile):
         settings.append(__get_acodec__(**kwargs))
 
         if kwargs.get(opt.Option.RESOLUTION, None) is not None and 'hw_accel' not in kwargs:
-            settings.append('-{} "{}"'.format(opt.OptionFfmpeg.RESOLUTION, kwargs['resolution']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs['resolution']))
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
-            settings.append('-{} "{}"'.format(opt.OptionFfmpeg.VBITRATE, kwargs['vbitrate']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs['vbitrate']))
 
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
-            settings.append('-{} "{}"'.format(opt.OptionFfmpeg.ABITRATE, kwargs['abitrate']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs['abitrate']))
 
         if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
-            settings.append('-{} {}'.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
         if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-            settings.append('-{} {}'.format(opt.OptionFfmpeg.STOP, util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
 
         if opt.Option.DEINTERLACE in kwargs:
-            settings.append('-{}'.format(opt.Option.DEINTERLACE))
+            settings.append(f'-{opt.Option.DEINTERLACE}')
 
         log.logger.debug('Output settings = %s', str(settings))
         return settings
@@ -482,7 +482,7 @@ def __get_vcodec__(**kwargs):
     if vcodec is None:
         return ''
     else:
-        return '-{} {}'.format(opt.OptionFfmpeg.VCODEC, vcodec)
+        return opt.OPT_FMT.format(opt.OptionFfmpeg.VCODEC, vcodec)
 
 
 def __get_acodec__(**kwargs):
