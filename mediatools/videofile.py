@@ -445,7 +445,7 @@ class VideoFile(media.MediaFile):
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
 
-        if kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None and 'hw_accel' not in kwargs:
             settings.append('-{} "{}"'.format(opt.OptionFfmpeg.RESOLUTION, kwargs['resolution']))
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
