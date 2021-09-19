@@ -24,6 +24,8 @@
 from __future__ import print_function
 import os
 import re
+import tempfile
+import subprocess
 import mediatools.log as log
 import mediatools.exceptions as ex
 import mediatools.resolution as res
@@ -725,13 +727,13 @@ def slideshow(*inputs, resolution=None):
     if len(all_video_files) == 0:
         return (
             __build_slideshow__(video_files, resolution=resolution, outfile=final_file),
-            operations )
+            operations)
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
             outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
         return (
             concat(target_file=final_file, file_list=slideshows, with_audio=False),
-            operations )
+            operations)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
@@ -772,3 +774,14 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
     else:
         output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
         return VideoFile(filename).encode(target_file=output, start=start, stop=stop, **kwargs)
+
+
+def hardware_accel_present():
+    output = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+    input = VideoFile('it/video-720p.mp4')
+    try:
+        res_video = VideoFile(input.encode(target_file=output, resolution='1280x720', start=1, stop=3))
+        os.remove(res_video.filename)
+    except subprocess.CalledProcessError:
+        return False
+    return True
