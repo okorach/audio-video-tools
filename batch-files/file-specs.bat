@@ -18,6 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-media-specs -i "%~1" -f txt -g 1
+media-specs -i "%~1" -f txt
 
 pause
