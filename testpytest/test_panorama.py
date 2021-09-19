@@ -1,5 +1,4 @@
 
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -63,7 +62,7 @@ def test_pan_input_5():
 
 def test_pan_1():
     img = get_img(4000, 3000)
-    vid = img.panorama(duration=5, speed="10%", resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(duration=5, speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
@@ -72,7 +71,7 @@ def test_pan_1():
 
 def test_pan_2():
     img = get_img(4000, 3000)
-    vid = img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 10
     os.remove(vid)
@@ -81,7 +80,7 @@ def test_pan_2():
 
 def test_pan_3():
     img = get_img(4000, 3000)
-    vid = img.panorama(effect=(0, 1, 0.5, 0.5), duration=5, resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(effect=(0, 1, 0.5, 0.5), duration=5, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
@@ -90,7 +89,7 @@ def test_pan_3():
 
 def test_pan_4():
     img = get_img(4000, 3000)
-    vid = img.panorama(effect=(1, 0, 0.5, 0.5), speed=0.2, resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(effect=(1, 0, 0.5, 0.5), speed=0.2, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
@@ -99,7 +98,7 @@ def test_pan_4():
 
 def test_pan_5():
     img = get_img(4000, 3000)
-    vid = img.to_video(with_effect=False, duration=3, resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.to_video(with_effect=False, duration=3, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
@@ -108,7 +107,7 @@ def test_pan_5():
 
 def test_pan_6():
     img = get_img(4000, 3000)
-    vid = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
@@ -117,7 +116,7 @@ def test_pan_6():
 
 def test_pan_portrait():
     img = get_img(3000, 4000, 'portrait')
-    vid = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
+    (vid, _) = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
