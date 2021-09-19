@@ -18,6 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-video-encode -i %1 -p 100fps -g 5
+video-encode -i %1 --hw_accel -p 100fps -g 5
 
 pause
