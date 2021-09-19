@@ -34,12 +34,12 @@ images = (
 
 def test_slideshow():
     util.set_debug_level(5)
-    vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200"))
+    vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200")[0])
     assert vid2_o.duration > 20
     os.remove('slideshow.mp4')
 
 def test_slideshow_without_resolution():
     util.set_debug_level(5)
-    vid2_o = video.VideoFile(video.slideshow(*images))
+    vid2_o = video.VideoFile(video.slideshow(*images)[0])
     assert vid2_o.duration > 20
     os.remove('slideshow.mp4')
