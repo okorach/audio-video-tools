@@ -108,7 +108,7 @@ def test_to_hms_str():
     assert util.to_hms_str(152.2) == "00:02:32.200"
     assert util.to_hms_str("3662.23") == "01:01:02.230"
 
-def test_to_seconds():
+def test_to_seconds2():
     assert util.to_seconds("00:02:32.200") == 152.2
     assert util.to_seconds("01:01:02.230") == 3662.23
     assert util.to_seconds("05:03.210") == 303.21
