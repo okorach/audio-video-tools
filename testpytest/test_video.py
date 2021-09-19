@@ -23,7 +23,6 @@ import os
 import shutil
 import tempfile
 import mediatools.exceptions as ex
-import mediatools.utilities as util
 import mediatools.videofile as video
 
 FILE = 'it' + os.sep + 'video-720p.mp4'

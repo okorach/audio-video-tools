@@ -20,7 +20,6 @@
 #
 
 import os
-import mediatools.utilities as util
 import mediatools.videofile as video
 
 large_img = None
