@@ -240,7 +240,8 @@ def parse_media_args(parser, args=None):
         kwargs = remove_nones(vars(parser.parse_args()))
     else:
         kwargs = remove_nones(vars(parser.parse_args(args)))
-    set_debug_level(kwargs.pop('debug', 1))
+    # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
+    set_debug_level(kwargs.pop('debug', 3))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
             kwargs.get(opt.Option.RESOLUTION, None) is not None:
         (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = (-1, -1)
