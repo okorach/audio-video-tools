@@ -24,7 +24,7 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
-import mediatools.log as log
+from mediatools import log
 import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util

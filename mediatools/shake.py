@@ -25,7 +25,7 @@ Effect can be horizontal or vertical
 Arguments: -c <color> -r <ratio> -n <slices> -d <direction>
 '''
 
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
@@ -42,6 +42,7 @@ def main():
         kwargs['slices'], kwargs['shake_ratio'], kwargs['color'], kwargs['direction'])
     log.logger.info("Generated %s", output)
     print("Generated %s", output)
+
 
 if __name__ == "__main__":
     main()

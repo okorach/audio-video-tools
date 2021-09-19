@@ -27,7 +27,7 @@
 
 import sys
 import os
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.imagefile as image
 

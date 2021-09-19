@@ -27,7 +27,7 @@ import shutil
 import tempfile
 import exifread
 
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.resolution as res
@@ -281,18 +281,17 @@ class ImageFile(media.MediaFile):
 
         step = (zstop - zstart) / duration / fps
         if zstop < zstart:
-            zformula = "if(lte(zoom,1.0),{},max({}+0.001,zoom-{}))".format(zstart, zstop, -step)
+            zformula = f"if(lte(zoom,1.0),{zstart},max({zstop}+0.001,zoom-{-step}))"
         else:
-            zformula = "min(zoom+{},{})".format(step, zstop)
+            zformula = "min(zoom+{step},{zstop})"
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
-        cmd = '-i "{}" -framerate {} -filter_complex "[0:v]{}[v]" -map "[v]" -s {} "{}"'.format(
-            self.filename, fps, ','.join(vfilters), resolution, out_file)
+        vf_string = ','.join(vfilters)
+        cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" -s "{resolution}" "{out_file}"'
         util.run_ffmpeg(cmd)
         return (
-            out_file, {'input': self.filename, 'output': out_file, 'cmd': cmd,
-            'duration': duration, 'zoom': zstop}
+            out_file, {'input': self.filename, 'output': out_file, 'cmd': cmd, 'duration': duration, 'zoom': zstop}
         )
 
     def __compute_total_frame__(self, needed_width, needed_height):

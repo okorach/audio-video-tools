@@ -23,7 +23,7 @@
 
 from __future__ import print_function
 import re
-import mediatools.log as log
+from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
@@ -31,7 +31,7 @@ import mediatools.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.options as opt
-import mediatools.filters as filters
+from mediatools import filters
 import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
@@ -721,7 +721,7 @@ def slideshow(*inputs, resolution=None):
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(__build_slideshow__(video_files, resolution=resolution,
-                outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
+                outfile=f'{slideshow_root_filename}.part{len(slideshows)}.{fmt}'))
             all_video_files.append(video_files)
             video_files = []
     final_file = '{}.{}'.format(slideshow_root_filename, fmt)
@@ -731,14 +731,14 @@ def slideshow(*inputs, resolution=None):
             operations)
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
-            outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
+            outfile=f'{slideshow_root_filename}.part{len(slideshows)}.{fmt}'))
         return (
             concat(target_file=final_file, file_list=slideshows, with_audio=False),
             operations)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='speed-{}'.format(target_speed))
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix=f'speed-{target_speed}')
     return VideoFile(filename).encode(speed=target_speed, target_file=output, **kwargs)
 
 

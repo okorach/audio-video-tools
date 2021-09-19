@@ -21,7 +21,7 @@
 
 import re
 import ffmpeg
-import mediatools.log as log
+from mediatools import log
 import mediatools.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
