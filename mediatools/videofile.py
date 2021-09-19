@@ -22,7 +22,6 @@
 '''Video file tools'''
 
 from __future__ import print_function
-import os
 import re
 import mediatools.log as log
 import mediatools.exceptions as ex
@@ -417,6 +416,8 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get(opt.Option.START, 0)), duration=0.5))
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get(opt.Option.STOP, self.duration)) - 0.5, duration=0.5))
+        if 'hw_accel' in kwargs and kwargs.get(opt.Option.RESOLUTION, None) is not None:
+            vfilters.append('scale_cuda={}:{}'.format(kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]))
         log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
 
@@ -727,13 +728,13 @@ def slideshow(*inputs, resolution=None):
     if len(all_video_files) == 0:
         return (
             __build_slideshow__(video_files, resolution=resolution, outfile=final_file),
-            operations )
+            operations)
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
             outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
         return (
             concat(target_file=final_file, file_list=slideshows, with_audio=False),
-            operations )
+            operations)
 
 
 def speed(filename, target_speed, output=None, **kwargs):
