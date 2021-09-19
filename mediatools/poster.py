@@ -32,7 +32,7 @@ import mediatools.utilities as util
 import mediatools.imagefile as image
 
 USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
-[--background_color [black|white]] [--stretch] [-g 0-5] file1 file2 ... filen"
+[--background_color [black|white]] [--stretch] [-g 0-4] file1 file2 ... filen"
 
 
 def main():

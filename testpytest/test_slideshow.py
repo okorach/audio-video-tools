@@ -20,7 +20,6 @@
 #
 
 import os
-import mediatools.utilities as util
 import mediatools.videofile as video
 
 large_img = None
@@ -33,13 +32,13 @@ images = (
 )
 
 def test_slideshow():
-    util.set_debug_level(5)
+    # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200")[0])
     assert vid2_o.duration > 20
     os.remove('slideshow.mp4')
 
 def test_slideshow_without_resolution():
-    util.set_debug_level(5)
+    # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images)[0])
     assert vid2_o.duration > 20
     os.remove('slideshow.mp4')

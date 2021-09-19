@@ -22,7 +22,6 @@
 '''Video file tools'''
 
 from __future__ import print_function
-import os
 import re
 import mediatools.log as log
 import mediatools.exceptions as ex
@@ -413,11 +412,12 @@ class VideoFile(media.MediaFile):
             if not kwargs.get('no_crop', False):
                 w, h = self.dimensions()
                 vfilters.append(filters.crop(w - rx, h - ry, rx // 2, ry // 2))
-
         if kwargs.get('fade', False):
-            vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get('start', 0)), duration=0.5))
+            vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get(opt.Option.START, 0)), duration=0.5))
             vfilters.append(filters.fade_out(
-                start=util.to_seconds(kwargs.get('stop', self.duration)) - 0.5, duration=0.5))
+                start=util.to_seconds(kwargs.get(opt.Option.STOP, self.duration)) - 0.5, duration=0.5))
+        if 'hw_accel' in kwargs and kwargs.get(opt.Option.RESOLUTION, None) is not None:
+            vfilters.append(f'scale_cuda="{kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}"')
         log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
 
@@ -426,7 +426,8 @@ class VideoFile(media.MediaFile):
         settings = []
         if __must_encode_video__(**kwargs):
             if kwargs.get('hw_accel', False):
-                settings.append('-hwaccel cuvid -c:v h264_cuvid')
+                # settings.append('-hwaccel cuvid -c:v h264_cuvid')
+                settings.append('-hwaccel cuda -hwaccel_output_format cuda')
         elif 'start' in kwargs and kwargs['start'] != '':
             settings.append('-ss {}'.format(kwargs['start']))
 
@@ -444,22 +445,24 @@ class VideoFile(media.MediaFile):
         settings.append(__get_vcodec__(**kwargs))
         settings.append(__get_acodec__(**kwargs))
 
-        if kwargs.get('resolution', None) is not None:
-            settings.append('-s "{}"'.format(kwargs['resolution']))
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None and 'hw_accel' not in kwargs:
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs['resolution']))
 
-        if kwargs.get('vbitrate', None) is not None:
-            settings.append('-b:v "{}"'.format(kwargs['vbitrate']))
+        if kwargs.get(opt.Option.VBITRATE, None) is not None:
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs['vbitrate']))
 
-        if kwargs.get('abitrate', None) is not None:
-            settings.append('-b:a "{}"'.format(kwargs['abitrate']))
+        if kwargs.get(opt.Option.ABITRATE, None) is not None:
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs['abitrate']))
 
         if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
-            settings.append('-ss {}'.format(kwargs[opt.Option.START]))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
         if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-            settings.append('-t {}'.format(util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
 
-        settings.append('-deinterlace')
+        if opt.Option.DEINTERLACE in kwargs:
+            settings.append(f'-{opt.Option.DEINTERLACE}')
+
         log.logger.debug('Output settings = %s', str(settings))
         return settings
 
@@ -468,7 +471,7 @@ class VideoFile(media.MediaFile):
 
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
-        vcodec = kwargs.get('vcodec', conf.get_property('video.default.codec'))
+        vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('video.default.codec'))
         if kwargs.get('hw_accel', False):
             if vcodec is not None and re.search(r'[xh]265', vcodec):
                 vcodec = 'hevc_nvenc'
@@ -479,7 +482,7 @@ def __get_vcodec__(**kwargs):
     if vcodec is None:
         return ''
     else:
-        return '-vcodec {}'.format(vcodec)
+        return opt.OPT_FMT.format(opt.OptionFfmpeg.VCODEC, vcodec)
 
 
 def __get_acodec__(**kwargs):
@@ -488,7 +491,7 @@ def __get_acodec__(**kwargs):
     if not audio_encode:
         acodec = 'copy'
     else:
-        acodec = kwargs.get('acodec', conf.get_property('video.default.audio.codec'))
+        acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('video.default.audio.codec'))
     if acodec is None:
         return ''
     else:
@@ -497,18 +500,18 @@ def __get_acodec__(**kwargs):
 
 def __must_encode_video__(**kwargs):
     for k in kwargs:
-        if k in ('resolution', 'speed', 'vbitrate', 'width', 'height', 'aspect', 'reverse', 'deshake'):
+        if k in (opt.Option.RESOLUTION, 'speed', opt.Option.VBITRATE, 'width', 'height', 'aspect', 'reverse', 'deshake'):
             return True
-        if k == 'vcodec' and kwargs[k] != 'copy':
+        if k == opt.Option.VCODEC and kwargs[k] != 'copy':
             return True
     return False
 
 
 def __must_encode_audio__(**kwargs):
     for k in kwargs:
-        if k in ('acodec', 'abitrate', 'volume'):
+        if k in (opt.Option.ACODEC, opt.Option.ABITRATE, 'volume'):
             return True
-        if k == 'acodec' and kwargs[k] != 'copy':
+        if k == opt.Option.ACODEC and kwargs[k] != 'copy':
             return True
     return False
 
@@ -725,13 +728,13 @@ def slideshow(*inputs, resolution=None):
     if len(all_video_files) == 0:
         return (
             __build_slideshow__(video_files, resolution=resolution, outfile=final_file),
-            operations )
+            operations)
     else:
         slideshows.append(__build_slideshow__(video_files, resolution=resolution,
             outfile='{}.part{}.{}'.format(slideshow_root_filename, len(slideshows), fmt)))
         return (
             concat(target_file=final_file, file_list=slideshows, with_audio=False),
-            operations )
+            operations)
 
 
 def speed(filename, target_speed, output=None, **kwargs):

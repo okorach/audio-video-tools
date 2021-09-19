@@ -28,6 +28,7 @@ used in several places
 in mediatools library
 '''
 
+OPT_FMT = '-{} "{}"'
 
 class OptionFfmpeg:
     '''Documents supported ffmpeg options'''

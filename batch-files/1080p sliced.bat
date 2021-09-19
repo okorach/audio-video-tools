@@ -20,6 +20,6 @@
 
 set /p timeranges=Time ranges ?
 
-video-encode -i %1 -p 1080p -g 5 -t %timeranges% --fade 2 --vcodec h264 --acodec aac --vbitrate 4096k --abitrate 128k
+video-encode -i %1 -p 1080p --hw_accel -t %timeranges% --fade 2 --vcodec h264 --acodec aac --vbitrate 4096k --abitrate 128k
 
 pause
