@@ -170,7 +170,7 @@ def test_blindify():
 def test_shake_1():
     w, h = 1000, 200
     img = get_img(w, h)
-    # util.set_debug_level(5)
+    # util.set_debug_level(4)
     f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
     assert f.height == 210
     del_files(img, f)

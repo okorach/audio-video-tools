@@ -78,7 +78,7 @@ def test_attributes():
 
 def test_crop():
     v = video.VideoFile(FILE)
-    util.set_debug_level(5)
+    # util.set_debug_level(4)
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position='center'))
     cropv.probe()
     assert cropv.aspect == '1:1'
@@ -115,7 +115,7 @@ def test_reverse():
     os.remove(v2.filename)
 
 def test_cut():
-    util.set_debug_level(5)
+    # util.set_debug_level(4)
     v = video.VideoFile(video.cut(FILE, output=TMP1, start=0.5, stop=1.5))
     print("DURATION = {}".format(v.duration))
     assert abs(1 - v.duration) <= 0.06
