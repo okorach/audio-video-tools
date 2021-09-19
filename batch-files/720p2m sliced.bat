@@ -20,6 +20,6 @@
 
 set /p timeranges=Time ranges ?
 
-video-encode -i %1 -p 720p2m --hw_accel -g 2 -t %timeranges% --fade 2
+video-encode -i %1 -p 720p2m --hw_accel 4 -t %timeranges% --fade 2
 
 pause
