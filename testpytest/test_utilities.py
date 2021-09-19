@@ -21,6 +21,7 @@
 
 import mediatools.utilities as util
 import mediatools.videofile as video
+import mediatools.options as opt
 
 def test_conf():
     assert util.get_conf_property('image.default.format') == 'jpg'
@@ -67,3 +68,51 @@ def test_args():
 
 def test_ffmpeg_cmdline():
     assert util.get_ffmpeg_cmdline_framesize("-i  file.mp4 -ss 0 -f  mp4 -s   620x300 -r 50 -aspect 16:9") == '620x300'
+
+def test_pct():
+    assert util.percent_or_absolute("17%") == 0.17
+    assert util.percent_or_absolute("0.113") == 0.113
+    assert util.percent_or_absolute("12%", 2) == 0.24
+
+def test_find_key():
+    data = {"one": 1, "two": 2, "three": 3}
+    assert util.find_key(data, ("two", "three")) == 2
+    assert util.find_key(data, ("four", "three")) == 3
+    assert util.find_key(data, ("four", "five")) is None
+
+def test_dict2str():
+    assert util.dict2str({"verbose": True, "bitrate": 20}) == " -verbose -bitrate 20"
+    assert util.dict2str({"verbose": False, "bitrate": 20}) == " -bitrate 20"
+    assert util.dict2str({}) == ""
+
+def test_swap_kv():
+    assert util.swap_keys_values({"one": 1, "two": 2, "three": 3}) == {1: "one", 2: "two", 3: "three"}
+
+def test_ffmpeg_cmd_line():
+    cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
+    d = util.get_ffmpeg_cmdline_params(cmd)
+    assert d[opt.Option.FORMAT] == "mp4"
+    assert d[opt.Option.ACODEC] == "aac"
+    assert d[opt.Option.ACHANNEL] == "2"
+    assert d[opt.Option.ABITRATE] == "128k"
+    assert d[opt.Option.VCODEC] == "libx264"
+    assert d["amute"]
+    assert not d["vmute"]
+    assert d[opt.Option.VBITRATE] == "3072k"
+    assert d[opt.Option.FPS] == "25"
+    assert d[opt.Option.RESOLUTION] == "1280x720"
+    assert d[opt.Option.ASPECT] == "4:3"
+    assert not d[opt.Option.DEINTERLACE]
+
+def test_to_hms_str():
+    assert util.to_hms_str(152.2) == "00:02:32.200"
+    assert util.to_hms_str("3662.23") == "01:01:02.230"
+
+def test_to_seconds():
+    assert util.to_seconds("00:02:32.200") == 152.2
+    assert util.to_seconds("01:01:02.230") == 3662.23
+    assert util.to_seconds("05:03.210") == 303.21
+    assert util.to_seconds("03.210") == 3.21
+
+def test_difftime():
+    assert util.difftime("02:57:21.931", "01:34:10.311") == "01:23:11:620"
