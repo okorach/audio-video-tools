@@ -21,7 +21,7 @@
 import os
 import shutil
 import jprops
-import mediatools.log as log
+from mediatools import log
 
 CONFIG_SETTINGS = {}
 CONFIG_FILE = '.mediatools.properties'

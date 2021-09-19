@@ -24,7 +24,7 @@
 # horizontally or vertically
 
 import sys
-import mediatools.log as log
+from mediatools import log
 import mediatools.imagefile as image
 import mediatools.utilities as util
 

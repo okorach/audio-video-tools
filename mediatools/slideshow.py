@@ -22,7 +22,7 @@
 import sys
 import os
 import json
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.media_config as conf

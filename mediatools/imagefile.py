@@ -27,7 +27,7 @@ import shutil
 import tempfile
 import exifread
 
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.resolution as res

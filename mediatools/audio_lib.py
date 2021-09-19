@@ -22,7 +22,7 @@
 import os
 import sys
 import shutil
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
@@ -44,7 +44,7 @@ def main():
     for file in fil.dir_list(directory, recurse=False):
         if not fil.is_link(file):
             continue
-        tgt = fil.get_symlink_target(file)
+        tgt = fil.read_link(file)
         log.logger.info("Symlink %s --> Target = %s", file, tgt)
         f_audio = audio.AudioFile(tgt)
         # tags = f_audio.get_tags()

@@ -20,7 +20,7 @@
 #
 
 import sys
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image

@@ -19,7 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 
@@ -52,7 +52,7 @@ class Simple:
             self.filters = [filters]
 
     def __str__(self):
-        if len(self.filters) == 0:
+        if not self.filters:
             return ''
         f = ','.join(self.filters)
         s_in = '' if self.stream_in is None else '[{}]'.format(self.stream_in)
@@ -237,20 +237,20 @@ def select(expr):
 
 
 def filtercomplex(filter_list):
-    if filter_list is None or len(filter_list) == 0:
+    if filter_list is None or not filter_list:
         return ''
     sep = " "   # if platform.system() == 'Windows' else " \\\n"
     return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
 
 
 def vfilter(filter_list):
-    if filter_list is None or len(filter_list) == 0:
+    if filter_list is None or not filter_list:
         return ''
     return '-vf "{}"'.format(','.join(filter_list))
 
 
 def afilter(filter_list):
-    if filter_list is None or len(filter_list) == 0:
+    if filter_list is None or not filter_list:
         return ''
     return '-af "{}"'.format(','.join(filter_list))
 

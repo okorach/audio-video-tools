@@ -25,7 +25,7 @@ This script slows down or accelerate a video
 
 import sys
 import re
-import mediatools.log as log
+from mediatools import log
 import mediatools.utilities as util
 import mediatools.videofile as video
 

@@ -23,7 +23,7 @@
 # in a video file with already one audio track
 
 import sys
-import mediatools.log as log
+from mediatools import log
 import mediatools.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util

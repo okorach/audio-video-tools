@@ -23,7 +23,7 @@ import re
 import os
 import shutil
 from mp3_tagger import MP3File
-import mediatools.log as log
+from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.file as fil
 import mediatools.mediafile as media

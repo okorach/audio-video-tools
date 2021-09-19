@@ -25,7 +25,7 @@ It will be improved soon
 '''
 
 import sys
-import mediatools.log as log
+from mediatools import log
 import mediatools.videofile as video
 import mediatools.utilities as util
 
