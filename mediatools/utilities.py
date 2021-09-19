@@ -27,7 +27,7 @@ import argparse
 import pathlib
 import subprocess
 import shlex
-import mediatools.version as version
+from mediatools import version
 import mediatools.log as log
 import mediatools.options as opt
 import mediatools.resolution as res
