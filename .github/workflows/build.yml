@@ -49,6 +49,8 @@ jobs:
         run: |
           chmod +x ./run_linters.sh
           ./run_linters.sh
+          pwd
+          find .
       - name: Cache SonarQube packages
         uses: actions/cache@v1
         with:
