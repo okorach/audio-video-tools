@@ -39,6 +39,7 @@ import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
 
+HW_ACCEL = None
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.ACODEC)
@@ -427,7 +428,7 @@ class VideoFile(media.MediaFile):
         log.logger.debug('Input options = %s', str(kwargs))
         settings = []
         if __must_encode_video__(**kwargs):
-            if kwargs.get('hw_accel', False):
+            if hardware_accel_present() or kwargs.get('hw_accel', False):
                 settings.append('-hwaccel cuvid -c:v h264_cuvid')
         elif 'start' in kwargs and kwargs['start'] != '':
             settings.append('-ss {}'.format(kwargs['start']))
@@ -471,7 +472,7 @@ class VideoFile(media.MediaFile):
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
         vcodec = kwargs.get('vcodec', conf.get_property('video.default.codec'))
-        if kwargs.get('hw_accel', False):
+        if hardware_accel_present() or kwargs.get('hw_accel', False):
             if vcodec is not None and re.search(r'[xh]265', vcodec):
                 vcodec = 'hevc_nvenc'
             else:
@@ -777,11 +778,18 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
 
 
 def hardware_accel_present():
-    output = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-    input = VideoFile('it/video-720p.mp4')
-    try:
-        res_video = VideoFile(input.encode(target_file=output, resolution='640x360', start=1, stop=2))
-        os.remove(res_video.filename)
-    except subprocess.CalledProcessError:
-        return False
-    return True
+    global HW_ACCEL
+    if HW_ACCEL is None:
+        log.logger.info("Checking if hardware acceleration can be used")
+        output = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+        input = VideoFile(str(util.package_home() / 'video-720p.mp4'))
+        try:
+            log.logger.debug("Trying to encode 1 second of %s", input)
+            # res_video = VideoFile(input.encode(target_file=output, resolution='640x360', start=0, stop=1))
+            util.run_ffmpeg(f'-hwaccel cuda -hwaccel_output_format cuda -i "{input}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{output}"')
+            os.remove(output)
+            HW_ACCEL = True
+        except subprocess.CalledProcessError:
+            HW_ACCEL = False
+        log.logger.info("Hardware acceleration = %s", str(HW_ACCEL))
+    return HW_ACCEL
