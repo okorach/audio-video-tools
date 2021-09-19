@@ -49,6 +49,8 @@ jobs:
         run: |
           chmod +x ./run_linters.sh
           ./run_linters.sh
+          pwd
+          find .
       - name: Cache SonarQube packages
         uses: actions/cache@v1
         with:
@@ -60,7 +62,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+        with:
+          args: >
+            -Dsonar.verbose=true
 
 
   # code-ql:
