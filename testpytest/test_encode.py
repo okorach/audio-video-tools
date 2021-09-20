@@ -31,9 +31,9 @@ def get_video():
 
 def test_encode_size():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=1.5))
     assert vid2_o.resolution.width == 1280
-    assert vid2_o.duration == 2
+    assert abs(vid2_o.duration - 0.5) < 0.001
     os.remove(TMP_VID)
 
 def test_encode_vbitrate():
