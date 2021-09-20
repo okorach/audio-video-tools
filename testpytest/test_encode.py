@@ -31,25 +31,25 @@ def get_video():
 
 def test_encode_size():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=1.5))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=2))
     assert vid2_o.resolution.width == 1280
-    assert abs(vid2_o.duration - 0.5) < 0.001
+    assert abs(vid2_o.duration - 1) < 0.1
     os.remove(TMP_VID)
 
 def test_encode_vbitrate():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vbitrate='3000k', start=1, stop=3))
-    assert abs(vid2_o.video_bitrate + vid2_o.audio_bitrate - 3000000) < 200000
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vbitrate='3000k', start=1, stop=5))
+    assert abs(vid2_o.video_bitrate + vid2_o.audio_bitrate - 3000000) < 300000
     os.remove(TMP_VID)
 
 def test_encode_acodec():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, acodec='libmp3lame', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, acodec='libmp3lame', start=1, stop=2))
     assert vid2_o.audio_codec == 'mp3'
     os.remove(TMP_VID)
 
 def test_encode_vcodec():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vcodec='libx265', start=1, stop=3))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vcodec='libx265', start=1, stop=2))
     assert vid2_o.video_codec == 'hevc'
     os.remove(TMP_VID)

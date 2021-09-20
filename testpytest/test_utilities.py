@@ -56,7 +56,7 @@ def test_args():
     assert 'aspect' not in kw
 
     kw = util.parse_media_args(parser, ['-i', 'file2.mp4', '-s', 'x480'])
-    assert kw['width'] == ''
+    assert kw['width'] == -1
 
     kw = util.parse_media_args(parser, ['-i', 'file3.mp4', '-s', '1280x'])
     assert kw['width'] == 1280
@@ -91,21 +91,21 @@ def test_swap_kv():
 def test_ffmpeg_cmd_line():
     cmd = " -f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
     d = util.get_ffmpeg_cmdline_params(cmd)
-    assert d[opt.OptionFfmpeg.FORMAT] == "mp4"
-    assert d[opt.OptionFfmpeg.ACODEC] == "aac"
-    assert d[opt.OptionFfmpeg.ACHANNEL] == "2"
-    assert d[opt.OptionFfmpeg.ABITRATE] == "128k"
-    assert d[opt.OptionFfmpeg.VCODEC] == "libx264"
+    assert d[opt.Option.FORMAT] == "mp4"
+    assert d[opt.Option.ACODEC] == "aac"
+    assert d[opt.Option.ACHANNEL] == "2"
+    assert d[opt.Option.ABITRATE] == "128k"
+    assert d[opt.Option.VCODEC] == "libx264"
     assert d["amute"]
     assert not d["vmute"]
-    assert d[opt.OptionFfmpeg.VBITRATE] == "3072k"
-    assert d[opt.OptionFfmpeg.FPS] == "25"
-    assert d[opt.OptionFfmpeg.RESOLUTION] == "1280x720"
-    assert d[opt.OptionFfmpeg.ASPECT] == "4:3"
-    assert not d[opt.OptionFfmpeg.DEINTERLACE]
+    assert d[opt.Option.VBITRATE] == "3072k"
+    assert d[opt.Option.FPS] == "25"
+    assert d[opt.Option.RESOLUTION] == "1280x720"
+    assert d[opt.Option.ASPECT] == "4:3"
+    assert not d[opt.Option.DEINTERLACE]
 
 def test_ffmpeg_cmd_line_2():
-    cmd = "-c:a aac2 -c:v libx266 -deinterlace"
+    cmd = " -c:v libx266 -deinterlace  -c:a aac2"
     d = util.get_ffmpeg_cmdline_params(cmd)
     assert opt.Option.FORMAT not in d
     assert d[opt.Option.ACODEC] == "aac2"
@@ -125,8 +125,8 @@ def test_ffmpeg_cmd_line_3():
 
 def test_cmd_line_params():
     cmd = " -thebest olivier -b:a   128k  -deinterlace   -an -acodec aac "
-    d = util.get_ffmpeg_cmdline_params(cmd)
-    assert d == {'-thebest': 'olivier', '-b:a': '128k', '-acodec': 'aac', '-deinterlace': True, '-an': True}
+    d = util.get_cmdline_params(cmd)
+    assert d == {'-thebest': 'olivier', '-b:a': '128k', '-acodec': 'aac', '-deinterlace': None, '-an': None}
 
 def test_to_hms_str():
     assert util.to_hms_str(152.2) == "00:02:32.200"
@@ -139,7 +139,7 @@ def test_to_seconds2():
     assert util.to_seconds("03.210") == 3.21
 
 def test_difftime():
-    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - 4992) < 0.0000001
+    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600+23*60+11.620)) < 0.0000001
 
 def test_ar():
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
