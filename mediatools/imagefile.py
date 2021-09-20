@@ -282,7 +282,7 @@ class ImageFile(media.MediaFile):
         if zstop < zstart:
             zformula = f"if(lte(zoom,1.0),{zstart},max({zstop}+0.001,zoom-{-step}))"
         else:
-            zformula = "min(zoom+{step},{zstop})"
+            zformula = f"min(zoom+{step},{zstop})"
         vfilters.append(
             filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))

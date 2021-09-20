@@ -89,7 +89,7 @@ def test_swap_kv():
     assert util.swap_keys_values({"one": 1, "two": 2, "three": 3}) == {1: "one", 2: "two", 3: "three"}
 
 def test_ffmpeg_cmd_line():
-    cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
+    cmd = " -f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
     d = util.get_ffmpeg_cmdline_params(cmd)
     assert d[opt.Option.FORMAT] == "mp4"
     assert d[opt.Option.ACODEC] == "aac"
@@ -104,15 +104,46 @@ def test_ffmpeg_cmd_line():
     assert d[opt.Option.ASPECT] == "4:3"
     assert not d[opt.Option.DEINTERLACE]
 
+def test_ffmpeg_cmd_line_2():
+    cmd = " -c:v libx266 -deinterlace  -c:a aac2"
+    d = util.get_ffmpeg_cmdline_params(cmd)
+    assert opt.Option.FORMAT not in d
+    assert d[opt.Option.ACODEC] == "aac2"
+    assert opt.Option.ABITRATE not in d
+    assert d[opt.Option.VCODEC] == "libx266"
+    assert opt.Option.VBITRATE not in d
+    assert opt.Option.FPS not in d
+    assert opt.Option.RESOLUTION not in d
+    assert opt.Option.ASPECT not in d
+    assert d[opt.Option.DEINTERLACE]
+
+def test_ffmpeg_cmd_line_3():
+    cmd = " -codec:a aac3 -codec:v libx267 -deinterlace "
+    d = util.get_ffmpeg_cmdline_params(cmd)
+    assert d[opt.Option.ACODEC] == "aac3"
+    assert d[opt.Option.VCODEC] == "libx267"
+
+def test_cmd_line_params():
+    cmd = " -thebest olivier -b:a   128k  -deinterlace   -an -acodec aac "
+    d = util.get_cmdline_params(cmd)
+    assert d == {'-thebest': 'olivier', '-b:a': '128k', '-acodec': 'aac', '-deinterlace': None, '-an': None}
+
 def test_to_hms_str():
     assert util.to_hms_str(152.2) == "00:02:32.200"
     assert util.to_hms_str("3662.23") == "01:01:02.230"
 
 def test_to_seconds2():
     assert util.to_seconds("00:02:32.200") == 152.2
-    assert util.to_seconds("01:01:02.230") == 3662.23
+    assert util.to_seconds("1:01:02.230") == 3662.23
     assert util.to_seconds("05:03.210") == 303.21
     assert util.to_seconds("03.210") == 3.21
 
 def test_difftime():
-    assert util.difftime("02:57:21.931", "01:34:10.311") == "01:23:11:620"
+    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600+23*60+11.620)) < 0.0000001
+
+def test_ar():
+    cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
+    assert util.get_audio_sample_rate(cmd) is None
+    cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
+    assert util.get_audio_sample_rate(cmd) == "44k"
+

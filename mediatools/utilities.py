@@ -186,7 +186,7 @@ def difftime(stop, start):
 
 def to_hms_str(seconds):
     hours, minutes, secs = to_hms(seconds)
-    return "%d:%02d:%06.3f" % (hours, minutes, secs)
+    return "%02d:%02d:%06.3f" % (hours, minutes, secs)
 
 
 def json_fmt(json_data):
@@ -245,13 +245,16 @@ def parse_media_args(parser, args=None):
     set_debug_level(kwargs.pop('debug', 3))
     if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
             kwargs.get(opt.Option.RESOLUTION, None) is not None:
-        (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = (-1, -1)
         kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
         kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.RESOLUTION].split('x', maxsplit=2)
         if kwargs[opt.Option.WIDTH] != '':
             kwargs[opt.Option.WIDTH] = int(kwargs[opt.Option.WIDTH])
+        else:
+            kwargs[opt.Option.WIDTH] = -1
         if kwargs[opt.Option.HEIGHT] != '':
             kwargs[opt.Option.HEIGHT] = int(kwargs[opt.Option.HEIGHT])
+        else:
+            kwargs[opt.Option.HEIGHT] = -1
     elif opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT in kwargs:
         kwargs[opt.Option.WIDTH] = -1
     elif opt.Option.WIDTH in kwargs and opt.Option.HEIGHT not in kwargs:
@@ -292,7 +295,7 @@ def get_cmdline_params(cmdline):
     """Returns a dictionary of all parameters found on input string command line
     Parameters can be of the format -<option> <value> or -<option>"""
     found = True
-    parms = dict()
+    parms = {}
     while found:
         # Remove heading spaces
         cmdline = re.sub(r'^\s+', '', cmdline)
@@ -310,11 +313,6 @@ def get_cmdline_params(cmdline):
             else:
                 found = False
     return parms
-
-
-def int_split(string, separator):
-    a, b = string.split(separator)
-    return [int(a), int(b)]
 
 
 def get_ffmpeg_cmdline_param(cmdline, param):
@@ -414,7 +412,7 @@ def get_ffmpeg_cmdline_params(cmdline):
 
 
 def swap_keys_values(p):
-    return dict([(v, k) for k, v in p.items()])
+    return {v: k for k, v in p.items()}
 
 
 def dict2str(options):
@@ -423,9 +421,9 @@ def dict2str(options):
         if options[k] is None or options[k] is False:
             continue
         if options[k] is True:
-            fmt = " -{0}".format(k)
+            fmt = f" -{k}"
         else:
-            fmt = " -{0} {1}".format(k, options[k])
+            fmt = f" -{k} {options[k]}"
         cmd += fmt
     log.logger.debug("cmd options = %s", cmd)
     return cmd
@@ -452,7 +450,7 @@ def percent_or_absolute(x, reference=1):
 
 def generated_file(filename):
     log.logger.info("Generated %s", filename)
-    print("Generated {}".format(filename))
+    print(f"Generated {filename}")
 
 
 def package_home():

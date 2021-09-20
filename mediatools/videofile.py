@@ -460,7 +460,7 @@ class VideoFile(media.MediaFile):
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
         if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, util.difftime(kwargs[opt.Option.STOP], kwargs.get(opt.Option.START, 0))))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
         if opt.Option.DEINTERLACE in kwargs:
             settings.append(f'-{opt.Option.DEINTERLACE}')

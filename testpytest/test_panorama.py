@@ -73,7 +73,7 @@ def test_pan_2():
     img = get_img(4000, 3000)
     (vid, _) = img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
-    assert vid_o.duration == 10
+    assert (vid_o.duration - 5) < 0.1
     os.remove(vid)
     os.remove(img.filename)
 
