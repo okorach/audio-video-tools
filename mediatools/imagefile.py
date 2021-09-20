@@ -24,7 +24,6 @@ import math
 import re
 import random
 import shutil
-import tempfile
 import exifread
 
 from mediatools import log
@@ -436,7 +435,7 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color, w, h):
-    temp_name = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
+    temp_name = util.get_tmp_file() + '.jpg'
     return ImageFile(__get_background__(color)).scale(w, h, out_file=temp_name)
 
 

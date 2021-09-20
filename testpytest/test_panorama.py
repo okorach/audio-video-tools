@@ -20,14 +20,14 @@
 #
 
 import os
-import tempfile
+import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.videofile as video
 import mediatools.exceptions as ex
 
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
-TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-TMP_IMG = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.jpg'
+TMP_VID = util.get_tmp_file() + '.mp4'
+TMP_IMG = util.get_tmp_file() + '.jpg'
 
 def get_img(w, h, orientation='landscape'):
     small_img = image.__get_background__('black')

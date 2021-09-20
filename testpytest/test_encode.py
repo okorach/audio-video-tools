@@ -20,10 +20,10 @@
 #
 
 import os
-import tempfile
+import mediatools.utilities as util
 import mediatools.videofile as video
 
-TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP_VID = util.get_tmp_file() + '.mp4'
 
 def get_video():
     return 'it/video-1920x1080.mp4'

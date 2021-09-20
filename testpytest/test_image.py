@@ -20,12 +20,12 @@
 #
 
 import os
-import tempfile
+import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.videofile as video
 
-TMP_VID = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP_VID = util.get_tmp_file() + '.mp4'
 
 def get_img(w, h, orientation='landscape'):
     img = image.ImageFile(image.get_rectangle('black', w, h))
