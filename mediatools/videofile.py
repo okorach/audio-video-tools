@@ -24,7 +24,6 @@
 from __future__ import print_function
 import re
 import os
-import tempfile
 import subprocess
 from mediatools import log
 import mediatools.exceptions as ex
