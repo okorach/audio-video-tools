@@ -21,13 +21,13 @@
 
 import os
 import shutil
-import tempfile
+import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.videofile as video
 
 FILE = 'it' + os.sep + 'video-720p.mp4'
-TMP1 = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-TMP2 = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
+TMP1 = util.get_tmp_file() + '.mp4'
+TMP2 = util.get_tmp_file() + '.mp4'
 
 def test_type():
     try:

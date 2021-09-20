@@ -785,13 +785,13 @@ def hardware_accel_present():
     global HW_ACCEL
     if HW_ACCEL is None:
         log.logger.info("Checking if hardware acceleration can be used")
-        output = tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names()) + '.mp4'
-        input = VideoFile(str(util.package_home() / 'video-720p.mp4'))
+        outputfile = util.get_tmp_file() + '.mp4'
+        inputfile = VideoFile(str(util.package_home() / 'video-720p.mp4'))
         try:
-            log.logger.debug("Trying to encode 1 second of %s", input)
+            log.logger.debug("Trying to encode 1 second of %s", inputfile)
             # res_video = VideoFile(input.encode(target_file=output, resolution='640x360', start=0, stop=1))
-            util.run_ffmpeg(f'-hwaccel cuda -hwaccel_output_format cuda -i "{input}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{output}"')
-            os.remove(output)
+            util.run_ffmpeg(f'-hwaccel cuda -hwaccel_output_format cuda -i "{inputfile}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{outputfile}"')
+            os.remove(outputfile)
             HW_ACCEL = True
         except subprocess.CalledProcessError:
             HW_ACCEL = False

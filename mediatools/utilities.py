@@ -25,6 +25,7 @@ import json
 import re
 import argparse
 import pathlib
+import tempfile
 import subprocess
 import shlex
 from mediatools import version
@@ -456,3 +457,7 @@ def generated_file(filename):
 
 def package_home():
     return pathlib.Path(__file__).parent
+
+
+def get_tmp_file()
+    return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
