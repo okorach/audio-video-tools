@@ -81,16 +81,17 @@ def test_crop():
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position='center'))
     cropv.probe()
     assert cropv.aspect == '1:1'
-    os.remove(cropv.filename)
+    util.delete_files(cropv.filename)
 
 def test_add_metadata():
     shutil.copy(FILE, TMP1)
     v = video.VideoFile(TMP1)
-    outf = v.add_metadata(author='John Doe', year='2027', copyright='JDoe Corp', default_track=0, language=['0:fr:Croatian'])
+    outf = v.add_metadata(author='John Doe', year='2027', copyright='JDoe Corp',
+        default_track=0, language=['0:fr:Croatian'])
     v2 = video.VideoFile(outf)
     v2.get_video_specs()
-    # assert v2.author == 'John Doe'
-    # assert v2.year == 2027
+    assert v2.author == 'John Doe'
+    assert int(v2.year) == 2027
     assert v2.copyright == "© JDoe Corp"
     os.remove(TMP1)
     os.remove(v2.filename)
