@@ -292,7 +292,7 @@ def get_cmdline_params(cmdline):
     """Returns a dictionary of all parameters found on input string command line
     Parameters can be of the format -<option> <value> or -<option>"""
     found = True
-    parms = dict()
+    parms = {}
     while found:
         # Remove heading spaces
         cmdline = re.sub(r'^\s+', '', cmdline)
@@ -310,11 +310,6 @@ def get_cmdline_params(cmdline):
             else:
                 found = False
     return parms
-
-
-def int_split(string, separator):
-    a, b = string.split(separator)
-    return [int(a), int(b)]
 
 
 def get_ffmpeg_cmdline_param(cmdline, param):
@@ -414,7 +409,7 @@ def get_ffmpeg_cmdline_params(cmdline):
 
 
 def swap_keys_values(p):
-    return dict([(v, k) for k, v in p.items()])
+    return {v: k for k, v in p.items()}
 
 
 def dict2str(options):
@@ -423,9 +418,9 @@ def dict2str(options):
         if options[k] is None or options[k] is False:
             continue
         if options[k] is True:
-            fmt = " -{0}".format(k)
+            fmt = f" -{k}"
         else:
-            fmt = " -{0} {1}".format(k, options[k])
+            fmt = f" -{k} {options[k]}"
         cmd += fmt
     log.logger.debug("cmd options = %s", cmd)
     return cmd
@@ -452,7 +447,7 @@ def percent_or_absolute(x, reference=1):
 
 def generated_file(filename):
     log.logger.info("Generated %s", filename)
-    print("Generated {}".format(filename))
+    print(f"Generated {filename}")
 
 
 def package_home():
