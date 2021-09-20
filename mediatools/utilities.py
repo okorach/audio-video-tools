@@ -459,5 +459,5 @@ def package_home():
     return pathlib.Path(__file__).parent
 
 
-def get_tmp_file()
+def get_tmp_file():
     return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
