@@ -133,8 +133,7 @@ def zoompan(x_formula, y_formula, z_formula, **kwargs):
     opts = ''
     for k in kwargs:
         opts += ":{}={}".format(k, kwargs[k])
-    return "zoompan=z='{}':x='{}':y='{}'{}".format(z_formula, x_formula, y_formula, opts)
-
+    return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}'{opts}"
 
 def format(pix_fmts):
     if isinstance(pix_fmts, list):
