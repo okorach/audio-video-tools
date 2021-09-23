@@ -17,8 +17,7 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-del /F /Q build/*
-del /F /Q dist/*
+del /F /Q build\*.* dist\*.*
 
 python setup.py sdist bdist_wheel
 
