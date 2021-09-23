@@ -462,7 +462,7 @@ class VideoFile(media.MediaFile):
         if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
-        if opt.Option.DEINTERLACE in kwargs:
+        if kwargs[opt.Option.DEINTERLACE]:
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
 
         log.logger.debug('Output settings = %s', str(settings))
@@ -783,10 +783,12 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
 
 def use_hardware_accel(**kwargs):
     global HW_ACCEL
-    if kwargs.get('hw_accel', False) is True:
+    if HW_ACCEL is not None:
+        return HW_ACCEL
+    if kwargs['hw_accel']:
         log.logger.info("Hardware acceleration explicitly forced on")
         HW_ACCEL = True
-    elif kwargs.get(opt.Option.DEINTERLACE, False) is True:
+    elif kwargs[opt.Option.DEINTERLACE]:
         # Deinterlacing is incompatible with HW accel
         log.logger.info("Turning off hardware acceleration because of deinterlace")
         HW_ACCEL = False
