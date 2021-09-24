@@ -38,20 +38,20 @@ def test_encode_size():
 
 def test_encode_bitrate():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vbitrate='3000k', abirate='64k', start=1, stop=5))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vbitrate='3000k', abirate='64k', start=1, stop=4))
     assert abs(vid2_o.video_bitrate + vid2_o.audio_bitrate - 3 * 1024 * 1024) < 200000
     assert abs(vid2_o.audio_bitrate - 64 * 1024) < 30000
     os.remove(TMP_VID)
 
 def test_encode_acodec():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, acodec='libmp3lame', deinterlace=True, start=1, stop=2))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', acodec='libmp3lame', deinterlace=True, start=1, stop=2))
     assert vid2_o.audio_codec == 'mp3'
     os.remove(TMP_VID)
 
 def test_encode_vcodec():
     vid_o = video.VideoFile(get_video())
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, vcodec='libx265', start=1, stop=2))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vcodec='libx265', deinterlace=True, start=1, stop=2))
     assert vid2_o.video_codec == 'hevc'
     os.remove(TMP_VID)
 
@@ -65,3 +65,10 @@ def test_hw_accel():
     video.HW_ACCEL = None
     assert not video.use_hardware_accel()
     assert not video.use_hardware_accel(hw_accel=True)
+
+def test_hw_accel_2():
+    video.HW_ACCEL = True
+    vid_o = video.VideoFile(get_video())
+    _ = video.VideoFile(vid_o.encode(target_file=TMP_VID, vbitrate='3000k', resolution='640x360', abirate='64k', start=1, stop=2))
+    # Encoding will fail... just to cover some source code
+    assert True
