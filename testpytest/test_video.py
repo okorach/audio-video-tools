@@ -55,23 +55,14 @@ def test_video_specs():
 def test_attributes():
     v = video.VideoFile(FILE)
     assert v.get_aspect_ratio() == '16:9'
-    v = video.VideoFile(FILE)
     assert v.get_pixel_aspect_ratio() == '1:1'
-    v = video.VideoFile(FILE)
     assert v.get_duration() == 10
-    v = video.VideoFile(FILE)
     assert v.dimensions() == (1280, 720)
-    v = video.VideoFile(FILE)
     assert v.get_width() == 1280
-    v = video.VideoFile(FILE)
     assert v.get_height() == 720
-    v = video.VideoFile(FILE)
     assert str(v.get_resolution()) == '1280x720'
-    v = video.VideoFile(FILE)
     p = v.get_video_properties()
     assert p['file_size'] == 2001067
-
-    v = video.VideoFile(FILE)
     p = v.get_properties()
     assert p['vbitrate'] == 1489365
 
