@@ -59,12 +59,7 @@ def test_hw_accel():
     video.HW_ACCEL = None
     assert video.use_hardware_accel(hw_accel=True, deinterlace=True)
     video.HW_ACCEL = None
-    assert not video.use_hardware_accel(deinterlace=True)
-    video.HW_ACCEL = None
     assert not video.use_hardware_accel(hw_accel=False, deinterlace=True)
-    video.HW_ACCEL = None
-    assert not video.use_hardware_accel()
-    assert not video.use_hardware_accel(hw_accel=True)
 
 def test_hw_accel_2():
     video.HW_ACCEL = True
