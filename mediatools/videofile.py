@@ -259,7 +259,7 @@ class VideoFile(media.MediaFile):
         cmd = '-i "{}" {} -vf "{}" -aspect {} "{}"'.format(self.filename,
             media.build_ffmpeg_options(media_opts), filters.crop(width, height, left, top),
             aspect, out_file)
-        util.run_ffmpeg(cmd)
+        util.run_ffmpeg(cmd, self.duration)
         return out_file
 
     def add_metadata(self, **metadatas):
@@ -294,7 +294,7 @@ class VideoFile(media.MediaFile):
                     options.append(filters.metadata('language', value, track))
 
         output_file = util.add_postfix(self.filename, "meta")
-        util.run_ffmpeg('-i "{}" -map 0 {} "{}"'.format(self.filename, filters.format_options(options), output_file))
+        util.run_ffmpeg(f'-i "{self.filename}" -map 0 {filters.format_options(options)} "{output_file}"', self.duration)
         return output_file
 
     def add_stream_property(self, stream_index, prop, value=None):
@@ -302,8 +302,7 @@ class VideoFile(media.MediaFile):
         output_file = util.add_postfix(self.filename, "meta")
         if value is None:
             stream_index, value = stream_index.split(':')
-        util.run_ffmpeg('-i "{0}" {1} -metadata:s:a:{2} {3}="{4}" "{5}"'.format(
-            self.filename, direct_copy, stream_index, prop, value, output_file))
+        util.run_ffmpeg(f'-i "{self.filename}" {direct_copy} -metadata:s:a:{stream_index} {prop}="{value}" "{output_file}"', self.duration)
         return output_file
 
     def add_stream_language(self, stream_index, language=None):
@@ -327,7 +326,7 @@ class VideoFile(media.MediaFile):
             maps += ' -map {0}'.format(i)
             i += 1
         output_file = util.add_postfix(self.filename, "muxed")
-        util.run_ffmpeg('{0} {1} -dn -codec copy "{2}"'.format(inputs, maps, output_file))
+        util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{output_file}"', self.duration)
         return output_file
 
     def set_author(self, author):
@@ -373,12 +372,12 @@ class VideoFile(media.MediaFile):
             log.logger.info("Encoding mp3 %s", target_file)
             util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
                 ' '.join(input_settings), self.filename, raw_params, ' '.join(prefilter_settings),
-                str(audio_filters), mapping, target_file))
+                str(audio_filters), mapping, target_file), self.duration)
         else:
             util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
                 ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
                 str(video_filters), str(audio_filters), ' '.join(output_settings),
-                mapping, target_file))
+                mapping, target_file), self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 
@@ -598,7 +597,7 @@ def concat(target_file, file_list, with_audio=True):
     if with_audio:
         cmd += ' -map "[outa]"'
 
-    cmd += ' "{}"'.format(target_file)
+    cmd += f' "{target_file}"'
     util.run_ffmpeg(cmd.strip())
     return target_file
 
@@ -679,8 +678,8 @@ def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, *
         filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
-    util.run_ffmpeg('{} {} {} {} -s "{}" -map "[{}]" "{}"'.format(filters.hw_accel_input(**kwargs),
-        fcomp.format_inputs(), str(fcomp), filters.hw_accel_output(**kwargs), resolution, last_out, outfile))
+    util.run_ffmpeg(f'{filters.hw_accel_input(**kwargs)} {fcomp.format_inputs()} {str(fcomp)} '
+        f'{filters.hw_accel_output(**kwargs)} -s "{resolution}" -map "[{last_out}]" "{outfile}"', total_duration)
 
     return outfile
 
@@ -799,7 +798,8 @@ def use_hardware_accel(**kwargs):
         inputfile = VideoFile(str(util.package_home() / 'video-720p.mp4'))
         try:
             log.logger.debug("Trying to encode 1 second of %s", inputfile)
-            util.run_ffmpeg(f'{HW_ACCEL_PREFIX} -i "{inputfile}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{outputfile}"')
+            util.run_ffmpeg(f'{HW_ACCEL_PREFIX} -i "{inputfile}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{outputfile}"',
+                inputfile.duration)
             os.remove(outputfile)
             HW_ACCEL = True
         except subprocess.CalledProcessError:

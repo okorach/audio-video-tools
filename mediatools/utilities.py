@@ -22,6 +22,7 @@
 import os
 import platform
 import json
+import logging
 import re
 import argparse
 import pathlib
@@ -92,31 +93,47 @@ def get_first_value(a_dict, key_list):
     return None
 
 
-def run_os_cmd(cmd):
+def run_os_cmd(cmd, total_time=None):
     log.logger.info("Running: %s", cmd)
+    if total_time is not None and isinstance(total_time, str):
+        total_time = to_seconds(total_time)
     try:
-        last_error = None
+        last_error_line, same_error_count = None, 0
+        current_log_level, last_log_level = logging.INFO, logging.INFO
         args = shlex.split(cmd)
         pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline().rstrip()
         while line:
             if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
-                last_error = line
+                current_log_level = logging.WARNING
             elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
-                log.logger.error(line)
-            elif re.search(r"frame=\s*(\d+)\s+fps=\s*(\d+)", line, re.IGNORECASE):
-                log.logger.info(line)
+                current_log_level = logging.ERROR
+            elif re.search(r"frame=\s*\d+\s+fps=\s*\d+", line, re.IGNORECASE):
+                current_log_level = logging.INFO
+                if total_time is not None:
+                    m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
+                    if m:
+                        line += " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / float(m.group(2)))
             elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
-                log.logger.warning(line)
+                current_log_level = logging.WARNING
             else:
-                log.logger.debug(line)
+                current_log_level = logging.DEBUG
+            if last_error_line is not None and last_error_line == line:
+                same_error_count += 1
+            else:
+                if same_error_count > 1:
+                    log.logger.log(last_log_level, "Above error repeated %d times...", same_error_count)
+                log.logger.log(current_log_level, line)
+                same_error_count = 1
+                last_error_line = line
+
             line = pipe.stdout.readline().rstrip()
         outs, errs = pipe.communicate()
         log.logger.debug("Return code = %d", pipe.returncode)
         if pipe.returncode != 0:
-            last_error = line if last_error is None else last_error
-            raise subprocess.CalledProcessError(cmd=cmd, output=last_error, returncode=pipe.returncode)
+            last_error_line = line if last_error_line is None else last_error_line
+            raise subprocess.CalledProcessError(cmd=cmd, output=last_error_line, returncode=pipe.returncode)
         log.logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
         log.logger.error("Command: %s failed with return code %d", cmd, e.returncode)
@@ -124,10 +141,10 @@ def run_os_cmd(cmd):
         raise
 
 
-def run_ffmpeg(params):
+def run_ffmpeg(params, duration):
     quot = '"' if platform.system() == 'Windows' else ""
-    cmd = '{0}{1}{0} -y {2}'.format(quot, get_ffmpeg(), params)
-    run_os_cmd(cmd)
+    cmd = f'{quot}{get_ffmpeg()}{quot} -y {params}'
+    run_os_cmd(cmd, duration)
 
 
 def build_ffmpeg_complex_prep(input_file_list):
