@@ -141,7 +141,7 @@ def run_os_cmd(cmd, total_time=None):
         raise
 
 
-def run_ffmpeg(params, duration):
+def run_ffmpeg(params, duration=None):
     quot = '"' if platform.system() == 'Windows' else ""
     cmd = f'{quot}{get_ffmpeg()}{quot} -y {params}'
     run_os_cmd(cmd, duration)
@@ -260,23 +260,7 @@ def parse_media_args(parser, args=None):
         kwargs = remove_nones(vars(parser.parse_args(args)))
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
     set_debug_level(kwargs.pop('debug', 3))
-    if opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT not in kwargs and \
-            kwargs.get(opt.Option.RESOLUTION, None) is not None:
-        kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
-        kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT] = kwargs[opt.Option.RESOLUTION].split('x', maxsplit=2)
-        if kwargs[opt.Option.WIDTH] != '':
-            kwargs[opt.Option.WIDTH] = int(kwargs[opt.Option.WIDTH])
-        else:
-            kwargs[opt.Option.WIDTH] = -1
-        if kwargs[opt.Option.HEIGHT] != '':
-            kwargs[opt.Option.HEIGHT] = int(kwargs[opt.Option.HEIGHT])
-        else:
-            kwargs[opt.Option.HEIGHT] = -1
-    elif opt.Option.WIDTH not in kwargs and opt.Option.HEIGHT in kwargs:
-        kwargs[opt.Option.WIDTH] = -1
-    elif opt.Option.WIDTH in kwargs and opt.Option.HEIGHT not in kwargs:
-        kwargs[opt.Option.HEIGHT] = -1
-
+    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.WIDTH]) = resolve_resolution(**kwargs)
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     log.logger.debug('KW=%s', str(kwargs))
@@ -476,3 +460,22 @@ def package_home():
 
 def get_tmp_file():
     return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
+
+
+def resolve_resolution(**kwargs):
+    if opt.Option.WIDTH in kwargs:
+        if opt.Option.HEIGHT in kwargs:
+            return (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT])
+        else:
+            return (kwargs[opt.Option.WIDTH], -1)
+    else:
+        if opt.Option.HEIGHT in kwargs:
+            return (-1, kwargs[opt.Option.HEIGHT])
+    if kwargs.get(opt.Option.RESOLUTION, None) is None:
+        return (None, None)
+
+    kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
+    w, h = kwargs[opt.Option.RESOLUTION].split('x', maxsplit=2)
+    w = int(w) if w != '' else -1
+    h = int(h) if h != '' else -1
+    return (w, h)

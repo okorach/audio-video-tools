@@ -346,7 +346,7 @@ class VideoFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-
+        (kwargs['width'], kwargs['height']) = util.resolve_resolution(**kwargs)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
@@ -447,13 +447,13 @@ class VideoFile(media.MediaFile):
         settings.append(__get_acodec__(**kwargs))
 
         if kwargs.get(opt.Option.RESOLUTION, None) is not None and not use_hardware_accel(**kwargs):
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs['resolution']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs['vbitrate']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
 
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs['abitrate']))
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
 
         if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
@@ -461,7 +461,7 @@ class VideoFile(media.MediaFile):
         if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
-        if kwargs[opt.Option.DEINTERLACE]:
+        if kwargs.get(opt.Option.DEINTERLACE, False):
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
 
         log.logger.debug('Output settings = %s', str(settings))
@@ -784,10 +784,10 @@ def use_hardware_accel(**kwargs):
     global HW_ACCEL
     if HW_ACCEL is not None:
         return HW_ACCEL
-    if kwargs('hw_accel', False):
+    if kwargs.get('hw_accel', False):
         log.logger.info("Hardware acceleration explicitly forced on")
         HW_ACCEL = True
-    elif kwargs([)opt.Option.DEINTERLACE, False):
+    elif kwargs.get(opt.Option.DEINTERLACE, False):
         # Deinterlacing is incompatible with HW accel
         log.logger.info("Turning off hardware acceleration because of deinterlace")
         HW_ACCEL = False
