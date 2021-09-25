@@ -28,8 +28,8 @@ FILE = "it/seal.mp3"
 def test_1():
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
     specs = audio.AudioFile(FILE).get_properties()
-    csv = spec.__to_csv__(specs, allp)
-    assert ',192000,' in csv
+    csv = spec.__to_csv__(specs, allp).split(',')
+    assert '192000' in csv
     assert 'Seal' in csv
     assert 'Crazy' in csv
     assert 'it/seal.mp3' in csv
