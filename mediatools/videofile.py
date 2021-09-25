@@ -784,10 +784,10 @@ def use_hardware_accel(**kwargs):
     global HW_ACCEL
     if HW_ACCEL is not None:
         return HW_ACCEL
-    if kwargs['hw_accel']:
+    if kwargs('hw_accel', False):
         log.logger.info("Hardware acceleration explicitly forced on")
         HW_ACCEL = True
-    elif kwargs[opt.Option.DEINTERLACE]:
+    elif kwargs([)opt.Option.DEINTERLACE, False):
         # Deinterlacing is incompatible with HW accel
         log.logger.info("Turning off hardware acceleration because of deinterlace")
         HW_ACCEL = False
