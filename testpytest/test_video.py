@@ -116,7 +116,7 @@ def test_cut():
 
 def test_specs2():
     v = video.VideoFile(FILE)
-    assert v.get_video_codec() == 'h264'
+    assert v.get_video_codec(None) == 'h264'
     assert v.get_audio_codec() == 'aac'
     assert abs(v.get_video_duration() - 10.0) < 0.01
     assert abs(v.get_audio_bitrate() - 94.69) < 0.01
@@ -135,8 +135,6 @@ def test_metadata():
     assert abs(v.duration - out.duration) < 0.02
     out = video.VideoFile(v.add_year("2021"))
     assert abs(v.duration - out.duration) < 0.02
-
-
     assert v.get_audio_codec() == 'aac'
     assert (v.get_video_duration() - 10.0) < 0.01
     assert (v.get_audio_bitrate() - 94.69) < 0.01
