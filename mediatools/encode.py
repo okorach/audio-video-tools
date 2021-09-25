@@ -56,7 +56,11 @@ def encode_file(file, **kwargs):
     for video_range in timeranges:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = video_range.split('-')
         count += 1
-        target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, str(count), ext)
+        if kwargs.get('outputfile', None) is None:
+            target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, str(count), ext)
+        else:
+            target_file = kwargs.get('outputfile', None)
+
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
         log.logger.info("File %s generated", outputfile)
