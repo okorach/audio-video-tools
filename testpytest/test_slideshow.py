@@ -20,25 +20,40 @@
 #
 
 import os
+import sys
+from unittest.mock import patch
 import mediatools.videofile as video
+from mediatools import slideshow
+
 
 large_img = None
 portrait_img = None
 
-images = (
+images_full = (
     "it" + os.sep + "img-1770x1291.jpg", "it" + os.sep + "img-3000x1682.jpg", "it" + os.sep + "img-large.jpg",
     "it" + os.sep + "img-2320x4000.jpg", "it" + os.sep + "img-superwide.jpg", "it" + os.sep + "img-2880x1924.jpg",
     "it" + os.sep + "img-3000x4000.jpg", "it" + os.sep + "img-640x480.jpg"
 )
 
+images = (
+    "it" + os.sep + "img-1770x1291.jpg", "it" + os.sep + "img-3000x4000.jpg", "it" + os.sep + "img-640x480.jpg"
+)
 def test_slideshow():
     # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200")[0])
-    assert vid2_o.duration > 20
-    os.remove('slideshow.mp4')
+    assert vid2_o.duration > 12
+    assert vid2_o.resolution.width == 360
+    assert vid2_o.resolution.height == 200
+    os.remove(vid2_o.filename)
 
 def test_slideshow_without_resolution():
     # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images)[0])
-    assert vid2_o.duration > 20
-    os.remove('slideshow.mp4')
+    assert vid2_o.duration > 12
+    os.remove(vid2_o.filename)
+
+def test_main():
+    file1 = 'it' + os.sep + 'img-640x480.jpg'
+    file2 = 'it' + os.sep + 'img-1770x1291.jpg'
+    with patch.object(sys, 'argv', ['video-slideshow', '-g', '4', file1, '--resolution', '720x400', file2]):
+        slideshow.main()
