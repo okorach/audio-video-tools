@@ -21,6 +21,7 @@
 
 import os
 import mediatools.utilities as util
+from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.videofile as video
@@ -40,9 +41,10 @@ def del_files(*imgs):
 def test_str():
     img = get_img(400, 300)
     s = str(img)
-    print("STR = %s" % s)
+    util.set_debug_level(4)
+    log.logger.info("STR = %s", s)
     assert "'width': 400" in s
-    assert "'filename': '{}'".format(img.filename) in s
+    assert f"'filename': '{img.filename}'" in s
     del_files(img)
 
 def test_scale_1():
