@@ -20,6 +20,9 @@
 #
 
 import os
+import sys
+from unittest.mock import patch
+from mediatools import encode
 import mediatools.utilities as util
 import mediatools.videofile as video
 
@@ -71,3 +74,16 @@ def test_hw_accel_2():
     _ = video.VideoFile(vid_o.encode(target_file=TMP_VID, vbitrate='3000k', resolution='640x360', abitrate='64k', start=1, stop=2))
     # Encoding will fail... just to cover some source code
     assert True
+
+def test_main_file():
+    file1 = 'it' + os.sep + 'video-720p.mp4'
+    with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--resolution', '640x360']):
+        encode.main()
+
+def test_main_dir_timeranges_1():
+    with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', 'it', '--resolution', '640x360', '--timeranges', '00:02-00:04']):
+        encode.main()
+
+def test_main_dir_timeranges_2():
+    with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', 'it', '--resolution', '640x360', '--timeranges', '00:00-00:01,00:02-00:04']):
+        encode.main()
