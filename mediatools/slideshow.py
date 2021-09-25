@@ -28,14 +28,14 @@ import mediatools.videofile as video
 import mediatools.media_config as conf
 
 def _dump_report_(report, file):
+    dump = json.dumps(report, indent=4, sort_keys=False, separators=(',', ': '))
     if file is None:
-        f = sys.stdout
         log.logger.info("Dumping report to stdout")
-        print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')))
+        print(dump)
     else:
         with open(file, "w") as f:
             log.logger.info("Dumping report to file '%s'", file)
-            print(json.dumps(report, indent=4, sort_keys=False, separators=(',', ': ')), file=f)
+            print(dump, file=f)
 
 def main():
     files = []

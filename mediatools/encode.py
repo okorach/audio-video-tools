@@ -36,14 +36,13 @@ def encode_file(file, **kwargs):
     file_object = video.VideoFile(file)
     if kwargs.get('width', None) is not None:
         specs = file_object.get_properties()
-        w = int(specs[opt.Option.WIDTH])
-        h = int(specs[opt.Option.HEIGHT])
+        w, h = int(specs[opt.Option.WIDTH]), int(specs[opt.Option.HEIGHT])
         new_w = int(kwargs['width'])
         if kwargs.get('vheight', None) is not None:
             new_h = int(kwargs.get('vheight', 0))
         else:
             new_h = (int(h * new_w / w) // 8) * 8
-        kwargs[opt.Option.RESOLUTION] = "%dx%d" % (new_w, new_h)
+        kwargs[opt.Option.RESOLUTION] = f"{new_w}x{new_h}"
     if kwargs.get('timeranges', None) is None:
         file_object.encode(kwargs.get('outputfile', None), **kwargs)
         return

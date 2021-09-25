@@ -113,3 +113,28 @@ def test_cut():
     v = video.VideoFile(video.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
     assert abs(2 - v.duration) <= 0.06
     os.remove(v.filename)
+
+def test_specs2():
+    v = video.VideoFile(FILE)
+    assert v.get_video_codec(None) == 'h264'
+    assert v.get_audio_codec() == 'aac'
+    assert abs(v.get_video_duration() - 10.0) < 0.01
+    assert abs(v.get_audio_bitrate() - 94.69) < 0.01
+
+def test_metadata():
+    v = video.VideoFile(FILE)
+    a = "John"
+    v.set_author(a)
+    assert v.author == a
+    assert v.get_author() == a
+    c = "(c) John"
+    v.set_copyright(c)
+    assert v.copyright == c
+    assert v.get_copyright() == c
+    out = video.VideoFile(v.add_author("Olivier"))
+    assert abs(v.duration - out.duration) < 0.02
+    out = video.VideoFile(v.add_year("2021"))
+    assert abs(v.duration - out.duration) < 0.02
+    assert v.get_audio_codec() == 'aac'
+    assert (v.get_video_duration() - 10.0) < 0.01
+    assert (v.get_audio_bitrate() - 94.69) < 0.01
