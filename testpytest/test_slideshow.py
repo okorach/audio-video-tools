@@ -55,5 +55,5 @@ def test_slideshow_without_resolution():
 def test_main():
     file1 = 'it' + os.sep + 'img-640x480.jpg'
     file2 = 'it' + os.sep + 'img-1770x1291.jpg'
-    with patch.object(sys, 'argv', ['video-slideshow', '-g', '4', file1, '--resolution', '720x400', file2]):
+    with patch.object(sys, 'argv', ['video-slideshow', '-g', '4', file1, '--resolution', '640x360', file2]):
         slideshow.main()
