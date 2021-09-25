@@ -93,6 +93,27 @@ def get_first_value(a_dict, key_list):
     return None
 
 
+def __compute_eta__(line, total_time):
+    if total_time is None:
+        return ''
+    m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
+    if m:
+        return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / float(m.group(2)))
+    return ''
+
+def __get_log_level_from_ffmpeg_log__(line):
+    if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
+        level = logging.WARNING
+    elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
+        level = logging.ERROR
+    elif re.search(r"frame=\s*\d+\s+fps=\s*\d+", line, re.IGNORECASE):
+        level = logging.INFO
+    elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
+        level = logging.WARNING
+    else:
+        level = logging.DEBUG
+    return level
+
 def run_os_cmd(cmd, total_time=None):
     log.logger.info("Running: %s", cmd)
     if total_time is not None and isinstance(total_time, str):
@@ -105,20 +126,8 @@ def run_os_cmd(cmd, total_time=None):
             universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline().rstrip()
         while line:
-            if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
-                current_log_level = logging.WARNING
-            elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
-                current_log_level = logging.ERROR
-            elif re.search(r"frame=\s*\d+\s+fps=\s*\d+", line, re.IGNORECASE):
-                current_log_level = logging.INFO
-                if total_time is not None:
-                    m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-                    if m:
-                        line += " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / float(m.group(2)))
-            elif re.search(r"(warning|deprecated|out of range)", line, re.IGNORECASE):
-                current_log_level = logging.WARNING
-            else:
-                current_log_level = logging.DEBUG
+            current_log_level = __get_log_level_from_ffmpeg_log__(line)
+            line += __compute_eta__(line, total_time)
             if last_error_line is not None and last_error_line == line:
                 same_error_count += 1
             else:
