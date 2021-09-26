@@ -326,100 +326,70 @@ def get_cmdline_params(cmdline):
 
 
 def get_ffmpeg_cmdline_param(cmdline, param):
-    m = re.search(rf"{param}\s+(\S+)", cmdline)
+    m = re.search(rf"-{param}\s+(\S+)", cmdline)
     if m:
         return m.group(1)
     return None
 
 
 def get_ffmpeg_cmdline_switch(cmdline, param):
-    m = re.search(rf'{param}\s', cmdline)
+    m = re.search(rf'-{param}\s', cmdline)
     if m:
         return True
     return False
 
 
-def get_ffmpeg_cmdline_vbitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.VBITRATE)
-
-
-def get_ffmpeg_cmdline_abitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ABITRATE)
-
-
-def get_ffmpeg_cmdline_vcodec(cmdline):
-    for option in [opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.VCODEC2, opt.OptionFfmpeg.VCODEC3]:
-        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
-        if v is not None:
-            return v
-    return None
-
-
-def get_ffmpeg_cmdline_acodec(cmdline):
-    for option in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
-        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
-        if v is not None:
-            return v
-    return None
-
-
-def get_ffmpeg_cmdline_framesize(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.RESOLUTION)
-
-
-def get_ffmpeg_cmdline_framerate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FPS)
-
-
-def get_ffmpeg_cmdline_aspect_ratio(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ASPECT)
-
-
-def get_ffmpeg_cmdline_vfilter(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-vf')
-
-
-def get_ffmpeg_cmdline_achannels(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ACHANNEL)
-
-
-def get_ffmpeg_cmdline_format(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FORMAT)
-
-
-def get_ffmpeg_cmdline_deinterlace(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.OptionFfmpeg.DEINTERLACE)
-
-
-def get_ffmpeg_cmdline_amute(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-an')
-
-
-def get_ffmpeg_cmdline_vmute(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-vn')
-
-
-def get_audio_sample_rate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-ar')
-
-
 def get_ffmpeg_cmdline_params(cmdline):
-    p = {}
-    p[opt.Option.ABITRATE] = get_ffmpeg_cmdline_abitrate(cmdline)
-    p[opt.Option.VBITRATE] = get_ffmpeg_cmdline_vbitrate(cmdline)
-    p[opt.Option.ACODEC] = get_ffmpeg_cmdline_acodec(cmdline)
-    p[opt.Option.VCODEC] = get_ffmpeg_cmdline_vcodec(cmdline)
-    p[opt.Option.RESOLUTION] = get_ffmpeg_cmdline_framesize(cmdline)
-    p[opt.Option.FPS] = get_ffmpeg_cmdline_framerate(cmdline)
-    p[opt.Option.ASPECT] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
-    p[opt.Option.VFILTER] = get_ffmpeg_cmdline_vfilter(cmdline)
-    p[opt.Option.ACHANNEL] = get_ffmpeg_cmdline_achannels(cmdline)
-    p[opt.Option.FORMAT] = get_ffmpeg_cmdline_format(cmdline)
-    p[opt.Option.DEINTERLACE] = get_ffmpeg_cmdline_deinterlace(cmdline)
-    p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
-    p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
-    return remove_nones(p)
+    for o in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
+        acodec = get_ffmpeg_cmdline_param(cmdline, o)
+        if acodec is not None:
+            break
+    for o in [opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.VCODEC2, opt.OptionFfmpeg.VCODEC3]:
+        vcodec = get_ffmpeg_cmdline_param(cmdline, o)
+        if vcodec is not None:
+            break
+    return remove_nones({
+        opt.Option.FORMAT: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.FORMAT),
+        opt.Option.ABITRATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ABITRATE),
+        opt.Option.VBITRATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.VBITRATE),
+        opt.Option.ACODEC: acodec,
+        opt.Option.VCODEC: vcodec,
+        opt.Option.RESOLUTION: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.RESOLUTION),
+        opt.Option.FPS: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.FPS),
+        opt.Option.ASPECT: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ASPECT),
+        opt.Option.VFILTER: get_ffmpeg_cmdline_param(cmdline, 'vf'),
+        opt.Option.ACHANNEL: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ACHANNEL),
+        opt.Option.DEINTERLACE: get_ffmpeg_cmdline_switch(cmdline),
+        opt.Option.MUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.DEINTERLACE),
+        opt.Option.VMUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.VMUTE),
+        opt.Option.SAMPLERATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.SAMPLERATE)
+    })
 
+def get_default_options():
+    return remove_nones({
+        opt.Option.FORMAT: get_conf_property('default.video.format'),
+        opt.Option.VCODEC: get_conf_property('default.video.codec'),
+        opt.Option.ACODEC: get_conf_property('default.audio.codec'),
+        opt.Option.ABITRATE: get_conf_property('default.audio.bitrate'),
+        opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
+        opt.Option.FPS: get_conf_property('default.video.fps'),
+        opt.Option.ASPECT: get_conf_property('default.video.aspect'),
+        opt.Option.RESOLUTION: get_conf_property('default.video.resolution'),
+        opt.Option.ACHANNEL: get_conf_property('default.audio.channels'),
+        opt.Option.SAMPLERATE: get_conf_property('default.audio.samplerate')
+    })
+
+def get_profile_options(profile):
+    return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
+
+def get_all_options(**cmdline_args):
+    p = get_default_options()
+    if 'profile' in cmdline_args:
+        q = get_profile_options(cmdline_args['profile'])
+        p = {**p, **q}
+    cmdline_args = {**p, **cmdline_args}
+    (cmdline_args['width'], cmdline_args['height']) = resolve_resolution(**cmdline_args)
+    return cmdline_args
 
 def swap_keys_values(p):
     return {v: k for k, v in p.items()}

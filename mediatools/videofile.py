@@ -346,7 +346,7 @@ class VideoFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        (kwargs['width'], kwargs['height']) = util.resolve_resolution(**kwargs)
+        kwargs = util.get_all_options(**kwargs)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
@@ -472,12 +472,11 @@ class VideoFile(media.MediaFile):
 
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
-        vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('video.default.codec'))
+        vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('default.video.codec'))
         if use_hardware_accel(**kwargs):
-            if vcodec is not None and re.search(r'[xh]265', vcodec):
-                vcodec = 'hevc_nvenc'
-            else:
-                vcodec = 'h264_nvenc'
+            vcodec = opt.HW_ACCEL_CODECS[vcodec]
+        else:
+            vcodec = opt.CODECS[vcodec]
     else:
         vcodec = 'copy'
     if vcodec is None:
@@ -492,7 +491,7 @@ def __get_acodec__(**kwargs):
     if not audio_encode:
         acodec = 'copy'
     else:
-        acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('video.default.audio.codec'))
+        acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('default.audio.codec'))
     if acodec is None:
         return ''
     else:
@@ -606,7 +605,7 @@ def add_video_args(parser):
     """Parses options specific to video encoding scripts"""
     parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
 
-    parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mp4, mpeg2, xvid...)')
+    parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mpeg2, xvid...)')
     parser.add_argument('--' + opt.Option.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
     parser.add_argument('--hw_accel', required=False, default=False, dest='hw_accel', action='store_true',
