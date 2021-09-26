@@ -360,7 +360,8 @@ class VideoFile(media.MediaFile):
         output_settings = self.__get_output_settings__(**kwargs)
 
         # Hack for channels selection
-        mapping = __get_audio_channel_mapping__(**kwargs)
+        # mapping = __get_audio_channel_mapping__(**kwargs)
+        mapping = ''
 
         raw_params = ''
         for k, v in raw_settings.items():
@@ -639,10 +640,10 @@ def __get_aspect_ratio__(width, height, **kwargs):
 
 def __get_audio_channel_mapping__(**kwargs):
     # Hack for channels selection
-    if kwargs.get('achannels', None) is None:
+    if opt.Option.ACHANNEL not in kwargs:
         return ''
     mapping = "-map 0:v:0"
-    mapping += ' '.join(list(map(lambda x: '-map 0:a:{}'.format(x), kwargs['achannels'].split(','))))
+    mapping += ' '.join(list(map(lambda x: '-map 0:a:{}'.format(x), str(kwargs[opt.Option.ACHANNEL]).split(','))))
     return mapping
 
 

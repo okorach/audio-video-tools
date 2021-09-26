@@ -96,8 +96,8 @@ def test_ffmpeg_cmd_line():
     assert d[opt.Option.ACHANNEL] == "2"
     assert d[opt.Option.ABITRATE] == "128k"
     assert d[opt.Option.VCODEC] == "libx264"
-    assert d["amute"]
-    assert not d["vmute"]
+    assert d[opt.Option.MUTE]
+    assert not d[opt.Option.VMUTE]
     assert d[opt.Option.VBITRATE] == "3072k"
     assert d[opt.Option.FPS] == "25"
     assert d[opt.Option.RESOLUTION] == "1280x720"
@@ -143,6 +143,6 @@ def test_difftime():
 
 def test_ar():
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
-    assert util.get_audio_sample_rate(cmd) is None
+    assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) is None
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
-    assert util.get_audio_sample_rate(cmd) == "44k"
+    assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) == "44k"

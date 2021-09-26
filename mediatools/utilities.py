@@ -359,8 +359,8 @@ def get_ffmpeg_cmdline_params(cmdline):
         opt.Option.ASPECT: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ASPECT),
         opt.Option.VFILTER: get_ffmpeg_cmdline_param(cmdline, 'vf'),
         opt.Option.ACHANNEL: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ACHANNEL),
-        opt.Option.DEINTERLACE: get_ffmpeg_cmdline_switch(cmdline),
-        opt.Option.MUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.DEINTERLACE),
+        opt.Option.DEINTERLACE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.DEINTERLACE),
+        opt.Option.MUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.MUTE),
         opt.Option.VMUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.VMUTE),
         opt.Option.SAMPLERATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.SAMPLERATE)
     })
@@ -388,7 +388,7 @@ def get_all_options(**cmdline_args):
         q = get_profile_options(cmdline_args['profile'])
         p = {**p, **q}
     cmdline_args = {**p, **cmdline_args}
-    (cmdline_args['width'], cmdline_args['height']) = resolve_resolution(**cmdline_args)
+    (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
     return cmdline_args
 
 def swap_keys_values(p):
