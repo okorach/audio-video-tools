@@ -67,7 +67,7 @@ def test_args():
     assert kw['stop'] == '12:00'
 
 def test_ffmpeg_cmdline():
-    assert util.get_ffmpeg_cmdline_framesize("-i  file.mp4 -ss 0 -f  mp4 -s   620x300 -r 50 -aspect 16:9") == '620x300'
+    assert util.get_ffmpeg_cmdline_params("-i  file.mp4 -ss 0 -f  mp4 -s   620x300 -r 50 -aspect 16:9")[opt.Option.RESOLUTION] == '620x300'
 
 def test_pct():
     assert util.percent_or_absolute("17%") == 0.17
@@ -139,11 +139,10 @@ def test_to_seconds2():
     assert util.to_seconds("03.210") == 3.21
 
 def test_difftime():
-    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600+23*60+11.620)) < 0.0000001
+    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600 + 23 * 60 + 11.620)) < 0.0000001
 
 def test_ar():
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
     assert util.get_audio_sample_rate(cmd) is None
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
     assert util.get_audio_sample_rate(cmd) == "44k"
-

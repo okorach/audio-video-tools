@@ -51,14 +51,14 @@ def test_encode_bitrate():
 def test_encode_acodec():
     vid_o = video.VideoFile(get_video())
     video.HW_ACCEL = None
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', acodec='libmp3lame', deinterlace=True, start=1, stop=2))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', acodec='mp3', deinterlace=True, start=1, stop=2))
     assert vid2_o.audio_codec == 'mp3'
     os.remove(TMP_VID)
 
 def test_encode_vcodec():
     vid_o = video.VideoFile(get_video())
     video.HW_ACCEL = None
-    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vcodec='libx265', deinterlace=True, start=1, stop=2))
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vcodec='h265', deinterlace=True, start=1, stop=2))
     assert vid2_o.video_codec == 'hevc'
     os.remove(TMP_VID)
 
