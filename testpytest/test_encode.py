@@ -22,6 +22,7 @@
 import os
 import sys
 import subprocess
+import platform
 from unittest.mock import patch
 from mediatools import encode
 import mediatools.utilities as util
@@ -73,13 +74,15 @@ def test_hw_accel():
 
 def test_hw_accel_2():
     video.HW_ACCEL = True
+    # HW accel expected to be available on Windows, not on Linux
+    hw_accel_avail = (platform.system() == 'Windows')
     vid_o = video.VideoFile(get_video())
     try:
         _ = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', abitrate='64k', start=1, stop=2))
     except subprocess.CalledProcessError:
         # Encoding will fail... just to cover some source code
-        assert True
-    assert False
+        assert not hw_accel_avail
+    assert hw_accel_avail
 
 def test_main_file():
     video.HW_ACCEL = False
@@ -94,6 +97,7 @@ def test_main_file():
 
 def test_main_file_audio():
     video.HW_ACCEL = False
+    util.set_debug_level(4)
     file1 = 'it' + os.sep + 'song.mp3'
     with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO]):
         encode.main()
@@ -122,7 +126,8 @@ def test_main_dir_timeranges_2():
         with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--resolution', '640x360',
                           '--timeranges', '00:00-00:01,00:02-00:04'], '-o', output):
             encode.main()
-        os.remove(output)
+        # Output file is hardcoded for now :-(
+        os.remove('it' + os.sep + 'video-720p.combined.mp4')
         assert True
     except subprocess.CalledProcessError:
         assert False
