@@ -47,7 +47,7 @@ def test_encode_bitrate():
     vid_o = video.VideoFile(get_video())
     video.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vbitrate='1000k', abitrate='64k', start=1, stop=4))
-    assert abs(vid2_o.video_bitrate - 3 * 1024 * 1024) < 500000
+    assert abs(vid2_o.video_bitrate - 1024 * 1024) < 200000
     assert abs(vid2_o.audio_bitrate - 64 * 1024) < 30000
     os.remove(TMP_VID)
 
