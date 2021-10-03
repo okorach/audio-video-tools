@@ -84,7 +84,7 @@ def test_main_file():
 
 
 def test_main_file_audio():
-    file1 = 'it' + os.sep + 'video-720p.mp4'
+    file1 = 'it' + os.sep + 'song.mp3'
     with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO]):
         encode.main()
     audio_f = audio.AudioFile(TMP_AUDIO)
