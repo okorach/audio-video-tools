@@ -155,7 +155,7 @@ def run_os_cmd(cmd, total_time=None):
     except subprocess.CalledProcessError as e:
         log.logger.error("Command: %s failed with return code %d", cmd, e.returncode)
         log.logger.error("%s", e.output)
-        raise
+        raise e
 
 
 def run_ffmpeg(params, duration=None):
