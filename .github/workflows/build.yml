@@ -43,7 +43,8 @@ jobs:
         run: |
           chmod +x ./run_tests.sh
           ./run_tests.sh
-          cat build/coverage.xml
+          echo "--------- UT report ---------"; cat build/ut.xml
+          echo "---------Coverage report ---------"; cat build/coverage.xml
       - name: Run linters
         working-directory: .
         run: |
