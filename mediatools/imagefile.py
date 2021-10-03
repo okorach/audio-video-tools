@@ -268,7 +268,7 @@ class ImageFile(media.MediaFile):
         out_file = kwargs.get('out_file', None)
         log.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(out_file, self.filename, 'zoom-{}-{}'.format(zstart, zstop),
-            extension=conf.get_property('video.default.format'))
+            extension=conf.get_property('default.video.format'))
         log.logger.debug("zoom(%s,%s) of image %s", str(zstart), str(zstop), self.filename)
 
         vfilters = []

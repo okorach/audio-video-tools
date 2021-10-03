@@ -57,7 +57,7 @@ PROPERTIES_VALUES = {}
 def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
     if extension is None:
-        extension = conf.get_property(fil.get_type(file) + '.default.format')
+        extension = conf.get_property(f'default.{fil.get_type(file)}.format')
     if extension is None:
         extension = fil.extension(file)
     return fil.strip_extension(file) + r'.' + postfix + r'.' + extension
@@ -297,7 +297,7 @@ def get_profile_extension(profile, properties=None):
         properties = get_media_properties()
     extension = properties.get(profile + '.extension', None)
     if extension is None:
-        extension = properties.get('default.extension', None)
+        extension = properties.get('default.video.extension', None)
     return extension
 
 

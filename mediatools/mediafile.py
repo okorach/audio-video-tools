@@ -170,7 +170,7 @@ class MediaFile(fil.File):
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)
     if extension is None:
-        extension = conf.get_property(fil.get_type(source_file) + '.default.format')
+        extension = conf.get_property(f'default.{fil.get_type(source_file)}.format')
     if extension is None:
         extension = fil.extension(source_file)
     return util.add_postfix(source_file, profile, extension)

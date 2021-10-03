@@ -38,7 +38,7 @@ def main():
     kwargs = util.parse_media_args(parser)
 
     inputfile = kwargs.pop('inputfile')
-    resolution = kwargs.get('resolution', conf.get_property('video.default.resolution'))
+    resolution = kwargs.get('resolution', conf.get_property('default.video.resolution'))
     kwargs.pop('resolution')
 
     if kwargs.get('bounds', None) is not None:

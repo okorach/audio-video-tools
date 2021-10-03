@@ -25,9 +25,9 @@ from mediatools import log
 
 CONFIG_SETTINGS = {}
 CONFIG_FILE = '.mediatools.properties'
-VIDEO_RESOLUTION_KEY = 'video.default.resolution'
-VIDEO_FPS_KEY = 'video.default.fps'
-SLIDESHOW_DURATION_KEY = 'slideshow.default.duration'
+VIDEO_RESOLUTION_KEY = 'default.video.resolution'
+VIDEO_FPS_KEY = 'default.video.fps'
+SLIDESHOW_DURATION_KEY = 'default.slideshow.duration'
 
 def load():
     import mediatools.utilities as util

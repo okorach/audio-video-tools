@@ -24,7 +24,7 @@ import mediatools.videofile as video
 import mediatools.options as opt
 
 def test_conf():
-    assert util.get_conf_property('image.default.format') == 'jpg'
+    assert util.get_conf_property('default.image.format') == 'jpg'
 
 def test_hms():
     assert util.to_hms('3727.21') == (1, 2, 7.21)
