@@ -36,7 +36,8 @@ CODECS = {
     'h265': 'libx265',
     'x265': 'libx265',
     'aac': 'aac',
-    'mp3': 'libmp3lame'
+    'mp3': 'libmp3lame',
+    'copy': 'copy'
 }
 
 HW_ACCEL_CODECS = {
@@ -45,7 +46,8 @@ HW_ACCEL_CODECS = {
     'x264': 'h264_nvenc',
     'x265': 'hevc_nvenc',
     'aac': 'aac',
-    'mp3': 'libmp3lame'
+    'mp3': 'libmp3lame',
+    'copy': 'copy'
 }
 
 class OptionFfmpeg:
