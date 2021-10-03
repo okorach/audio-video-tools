@@ -24,30 +24,27 @@ import jprops
 from mediatools import log
 
 CONFIG_SETTINGS = {}
-BASE_CONFIG_FILE = '.mediatools.properties'
-FULL_CONFIG_FILE = None
+CONFIG_FILE = '.mediatools.properties'
 VIDEO_RESOLUTION_KEY = 'default.video.resolution'
 VIDEO_FPS_KEY = 'default.video.fps'
 SLIDESHOW_DURATION_KEY = 'default.slideshow.duration'
 
 def load():
     import mediatools.utilities as util
-    global CONFIG_SETTINGS, BASE_CONFIG_FILE, FULL_CONFIG_FILE
-    if CONFIG_SETTINGS:
-        return CONFIG_SETTINGS
-    FULL_CONFIG_FILE = f'{os.path.expanduser("~")}{os.sep}{BASE_CONFIG_FILE}'
-    if not os.path.isfile(FULL_CONFIG_FILE):
+    global CONFIG_SETTINGS, CONFIG_FILE
+    target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
+    if not os.path.isfile(target_file):
         default_file = util.package_home() / 'media-tools.properties'
         if not os.path.isfile(default_file):
             log.logger.critical("Default configuration file %s is missing, aborting...", default_file)
             raise FileNotFoundError
-        shutil.copyfile(default_file, FULL_CONFIG_FILE)
-        log.logger.info("User configuration file %s created", FULL_CONFIG_FILE)
+        shutil.copyfile(default_file, target_file)
+        log.logger.info("User configuration file %s created", target_file)
     try:
-        log.logger.info("Trying to load media config %s", FULL_CONFIG_FILE)
-        fp = open(FULL_CONFIG_FILE)
+        log.logger.info("Trying to load media config %s", target_file)
+        fp = open(target_file)
     except FileNotFoundError as e:
-        log.logger.critical("Default configuration file %s is missing, aborting...", FULL_CONFIG_FILE)
+        log.logger.critical("Default configuration file %s is missing, aborting...", target_file)
         raise FileNotFoundError from e
     CONFIG_SETTINGS = jprops.load_properties(fp)
     fp.close()
@@ -78,14 +75,3 @@ def get_property(name, settings=None):
         global CONFIG_SETTINGS
         settings = CONFIG_SETTINGS
     return settings.get(name, None)
-
-
-def get_config_file():
-    global FULL_CONFIG_FILE
-    return FULL_CONFIG_FILE
-
-
-def reload():
-    global CONFIG_SETTINGS
-    CONFIG_SETTINGS = {}
-    load()

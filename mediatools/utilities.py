@@ -32,11 +32,9 @@ import shlex
 from mediatools import version
 from mediatools import log
 import mediatools.options as opt
-import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.file as fil
 import mediatools.media_config as conf
-import mediatools.utilities as util
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
@@ -59,7 +57,7 @@ PROPERTIES_VALUES = {}
 def add_postfix(file, postfix, extension=None):
     """Adds a postfix to a file before the file extension"""
     if extension is None:
-        extension = conf.get_property(fil.get_type(file) + '.default.format')
+        extension = conf.get_property(f'default.{fil.get_type(file)}.format')
     if extension is None:
         extension = fil.extension(file)
     return fil.strip_extension(file) + r'.' + postfix + r'.' + extension
@@ -89,6 +87,8 @@ def get_ffprobe():
 
 
 def get_first_value(a_dict, key_list):
+    if a_dict is None:
+        return None
     for tag in key_list:
         if tag in a_dict:
             return a_dict[tag]
@@ -98,10 +98,16 @@ def get_first_value(a_dict, key_list):
 def __compute_eta__(line, total_time):
     if total_time is None:
         return ''
-    m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-    if m:
-        return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / float(m.group(2)))
-    return ''
+    # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
+    #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
+    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+) bitrate=.* speed=\s*([\d\.]+)x", line)
+    if not m:
+        return ''
+    speed = float(m.group(2))
+    if speed == 0:
+        return " ETA=Undefined"
+    return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / speed)
+
 
 def __get_log_level_from_ffmpeg_log__(line):
     if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
@@ -149,7 +155,7 @@ def run_os_cmd(cmd, total_time=None):
     except subprocess.CalledProcessError as e:
         log.logger.error("Command: %s failed with return code %d", cmd, e.returncode)
         log.logger.error("%s", e.output)
-        raise
+        raise e
 
 
 def run_ffmpeg(params, duration=None):
@@ -178,8 +184,6 @@ def get_conf_property(prop):
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         get_media_properties()
-    if prop not in PROPERTIES_VALUES:
-        raise ex.ProfileError(f"Option {prop} undefined in config file {conf.get_config_file()}", prop.split('.')[0])
     return PROPERTIES_VALUES[prop]
 
 
@@ -273,11 +277,7 @@ def parse_media_args(parser, args=None):
         kwargs = remove_nones(vars(parser.parse_args(args)))
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
     set_debug_level(kwargs.pop('debug', 3))
-    # Verify profile existence
-    if 'profile' in kwargs:
-        _ = util.get_conf_property(kwargs['profile'] + '.cmdline')
-
-    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.WIDTH]) = resolve_resolution(**kwargs)
+    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     log.logger.debug('KW=%s', str(kwargs))
@@ -292,11 +292,11 @@ def cleanup_options(kwargs):
 
 
 def get_profile_extension(profile, properties=None):
-
+    if profile is None:
+        return 'mp4'
     if properties is None:
         properties = get_media_properties()
-    if profile is not None:
-        extension = properties.get(profile + '.extension', None)
+    extension = properties.get(profile + '.extension', None)
     if extension is None:
         extension = properties.get('default.video.extension', None)
     return extension
@@ -334,100 +334,72 @@ def get_cmdline_params(cmdline):
 
 
 def get_ffmpeg_cmdline_param(cmdline, param):
-    m = re.search(rf"{param}\s+(\S+)", cmdline)
+    m = re.search(rf"-{param}\s+(\S+)", cmdline)
     if m:
         return m.group(1)
     return None
 
 
 def get_ffmpeg_cmdline_switch(cmdline, param):
-    m = re.search(rf'{param}\s', cmdline)
+    m = re.search(rf'-{param}\s', cmdline)
     if m:
         return True
     return False
 
 
-def get_ffmpeg_cmdline_vbitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.VBITRATE)
-
-
-def get_ffmpeg_cmdline_abitrate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ABITRATE)
-
-
-def get_ffmpeg_cmdline_vcodec(cmdline):
-    for option in [opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.VCODEC2, opt.OptionFfmpeg.VCODEC3]:
-        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
-        if v is not None:
-            return v
-    return None
-
-
-def get_ffmpeg_cmdline_acodec(cmdline):
-    for option in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
-        v = get_ffmpeg_cmdline_param(cmdline, '-' + option)
-        if v is not None:
-            return v
-    return None
-
-
-def get_ffmpeg_cmdline_framesize(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.RESOLUTION)
-
-
-def get_ffmpeg_cmdline_framerate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FPS)
-
-
-def get_ffmpeg_cmdline_aspect_ratio(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ASPECT)
-
-
-def get_ffmpeg_cmdline_vfilter(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-vf')
-
-
-def get_ffmpeg_cmdline_achannels(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.ACHANNEL)
-
-
-def get_ffmpeg_cmdline_format(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-' + opt.OptionFfmpeg.FORMAT)
-
-
-def get_ffmpeg_cmdline_deinterlace(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-' + opt.OptionFfmpeg.DEINTERLACE)
-
-
-def get_ffmpeg_cmdline_amute(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-an')
-
-
-def get_ffmpeg_cmdline_vmute(cmdline):
-    return get_ffmpeg_cmdline_switch(cmdline, '-vn')
-
-
-def get_audio_sample_rate(cmdline):
-    return get_ffmpeg_cmdline_param(cmdline, '-ar')
-
-
 def get_ffmpeg_cmdline_params(cmdline):
-    p = {}
-    p[opt.Option.ABITRATE] = get_ffmpeg_cmdline_abitrate(cmdline)
-    p[opt.Option.VBITRATE] = get_ffmpeg_cmdline_vbitrate(cmdline)
-    p[opt.Option.ACODEC] = get_ffmpeg_cmdline_acodec(cmdline)
-    p[opt.Option.VCODEC] = get_ffmpeg_cmdline_vcodec(cmdline)
-    p[opt.Option.RESOLUTION] = get_ffmpeg_cmdline_framesize(cmdline)
-    p[opt.Option.FPS] = get_ffmpeg_cmdline_framerate(cmdline)
-    p[opt.Option.ASPECT] = get_ffmpeg_cmdline_aspect_ratio(cmdline)
-    p[opt.Option.VFILTER] = get_ffmpeg_cmdline_vfilter(cmdline)
-    p[opt.Option.ACHANNEL] = get_ffmpeg_cmdline_achannels(cmdline)
-    p[opt.Option.FORMAT] = get_ffmpeg_cmdline_format(cmdline)
-    p[opt.Option.DEINTERLACE] = get_ffmpeg_cmdline_deinterlace(cmdline)
-    p['amute'] = get_ffmpeg_cmdline_amute(cmdline)
-    p['vmute'] = get_ffmpeg_cmdline_vmute(cmdline)
-    return remove_nones(p)
+    for o in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
+        acodec = get_ffmpeg_cmdline_param(cmdline, o)
+        if acodec is not None:
+            break
+    for o in [opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.VCODEC2, opt.OptionFfmpeg.VCODEC3]:
+        vcodec = get_ffmpeg_cmdline_param(cmdline, o)
+        if vcodec is not None:
+            break
+    return remove_nones({
+        opt.Option.FORMAT: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.FORMAT),
+        opt.Option.ABITRATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ABITRATE),
+        opt.Option.VBITRATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.VBITRATE),
+        opt.Option.ACODEC: acodec,
+        opt.Option.VCODEC: vcodec,
+        opt.Option.RESOLUTION: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.RESOLUTION),
+        opt.Option.FPS: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.FPS),
+        opt.Option.ASPECT: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ASPECT),
+        opt.Option.VFILTER: get_ffmpeg_cmdline_param(cmdline, 'vf'),
+        opt.Option.ACHANNEL: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.ACHANNEL),
+        opt.Option.DEINTERLACE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.DEINTERLACE),
+        opt.Option.MUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.MUTE),
+        opt.Option.VMUTE: get_ffmpeg_cmdline_switch(cmdline, opt.OptionFfmpeg.VMUTE),
+        opt.Option.SAMPLERATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.SAMPLERATE)
+    })
 
+def get_default_options():
+    return remove_nones({
+        opt.Option.FORMAT: get_conf_property('default.video.format'),
+        opt.Option.VCODEC: get_conf_property('default.video.codec'),
+        opt.Option.ACODEC: get_conf_property('default.audio.codec'),
+        opt.Option.ABITRATE: get_conf_property('default.audio.bitrate'),
+        opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
+        opt.Option.FPS: get_conf_property('default.video.fps'),
+        opt.Option.ASPECT: get_conf_property('default.video.aspect'),
+        opt.Option.RESOLUTION: get_conf_property('default.video.resolution'),
+        opt.Option.ACHANNEL: get_conf_property('default.audio.channels'),
+        opt.Option.SAMPLERATE: get_conf_property('default.audio.samplerate')
+    })
+
+def get_profile_options(profile):
+    return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
+
+def get_all_options(**cmdline_args):
+    if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
+        return cmdline_args
+    p = get_default_options()
+    if 'profile' in cmdline_args:
+        q = get_profile_options(cmdline_args['profile'])
+        p = {**p, **q}
+    cmdline_args = {**p, **cmdline_args}
+    (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
+    return cmdline_args
 
 def swap_keys_values(p):
     return {v: k for k, v in p.items()}
