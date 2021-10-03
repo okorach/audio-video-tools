@@ -79,10 +79,10 @@ def test_hw_accel_2():
     vid_o = video.VideoFile(get_video())
     try:
         _ = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', abitrate='64k', start=1, stop=2))
+        assert hw_accel_avail
     except subprocess.CalledProcessError:
         # Encoding will fail... just to cover some source code
         assert not hw_accel_avail
-    assert hw_accel_avail
 
 def test_main_file():
     video.HW_ACCEL = False
