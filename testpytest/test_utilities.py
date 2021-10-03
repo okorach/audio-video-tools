@@ -151,11 +151,11 @@ def test_ar():
 def test_eta():
     assert util.__compute_eta__("what the heck", 10) == ''
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  330kB"
-                                " time=00:00:10.00 bitrate=2261.3kbits/s speed=10x", 20) == "ETA=00:00:01.000"
+                                " time=00:00:10.00 bitrate=2261.3kbits/s speed=10x", 20) == " ETA=00:00:01.000"
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  3920kB"
-                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=5x", 20) == "ETA=00:00:02.000"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=5x", 20) == " ETA=00:00:02.000"
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=3320kB"
-                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=0x", 20) == "ETA=Undefined"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=0x", 20) == " ETA=Undefined"
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
                                 " tim=00:00:10.000 bitrate=2261.3kbits/s speed=10x", 20) == ""
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
