@@ -57,8 +57,13 @@ def load():
             CONFIG_SETTINGS[key] = False
             continue
         try:
-            intval = int(value)
-            CONFIG_SETTINGS[key] = intval
+            newval = int(value)
+            CONFIG_SETTINGS[key] = newval
+        except ValueError:
+            pass
+        try:
+            newval = float(value)
+            CONFIG_SETTINGS[key] = newval
         except ValueError:
             pass
 
