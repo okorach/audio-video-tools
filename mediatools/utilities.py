@@ -277,7 +277,7 @@ def parse_media_args(parser, args=None):
         kwargs = remove_nones(vars(parser.parse_args(args)))
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
     set_debug_level(kwargs.pop('debug', 3))
-    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.WIDTH]) = resolve_resolution(**kwargs)
+    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     log.logger.debug('KW=%s', str(kwargs))
