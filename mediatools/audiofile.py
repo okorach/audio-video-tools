@@ -185,7 +185,7 @@ class AudioFile(media.MediaFile):
 
         ffopts = opt.media2ffmpeg(media_opts)
         log.logger.debug("FFOPTS = %s", str(ffopts))
-        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, util.dict2str(ffopts), target_file))
+        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, util.dict2str(ffopts), target_file), self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 

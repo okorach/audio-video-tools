@@ -87,6 +87,8 @@ def get_ffprobe():
 
 
 def get_first_value(a_dict, key_list):
+    if a_dict is None:
+        return None
     for tag in key_list:
         if tag in a_dict:
             return a_dict[tag]
@@ -96,10 +98,15 @@ def get_first_value(a_dict, key_list):
 def __compute_eta__(line, total_time):
     if total_time is None:
         return ''
-    m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-    if m:
-        return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / float(m.group(2)))
-    return ''
+    # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
+    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+) bitrate=.* speed=\s*([\d\.]+)x", line)
+    if not m:
+        return ''
+    speed = float(m.group(2))
+    if speed == 0:
+        return "ETA=Undefined"
+    return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / speed)
+
 
 def __get_log_level_from_ffmpeg_log__(line):
     if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
