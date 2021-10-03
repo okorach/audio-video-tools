@@ -30,6 +30,26 @@ in mediatools library
 
 OPT_FMT = '-{} "{}"'
 
+CODECS = {
+    'h264': 'libx264',
+    'x264': 'libx264',
+    'h265': 'libx265',
+    'x265': 'libx265',
+    'aac': 'aac',
+    'mp3': 'libmp3lame',
+    'copy': 'copy'
+}
+
+HW_ACCEL_CODECS = {
+    'h264': 'h264_nvenc',
+    'h265': 'hevc_nvenc',
+    'x264': 'h264_nvenc',
+    'x265': 'hevc_nvenc',
+    'aac': 'aac',
+    'mp3': 'libmp3lame',
+    'copy': 'copy'
+}
+
 class OptionFfmpeg:
     '''Documents supported ffmpeg options'''
     FORMAT = 'f'
@@ -49,6 +69,9 @@ class OptionFfmpeg:
     VFILTER = 'vf'
     START = 'ss'
     STOP = 'to'
+    MUTE = 'an'
+    VMUTE = 'vn'
+    SAMPLERATE = 'ar'
 
 
 class Option:
@@ -77,6 +100,9 @@ class Option:
     GENRE = 'genre'
     DURATION = 'duration'
     LANGUAGE = 'language'
+    MUTE = 'mute'
+    VMUTE = 'vmute'
+    SAMPLERATE = 'samplerate'
 
 
 M2F_MAPPING = {
@@ -92,7 +118,9 @@ M2F_MAPPING = {
     Option.ACHANNEL: OptionFfmpeg.ACHANNEL,
     Option.VFILTER: OptionFfmpeg.VFILTER,
     Option.START: OptionFfmpeg.START,
-    Option.STOP: OptionFfmpeg.STOP
+    Option.STOP: OptionFfmpeg.STOP,
+    Option.MUTE: OptionFfmpeg.MUTE,
+    Option.VMUTE: OptionFfmpeg.VMUTE
 }
 
 F2M_MAPPING = {}

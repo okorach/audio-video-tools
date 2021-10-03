@@ -40,7 +40,7 @@ def _dump_report_(report, file):
 def main():
     files = []
     util.init('video-slideshow')
-    resolution = conf.get_property('video.default.resolution')
+    resolution = conf.get_property('default.video.resolution')
     me = sys.argv.pop(0).split(os.sep)[-1]
     while sys.argv:
         arg = sys.argv.pop(0)

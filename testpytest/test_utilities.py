@@ -24,7 +24,7 @@ import mediatools.videofile as video
 import mediatools.options as opt
 
 def test_conf():
-    assert util.get_conf_property('image.default.format') == 'jpg'
+    assert util.get_conf_property('default.image.format') == 'jpg'
 
 def test_hms():
     assert util.to_hms('3727.21') == (1, 2, 7.21)
@@ -67,7 +67,7 @@ def test_args():
     assert kw['stop'] == '12:00'
 
 def test_ffmpeg_cmdline():
-    assert util.get_ffmpeg_cmdline_framesize("-i  file.mp4 -ss 0 -f  mp4 -s   620x300 -r 50 -aspect 16:9") == '620x300'
+    assert util.get_ffmpeg_cmdline_params("-i  file.mp4 -ss 0 -f  mp4 -s   620x300 -r 50 -aspect 16:9")[opt.Option.RESOLUTION] == '620x300'
 
 def test_pct():
     assert util.percent_or_absolute("17%") == 0.17
@@ -96,8 +96,8 @@ def test_ffmpeg_cmd_line():
     assert d[opt.Option.ACHANNEL] == "2"
     assert d[opt.Option.ABITRATE] == "128k"
     assert d[opt.Option.VCODEC] == "libx264"
-    assert d["amute"]
-    assert not d["vmute"]
+    assert d[opt.Option.MUTE]
+    assert not d[opt.Option.VMUTE]
     assert d[opt.Option.VBITRATE] == "3072k"
     assert d[opt.Option.FPS] == "25"
     assert d[opt.Option.RESOLUTION] == "1280x720"
@@ -139,11 +139,24 @@ def test_to_seconds2():
     assert util.to_seconds("03.210") == 3.21
 
 def test_difftime():
-    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600+23*60+11.620)) < 0.0000001
+    assert abs(util.difftime("02:57:21.931", "01:34:10.311") - (3600 + 23 * 60 + 11.620)) < 0.0000001
 
 def test_ar():
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k -vcodec libx264 -an -b:v 3072k -r 25 -aspect 4:3  -s 1280x720"
-    assert util.get_audio_sample_rate(cmd) is None
+    assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) is None
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
-    assert util.get_audio_sample_rate(cmd) == "44k"
+    assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) == "44k"
 
+
+def test_eta():
+    assert util.__compute_eta__("what the heck", 10) == ''
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  330kB"
+                                " time=00:00:10.00 bitrate=2261.3kbits/s speed=10x", 20) == " ETA=00:00:01.000"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  3920kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=5x", 20) == " ETA=00:00:02.000"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=3320kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=0x", 20) == " ETA=Undefined"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
+                                " tim=00:00:10.000 bitrate=2261.3kbits/s speed=10x", 20) == ""
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s sped=10x", 20) == ""

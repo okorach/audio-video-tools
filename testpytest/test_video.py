@@ -106,7 +106,6 @@ def test_reverse():
     os.remove(v2.filename)
 
 def test_cut():
-    # util.set_debug_level(4)
     v = video.VideoFile(video.cut(FILE, output=TMP1, start=0.5, stop=1.5))
     print("DURATION = {}".format(v.duration))
     assert abs(1 - v.duration) <= 0.06
@@ -119,7 +118,7 @@ def test_specs2():
     assert v.get_video_codec(None) == 'h264'
     assert v.get_audio_codec() == 'aac'
     assert abs(v.get_video_duration() - 10.0) < 0.01
-    assert abs(v.get_audio_bitrate() - 94.69) < 0.01
+    assert abs(v.get_audio_bitrate() - 96966) < 10
 
 def test_metadata():
     v = video.VideoFile(FILE)
@@ -137,4 +136,4 @@ def test_metadata():
     assert abs(v.duration - out.duration) < 0.02
     assert v.get_audio_codec() == 'aac'
     assert (v.get_video_duration() - 10.0) < 0.01
-    assert (v.get_audio_bitrate() - 94.69) < 0.01
+    assert (v.get_audio_bitrate() - 96966) < 10
