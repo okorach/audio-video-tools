@@ -95,8 +95,7 @@ def test_hash():
 
 
 def test_hash_list():
-    l = [FILE, FILE_2, FILE]
-    hashes = fil.get_hash_list(l)
+    hashes = fil.get_hash_list([FILE, FILE_2, FILE])
     h = list(hashes.keys())[0]
     assert h is not None
     assert len(hashes[h]) == 2
