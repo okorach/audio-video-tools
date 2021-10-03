@@ -146,3 +146,17 @@ def test_ar():
     assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) is None
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
     assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) == "44k"
+
+
+def test_eta():
+    assert util.__compute_eta__("what the heck", 10) == ''
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  330kB"
+                                " time=00:00:10.00 bitrate=2261.3kbits/s speed=10x", 20) == "ETA=00:00:01.000"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  3920kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=5x", 20) == "ETA=00:00:02.000"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=3320kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s speed=0x", 20) == "ETA=Undefined"
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
+                                " tim=00:00:10.000 bitrate=2261.3kbits/s speed=10x", 20) == ""
+    assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
+                                " time=00:00:10.000 bitrate=2261.3kbits/s sped=10x", 20) == ""

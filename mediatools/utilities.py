@@ -98,7 +98,8 @@ def get_first_value(a_dict, key_list):
 def __compute_eta__(line, total_time):
     if total_time is None:
         return ''
-    # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
+    # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
+    #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
     m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+) bitrate=.* speed=\s*([\d\.]+)x", line)
     if not m:
         return ''
