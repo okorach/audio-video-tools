@@ -105,7 +105,7 @@ def __compute_eta__(line, total_time):
         return ''
     speed = float(m.group(2))
     if speed == 0:
-        return "ETA=Undefined"
+        return " ETA=Undefined"
     return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / speed)
 
 
