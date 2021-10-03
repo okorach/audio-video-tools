@@ -345,7 +345,7 @@ class VideoFile(media.MediaFile):
         '''Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
-        - **kwargs accepts at large panel of other ptional options'''
+        - **kwargs accepts at large panel of other optional options'''
         kwargs = util.get_all_options(**kwargs)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
@@ -430,8 +430,12 @@ class VideoFile(media.MediaFile):
         if __must_encode_video__(**kwargs):
             if use_hardware_accel(**kwargs):
                 settings.append(HW_ACCEL_PREFIX)
-        elif 'start' in kwargs and kwargs['start'] != '':
-            settings.append('-ss {}'.format(kwargs['start']))
+        else:
+            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+
+            if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
         log.logger.debug('Input settings = %s', str(settings))
         return settings
@@ -456,14 +460,15 @@ class VideoFile(media.MediaFile):
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
 
-        if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-        if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
-
         if kwargs.get(opt.Option.DEINTERLACE, False):
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
+
+        if __must_encode_video__(**kwargs):
+            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+
+            if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
         log.logger.debug('Output settings = %s', str(settings))
         return settings
@@ -609,7 +614,7 @@ def add_video_args(parser):
     parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mpeg2, xvid...)')
     parser.add_argument('--' + opt.Option.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
-    parser.add_argument('--hw_accel', required=False, default=False, dest='hw_accel', action='store_true',
+    parser.add_argument('--hw_accel', required=False, default=None, dest='hw_accel', action='store_true',
                         help='Use Nvidia HW acceleration')
 
     parser.add_argument('--' + opt.Option.VBITRATE, required=False, help='Video bitrate eg 1024k')
@@ -751,6 +756,7 @@ def volume(filename, vol, output=None, **kwargs):
 
 
 def reverse(filename, output=None, **kwargs):
+    kwargs['hw_accel'] = False  # Reverse filter not compatible with HW accel
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='reverse')
     return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
 
@@ -764,8 +770,14 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
     ''' Args: start and/or stop or timeranges '''
     if 'vcodec' not in kwargs:
         kwargs['vcodec'] = 'copy'
+        kwargs['hw_accel'] = False
     if 'acodec' not in kwargs:
         kwargs['acodec'] = 'copy'
+        kwargs['hw_accel'] = False
+    if kwargs['acodec'] == 'copy' or kwargs['vcodec'] == 'copy':
+        for o in ('abitrate', 'vbitrate', 'fps', 'aspect', 'resolution', 'achannels', 'samplerate', 'width', 'height'):
+            kwargs.pop(o, None)
+
     if start is None and stop is None:
         i = 1
         for r in timeranges.split(','):
@@ -782,15 +794,19 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
 
 def use_hardware_accel(**kwargs):
     global HW_ACCEL
-    if HW_ACCEL is not None:
-        return HW_ACCEL
-    if kwargs.get('hw_accel', False):
-        log.logger.info("Hardware acceleration explicitly forced on")
-        HW_ACCEL = True
+    if 'hw_accel' in kwargs:
+        if kwargs['hw_accel']:
+            log.logger.info("Hardware acceleration explicitly forced on")
+            return True
+        elif not kwargs['hw_accel']:
+            log.logger.info("Hardware acceleration explicitly turned off")
+            return False
     elif kwargs.get(opt.Option.DEINTERLACE, False):
         # Deinterlacing is incompatible with HW accel
         log.logger.info("Turning off hardware acceleration because of deinterlace")
         HW_ACCEL = False
+    if HW_ACCEL is not None:
+        return HW_ACCEL
 
     if HW_ACCEL is None:
         log.logger.info("Checking if hardware acceleration can be used")

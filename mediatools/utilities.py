@@ -391,6 +391,8 @@ def get_profile_options(profile):
     return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
 
 def get_all_options(**cmdline_args):
+    if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
+        return cmdline_args
     p = get_default_options()
     if 'profile' in cmdline_args:
         q = get_profile_options(cmdline_args['profile'])
