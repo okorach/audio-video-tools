@@ -337,7 +337,7 @@ class ImageFile(media.MediaFile):
             kwargs['effect'] = (0, 1, 0.45, 0.55)
 
         out_file = util.automatic_output_file_name(kwargs.get('out_file', None), self.filename, 'pan',
-            extension=conf.get_property('video.default.format'))
+            extension=conf.get_property('default.video.format'))
 
         if self.orientation == 'portrait':
             rot_args = kwargs.copy()

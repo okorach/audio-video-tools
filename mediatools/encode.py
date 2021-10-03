@@ -67,13 +67,13 @@ def encode_file(file, file_type, **kwargs):
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
         log.logger.info("File %s generated", outputfile)
-        print("File {outputfile} generated")
+        print(f"File {outputfile} generated")
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
         target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, "combined", ext)
         video.concat(target_file, filelist)
         log.logger.info("Concatenated file %s generated", target_file)
-        print("Concatenated file {target_file} generated")
+        print(f"Concatenated file {target_file} generated")
 
 
 def main():

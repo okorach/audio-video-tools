@@ -650,7 +650,7 @@ def __get_audio_channel_mapping__(**kwargs):
 def __build_slideshow__(input_files, outfile="slideshow.mp4", resolution=None, **kwargs):
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
 
-    transition_duration = float(conf.get_property('fade.default.duration'))
+    transition_duration = float(conf.get_property('default.fade.duration'))
     fade_in = filters.fade_in(duration=transition_duration)
 
     pixfmt = filters.format('yuva420p')
@@ -702,8 +702,8 @@ def slideshow(*inputs, resolution=None):
     slideshow_root_filename = None
     operations = []
     if resolution is None:
-        resolution = conf.get_property('video.default.resolution')
-    fmt = conf.get_property('video.default.format')
+        resolution = conf.get_property('default.video.resolution')
+    fmt = conf.get_property('default.video.format')
 
     for slide_file in slideshow_files:
         if fil.is_image_file(slide_file):
