@@ -25,8 +25,10 @@ from unittest.mock import patch
 from mediatools import encode
 import mediatools.utilities as util
 import mediatools.videofile as video
+import mediatools.audiofile as audio
 
 TMP_VID = util.get_tmp_file() + '.mp4'
+TMP_AUDIO = util.get_tmp_file() + '.mp3'
 
 def get_video():
     return 'it/video-1920x1080.mp4'
@@ -79,6 +81,17 @@ def test_main_file():
     file1 = 'it' + os.sep + 'video-720p.mp4'
     with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--resolution', '640x360']):
         encode.main()
+
+
+def test_main_file_audio():
+    file1 = 'it' + os.sep + 'video-720p.mp4'
+    with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO]):
+        encode.main()
+    audio_f = audio.AudioFile(TMP_AUDIO)
+    assert audio_f.acodec == 'mp3'
+    assert audio_f.format == 'mp3'
+    os.remove(TMP_AUDIO)
+
 
 def test_main_dir_timeranges_1():
     with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', 'it', '--resolution', '640x360', '--timeranges', '00:02-00:04']):
