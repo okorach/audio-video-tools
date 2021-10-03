@@ -43,7 +43,7 @@ class InputError(Exception):
 
 
 class DimensionError(Exception):
-    '''Error when copputing image or video dimensions'''
+    '''Error when computing image or video dimensions'''
     def __init__(self, message=None, operation=None):
         self.message = message
         self.operation = operation
@@ -51,4 +51,16 @@ class DimensionError(Exception):
             self.message = "Dimensions error"
         if operation is not None:
             self.message = "{}: {}".format(operation, self.message)
+        super().__init__(self.message)
+
+
+class ProfileError(Exception):
+    '''Error using a non existing profile or a profile with missing options'''
+    def __init__(self, message=None, profile=None):
+        self.message = message
+        self.profile = profile
+        if message is None:
+            self.message = "Profile error"
+        if profile is not None:
+            self.message = f"Profile {profile}: {self.message}"
         super().__init__(self.message)

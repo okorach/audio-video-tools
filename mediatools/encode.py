@@ -52,7 +52,7 @@ def encode_file(file, file_type, **kwargs):
         return
 
     if kwargs.get('outputfile', None) is None:
-        ext = util.get_profile_extension(kwargs.get('profile'))
+        ext = util.get_profile_extension(kwargs.get('profile', util.get_conf_property('default.video.extension')))
     count = 0
     filelist = []
     timeranges = kwargs.get('timeranges', None).split(',')
