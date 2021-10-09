@@ -106,9 +106,18 @@ def test_reverse():
     os.remove(v2.filename)
 
 def test_cut():
-    v = video.VideoFile(video.cut(FILE, output=TMP1, start=0.5, stop=1.5))
-    print("DURATION = {}".format(v.duration))
-    assert abs(1 - v.duration) <= 0.06
+    start, stop = 0.5, 1.5
+    v = video.VideoFile(video.cut(FILE, output=TMP1, start=start, stop=stop))
+    assert abs(stop - start - v.duration) <= 0.06
+    os.remove(v.filename)
+
+def test_cut2():
+    dur = 1.5
+    v = video.VideoFile(video.cut(FILE, output=TMP1, stop=dur))
+    assert abs(dur - v.duration) <= 0.06
+    os.remove(v.filename)
+
+def test_cut3():
     v = video.VideoFile(video.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
     assert abs(2 - v.duration) <= 0.06
     os.remove(v.filename)
