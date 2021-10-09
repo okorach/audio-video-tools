@@ -34,7 +34,7 @@ def main():
     parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
-    output = video.concat(kwargs.pop('outputfile'), kwargs.pop('inputfile'))
+    output = video.concat(kwargs.get('outputfile', None), kwargs.pop('inputfile'))
     util.generated_file(output)
 
 
