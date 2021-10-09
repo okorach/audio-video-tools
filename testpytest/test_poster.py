@@ -24,37 +24,41 @@ import sys
 from unittest.mock import patch
 import mediatools.utilities as util
 import mediatools.imagefile as img
-from mediatools import stack
+from mediatools import poster
 
-CMD = 'image-stack'
-IMG1 = 'it' + os.sep + 'img-640x480.jpg'
-IMG2 = 'it' + os.sep + 'img-1770x1291.jpg'
+CMD = 'image-poster'
+DIR = 'it' + os.sep
+IMG1 = DIR + 'img-640x480.jpg'
+IMG2 = DIR + 'img-1770x1291.jpg'
+IMG3 = DIR + 'img-3000x4000.jpg'
+IMG4 = DIR + 'img-3000x1682.jpg'
+IMG5 = DIR + 'img-2880x1924.jpg'
+IMG6 = DIR + 'img-4000x3000.jpg'
 TMP1 = util.get_tmp_file() + '.jpg'
 
 def test_main():
     with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10', '--stretch',
-        '-d', 'vertical', '-i', IMG1, IMG2]):
+        '-i', IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
         try:
-            stack.main()
-            assert False
+            poster.main()
+            assert True
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_help():
-    with patch.object(sys, 'argv', [CMD, '-b', 'black', '-m', '10', '--stretch',
-        '-d', 'vertical', '-i', IMG1, IMG2, '-h']):
+    with patch.object(sys, 'argv', [CMD, '-i', IMG1, IMG2, '-h']):
         try:
-            stack.main()
+            poster.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, 'argv', [CMD, '-b', 'black', '-m', '10', '--badoption', 'foo', '-i', IMG1, IMG2]):
+    with patch.object(sys, 'argv', [CMD, '-b', '-i', IMG1, IMG2, '--badoption', 'yes']):
         try:
-            stack.main()
+            poster.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
@@ -63,17 +67,17 @@ def test_main_bad_option():
 def test_main_no_file():
     with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10']):
         try:
-            stack.main()
+            poster.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_other_options():
-    with patch.object(sys, 'argv', [CMD, '-b', 'white', '-m', '50', '-d', 'horizontal', '-i', IMG1, IMG2]):
+    with patch.object(sys, 'argv', [CMD, '-b', 'white', '-m', '50', '-i', IMG1, IMG2]):
         try:
-            stack.main()
-            assert False
+            poster.main()
+            assert True
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -81,19 +85,22 @@ def test_main_other_options():
 def test_main_with_output():
     with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-o', TMP1]):
         try:
-            stack.main()
-            assert False
+            poster.main()
+            assert img.ImageFile(TMP1).width > 0
+            os.remove(TMP1)
         except SystemExit as e:
             assert int(str(e)) == 0
             assert img.ImageFile(TMP1).width > 0
             os.remove(TMP1)
 
+
 def test_main_with_output2():
     with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50',
-        '-d', 'horizontal', '-o', TMP1]):
+        '-o', TMP1]):
         try:
-            stack.main()
-            assert False
+            poster.main()
+            assert img.ImageFile(TMP1).width > 0
+            os.remove(TMP1)
         except SystemExit as e:
             assert int(str(e)) == 0
             assert img.ImageFile(TMP1).width > 0
