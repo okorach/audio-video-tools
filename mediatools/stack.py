@@ -50,7 +50,7 @@ def main():
     kwargs = util.parse_media_args(parser)
     files = kwargs['inputfile']
     if len(files) > 0:
-        output = image.stack(*files, out_file=None, **kwargs)
+        output = image.stack(*files, out_file=kwargs.pop('outputfile'), **kwargs)
         util.generated_file(output)
     else:
         log.logger.error("No inputs files could be used for stacking, no stack image generated")

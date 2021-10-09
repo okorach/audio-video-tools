@@ -50,7 +50,7 @@ def main():
     kwargs = util.parse_media_args(parser)
     file_list = kwargs['inputfile']
 
-    posterfile = image.posterize(*file_list, out_file=None, **kwargs)
+    posterfile = image.posterize(*file_list, out_file=kwargs.pop('outputfile'), **kwargs)
     util.generated_file(posterfile)
 
 
