@@ -24,7 +24,7 @@ coverageReport="$buildDir/coverage.xml"
 utReport="$buildDir/ut.xml"
 
 [ ! -d $buildDir ] && mkdir $buildDir
-# rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
+# rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
 echo "Running tests"
 coverage run -m pytest --junitxml=$utReport

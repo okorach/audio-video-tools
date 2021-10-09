@@ -46,7 +46,7 @@ buildDir="build"
 owaspDependencyReport="$buildDir/dependency-check-report.json"
 
 [ ! -d $buildDir ] && mkdir $buildDir
-rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
+rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
 if [ $skiptests -eq 0 ]; then
   ./run_tests.sh
