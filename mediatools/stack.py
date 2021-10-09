@@ -46,7 +46,7 @@ def main():
         default='black', help='Background color of frame')
     parser.add_argument('-m', '--margin', required=False, default=0,  help='Width of frame')
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
-        default=False, help='Strech images so that they have the same width or height')
+        default=False, help='Stretch images so that they have the same width or height')
     kwargs = util.parse_media_args(parser)
     files = kwargs['inputfile']
     if len(files) > 0:
