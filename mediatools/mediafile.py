@@ -118,6 +118,7 @@ class MediaFile(fil.File):
             return stream[attr]
         except KeyError as e:
             log.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+            return None
 
     def __get_video_stream_attribute__(self, attr, stream=None):
         if stream is None:
