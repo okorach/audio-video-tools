@@ -8,6 +8,27 @@ on:
   # schedule:
   #  - cron: '17 0 * * 4'
 jobs:
+  run-windows-test:
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pylint bandit pytest coverage jprops argparse datetime mp3_tagger ffmpeg-python ExifRead
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run Windows tests
+        run: |
+          coverage run -m pytest testspytest/test_file.py --junitxml=build/ut_report_windows.xml
+          coverage xml -o build/coverage_windows.xml
+      - name: 'Store Windows tests'
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-tests
+          path: build/*.xml
+          retention-days: 5
   scan:
     runs-on: ubuntu-latest
     #strategy:
@@ -38,13 +59,19 @@ jobs:
       # - name: Test with pytest
       #     run: |
       #       pytest
-      - name: Run tests
+      - name: Restore Windows tests
+        uses: actions/download-artifact@v2
+        with:
+          name: windows-tests
+      - name: Run generic tests
         working-directory: .
         run: |
           chmod +x ./run_tests.sh
           ./run_tests.sh
-          echo "--------- UT report ---------"; cat build/ut.xml
-          echo "---------Coverage report ---------"; cat build/coverage.xml
+          echo "\n--------- UT report ---------"; cat build/ut.xml
+          echo "\n--------- UT report Windows ---------"; cat build/ut_report_windows.xml
+          echo "\n---------Coverage report ---------"; cat build/coverage.xml
+          echo "\n---------Coverage report Windows tests ---------"; cat build/coverage_windows.xml
       - name: Run linters
         working-directory: .
         run: |
