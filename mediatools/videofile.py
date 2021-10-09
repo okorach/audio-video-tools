@@ -317,7 +317,7 @@ class VideoFile(media.MediaFile):
     def add_year(self, year):
         return self.add_metadata(year=year)
 
-    def add_audio_tracks(self, *audio_files):
+    def add_audio_tracks(self, *audio_files, out_file=None):
         inputs = '-i "{0}"'.format(self.filename)
         maps = '-map 0'
         i = 1
@@ -325,9 +325,9 @@ class VideoFile(media.MediaFile):
             inputs += ' -i "{0}"'.format(audio_file)
             maps += ' -map {0}'.format(i)
             i += 1
-        output_file = util.add_postfix(self.filename, "muxed")
-        util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{output_file}"', self.duration)
-        return output_file
+        out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix='muxed')
+        util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{out_file}"', self.duration)
+        return out_file
 
     def set_author(self, author):
         self.author = author
