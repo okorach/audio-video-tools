@@ -30,8 +30,8 @@ import mediatools.videofile as video
 def main():
     util.init('video-concat')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-i','--inputfile', nargs='+', help='List of files to concatenate', required=True)
-    parser.add_argument('-o','--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to concatenate', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
     output = video.concat(kwargs.pop('outputfile'), kwargs.pop('inputfile'))
