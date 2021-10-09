@@ -782,18 +782,23 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
         for o in ('abitrate', 'vbitrate', 'fps', 'aspect', 'resolution', 'achannels', 'samplerate', 'width', 'height'):
             kwargs.pop(o, None)
 
+    file_object = VideoFile(filename)
     if start is None and stop is None:
         i = 1
         for r in timeranges.split(','):
             kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
             output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
-            output = VideoFile(filename).encode(target_file=output, **kwargs)
+            output = file_object.encode(target_file=output, **kwargs)
             util.generated_file(output)
             i += 1
         return output
     else:
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = file_object.duration
         output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
-        return VideoFile(filename).encode(target_file=output, start=start, stop=stop, **kwargs)
+        return file_object.encode(target_file=output, start=start, stop=stop, **kwargs)
 
 
 def use_hardware_accel(**kwargs):
