@@ -460,19 +460,18 @@ class VideoFile(media.MediaFile):
         if kwargs.get(opt.Option.DEINTERLACE, False):
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
 
-        if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+        if kwargs.get(opt.Option.STOP, '') != '':
+            start = 0
+            if kwargs.get(opt.Option.START, '') != '':
                 start = util.to_seconds(kwargs[opt.Option.START])
-            else:
-                start = 0
             stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
 
         if __must_encode_video__(**kwargs):
-            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+            if kwargs.get(opt.Option.START, '') != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
-            if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
+            if kwargs.get(opt.Option.STOP, '') != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
         log.logger.debug('Output settings = %s', str(settings))
