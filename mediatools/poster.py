@@ -37,20 +37,18 @@ def main():
     file_list = []
     util.init('image-poster')
     parser = argparse.ArgumentParser(description='Creates a mosaic of images for posters')
-    parser.add_argument('-i','--inputfile', nargs='+', help='List of files to posterize', required=True)
-    parser.add_argument('-o','--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to posterize', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
-    parser.add_argument('-l', '--layout', required=False, choices=['vertical', 'horizontal'],
-        default='vertical', help='How to stack images')
     parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
         default='black', help='Background color of frame')
-    parser.add_argument('-m', '--margin', required=False, default=0,  help='Width of margin')
+    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of margin')
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
         default=False, help='Stretch images so that they have the same width and height')
     kwargs = util.parse_media_args(parser)
     file_list = kwargs['inputfile']
 
-    posterfile = image.posterize(*file_list, out_file=kwargs.pop('outputfile'), **kwargs)
+    posterfile = image.posterize(*file_list, out_file=kwargs.get('outputfile', None), **kwargs)
     util.generated_file(posterfile)
 
 

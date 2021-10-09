@@ -37,8 +37,8 @@ def main():
     files = []
     util.init('image-stack')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-i','--inputfile', nargs='+', help='List of files to stack', required=True)
-    parser.add_argument('-o','--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to stack', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     parser.add_argument('-d', '--direction', required=False, choices=['vertical', 'horizontal'],
         default='vertical', help='How to stack images')
@@ -50,7 +50,7 @@ def main():
     kwargs = util.parse_media_args(parser)
     files = kwargs['inputfile']
     if len(files) > 0:
-        output = image.stack(*files, out_file=kwargs.pop('outputfile'), **kwargs)
+        output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
         util.generated_file(output)
     else:
         log.logger.error("No inputs files could be used for stacking, no stack image generated")
