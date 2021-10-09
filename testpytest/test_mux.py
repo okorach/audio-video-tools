@@ -21,7 +21,6 @@
 
 import os
 import sys
-from types import ClassMethodDescriptorType
 from unittest.mock import patch
 from mediatools import mux
 import mediatools.utilities as util

@@ -38,7 +38,7 @@ TMP1 = util.get_tmp_file() + '.jpg'
 
 def test_main():
     with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10', '--stretch',
-        '-i', IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
+                      '-i', IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
         try:
             poster.main()
             assert True
@@ -95,8 +95,7 @@ def test_main_with_output():
 
 
 def test_main_with_output2():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50',
-        '-o', TMP1]):
+    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50', '-o', TMP1]):
         try:
             poster.main()
             assert img.ImageFile(TMP1).width > 0

@@ -33,7 +33,7 @@ TMP1 = util.get_tmp_file() + '.jpg'
 
 def test_main():
     with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10', '--stretch',
-        '-d', 'vertical', '-i', IMG1, IMG2]):
+                      '-d', 'vertical', '-i', IMG1, IMG2]):
         try:
             stack.main()
             assert False
@@ -43,7 +43,7 @@ def test_main():
 
 def test_main_help():
     with patch.object(sys, 'argv', [CMD, '-b', 'black', '-m', '10', '--stretch',
-        '-d', 'vertical', '-i', IMG1, IMG2, '-h']):
+                      '-d', 'vertical', '-i', IMG1, IMG2, '-h']):
         try:
             stack.main()
             assert False
@@ -90,7 +90,7 @@ def test_main_with_output():
 
 def test_main_with_output2():
     with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50',
-        '-d', 'horizontal', '-o', TMP1]):
+                      '-d', 'horizontal', '-o', TMP1]):
         try:
             stack.main()
             assert False
