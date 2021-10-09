@@ -19,28 +19,26 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
+import argparse
 import mediatools.utilities as util
-import mediatools.file as fil
 import mediatools.videofile as video
 
 
 def main():
     util.init('video-reverse')
-    sys.argv.pop(0)
-    opts = {'audio': False, 'hw_accel': False}
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--keep_audio":
-            opts['audio'] = True
-        elif arg == "--hw_accel":
-            opts['hw_accel'] = True
-        elif fil.is_video_file(arg):
-            file = arg
-
-    output = video.reverse(file, **opts)
+    parser = argparse.ArgumentParser(description='Reverse a video')
+    parser.add_argument('-i','--inputfile', help='Video file to reverse', required=True)
+    parser.add_argument('-o','--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    parser.add_argument('-k', '--keep_audio', required=False, dest='audio', action='store_true',
+        default=False, help='Keep audio track after reverse')
+    parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
+        default=False, help='Enable hardware (GPU) acceleration')
+    parser.add_argument('-m', '--margin', required=False, default=0,  help='Width of frame')
+    parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
+        default=False, help='Stretch images so that they have the same width or height')
+    kwargs = util.parse_media_args(parser)
+    output = video.reverse(kwargs.pop('inputfile'), kwargs.pop('outputfile'), **kwargs)
     util.generated_file(output)
 
 
