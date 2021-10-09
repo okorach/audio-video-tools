@@ -25,7 +25,7 @@ banditReport="$buildDir/bandit-report.json"
 flake8Report="$buildDir/flake8-report.out"
 
 [ ! -d $buildDir ] && mkdir $buildDir
-# rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  testpytest/__pycache__ testunittest/__pycache__
+# rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
 echo "Running pylint"
 rm -f $pylintReport
@@ -42,4 +42,4 @@ flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391 --max-line-len
 
 echo "Running bandit"
 rm -f $banditReport
-bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./testpytest,./testunittest >$banditReport
+bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests >$banditReport
