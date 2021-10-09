@@ -34,9 +34,6 @@ def main():
         default=False, help='Keep audio track after reverse')
     parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
         default=False, help='Enable hardware (GPU) acceleration')
-    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of frame')
-    parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
-        default=False, help='Stretch images so that they have the same width or height')
     kwargs = util.parse_media_args(parser)
     output = video.reverse(kwargs.pop('inputfile'), kwargs.pop('outputfile'), **kwargs)
     util.generated_file(output)

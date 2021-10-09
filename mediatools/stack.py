@@ -44,17 +44,13 @@ def main():
         default='vertical', help='How to stack images')
     parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
         default='black', help='Background color of frame')
-    parser.add_argument('-m', '--margin', required=False, default=0,  help='Width of frame')
+    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of frame')
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
         default=False, help='Stretch images so that they have the same width or height')
     kwargs = util.parse_media_args(parser)
     files = kwargs['inputfile']
-    if len(files) > 0:
-        output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
-        util.generated_file(output)
-    else:
-        log.logger.error("No inputs files could be used for stacking, no stack image generated")
-        sys.exit(1)
+    output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
+    util.generated_file(output)
     sys.exit(0)
 
 
