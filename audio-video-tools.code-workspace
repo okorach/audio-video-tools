@@ -11,6 +11,7 @@
 		},
 		"python.pythonPath": "/usr/local/bin/python3",
 		"editor.renderWhitespace": "all",
-		"files.trimTrailingWhitespace": true
+		"files.trimTrailingWhitespace": true,
+		"python.linting.banditEnabled": true
 	}
 }
