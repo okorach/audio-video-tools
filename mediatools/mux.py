@@ -32,7 +32,7 @@ import mediatools.utilities as util
 def main():
     util.init('video-mux')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-i','--inputfile', nargs='+', help='List of files to stack', required=True)
+    parser.add_argument('-i','--inputfile', nargs='+', help='List of files to mux', required=True)
     parser.add_argument('-o','--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
@@ -45,7 +45,8 @@ def main():
             break
     log.logger.info("Muxing audio files %s in video file %s", str(afiles), vfile)
     videofile = video.VideoFile(vfile)
-    videofile.add_audio_tracks(*afiles, out_file=kwargs.pop('outputfile'))
+    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.pop('outputfile'))
+    util.generated_file(output)
 
 
 if __name__ == "__main__":
