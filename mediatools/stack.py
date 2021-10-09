@@ -51,8 +51,7 @@ def main():
     files = kwargs['inputfile']
     if len(files) > 0:
         output = image.stack(*files, out_file=None, **kwargs)
-        log.logger.info("File %s generated", output)
-        print(f'Generated {output}')
+        util.generated_file(output)
     else:
         log.logger.error("No inputs files could be used for stacking, no stack image generated")
         sys.exit(1)
