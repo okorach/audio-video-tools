@@ -24,7 +24,7 @@
 # horizontally or vertically
 
 import sys
-from mediatools import log
+import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
 
@@ -35,33 +35,21 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 def main():
     files = []
     util.init('image-stack')
-    kwargs = {'direction': 'vertical', 'margin': 0, 'stretch': True, 'background_color': 'black'}
-    sys.argv.pop(0)
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == '-g':
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg in ('-d', '--direction'):
-            kwargs['direction'] = sys.argv.pop(0)
-        elif arg in ('-b', '--background_color'):
-            kwargs['background_color'] = sys.argv.pop(0)
-        elif arg in ('-m', '--margin'):
-            kwargs['margin'] = sys.argv.pop(0)
-        elif arg == '--stretch':
-            kwargs['stretch'] = True
-        elif arg in ('-h', '--help'):
-            print("Usage: {}".format(USAGE))
-            sys.exit(0)
-        else:
-            files.append(arg)
-
-    if len(files) > 0:
-        output = image.stack(*files, out_file=None, **kwargs)
-        log.logger.info("File %s generated", output)
-        print('Generated', output)
-    else:
-        log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to stack', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    parser.add_argument('-d', '--direction', required=False, choices=['vertical', 'horizontal'],
+        default='vertical', help='How to stack images')
+    parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
+        default='black', help='Background color of frame')
+    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of frame')
+    parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
+        default=False, help='Stretch images so that they have the same width or height')
+    kwargs = util.parse_media_args(parser)
+    files = kwargs['inputfile']
+    output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
+    util.generated_file(output)
     sys.exit(0)
 
 

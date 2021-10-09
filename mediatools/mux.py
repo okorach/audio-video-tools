@@ -22,7 +22,7 @@
 # This script multiplexes an extra audio track
 # in a video file with already one audio track
 
-import sys
+import argparse
 from mediatools import log
 import mediatools.file as fil
 import mediatools.videofile as video
@@ -31,21 +31,22 @@ import mediatools.utilities as util
 
 def main():
     util.init('video-mux')
-    sys.argv.pop(0)
-    afiles = []
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == '-g':
-            util.set_debug_level(sys.argv.pop(0))
-        elif fil.is_video_file(arg):
-            vfile = arg
-            log.logger.info("Video file %s will be muxed", arg)
-        elif fil.is_audio_file(arg):
-            log.logger.info("Audio file %s will be muxed", arg)
-            afiles.append(arg)
+    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to mux', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    kwargs = util.parse_media_args(parser)
 
+    afiles = kwargs.pop('inputfile')
+    for f in afiles.copy():
+        if fil.is_video_file(f):
+            vfile = f
+            afiles.remove(f)
+            break
+    log.logger.info("Muxing audio files %s in video file %s", str(afiles), vfile)
     videofile = video.VideoFile(vfile)
-    videofile.add_audio_tracks(*afiles)
+    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.get('outputfile', None))
+    util.generated_file(output)
 
 
 if __name__ == "__main__":

@@ -317,7 +317,7 @@ class VideoFile(media.MediaFile):
     def add_year(self, year):
         return self.add_metadata(year=year)
 
-    def add_audio_tracks(self, *audio_files):
+    def add_audio_tracks(self, *audio_files, out_file=None):
         inputs = '-i "{0}"'.format(self.filename)
         maps = '-map 0'
         i = 1
@@ -325,9 +325,9 @@ class VideoFile(media.MediaFile):
             inputs += ' -i "{0}"'.format(audio_file)
             maps += ' -map {0}'.format(i)
             i += 1
-        output_file = util.add_postfix(self.filename, "muxed")
-        util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{output_file}"', self.duration)
-        return output_file
+        out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix='muxed')
+        util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{out_file}"', self.duration)
+        return out_file
 
     def set_author(self, author):
         self.author = author
@@ -434,9 +434,6 @@ class VideoFile(media.MediaFile):
             if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
-            if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
-
         log.logger.debug('Input settings = %s', str(settings))
         return settings
 
@@ -463,11 +460,18 @@ class VideoFile(media.MediaFile):
         if kwargs.get(opt.Option.DEINTERLACE, False):
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
 
+        if kwargs.get(opt.Option.STOP, '') != '':
+            start = 0
+            if kwargs.get(opt.Option.START, '') != '':
+                start = util.to_seconds(kwargs[opt.Option.START])
+            stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
+
         if __must_encode_video__(**kwargs):
-            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+            if kwargs.get(opt.Option.START, '') != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
 
-            if opt.Option.STOP in kwargs and kwargs[opt.Option.STOP] != '':
+            if kwargs.get(opt.Option.STOP, '') != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
         log.logger.debug('Output settings = %s', str(settings))
@@ -778,18 +782,23 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
         for o in ('abitrate', 'vbitrate', 'fps', 'aspect', 'resolution', 'achannels', 'samplerate', 'width', 'height'):
             kwargs.pop(o, None)
 
+    file_object = VideoFile(filename)
     if start is None and stop is None:
         i = 1
         for r in timeranges.split(','):
             kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
             output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
-            output = VideoFile(filename).encode(target_file=output, **kwargs)
+            output = file_object.encode(target_file=output, **kwargs)
             util.generated_file(output)
             i += 1
         return output
     else:
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = file_object.duration
         output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
-        return VideoFile(filename).encode(target_file=output, start=start, stop=stop, **kwargs)
+        return file_object.encode(target_file=output, start=start, stop=stop, **kwargs)
 
 
 def use_hardware_accel(**kwargs):

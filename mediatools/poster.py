@@ -25,9 +25,7 @@
 # And with configurable margin padding
 # It requires availability of ffmpeg
 
-import sys
-import os
-from mediatools import log
+import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
 
@@ -37,30 +35,20 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 
 def main():
     file_list = []
-    dir_list = []
     util.init('image-poster')
-    sys.argv.pop(0)
-    kwargs = {'background_color': 'black', 'margin': 5}
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg in ('-b', "--background_color"):
-            kwargs['background_color'] = sys.argv.pop(0)
-        elif arg == "--layout":
-            kwargs['layout'] = sys.argv.pop(0)
-            kwargs['rows'], kwargs['columns'] = [int(x) for x in kwargs['layout'].split('x')]
-        elif arg in ('-m', "--margin"):
-            kwargs['margin'] = int(sys.argv.pop(0))
-        elif arg == "--stretch":
-            kwargs['stretch'] = True
-        elif os.path.isdir(arg):
-            dir_list.append(arg)
-        else:
-            log.logger.debug("Adding file %s to poster", arg)
-            file_list.append(arg)
+    parser = argparse.ArgumentParser(description='Creates a mosaic of images for posters')
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to posterize', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
+        default='black', help='Background color of frame')
+    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of margin')
+    parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
+        default=False, help='Stretch images so that they have the same width and height')
+    kwargs = util.parse_media_args(parser)
+    file_list = kwargs['inputfile']
 
-    posterfile = image.posterize(*file_list, out_file=None, **kwargs)
+    posterfile = image.posterize(*file_list, out_file=kwargs.get('outputfile', None), **kwargs)
     util.generated_file(posterfile)
 
 

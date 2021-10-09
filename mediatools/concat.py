@@ -22,23 +22,20 @@
 # This script concatenate 2 video files
 # They should have the same video and audio codecs and bitrates
 
-import sys
+import argparse
 import mediatools.utilities as util
 import mediatools.videofile as video
 
 
 def main():
     util.init('video-concat')
-    sys.argv.pop(0)
-    target_file = sys.argv.pop(0)
-    filelist = []
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        else:
-            filelist.append(arg)
-    video.concat(target_file, filelist)
+    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
+    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to concatenate', required=True)
+    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    kwargs = util.parse_media_args(parser)
+    output = video.concat(kwargs.get('outputfile', None), kwargs.pop('inputfile'))
+    util.generated_file(output)
 
 
 if __name__ == "__main__":
