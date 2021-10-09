@@ -9,6 +9,7 @@ on:
   #  - cron: '17 0 * * 4'
 jobs:
   run-windows-test:
+    runs-on: mcr.microsoft.com/windows
     steps:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
