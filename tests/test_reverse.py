@@ -45,6 +45,7 @@ def test_main_with_output():
         try:
             reverse.main()
             assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
+            assert video.VideoFile(TMP1).audio_codec is None
             os.remove(TMP1)
         except SystemExit as e:
             assert int(str(e)) == 0
