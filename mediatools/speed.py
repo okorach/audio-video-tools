@@ -26,6 +26,7 @@ This script slows down or accelerate a video
 import sys
 import re
 from mediatools import log
+import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
 
@@ -36,7 +37,8 @@ ALLOWED_SPEEDS = ("100%", "150%", "200%", "250%", "300%", "400%", "500%", "600%"
 def main():
     parser = util.get_common_args('video-speed', 'Video speed change')
     parser.add_argument('--speed', required=True, help='Speed in the form of 4x (accelerate), 0.1x (slow down)')
-    parser.add_argument('--keep_audio', dest='audio', action='store_true', help='Keep audio after speed change')
+    parser.add_argument('-k', '--keep_audio', required=False, dest=opt.Option.MUTE, action='store_false',
+        default=True, help='Keep audio track after speec hange')
     parser.set_defaults(audio=False)
     kwargs = util.parse_media_args(parser)
     speed = kwargs.pop('speed')
@@ -45,7 +47,8 @@ def main():
             speed, ', '.join(ALLOWED_SPEEDS))
         sys.exit(1)
 
-    output = video.speed(filename=kwargs.pop('inputfile'), target_speed=speed, output=kwargs.pop('outputfile', None), **kwargs)
+    output = video.speed(filename=kwargs.pop('inputfile'), target_speed=speed,
+        output=kwargs.pop('outputfile', None), **kwargs)
     util.generated_file(output)
 
 
