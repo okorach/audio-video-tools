@@ -22,56 +22,50 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import reverse
+from mediatools import speed
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = 'video-reverse'
+CMD = 'video-speed'
 VIDEO = 'it' + os.sep + 'video-720p.mp4'
 TMP1 = util.get_tmp_file() + '.mp4'
 
 
 def test_main():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO]):
-        try:
-            reverse.main()
-            assert True
-        except SystemExit as e:
-            assert int(str(e)) == 0
+    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '--speed', '2']):
+        speed.main()
+        assert True
 
 
 def test_main_with_output():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '-o', TMP1]):
-        try:
-            reverse.main()
-            assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
-            assert video.VideoFile(TMP1).audio_codec is None
-            os.remove(TMP1)
-        except SystemExit as e:
-            assert int(str(e)) == 0
-            assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
-            assert video.VideoFile(TMP1).audio_codec is None
-            os.remove(TMP1)
+    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '-o', TMP1, '--speed', '200%']):
+        speed.main()
+        assert abs(video.VideoFile(VIDEO).duration - 2 * video.VideoFile(TMP1).duration) < 0.06
+        assert video.VideoFile(TMP1).audio_codec is None
+        os.remove(TMP1)
+
+
+def test_slowmo():
+    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '-o', TMP1, '--speed', '50%']):
+        speed.main()
+        assert abs(video.VideoFile(VIDEO).duration - 0.5 * video.VideoFile(TMP1).duration) < 0.06
+        assert video.VideoFile(TMP1).audio_codec is None
+        os.remove(TMP1)
 
 
 def test_keep_audio():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '-o', TMP1, '-k']):
-        try:
-            reverse.main()
-            assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
-            assert video.VideoFile(TMP1).audio_codec == 'aac'
-            os.remove(TMP1)
-        except SystemExit as e:
-            assert int(str(e)) == 0
-            assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
-            assert video.VideoFile(TMP1).audio_codec == 'aac'
-            os.remove(TMP1)
+    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', VIDEO, '-o', TMP1, '-k', '--speed', '4']):
+        speed.main()
+        # TODO - Truncate audio when video is shorter, and adjust tests
+        assert abs(video.VideoFile(VIDEO).duration - 4 * video.VideoFile(TMP1).duration) < 0.06
+        assert video.VideoFile(TMP1).audio_codec == 'aac'
+        os.remove(TMP1)
 
 
 def test_main_help():
     with patch.object(sys, 'argv', [CMD, '-h']):
         try:
-            reverse.main()
+            speed.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
@@ -80,7 +74,7 @@ def test_main_help():
 def test_main_bad_option():
     with patch.object(sys, 'argv', [CMD, '-i', VIDEO, '--badoption', 'yes']):
         try:
-            reverse.main()
+            speed.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
@@ -89,7 +83,16 @@ def test_main_bad_option():
 def test_main_no_file():
     with patch.object(sys, 'argv', [CMD, '-o', TMP1]):
         try:
-            reverse.main()
+            speed.main()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
+
+
+def test_bad_speed():
+    with patch.object(sys, 'argv', [CMD, '-i', VIDEO, '--speed', '212%']):
+        try:
+            speed.main()
+            assert False
+        except SystemExit as e:
+            assert int(str(e)) == 1
