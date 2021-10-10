@@ -446,16 +446,12 @@ class VideoFile(media.MediaFile):
         log.logger.debug('Output options = %s', str(kwargs))
 
         settings.append(__get_vcodec__(**kwargs))
-        settings.append(__get_acodec__(**kwargs))
 
         if kwargs.get(opt.Option.RESOLUTION, None) is not None and not use_hardware_accel(**kwargs):
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
-
-        if kwargs.get(opt.Option.ABITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
 
         if kwargs.get(opt.Option.DEINTERLACE, False):
             settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
@@ -466,6 +462,14 @@ class VideoFile(media.MediaFile):
                 start = util.to_seconds(kwargs[opt.Option.START])
             stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
+
+        if kwargs.get(opt.Option.MUTE, False):
+            settings.append(f'-{opt.OptionFfmpeg.MUTE}')
+        else:
+            settings.append(__get_acodec__(**kwargs))
+            if kwargs.get(opt.Option.ABITRATE, None) is not None:
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
+
 
         if __must_encode_video__(**kwargs):
             if kwargs.get(opt.Option.START, '') != '':
