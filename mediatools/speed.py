@@ -30,8 +30,8 @@ import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-ALLOWED_SPEEDS = ("100%", "150%", "200%", "250%", "300%", "400%", "500%", "600%", "700%", "800%",
-            "1000%", "1500%", "2000%", "3000%", "4000%", "5000%", "6000%", "8000%", "10000%")
+ALLOWED_SPEEDS = ("10%", "12.5%", "25%", "50%", "100%", "150%", "200%", "250%", "300%", "400%", "500%",
+            "600%", "700%", "800%", "1000%", "1500%", "2000%", "3000%", "4000%", "5000%", "6000%", "8000%", "10000%")
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
     parser.set_defaults(audio=False)
     kwargs = util.parse_media_args(parser)
     speed = kwargs.pop('speed')
-    if re.match(r"%$", speed) and speed not in ALLOWED_SPEEDS:
+    if re.match(r".*%$", speed) and speed not in ALLOWED_SPEEDS:
         log.logger.critical("Speed value %s is not allowed, it must be less than 100%% or one of %s",
             speed, ', '.join(ALLOWED_SPEEDS))
         sys.exit(1)
