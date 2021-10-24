@@ -33,7 +33,7 @@ TMP_VID = util.get_tmp_file() + '.mp4'
 TMP_AUDIO = util.get_tmp_file() + '.mp3'
 
 def get_video():
-    return 'it/video-1920x1080.mp4'
+    return 'it' + os.sep + 'video-1920x1080.mp4'
 
 
 def test_encode_size():

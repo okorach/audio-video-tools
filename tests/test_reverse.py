@@ -27,7 +27,7 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 
 CMD = 'video-reverse'
-VIDEO = 'it' + os.sep + 'video-720p.mp4'
+VIDEO = 'it' + os.sep + 'video-360p-1.mp4'
 TMP1 = util.get_tmp_file() + '.mp4'
 
 
