@@ -293,7 +293,7 @@ def parse_media_args(parser, args=None):
         kwargs['hw_accel'] = False
     else:
         kwargs['hw_accel'] = use_hardware_accel(**kwargs)
-
+    kwargs = remove_nones(kwargs)
     log.logger.debug('KW=%s', str(kwargs))
     return kwargs
 
