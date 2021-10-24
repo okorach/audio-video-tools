@@ -19,9 +19,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
+import platform
+from unittest.mock import patch
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.options as opt
+
+CMD = 'test_utilities'
+VIDEO = 'it' + os.sep + 'video-720p.mp4'
+TMP1 = util.get_tmp_file() + '.mp4'
 
 def test_conf():
     assert util.get_conf_property('default.image.format') == 'jpg'
@@ -147,7 +154,6 @@ def test_ar():
     cmd = "-f mp4 -acodec aac -ac 2 -b:a 128k   -ar  44k -vcodec libx264 -an -b:v 3072k -r 25  -s 1280x720"
     assert util.get_ffmpeg_cmdline_param(cmd, opt.OptionFfmpeg.SAMPLERATE) == "44k"
 
-
 def test_eta():
     assert util.__compute_eta__("what the heck", 10) == ''
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  330kB"
@@ -160,3 +166,15 @@ def test_eta():
                                 " tim=00:00:10.000 bitrate=2261.3kbits/s speed=10x", 20) == ""
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
                                 " time=00:00:10.000 bitrate=2261.3kbits/s sped=10x", 20) == ""
+
+def test_hw_accel_1():
+    assert not util.use_hardware_accel('--hw_accel', 'auto', '--deinterlace')
+    assert not util.use_hardware_accel('--hw_accel', 'false')
+    assert util.use_hardware_accel('--hw_accel', 'on', '--deinterlace')
+
+def test_hw_accel_without_gpu():
+    auto_accel = util.use_hardware_accel('--hw_accel', 'auto')
+    if platform.system() != 'Windows':
+        assert auto_accel
+    else:
+        assert not auto_accel
