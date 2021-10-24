@@ -23,8 +23,6 @@
 
 from __future__ import print_function
 import re
-import os
-import subprocess
 from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.resolution as res
@@ -37,8 +35,6 @@ from mediatools import filters
 import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
-HW_ACCEL = None
-HW_ACCEL_PREFIX = "-hwaccel cuda -hwaccel_output_format cuda"
 
 class VideoFile(media.MediaFile):
     AV_PASSTHROUGH = '-{0} copy -{1} copy -map 0 '.format(opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.ACODEC)
@@ -419,7 +415,7 @@ class VideoFile(media.MediaFile):
             vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get(opt.Option.START, 0)), duration=0.5))
             vfilters.append(filters.fade_out(
                 start=util.to_seconds(kwargs.get(opt.Option.STOP, self.duration)) - 0.5, duration=0.5))
-        if use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
             vfilters.append(f'scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}')
         log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
@@ -428,8 +424,8 @@ class VideoFile(media.MediaFile):
         log.logger.debug('Input options = %s', str(kwargs))
         settings = []
         if __must_encode_video__(**kwargs):
-            if use_hardware_accel(**kwargs):
-                settings.append(HW_ACCEL_PREFIX)
+            if util.use_hardware_accel(**kwargs):
+                settings.append(util.HW_ACCEL_PREFIX)
         else:
             if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
@@ -447,7 +443,7 @@ class VideoFile(media.MediaFile):
 
         settings.append(__get_vcodec__(**kwargs))
 
-        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not use_hardware_accel(**kwargs):
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
@@ -470,7 +466,6 @@ class VideoFile(media.MediaFile):
             if kwargs.get(opt.Option.ABITRATE, None) is not None:
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
 
-
         if __must_encode_video__(**kwargs):
             if kwargs.get(opt.Option.START, '') != '':
                 settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
@@ -487,7 +482,7 @@ class VideoFile(media.MediaFile):
 def __get_vcodec__(**kwargs):
     if __must_encode_video__(**kwargs):
         vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('default.video.codec'))
-        if use_hardware_accel(**kwargs):
+        if util.use_hardware_accel(**kwargs):
             vcodec = opt.HW_ACCEL_CODECS[vcodec]
         else:
             vcodec = opt.CODECS[vcodec]
@@ -622,7 +617,7 @@ def add_video_args(parser):
     parser.add_argument('--' + opt.Option.VCODEC, required=False, help='Video codec (h264, h265, mpeg2, xvid...)')
     parser.add_argument('--' + opt.Option.ACODEC, required=False, help='Audio codec (mp3, aac, ac3...)')
 
-    parser.add_argument('--hw_accel', required=False, default=None, dest='hw_accel', action='store_true',
+    parser.add_argument('--hw_accel', required=False, choices=['auto', 'off', 'on'],
                         help='Use Nvidia HW acceleration')
 
     parser.add_argument('--' + opt.Option.VBITRATE, required=False, help='Video bitrate eg 1024k')
@@ -803,35 +798,3 @@ def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs)
             stop = file_object.duration
         output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
         return file_object.encode(target_file=output, start=start, stop=stop, **kwargs)
-
-
-def use_hardware_accel(**kwargs):
-    global HW_ACCEL
-    if 'hw_accel' in kwargs:
-        if kwargs['hw_accel']:
-            log.logger.info("Hardware acceleration explicitly forced on")
-            return True
-        elif not kwargs['hw_accel']:
-            log.logger.info("Hardware acceleration explicitly turned off")
-            return False
-    elif kwargs.get(opt.Option.DEINTERLACE, False):
-        # Deinterlacing is incompatible with HW accel
-        log.logger.info("Turning off hardware acceleration because of deinterlace")
-        HW_ACCEL = False
-    if HW_ACCEL is not None:
-        return HW_ACCEL
-
-    if HW_ACCEL is None:
-        log.logger.info("Checking if hardware acceleration can be used")
-        outputfile = util.get_tmp_file() + '.mp4'
-        inputfile = VideoFile(str(util.package_home() / 'video-720p.mp4'))
-        try:
-            log.logger.debug("Trying to encode 1 second of %s", inputfile)
-            util.run_ffmpeg(f'{HW_ACCEL_PREFIX} -i "{inputfile}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc "{outputfile}"',
-                inputfile.duration)
-            os.remove(outputfile)
-            HW_ACCEL = True
-        except subprocess.CalledProcessError:
-            HW_ACCEL = False
-        log.logger.info("Hardware acceleration = %s", str(HW_ACCEL))
-    return HW_ACCEL

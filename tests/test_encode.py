@@ -38,7 +38,7 @@ def get_video():
 
 def test_encode_size():
     vid_o = video.VideoFile(get_video())
-    video.HW_ACCEL = None
+    util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='1280x720', start=1, stop=2))
     assert vid2_o.resolution.width == 1280
     assert abs(vid2_o.duration - 1) < 0.1
@@ -46,7 +46,7 @@ def test_encode_size():
 
 def test_encode_bitrate():
     vid_o = video.VideoFile(get_video())
-    video.HW_ACCEL = None
+    util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vbitrate='1000k', abitrate='64k', start=1, stop=4))
     assert abs(vid2_o.video_bitrate - 1024 * 1024) < 200000
     assert abs(vid2_o.audio_bitrate - 64 * 1024) < 30000
@@ -54,26 +54,20 @@ def test_encode_bitrate():
 
 def test_encode_acodec():
     vid_o = video.VideoFile(get_video())
-    video.HW_ACCEL = None
+    util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', acodec='mp3', deinterlace=True, start=1, stop=2))
     assert vid2_o.audio_codec == 'mp3'
     os.remove(TMP_VID)
 
 def test_encode_vcodec():
     vid_o = video.VideoFile(get_video())
-    video.HW_ACCEL = None
+    util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution='640x360', vcodec='h265', deinterlace=True, start=1, stop=2))
     assert vid2_o.video_codec == 'hevc'
     os.remove(TMP_VID)
 
-def test_hw_accel():
-    video.HW_ACCEL = None
-    assert video.use_hardware_accel(hw_accel=True, deinterlace=True)
-    video.HW_ACCEL = None
-    assert not video.use_hardware_accel(hw_accel=False, deinterlace=True)
-
 def test_hw_accel_2():
-    video.HW_ACCEL = True
+    util.HW_ACCEL = True
     # HW accel expected to be available on Windows, not on Linux
     hw_accel_avail = (platform.system() == 'Windows')
     vid_o = video.VideoFile(get_video())
@@ -85,7 +79,7 @@ def test_hw_accel_2():
         assert not hw_accel_avail
 
 def test_main_file():
-    video.HW_ACCEL = False
+    util.HW_ACCEL = False
     file1 = 'it' + os.sep + 'video-720p.mp4'
     try:
         with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--resolution', '640x360']):
@@ -96,7 +90,7 @@ def test_main_file():
         assert False
 
 def test_main_file_audio():
-    video.HW_ACCEL = False
+    util.HW_ACCEL = False
     util.set_debug_level(4)
     file1 = 'it' + os.sep + 'song.mp3'
     with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO]):
@@ -108,7 +102,7 @@ def test_main_file_audio():
 
 
 def test_main_dir_timeranges_1():
-    video.HW_ACCEL = False
+    util.HW_ACCEL = False
     file1 = 'it' + os.sep + 'video-720p.mp4'
     try:
         with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--resolution', '640x360', '--timeranges', '00:02-00:04']):
@@ -119,7 +113,7 @@ def test_main_dir_timeranges_1():
         assert False
 
 def test_main_dir_timeranges_2():
-    video.HW_ACCEL = False
+    util.HW_ACCEL = False
     file1 = 'it' + os.sep + 'video-720p.mp4'
     output = f"{file1}.out.mp4"
     try:
