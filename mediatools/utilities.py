@@ -150,7 +150,7 @@ def run_os_cmd(cmd, total_time=None):
             line = pipe.stdout.readline().rstrip()
         outs, errs = pipe.communicate()
         log.logger.debug("Return code = %d", pipe.returncode)
-        if pipe.returncode in (0, 3221225477):     # TODO: Better than this ugly hack for ffmpeg
+        if pipe.returncode not in (0, 3221225477):     # TODO: Better than this ugly hack for ffmpeg
             last_error_line = line if last_error_line is None else last_error_line
             raise subprocess.CalledProcessError(cmd=cmd, output=last_error_line, returncode=pipe.returncode)
         log.logger.info("Successfully completed: %s", cmd)
