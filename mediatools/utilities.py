@@ -38,6 +38,8 @@ import mediatools.media_config as conf
 
 DEBUG_LEVEL = 0
 DRY_RUN = False
+HW_ACCEL = None
+HW_ACCEL_PREFIX = "-hwaccel cuda -hwaccel_output_format cuda"
 
 LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
@@ -280,6 +282,18 @@ def parse_media_args(parser, args=None):
     (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     if kwargs.get('timeranges', None) is not None:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
+    if kwargs.get('hw_accel', None) is None:
+        kwargs['hw_accel'] = conf.get_property('default.hw_accel')
+    if kwargs.get('hw_accel', None) is None:
+        kwargs['hw_accel'] = 'auto'
+
+    if kwargs.get('hw_accel', None) == 'on':
+        kwargs['hw_accel'] = True
+    elif kwargs.get('hw_accel', None) == 'off':
+        kwargs['hw_accel'] = False
+    else:
+        kwargs['hw_accel'] = use_hardware_accel(**kwargs)
+
     log.logger.debug('KW=%s', str(kwargs))
     return kwargs
 
@@ -468,3 +482,39 @@ def resolve_resolution(**kwargs):
     w = int(w) if w != '' else -1
     h = int(h) if h != '' else -1
     return (w, h)
+
+
+def use_hardware_accel(**kwargs):
+    global HW_ACCEL
+    my_hw_accel = kwargs.get('hw_accel', 'auto')
+    if my_hw_accel or my_hw_accel == 'on':
+        HW_ACCEL = True
+        log.logger.info("Hardware acceleration explicitly forced on")
+        return True
+    elif not my_hw_accel or my_hw_accel == 'off':
+        HW_ACCEL = False
+        log.logger.info("Hardware acceleration explicitly turned off")
+        return False
+
+    if kwargs.get(opt.Option.DEINTERLACE, False):
+        # Deinterlacing is incompatible with HW accel
+        log.logger.info("Turning off hardware acceleration because of deinterlace")
+        HW_ACCEL = False
+    if my_hw_accel != 'auto':
+        HW_ACCEL = False
+    if HW_ACCEL is not None:
+        return HW_ACCEL
+
+    # Auto mode, test execution with HW acceleration
+    log.logger.info("Checking if hardware acceleration can be used")
+    outputfile = get_tmp_file() + '.mp4'
+    inputfile = str(package_home() / 'video-720p.mp4')
+    try:
+        log.logger.debug("Trying to encode 1 second of %s", inputfile)
+        run_ffmpeg(f'{HW_ACCEL_PREFIX} -ss 0 -i "{inputfile}" -vf scale_cuda=640:-1 -c:a copy -c:v h264_nvenc -to 2 "{outputfile}"')
+        os.remove(outputfile)
+        HW_ACCEL = True
+    except subprocess.CalledProcessError:
+        HW_ACCEL = False
+    log.logger.info("Auto hardware acceleration = %s", str(HW_ACCEL))
+    return HW_ACCEL
