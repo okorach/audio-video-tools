@@ -21,7 +21,6 @@
 
 import os
 import platform
-from unittest.mock import patch
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.options as opt
@@ -170,19 +169,19 @@ def test_eta():
 def test_hw_accel_auto():
     util.set_debug_level(4)
     util.HW_ACCEL = None
-    assert not util.use_hardware_accel(**{'hw_accel': 'auto', 'deinterlace': True})
+    assert not util.use_hardware_accel(hw_accel='auto', deinterlace=True)
 
 def test_hw_accel_off():
     util.HW_ACCEL = None
-    assert not util.use_hardware_accel(**{'hw_accel': 'off'})
+    assert not util.use_hardware_accel(hw_accel='off')
 
 def test_hw_accel_on():
     util.HW_ACCEL = None
-    assert util.use_hardware_accel(**{'hw_accel': 'on', 'deinterlace': True})
+    assert util.use_hardware_accel(hw_accel='on', deinterlace=True)
 
 def test_hw_accel_without_gpu():
     util.HW_ACCEL = None
-    auto_accel = util.use_hardware_accel(**{'hw_accel': 'auto'})
+    auto_accel = util.use_hardware_accel(hw_accel='auto')
     if platform.system() == 'Windows':
         assert auto_accel
     else:
