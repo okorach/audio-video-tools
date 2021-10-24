@@ -167,14 +167,23 @@ def test_eta():
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB"
                                 " time=00:00:10.000 bitrate=2261.3kbits/s sped=10x", 20) == ""
 
-def test_hw_accel_1():
-    assert not util.use_hardware_accel('--hw_accel', 'auto', '--deinterlace')
-    assert not util.use_hardware_accel('--hw_accel', 'false')
-    assert util.use_hardware_accel('--hw_accel', 'on', '--deinterlace')
+def test_hw_accel_auto():
+    util.set_debug_level(4)
+    util.HW_ACCEL = None
+    assert not util.use_hardware_accel(**{'hw_accel': 'auto', 'deinterlace': True})
+
+def test_hw_accel_off():
+    util.HW_ACCEL = None
+    assert not util.use_hardware_accel(**{'hw_accel': 'off'})
+
+def test_hw_accel_on():
+    util.HW_ACCEL = None
+    assert util.use_hardware_accel(**{'hw_accel': 'on', 'deinterlace': True})
 
 def test_hw_accel_without_gpu():
-    auto_accel = util.use_hardware_accel('--hw_accel', 'auto')
-    if platform.system() != 'Windows':
+    util.HW_ACCEL = None
+    auto_accel = util.use_hardware_accel(**{'hw_accel': 'auto'})
+    if platform.system() == 'Windows':
         assert auto_accel
     else:
         assert not auto_accel
