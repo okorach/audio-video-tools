@@ -66,14 +66,8 @@ def test_encode_vcodec():
     assert vid2_o.video_codec == 'hevc'
     os.remove(TMP_VID)
 
-def test_hw_accel():
-    video.HW_ACCEL = None
-    assert video.use_hardware_accel(hw_accel=True, deinterlace=True)
-    video.HW_ACCEL = None
-    assert not video.use_hardware_accel(hw_accel=False, deinterlace=True)
-
 def test_hw_accel_2():
-    video.HW_ACCEL = True
+    util.HW_ACCEL = True
     # HW accel expected to be available on Windows, not on Linux
     hw_accel_avail = (platform.system() == 'Windows')
     vid_o = video.VideoFile(get_video())
