@@ -150,7 +150,7 @@ def run_os_cmd(cmd, total_time=None):
             line = pipe.stdout.readline().rstrip()
         outs, errs = pipe.communicate()
         log.logger.debug("Return code = %d", pipe.returncode)
-        if pipe.returncode != 0 and pipe.returncode != 3221225477:     # TODO: Better than this ugly hack for ffmpeg
+        if pipe.returncode in (0, 3221225477):     # TODO: Better than this ugly hack for ffmpeg
             last_error_line = line if last_error_line is None else last_error_line
             raise subprocess.CalledProcessError(cmd=cmd, output=last_error_line, returncode=pipe.returncode)
         log.logger.info("Successfully completed: %s", cmd)
@@ -488,11 +488,11 @@ def use_hardware_accel(**kwargs):
     global HW_ACCEL
     my_hw_accel = kwargs.get('hw_accel', 'auto')
     log.logger.debug("my hw accel = %s", str(my_hw_accel))
-    if (type(my_hw_accel) is bool and my_hw_accel) or my_hw_accel == 'on':
+    if (isinstance(my_hw_accel, bool) and my_hw_accel) or my_hw_accel == 'on':
         HW_ACCEL = True
         log.logger.info("Hardware acceleration explicitly forced on")
         return True
-    elif (type(my_hw_accel) is bool and not my_hw_accel) or my_hw_accel == 'off':
+    elif (isinstance(my_hw_accel, bool) and not my_hw_accel) or my_hw_accel == 'off':
         HW_ACCEL = False
         log.logger.info("Hardware acceleration explicitly turned off")
         return False
