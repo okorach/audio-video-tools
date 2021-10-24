@@ -585,27 +585,28 @@ def get_crop_filter_options(width, height, top, left):
 def concat(target_file, file_list, with_audio=True):
     '''Concatenates several video files - They must have same video+audio format and bitrate'''
     log.logger.info("%s = %s", target_file, ' + '.join(file_list))
-    cmd = ''
-    for file in file_list:
-        cmd += (' -i "%s" ' % file)
+
+    files_str = filters.inputs_str(file_list)
     count = 0
-    cmd += '-filter_complex "'
+    cmplx = ''
     for file in file_list:
-        cmd += "[{}:v]".format(count)
+        cmplx += f"[{count}:v]"
         if with_audio:
-            cmd += "[{}:a]".format(count)
+            cmplx += f"[{count}:a]"
         count += 1
 
     audio_patch = ''
     audio_patch2 = ''
+    mapping = '-map "[outv]"'
     if with_audio:
         audio_patch = 'a=1'
         audio_patch2 = '[outa]'
-    cmd += 'concat=n={}:v=1:{}[outv]{}" -map "[outv]"'.format(count, audio_patch, audio_patch2)
-    if with_audio:
-        cmd += ' -map "[outa]"'
+        mapping += f' -map "{audio_patch2}"'
+    cmplx += f'concat=n={count}:v=1:{audio_patch}[outv]{audio_patch2}'
 
-    cmd += f' "{target_file}"'
+    first = VideoFile(file_list[0])
+    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" -vcodec "libx264" -b:v "{str(first.video_bitrate)}" "{target_file}"'
+    # cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -o "{target_file}"'
     util.run_ffmpeg(cmd.strip())
     return target_file
 
