@@ -35,7 +35,7 @@ TMP3 = util.get_tmp_file() + '.mp4'
 
 
 def test_main_with_output():
-    video.HW_ACCEL = False
+    util.HW_ACCEL = False
     v1 = video.VideoFile(VIDEO1).encode(profile='360p', target_file=TMP1)
     v2 = video.VideoFile(VIDEO2).encode(profile='360p', target_file=TMP2)
     with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', v1, v2, '-o', TMP3]):
