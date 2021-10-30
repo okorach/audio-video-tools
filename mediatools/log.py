@@ -21,21 +21,12 @@
 
 import logging
 
-logger = logging.getLogger('mediatools')
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh = logging.FileHandler('mediatools.log')
-# fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-logger.addHandler(fh)
-logger.addHandler(ch)
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-
+logger = None
 
 def set_logger(name):
     global logger
     logger = logging.getLogger(name)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     new_fh = logging.FileHandler(name + '.log')
     new_ch = logging.StreamHandler()
     logger.addHandler(new_fh)
