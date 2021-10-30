@@ -46,7 +46,7 @@ def main():
             afiles.remove(f)
             break
     if vfile is None:
-        util.logger.erro("One video file should be listed to mux, aborting...")
+        log.logger.error("One video file should be listed to mux, aborting...")
         sys.exit(2)
     log.logger.info("Muxing audio files %s in video file %s", str(afiles), vfile)
     videofile = video.VideoFile(vfile)
