@@ -27,8 +27,8 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 
 CMD = 'video-concat'
-VIDEO1 = 'it' + os.sep + 'video-720p.mp4'
-VIDEO2 = 'it' + os.sep + 'video-1920x1080.mp4'
+VIDEO1 = 'it' + os.sep + 'video-360p-1.mp4'
+VIDEO2 = 'it' + os.sep + 'video-360p-2.mp4'
 TMP1 = util.get_tmp_file() + '.mp4'
 TMP2 = util.get_tmp_file() + '.mp4'
 TMP3 = util.get_tmp_file() + '.mp4'
@@ -36,16 +36,14 @@ TMP3 = util.get_tmp_file() + '.mp4'
 
 def test_main_with_output():
     util.HW_ACCEL = False
-    v1 = video.VideoFile(VIDEO1).encode(profile='360p', target_file=TMP1)
-    v2 = video.VideoFile(VIDEO2).encode(profile='360p', target_file=TMP2)
-    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', v1, v2, '-o', TMP3]):
+    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '-o', TMP3]):
         try:
             concat.main()
-            assert abs(video.VideoFile(v1).duration + video.VideoFile(v2).duration -
+            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -
                        video.VideoFile(TMP3).duration) < 0.06
         except SystemExit as e:
             assert int(str(e)) == 0
-            assert abs(video.VideoFile(v1).duration + video.VideoFile(v2).duration -
+            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -
                        video.VideoFile(TMP3).duration) < 0.06
 
 
