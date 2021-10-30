@@ -50,7 +50,7 @@ config_props.pop()
 config_props.pop()
 config_props.append("media-tools.properties")
 DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
-log.logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
+# log.logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE = ''
 PROPERTIES_VALUES = {}
