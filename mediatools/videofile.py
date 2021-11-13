@@ -605,7 +605,7 @@ def concat(target_file, file_list, with_audio=True):
     cmplx += f'concat=n={count}:v=1:{audio_patch}[outv]{audio_patch2}'
 
     first = VideoFile(file_list[0])
-    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" -vcodec "libx264" -b:v "{str(first.video_bitrate)}" "{target_file}"'
+    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
     # cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -o "{target_file}"'
     util.run_ffmpeg(cmd.strip())
     return target_file
