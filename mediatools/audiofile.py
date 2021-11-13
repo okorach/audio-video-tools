@@ -177,12 +177,12 @@ class AudioFile(media.MediaFile):
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        input_settings = self._get_input_settings(**kwargs)
-        prefilter_settings = self._get_prefilter_settings(**kwargs)
-        audio_filters = self._get_audio_filters(**kwargs)
+        input_settings = media.get_input_settings(**kwargs)
+        prefilter_settings = media.get_prefilter_settings(**kwargs)
+        audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
         log.logger.debug("Profile settings = %s", str(raw_settings))
-        output_settings = self._get_output_settings(**kwargs)
+        output_settings = media.get_output_settings(**kwargs)
 
         raw_params = ''
         for k, v in raw_settings.items():

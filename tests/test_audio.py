@@ -1,4 +1,3 @@
-
 #!python3
 #
 # media-tools
@@ -23,7 +22,7 @@
 import os
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.mediafile as media
+import mediatools.avfile as av
 import mediatools.audiofile as audio
 
 AUDIO_FILE = "it/seal.mp3"
@@ -72,17 +71,17 @@ def test_type():
 
 def test_cut():
     start, stop = 12, 19
-    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
+    v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
     assert abs(stop - start - v.duration) <= 0.06
     os.remove(v.filename)
 
 def test_cut2():
     dur = 10
-    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, stop=dur))
+    v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, stop=dur))
     assert abs(dur - v.duration) <= 0.06
     os.remove(v.filename)
 
 def test_cut3():
-    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
+    v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
     assert abs(10 - v.duration) <= 0.06
     os.remove(v.filename)

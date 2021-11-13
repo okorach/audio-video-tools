@@ -23,7 +23,7 @@ import os
 import shutil
 import mediatools.utilities as util
 import mediatools.exceptions as ex
-import mediatools.mediafile as media
+import mediatools.avfile as av
 import mediatools.videofile as video
 
 FILE = 'it' + os.sep + 'video-720p.mp4'
@@ -108,18 +108,18 @@ def test_reverse():
 
 def test_cut():
     start, stop = 0.5, 1.5
-    v = video.VideoFile(media.cut(FILE, output=TMP1, start=start, stop=stop))
+    v = video.VideoFile(av.cut(FILE, output=TMP1, start=start, stop=stop))
     assert abs(stop - start - v.duration) <= 0.06
     os.remove(v.filename)
 
 def test_cut2():
     dur = 1.5
-    v = video.VideoFile(media.cut(FILE, output=TMP1, stop=dur))
+    v = video.VideoFile(av.cut(FILE, output=TMP1, stop=dur))
     assert abs(dur - v.duration) <= 0.06
     os.remove(v.filename)
 
 def test_cut3():
-    v = video.VideoFile(media.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
+    v = video.VideoFile(av.cut(FILE, output=TMP1, timeranges='00:00-00:02'))
     assert abs(2 - v.duration) <= 0.06
     os.remove(v.filename)
 

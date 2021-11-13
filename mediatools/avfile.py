@@ -23,11 +23,9 @@ import mediatools.file as fil
 import mediatools.audiofile as audio
 import mediatools.videofile as video
 
-def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
-    t = fil.get_type(file)
-    if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
-        raise ex.FileTypeError(file, 'video or audio')
-    if t == fil.FileType.VIDEO_FILE and 'vcodec' not in kwargs:
+
+def __patch_args(file_type, **kwargs):
+    if file_type == fil.FileType.VIDEO_FILE and 'vcodec' not in kwargs:
         kwargs['vcodec'] = 'copy'
         kwargs['hw_accel'] = False
     if 'acodec' not in kwargs:
@@ -36,6 +34,13 @@ def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
     if kwargs['acodec'] == 'copy' or kwargs.get('vcodec', None) == 'copy':
         for o in ('abitrate', 'vbitrate', 'fps', 'aspect', 'resolution', 'achannels', 'samplerate', 'width', 'height'):
             kwargs.pop(o, None)
+    return kwargs
+
+def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
+    t = fil.get_type(file)
+    if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
+        raise ex.FileTypeError(file, 'video or audio')
+    kwargs = __patch_args(t, kwargs)
     if t == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
     elif t == fil.FileType.VIDEO_FILE:
