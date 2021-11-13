@@ -24,7 +24,6 @@ import sys
 from unittest.mock import patch
 from mediatools import cut
 import mediatools.utilities as util
-import mediatools.mediafile as media
 import mediatools.videofile as video
 import mediatools.audiofile as audio
 
