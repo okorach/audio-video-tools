@@ -20,25 +20,22 @@
 #
 
 '''
-This script cuts a video
-It will be improved soon
+This script cuts a video or audio file
 '''
 
 import sys
 from mediatools import log
 import mediatools.utilities as util
-import mediatools.exceptions as ex
-import mediatools.file as fil
 import mediatools.videofile as video
-import mediatools.audiofile as audio
+import mediatools.avfile as av
 
 
 MISSING_PARAM = '''--start and --stop or --timeranges options is mandatory,
-type video-cut -h for more details'''
+type media-cut -h for more details'''
 
 
 def main():
-    parser = util.get_common_args('video-cut', 'Cuts a time window of the input video file')
+    parser = util.get_common_args('media-cut', 'Cuts a time window of the input video file')
     parser = video.add_video_args(parser)
     parser.add_argument('--start', required=False, help='Cut start timestamp')
     parser.add_argument('--stop', required=False, help='Cut stop timestamp')
@@ -48,15 +45,7 @@ def main():
         if ranges is None:
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
-
-    file = kwargs.pop('inputfile')
-    if fil.is_audio_file(file):
-        outputfile = audio.cut(file, **kwargs)
-    elif fil.is_video_file(file):
-        outputfile = video.cut(file, **kwargs)
-    else:
-        raise ex.FileTypeError(file, 'video or audio')
-    util.generated_file(outputfile)
+    av.cut(kwargs.pop('inputfile'), **kwargs)
 
 
 if __name__ == "__main__":
