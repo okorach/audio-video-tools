@@ -167,6 +167,117 @@ class MediaFile(fil.File):
                 left = (iw - width) // 2
         return (top, left, pos)
 
+    def _get_audio_filters(self, **kwargs):
+        log.logger.debug('Afilters options = %s', str(kwargs))
+        afilters = filters.Simple(filters.AUDIO_TYPE)
+        if kwargs.get('volume', None) is not None:
+            vol = util.percent_or_absolute(kwargs['volume'])
+            afilters.append(filters.volume(vol))
+        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
+            afilters.append(filters.areverse())
+        log.logger.debug('afilters = %s', str(afilters))
+        return afilters
+
+    def _get_input_settings(self, **kwargs):
+        log.logger.debug('Input options = %s', str(kwargs))
+        settings = []
+        if _must_encode_video(**kwargs):
+            if util.use_hardware_accel(**kwargs):
+                settings.append(util.HW_ACCEL_PREFIX)
+        else:
+            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+
+        log.logger.debug('Input settings = %s', str(settings))
+        return settings
+
+    def _get_prefilter_settings(self, **kwargs):
+        settings = []
+        return settings
+
+    def _get_output_settings(self, **kwargs):
+        settings = []
+        log.logger.debug('Output options = %s', str(kwargs))
+
+        settings.append(_get_vcodec(**kwargs))
+
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
+
+        if kwargs.get(opt.Option.VBITRATE, None) is not None:
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
+
+        if kwargs.get(opt.Option.DEINTERLACE, False):
+            settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
+
+        if kwargs.get(opt.Option.STOP, '') != '':
+            start = 0
+            if kwargs.get(opt.Option.START, '') != '':
+                start = util.to_seconds(kwargs[opt.Option.START])
+            stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
+
+        if kwargs.get(opt.Option.MUTE, False):
+            settings.append(f'-{opt.OptionFfmpeg.MUTE}')
+        else:
+            settings.append(_get_acodec(**kwargs))
+            if kwargs.get(opt.Option.ABITRATE, None) is not None:
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
+
+        if _must_encode_video(**kwargs):
+            if kwargs.get(opt.Option.START, '') != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+
+            if kwargs.get(opt.Option.STOP, '') != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
+
+        log.logger.debug('Output settings = %s', str(settings))
+        return settings
+
+# ---------------- Class methods ---------------------------------
+
+
+def _must_encode_video(**kwargs):
+    for k in kwargs:
+        if k in (opt.Option.RESOLUTION, 'speed', opt.Option.VBITRATE, 'width', 'height', 'aspect', 'reverse', 'deshake'):
+            return True
+        if k == opt.Option.VCODEC and kwargs[k] != 'copy':
+            return True
+    return False
+
+def _get_vcodec(**kwargs):
+    if _must_encode_video(**kwargs):
+        vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('default.video.codec'))
+        if util.use_hardware_accel(**kwargs):
+            vcodec = opt.HW_ACCEL_CODECS[vcodec]
+        else:
+            vcodec = opt.CODECS[vcodec]
+    else:
+        vcodec = 'copy'
+    if vcodec is None:
+        return ''
+    else:
+        return opt.OPT_FMT.format(opt.OptionFfmpeg.VCODEC, vcodec)
+
+def _get_acodec(**kwargs):
+    acodec = None
+    audio_encode = _must_encode_audio(**kwargs)
+    if not audio_encode:
+        acodec = 'copy'
+    else:
+        acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('default.audio.codec'))
+    if acodec is None:
+        return ''
+    else:
+        return '-acodec {}'.format(acodec)
+
+def _must_encode_audio(**kwargs):
+    for k in kwargs:
+        if k in (opt.Option.ACODEC, opt.Option.ABITRATE, 'volume'):
+            return True
+        if k == opt.Option.ACODEC and kwargs[k] != 'copy':
+            return True
+    return False
 
 def build_target_file(source_file, profile):
     extension = util.get_profile_extension(profile)

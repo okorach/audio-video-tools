@@ -347,13 +347,13 @@ class VideoFile(media.MediaFile):
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        input_settings = self.__get_input_settings__(**kwargs)
-        prefilter_settings = self.__get_prefilter_settings__(**kwargs)
+        input_settings = self._get_input_settings(**kwargs)
+        prefilter_settings = self._get_prefilter_settings(**kwargs)
         video_filters = self.__get_video_filters__(**kwargs)
-        audio_filters = self.__get_audio_filters__(**kwargs)
+        audio_filters = self._get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
         log.logger.debug("Profile settings = %s", str(raw_settings))
-        output_settings = self.__get_output_settings__(**kwargs)
+        output_settings = self._get_output_settings(**kwargs)
 
         # Hack for channels selection
         # mapping = __get_audio_channel_mapping__(**kwargs)
@@ -387,17 +387,6 @@ class VideoFile(media.MediaFile):
                 n += 1
         return n
 
-    def __get_audio_filters__(self, **kwargs):
-        log.logger.debug('Afilters options = %s', str(kwargs))
-        afilters = filters.Simple(filters.AUDIO_TYPE)
-        if kwargs.get('volume', None) is not None:
-            vol = util.percent_or_absolute(kwargs['volume'])
-            afilters.append(filters.volume(vol))
-        if kwargs.get('audio_reverse', False) or kwargs.get('areverse', False):
-            afilters.append(filters.areverse())
-        log.logger.debug('afilters = %s', str(afilters))
-        return afilters
-
     def __get_video_filters__(self, **kwargs):
         log.logger.debug('Vfilters options = %s', str(kwargs))
         vfilters = filters.Simple(filters.VIDEO_TYPE)
@@ -419,110 +408,6 @@ class VideoFile(media.MediaFile):
             vfilters.append(f'scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}')
         log.logger.debug('vfilters = %s', str(vfilters))
         return vfilters
-
-    def __get_input_settings__(self, **kwargs):
-        log.logger.debug('Input options = %s', str(kwargs))
-        settings = []
-        if __must_encode_video__(**kwargs):
-            if util.use_hardware_accel(**kwargs):
-                settings.append(util.HW_ACCEL_PREFIX)
-        else:
-            if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-        log.logger.debug('Input settings = %s', str(settings))
-        return settings
-
-    def __get_prefilter_settings__(self, **kwargs):
-        settings = []
-        return settings
-
-    def __get_output_settings__(self, **kwargs):
-        settings = []
-        log.logger.debug('Output options = %s', str(kwargs))
-
-        settings.append(__get_vcodec__(**kwargs))
-
-        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
-
-        if kwargs.get(opt.Option.VBITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
-
-        if kwargs.get(opt.Option.DEINTERLACE, False):
-            settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
-
-        if kwargs.get(opt.Option.STOP, '') != '':
-            start = 0
-            if kwargs.get(opt.Option.START, '') != '':
-                start = util.to_seconds(kwargs[opt.Option.START])
-            stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
-
-        if kwargs.get(opt.Option.MUTE, False):
-            settings.append(f'-{opt.OptionFfmpeg.MUTE}')
-        else:
-            settings.append(__get_acodec__(**kwargs))
-            if kwargs.get(opt.Option.ABITRATE, None) is not None:
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
-
-        if __must_encode_video__(**kwargs):
-            if kwargs.get(opt.Option.START, '') != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-            if kwargs.get(opt.Option.STOP, '') != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
-
-        log.logger.debug('Output settings = %s', str(settings))
-        return settings
-
-# ---------------- Class methods ---------------------------------
-
-
-def __get_vcodec__(**kwargs):
-    if __must_encode_video__(**kwargs):
-        vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property('default.video.codec'))
-        if util.use_hardware_accel(**kwargs):
-            vcodec = opt.HW_ACCEL_CODECS[vcodec]
-        else:
-            vcodec = opt.CODECS[vcodec]
-    else:
-        vcodec = 'copy'
-    if vcodec is None:
-        return ''
-    else:
-        return opt.OPT_FMT.format(opt.OptionFfmpeg.VCODEC, vcodec)
-
-
-def __get_acodec__(**kwargs):
-    acodec = None
-    audio_encode = __must_encode_audio__(**kwargs)
-    if not audio_encode:
-        acodec = 'copy'
-    else:
-        acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('default.audio.codec'))
-    if acodec is None:
-        return ''
-    else:
-        return '-acodec {}'.format(acodec)
-
-
-def __must_encode_video__(**kwargs):
-    for k in kwargs:
-        if k in (opt.Option.RESOLUTION, 'speed', opt.Option.VBITRATE, 'width', 'height', 'aspect', 'reverse', 'deshake'):
-            return True
-        if k == opt.Option.VCODEC and kwargs[k] != 'copy':
-            return True
-    return False
-
-
-def __must_encode_audio__(**kwargs):
-    for k in kwargs:
-        if k in (opt.Option.ACODEC, opt.Option.ABITRATE, 'volume'):
-            return True
-        if k == opt.Option.ACODEC and kwargs[k] != 'copy':
-            return True
-    return False
 
 
 def get_size_option(cmdline):
