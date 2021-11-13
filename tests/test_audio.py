@@ -20,14 +20,17 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import mediatools.exceptions as ex
+import mediatools.utilities as util
+import mediatools.mediafile as media
 import mediatools.audiofile as audio
 
 AUDIO_FILE = "it/seal.mp3"
 H1 = "Seal-Crazy-Seal-1991-03-357.093878-mp3"
 AUDIO_FILE_2 = "it/ub40.mp3"
 H2 = "UB40-I got you babe-The best of UB40-1987-14-190.119184-mp3"
-
+TMP = util.get_tmp_file() + '.mp3'
 
 def test_hash():
     f = audio.AudioFile(AUDIO_FILE)
@@ -65,3 +68,21 @@ def test_type():
         assert False
     except ex.FileTypeError:
         assert True
+
+
+def test_cut():
+    start, stop = 12, 19
+    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
+    assert abs(stop - start - v.duration) <= 0.06
+    os.remove(v.filename)
+
+def test_cut2():
+    dur = 10
+    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, stop=dur))
+    assert abs(dur - v.duration) <= 0.06
+    os.remove(v.filename)
+
+def test_cut3():
+    v = audio.AudioFile(media.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
+    assert abs(10 - v.duration) <= 0.06
+    os.remove(v.filename)
