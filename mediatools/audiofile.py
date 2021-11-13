@@ -117,7 +117,9 @@ class AudioFile(media.MediaFile):
             return
         self.title = tags.get('title', None)
         self.artist = tags.get('artist', None)
-        self.year = int(tags.get('date', None))
+        self.year = tags.get('date', None)
+        if self.year is not None:
+            self.year = int(self.year.split('-')[0])
         self.track = tags.get('track', None)
         self.album = tags.get('album', None)
         self.genre = tags.get('genre', None)
@@ -165,27 +167,33 @@ class AudioFile(media.MediaFile):
         all_props.update(self.get_audio_properties())
         return all_props
 
-    def encode(self, target_file, profile, **kwargs):
+    def encode(self, target_file=None, profile=None, **kwargs):
         '''Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-
+        kwargs = util.get_all_options(**kwargs)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
-        media_opts = self.get_properties()
-        log.logger.debug("Input file settings = %s", str(media_opts))
-        media_opts.update(util.get_ffmpeg_cmdline_params(util.get_conf_property(profile + '.cmdline')))
-        media_opts.update({opt.Option.FORMAT: util.get_conf_property(profile + '.format')})
-        log.logger.debug("After profile settings(%s) = %s", profile, str(media_opts))
-        media_opts.update(kwargs)
-        log.logger.debug("After cmd line settings(%s) = %s", str(kwargs), str(media_opts))
+        input_settings = media.get_input_settings(**kwargs)
+        prefilter_settings = media.get_prefilter_settings(**kwargs)
+        audio_filters = media.get_audio_filters(**kwargs)
+        raw_settings = util.get_profile_params(profile)
+        log.logger.debug("Profile settings = %s", str(raw_settings))
+        output_settings = media.get_output_settings(**kwargs)
 
-        ffopts = opt.media2ffmpeg(media_opts)
-        log.logger.debug("FFOPTS = %s", str(ffopts))
-        util.run_ffmpeg('-i "%s" %s "%s"' % (self.filename, util.dict2str(ffopts), target_file), self.duration)
+        raw_params = ''
+        for k, v in raw_settings.items():
+            if v is None:
+                raw_params += ' ' + str(k)
+            else:
+                raw_params += ' ' + str(k) + ' ' + str(v)
+        log.logger.info("Encoding mp3 %s", target_file)
+        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {raw_params} {" ".join(prefilter_settings)}'
+        cmd += f' {str(audio_filters)} {" ".join(output_settings)} "{target_file}"'
+        util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 

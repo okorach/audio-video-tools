@@ -35,7 +35,7 @@ Available tools:
 - video-concat
 - media-crop
 - media-volume
-- video-cut
+- media-cut
 - video-stabilize
 - audio-album-art
 - image-to-video

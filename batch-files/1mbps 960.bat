@@ -17,8 +17,10 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p mp3_128k --abitrate 128k
+   video-encode -i "%%~F" -p 2mbps --width 960 --vbitrate 1000k -o "%%~F.1mbps.960x.mp4"
 )
 
+:: "E:\Tools\ffmpeg\bin\ffmpeg.exe" -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -vf scale_cuda=1280:720 -c:a copy -c:v h264_nvenc -b:v 5M output.mp4

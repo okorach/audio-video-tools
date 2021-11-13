@@ -17,8 +17,9 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p mp3_128k --abitrate 128k
+    video-encode -i "%%~F" -p 2mbps --width 720 --vcodec h265 --vbitrate 700k -o "%%~F.series.mp4"
 )
-
+pause

@@ -19,4 +19,4 @@
 ::
 
 audio-album-art %*
-pause
+

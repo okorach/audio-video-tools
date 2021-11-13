@@ -102,13 +102,14 @@ def __compute_eta__(line, total_time):
         return ''
     # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
     #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+) bitrate=.* speed=\s*([\d\.]+)x", line)
+    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x", line)
     if not m:
+        log.logger.debug("%s does not match %s", line, r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x")
         return ''
     speed = float(m.group(2))
     if speed == 0:
         return " ETA=Undefined"
-    return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / speed)
+    return " ETA=" + to_hms_str(max(0, (total_time - to_seconds(m.group(1))) / speed))
 
 
 def __get_log_level_from_ffmpeg_log__(line):
