@@ -26,8 +26,12 @@ It will be improved soon
 
 import sys
 from mediatools import log
-import mediatools.videofile as video
 import mediatools.utilities as util
+import mediatools.exceptions as ex
+import mediatools.file as fil
+import mediatools.videofile as video
+import mediatools.audiofile as audio
+
 
 MISSING_PARAM = '''--start and --stop or --timeranges options is mandatory,
 type video-cut -h for more details'''
@@ -45,7 +49,13 @@ def main():
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
 
-    outputfile = video.cut(kwargs.pop('inputfile'), **kwargs)
+    file = kwargs.pop('inputfile')
+    if fil.is_audio_file(file):
+        outputfile = audio.cut(file, **kwargs)
+    elif fil.is_video_file(file):
+        outputfile = video.cut(file, **kwargs)
+    else:
+        raise ex.FileTypeError(file, 'video or audio')
     util.generated_file(outputfile)
 
 
