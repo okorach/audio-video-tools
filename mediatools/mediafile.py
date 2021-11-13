@@ -242,10 +242,10 @@ def get_output_settings(**kwargs):
 
 
 def _must_encode_video(**kwargs):
-    for k in kwargs:
+    for k, v in kwargs.items():
         if k in (opt.Option.RESOLUTION, 'speed', opt.Option.VBITRATE, 'width', 'height', 'aspect', 'reverse', 'deshake'):
             return True
-        if k == opt.Option.VCODEC and kwargs[k] != 'copy':
+        if k == opt.Option.VCODEC and v != 'copy':
             return True
     return False
 
@@ -276,10 +276,10 @@ def _get_acodec(**kwargs):
         return f'-acodec {acodec}'
 
 def _must_encode_audio(**kwargs):
-    for k in kwargs:
+    for k, v in kwargs.items():
         if k in (opt.Option.ACODEC, opt.Option.ABITRATE, 'volume'):
             return True
-        if k == opt.Option.ACODEC and kwargs[k] != 'copy':
+        if k == opt.Option.ACODEC and v != 'copy':
             return True
     return False
 
