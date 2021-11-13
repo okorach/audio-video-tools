@@ -605,7 +605,8 @@ def concat(target_file, file_list, with_audio=True):
     cmplx += f'concat=n={count}:v=1:{audio_patch}[outv]{audio_patch2}'
 
     first = VideoFile(file_list[0])
-    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
+    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" '
+    cmd += f' -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
     # cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -o "{target_file}"'
     util.run_ffmpeg(cmd.strip())
     return target_file
@@ -768,34 +769,3 @@ def reverse(filename, output=None, **kwargs):
 def deshake(filename, output=None, **kwargs):
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix='deshake')
     return VideoFile(filename).encode(target_file=output, **kwargs)
-
-
-def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs):
-    ''' Args: start and/or stop or timeranges '''
-    if 'vcodec' not in kwargs:
-        kwargs['vcodec'] = 'copy'
-        kwargs['hw_accel'] = False
-    if 'acodec' not in kwargs:
-        kwargs['acodec'] = 'copy'
-        kwargs['hw_accel'] = False
-    if kwargs['acodec'] == 'copy' or kwargs['vcodec'] == 'copy':
-        for o in ('abitrate', 'vbitrate', 'fps', 'aspect', 'resolution', 'achannels', 'samplerate', 'width', 'height'):
-            kwargs.pop(o, None)
-
-    file_object = VideoFile(filename)
-    if start is None and stop is None:
-        i = 1
-        for r in timeranges.split(','):
-            kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
-            output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
-            output = file_object.encode(target_file=output, **kwargs)
-            util.generated_file(output)
-            i += 1
-        return output
-    else:
-        if start is None:
-            start = 0
-        if stop is None:
-            stop = file_object.duration
-        output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
-        return file_object.encode(target_file=output, start=start, stop=stop, **kwargs)

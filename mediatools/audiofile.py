@@ -167,7 +167,7 @@ class AudioFile(media.MediaFile):
         all_props.update(self.get_audio_properties())
         return all_props
 
-    def encode(self, target_file, profile, **kwargs):
+    def encode(self, target_file=None, profile=None, **kwargs):
         '''Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
@@ -246,30 +246,3 @@ def get_hash_list(filelist, algo='audio'):
         if (i % 100) == 0:
             log.logger.info("%d audio hashes computed", i)
     return hashes
-
-def cut(filename, output=None, start=None, stop=None, timeranges=None, **kwargs):
-    ''' Args: start and/or stop or timeranges '''
-    if 'acodec' not in kwargs:
-        kwargs['acodec'] = 'copy'
-        kwargs['hw_accel'] = False
-    if kwargs['acodec'] == 'copy':
-        for o in ('abitrate', 'achannels', 'samplerate'):
-            kwargs.pop(o, None)
-
-    file_object = AudioFile(filename)
-    if start is None and stop is None:
-        i = 1
-        for r in timeranges.split(','):
-            kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
-            output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut{}'.format(i))
-            output = file_object.encode(target_file=output, **kwargs)
-            util.generated_file(output)
-            i += 1
-        return output
-    else:
-        if start is None:
-            start = 0
-        if stop is None:
-            stop = file_object.duration
-        output = util.automatic_output_file_name(outfile=output, infile=filename, postfix='cut')
-        return file_object.encode(target_file=output, start=start, stop=stop, **kwargs)
