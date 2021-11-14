@@ -27,8 +27,8 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 
 CMD = 'video-concat'
-VIDEO1 = 'it' + os.sep + 'video-360p-1.mp4'
-VIDEO2 = 'it' + os.sep + 'video-360p-2.mp4'
+VIDEO1 = 'it' + os.sep + 'video-720p.mp4'
+VIDEO2 = 'it' + os.sep + 'video-720p.mp4'
 TMP1 = util.get_tmp_file() + '.mp4'
 TMP2 = util.get_tmp_file() + '.mp4'
 TMP3 = util.get_tmp_file() + '.mp4'
@@ -36,7 +36,7 @@ TMP3 = util.get_tmp_file() + '.mp4'
 
 def test_main_with_output():
     util.HW_ACCEL = False
-    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '-o', TMP3]):
+    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '--vcodec', 'h264', '-o', TMP3]):
         try:
             concat.main()
             assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -
