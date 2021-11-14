@@ -132,7 +132,7 @@ def test_ffmpeg_cmd_line_3():
 def test_cmd_line_params():
     cmd = " -thebest olivier -b:a   128k  -deinterlace   -an -acodec aac "
     d = util.get_cmdline_params(cmd)
-    assert d == {'thebest': 'olivier', 'b:a': '128k', 'acodec': 'aac', 'deinterlace': None, 'an': None}
+    assert d == {'thebest': 'olivier', 'b:a': '128k', 'acodec': 'aac', 'deinterlace': True, 'an': True}
 
 def test_to_hms_str():
     assert util.to_hms_str(152.2) == "00:02:32.200"
