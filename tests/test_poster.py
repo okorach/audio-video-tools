@@ -83,19 +83,18 @@ def test_main_other_options():
 
 
 def test_main_with_output():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-o', TMP1]):
+    with patch.object(sys, 'argv', [CMD, '-i', IMG1, IMG2, '-o', TMP1, '-g', '4']):
         try:
             poster.main()
             assert img.ImageFile(TMP1).width > 0
-            os.remove(TMP1)
         except SystemExit as e:
             assert int(str(e)) == 0
             assert img.ImageFile(TMP1).width > 0
-            os.remove(TMP1)
+    os.remove(TMP1)
 
 
 def test_main_with_output2():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50', '-o', TMP1]):
+    with patch.object(sys, 'argv', [CMD, '-i', IMG1, IMG2, '-b', 'white', '-m', '50', '-o', TMP1, '-g', '4']):
         try:
             poster.main()
             assert img.ImageFile(TMP1).width > 0

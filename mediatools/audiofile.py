@@ -62,7 +62,7 @@ class AudioFile(media.MediaFile):
             if stream['codec_type'] == 'audio':
                 try:
                     self.abitrate = stream['bit_rate']
-                    self.duration = stream['duration']
+                    self.duration = float(stream['duration'])
                     self.acodec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
