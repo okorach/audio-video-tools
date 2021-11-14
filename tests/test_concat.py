@@ -36,7 +36,7 @@ TMP3 = util.get_tmp_file() + '.mp4'
 
 def test_main_with_output():
     util.HW_ACCEL = False
-    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '--vcodec', 'h264', '-o', TMP3]):
+    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '-o', TMP3]):
         try:
             concat.main()
             assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -

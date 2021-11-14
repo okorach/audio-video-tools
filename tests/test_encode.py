@@ -28,6 +28,7 @@ from mediatools import encode
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
+import mediatools.log as log
 
 TMP_VID = util.get_tmp_file() + '.mp4'
 TMP_AUDIO = util.get_tmp_file() + '.mp3'
@@ -79,10 +80,9 @@ def test_hw_accel_2():
         assert not hw_accel_avail
 
 def test_main_file():
-    util.HW_ACCEL = False
     file1 = 'it' + os.sep + 'video-720p.mp4'
     try:
-        with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--resolution', '640x360']):
+        with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--hw_accel', 'off', '--resolution', '640x360']):
             encode.main()
         assert True
     except subprocess.CalledProcessError:
@@ -90,11 +90,12 @@ def test_main_file():
         assert False
 
 def test_main_file_audio():
-    util.HW_ACCEL = False
-    util.set_debug_level(4)
-    file1 = 'it' + os.sep + 'song.mp3'
-    with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO]):
+
+    file1 = 'it' + os.sep + 'seal.mp3'
+    with patch.object(sys, 'argv', ['video-encode', '-p', 'mp3_128k', '-i', file1, '--outputfile', TMP_AUDIO, '--hw_accel', 'off']):
         encode.main()
+    # log.set_logger("tests")
+    # log.logger.setLevel(log.get_logging_level(4))
     audio_f = audio.AudioFile(TMP_AUDIO)
     assert audio_f.acodec == 'mp3'
     assert audio_f.format == 'mp3'
@@ -102,10 +103,9 @@ def test_main_file_audio():
 
 
 def test_main_dir_timeranges_1():
-    util.HW_ACCEL = False
     file1 = 'it' + os.sep + 'video-720p.mp4'
     try:
-        with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--resolution', '640x360', '--timeranges', '00:02-00:04']):
+        with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--hw_accel', 'off', '--resolution', '640x360', '--timeranges', '00:02-00:04', '-g', '4']):
             encode.main()
         # Can't delete output file, don't know the name
         assert True
@@ -113,12 +113,13 @@ def test_main_dir_timeranges_1():
         assert False
 
 def test_main_dir_timeranges_2():
-    util.HW_ACCEL = False
+    log.set_logger("tests")
+    log.logger.setLevel(log.get_logging_level(4))
     file1 = 'it' + os.sep + 'video-720p.mp4'
     output = f"{file1}.out.mp4"
     try:
         with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--resolution', '640x360',
-                          '--timeranges', '00:00-00:01,00:02-00:04'], '-o', output):
+                          '--hw_accel', 'off', '--timeranges', '00:00-00:01,00:02-00:04'], '-o', output):
             encode.main()
         # Output file is hardcoded for now :-(
         os.remove('it' + os.sep + 'video-720p.combined.mp4')
