@@ -55,13 +55,14 @@ class AudioFile(media.MediaFile):
         self.comment = None
 
         super().__init__(filename)
+        self.get_specs()
 
     def get_specs(self):
         for stream in self.specs['streams']:
             if stream['codec_type'] == 'audio':
                 try:
                     self.abitrate = stream['bit_rate']
-                    self.duration = stream['duration']
+                    self.duration = float(stream['duration'])
                     self.acodec = stream['codec_name']
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
@@ -172,8 +173,8 @@ class AudioFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        kwargs = util.get_all_options(**kwargs)
-        log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
+        kwargs = util.get_all_options(fil.FileType.AUDIO_FILE, **kwargs)
+        log.logger.debug("Audio encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
@@ -181,18 +182,20 @@ class AudioFile(media.MediaFile):
         prefilter_settings = media.get_prefilter_settings(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
-        log.logger.debug("Profile settings = %s", str(raw_settings))
-        output_settings = media.get_output_settings(**kwargs)
+        output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
+        ext = target_file.split('.')[-1].lower()
+        log.logger.debug("Output file extension = %s", ext)
+        if ext == 'mp3':
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
+            log.logger.info("Patching codec for MP3 audio output")
+        elif ext in ('m3a', 'aac'):
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
+            log.logger.info("Patching codec for AAC audio output")
+        output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
-        raw_params = ''
-        for k, v in raw_settings.items():
-            if v is None:
-                raw_params += ' ' + str(k)
-            else:
-                raw_params += ' ' + str(k) + ' ' + str(v)
         log.logger.info("Encoding mp3 %s", target_file)
-        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {raw_params} {" ".join(prefilter_settings)}'
-        cmd += f' {str(audio_filters)} {" ".join(output_settings)} "{target_file}"'
+        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
+        cmd += f' {str(audio_filters)} {output_str} "{target_file}"'
         util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file

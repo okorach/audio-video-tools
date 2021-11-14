@@ -36,12 +36,14 @@ ALLOWED_SPEEDS = ("10%", "12.5%", "25%", "50%", "100%", "150%", "200%", "250%", 
 
 def main():
     parser = util.get_common_args('video-speed', 'Video speed change')
+    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
     parser.add_argument('--speed', required=True, help='Speed in the form of 4x (accelerate), 0.1x (slow down)')
     parser.add_argument('-k', '--keep_audio', required=False, dest=opt.Option.MUTE, action='store_false',
-        default=True, help='Keep audio track after speec hange')
+        default=True, help='Keep audio track after speed change')
     parser.set_defaults(audio=False)
     kwargs = util.parse_media_args(parser)
     speed = kwargs.pop('speed')
+    kwargs['hw_accel'] = 'off'
     if re.match(r".*%$", speed) and speed not in ALLOWED_SPEEDS:
         log.logger.critical("Speed value %s is not allowed, it must be less than 100%% or one of %s",
             speed, ', '.join(ALLOWED_SPEEDS))

@@ -97,7 +97,7 @@ def test_speed():
 def test_volume():
     v1 = video.VideoFile(FILE)
     v2 = video.VideoFile(video.volume(FILE, 2, output=TMP1))
-    assert v1.duration == v2.duration
+    assert abs(v1.duration - v2.duration) < 0.1
     os.remove(v2.filename)
 
 def test_reverse():

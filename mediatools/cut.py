@@ -45,7 +45,7 @@ def main():
         if ranges is None:
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
-    av.cut(kwargs.pop('inputfile'), **kwargs)
+    av.cut(kwargs.pop('inputfile'), output=kwargs.get('outputfile', None), **kwargs)
 
 
 if __name__ == "__main__":
