@@ -172,8 +172,8 @@ class AudioFile(media.MediaFile):
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options'''
-        kwargs = util.get_all_options(**kwargs)
-        log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
+        kwargs = util.get_all_options(fil.FileType.AUDIO_FILE, **kwargs)
+        log.logger.debug("Audio encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
 
@@ -182,7 +182,7 @@ class AudioFile(media.MediaFile):
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
         log.logger.debug("Profile settings = %s", str(raw_settings))
-        output_settings = media.get_output_settings(**kwargs)
+        output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
 
         raw_params = ''
         for k, v in raw_settings.items():

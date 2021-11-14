@@ -201,20 +201,28 @@ def get_prefilter_settings(**kwargs):
     return settings
 
 
-def get_output_settings(**kwargs):
+def get_output_settings(file_type=fil.FileType.VIDEO_FILE, **kwargs):
     settings = []
     log.logger.debug('Output options = %s', str(kwargs))
 
-    settings.append(_get_vcodec(**kwargs))
+    if file_type == fil.FileType.VIDEO_FILE:
+        settings.append(_get_vcodec(**kwargs))
 
-    if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
-        settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
 
-    if kwargs.get(opt.Option.VBITRATE, None) is not None:
-        settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
+        if kwargs.get(opt.Option.VBITRATE, None) is not None:
+            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
 
-    if kwargs.get(opt.Option.DEINTERLACE, False):
-        settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
+        if kwargs.get(opt.Option.DEINTERLACE, False):
+            settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
+
+        if _must_encode_video(**kwargs):
+            if kwargs.get(opt.Option.START, '') != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+
+            if kwargs.get(opt.Option.STOP, '') != '':
+                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
     if kwargs.get(opt.Option.STOP, '') != '':
         start = 0
@@ -229,13 +237,6 @@ def get_output_settings(**kwargs):
         settings.append(_get_acodec(**kwargs))
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
             settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
-
-    if _must_encode_video(**kwargs):
-        if kwargs.get(opt.Option.START, '') != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-        if kwargs.get(opt.Option.STOP, '') != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
 
     log.logger.debug('Output settings = %s', str(settings))
     return settings

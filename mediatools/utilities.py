@@ -388,33 +388,39 @@ def get_ffmpeg_cmdline_params(cmdline):
         opt.Option.SAMPLERATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.SAMPLERATE)
     })
 
-def get_default_options():
-    return remove_nones({
-        opt.Option.FORMAT: get_conf_property('default.video.format'),
-        opt.Option.VCODEC: get_conf_property('default.video.codec'),
+def get_default_options(filetype=fil.FileType.VIDEO_FILE):
+    audio_opts = {
         opt.Option.ACODEC: get_conf_property('default.audio.codec'),
         opt.Option.ABITRATE: get_conf_property('default.audio.bitrate'),
-        opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
-        opt.Option.FPS: get_conf_property('default.video.fps'),
-        opt.Option.ASPECT: get_conf_property('default.video.aspect'),
-        opt.Option.RESOLUTION: get_conf_property('default.video.resolution'),
         opt.Option.ACHANNEL: get_conf_property('default.audio.channels'),
         opt.Option.SAMPLERATE: get_conf_property('default.audio.samplerate')
-    })
+    }
+    video_opts = {}
+    if filetype == fil.FileType.VIDEO_FILE:
+        video_opts = {
+            opt.Option.FORMAT: get_conf_property('default.video.format'),
+            opt.Option.VCODEC: get_conf_property('default.video.codec'),
+            opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
+            opt.Option.FPS: get_conf_property('default.video.fps'),
+            opt.Option.ASPECT: get_conf_property('default.video.aspect'),
+            opt.Option.RESOLUTION: get_conf_property('default.video.resolution')
+        }
+    return remove_nones({**audio_opts, **video_opts})
 
 def get_profile_options(profile):
     return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
 
-def get_all_options(**cmdline_args):
+def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
     if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
         return cmdline_args
-    p = get_default_options()
+    p = get_default_options(filetype)
     if 'profile' in cmdline_args:
         q = get_profile_options(cmdline_args['profile'])
         p = {**p, **q}
     cmdline_args = {**p, **cmdline_args}
     (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
     return cmdline_args
+
 
 def swap_keys_values(p):
     return {v: k for k, v in p.items()}

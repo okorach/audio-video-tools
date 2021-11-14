@@ -36,6 +36,7 @@ ALLOWED_SPEEDS = ("10%", "12.5%", "25%", "50%", "100%", "150%", "200%", "250%", 
 
 def main():
     parser = util.get_common_args('video-speed', 'Video speed change')
+    parser.add_argument('-p', '--profile', required=False, help='Profile to use for encoding')
     parser.add_argument('--speed', required=True, help='Speed in the form of 4x (accelerate), 0.1x (slow down)')
     parser.add_argument('-k', '--keep_audio', required=False, dest=opt.Option.MUTE, action='store_false',
         default=True, help='Keep audio track after speec hange')

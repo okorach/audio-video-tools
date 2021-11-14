@@ -46,12 +46,11 @@ def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
     elif t == fil.FileType.VIDEO_FILE:
         file_object = video.VideoFile(file)
 
-    outfile = kwargs.get('outputfile', None)
     if start is None and stop is None:
         i = 1
         for r in timeranges.split(','):
             kwargs['start'], kwargs['stop'] = r.split('-', maxsplit=2)
-            outputfile = util.automatic_output_file_name(outfile=outfile, infile=file, postfix=f'cut{i}')
+            outputfile = util.automatic_output_file_name(outfile=output, infile=file, postfix=f'cut{i}')
             outputfile = file_object.encode(target_file=outputfile, **kwargs)
             util.generated_file(outputfile)
             i += 1
@@ -60,7 +59,7 @@ def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
             start = 0
         if stop is None:
             stop = file_object.duration
-        outputfile = util.automatic_output_file_name(outfile=outfile, infile=file, postfix='cut')
+        outputfile = util.automatic_output_file_name(outfile=output, infile=file, postfix='cut')
         outputfile = file_object.encode(target_file=outputfile, start=start, stop=stop, **kwargs)
         util.generated_file(outputfile)
     return output
