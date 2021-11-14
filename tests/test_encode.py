@@ -105,7 +105,8 @@ def test_main_file_audio():
 def test_main_dir_timeranges_1():
     file1 = 'it' + os.sep + 'video-720p.mp4'
     try:
-        with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--hw_accel', 'off', '--resolution', '640x360', '--timeranges', '00:02-00:04', '-g', '4']):
+        with patch.object(sys, 'argv', ['video-encode', '-p', '1mbps', '-i', file1, '--hw_accel', 'off',
+                          '--resolution', '640x360', '--timeranges', '00:02-00:04', '-g', '4']):
             encode.main()
         # Can't delete output file, don't know the name
         assert True
