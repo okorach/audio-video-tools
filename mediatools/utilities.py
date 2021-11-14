@@ -335,16 +335,23 @@ def get_cmdline_params(cmdline):
         # Format -<option> <value>
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
-            parms['-' + m.group(1)] = m.group(2)
+            k = m.group(1)
+            if k in opt.F2M_MAPPING:
+                k = opt.M2F_MAPPING[opt.F2M_MAPPING[k]]
+            parms[k] = m.group(2)
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             # Format -<option>
             m = re.search(r'^-(\S+)\s*', cmdline)
             if m:
-                parms['-' + m.group(1)] = None
+                k = m.group(1)
+                if k in opt.F2M_MAPPING:
+                    k = opt.M2F_MAPPING[opt.F2M_MAPPING[k]]
+                parms[k] = True
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
             else:
                 found = False
+    log.logger.debug("ffmpeg cmd line settings = %s", str(parms))
     return parms
 
 
@@ -411,6 +418,7 @@ def get_profile_options(profile):
     return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
 
 def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
+    log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
         return cmdline_args
     p = get_default_options(filetype)
@@ -419,6 +427,7 @@ def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
         p = {**p, **q}
     cmdline_args = {**p, **cmdline_args}
     (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
+    log.logger.debug("get_all_options return: %s", str(cmdline_args))
     return cmdline_args
 
 

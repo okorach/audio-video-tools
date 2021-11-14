@@ -352,29 +352,25 @@ class VideoFile(media.MediaFile):
         video_filters = self.__get_video_filters__(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
-        log.logger.debug("Profile settings = %s", str(raw_settings))
         output_settings = media.get_output_settings(**kwargs)
+        ext = target_file.split('.')[-1].lower()
+        log.logger.debug("Output file extension = %s", ext)
+        if ext == 'mp3':
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
+            log.logger.info("Patching codec for MP3 audio output")
+        elif ext in ('m3a', 'aac'):
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
+            log.logger.info("Patching codec for AAC audio output")
+
+        output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
         # Hack for channels selection
         # mapping = __get_audio_channel_mapping__(**kwargs)
         mapping = ''
 
-        raw_params = ''
-        for k, v in raw_settings.items():
-            if v is None:
-                raw_params += ' ' + str(k)
-            else:
-                raw_params += ' ' + str(k) + ' ' + str(v)
-        if profile is not None and profile.find('mp3') != -1:
-            log.logger.info("Encoding mp3 %s", target_file)
-            util.run_ffmpeg('{} -i "{}" {} {} {} {} "{}"'.format(
-                ' '.join(input_settings), self.filename, raw_params, ' '.join(prefilter_settings),
-                str(audio_filters), mapping, target_file), self.duration)
-        else:
-            util.run_ffmpeg('{} -i "{}" {} {} {} {} {} "{}"'.format(
-                ' '.join(input_settings), self.filename, ' '.join(prefilter_settings),
-                str(video_filters), str(audio_filters), ' '.join(output_settings),
-                mapping, target_file), self.duration)
+        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
+        cmd += f'{str(video_filters)} {str(audio_filters)} {output_str} {mapping} "{target_file}"'
+        util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 

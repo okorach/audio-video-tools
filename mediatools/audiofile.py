@@ -55,6 +55,7 @@ class AudioFile(media.MediaFile):
         self.comment = None
 
         super().__init__(filename)
+        self.get_specs()
 
     def get_specs(self):
         for stream in self.specs['streams']:
@@ -181,18 +182,20 @@ class AudioFile(media.MediaFile):
         prefilter_settings = media.get_prefilter_settings(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
-        log.logger.debug("Profile settings = %s", str(raw_settings))
         output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
+        ext = target_file.split('.')[-1].lower()
+        log.logger.debug("Output file extension = %s", ext)
+        if ext == 'mp3':
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
+            log.logger.info("Patching codec for MP3 audio output")
+        elif ext in ('m3a', 'aac'):
+            output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
+            log.logger.info("Patching codec for AAC audio output")
+        output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
-        raw_params = ''
-        for k, v in raw_settings.items():
-            if v is None:
-                raw_params += ' ' + str(k)
-            else:
-                raw_params += ' ' + str(k) + ' ' + str(v)
         log.logger.info("Encoding mp3 %s", target_file)
-        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {raw_params} {" ".join(prefilter_settings)}'
-        cmd += f' {str(audio_filters)} {" ".join(output_settings)} "{target_file}"'
+        cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
+        cmd += f' {str(audio_filters)} {output_str} "{target_file}"'
         util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file

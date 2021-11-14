@@ -68,7 +68,7 @@ class MediaFile(fil.File):
         try:
             log.logger.debug('%s(%s)', util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            log.logger.debug("Specs = %s", util.json_fmt(self.specs))
+            # log.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
             log.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
             raise
@@ -183,16 +183,14 @@ def get_audio_filters(**kwargs):
 
 
 def get_input_settings(**kwargs):
-    log.logger.debug('Input options = %s', str(kwargs))
+    log.logger.debug('get_input_setting(%s)', str(kwargs))
     settings = []
-    if _must_encode_video(**kwargs):
-        if util.use_hardware_accel(**kwargs):
-            settings.append(util.HW_ACCEL_PREFIX)
-    else:
-        if opt.Option.START in kwargs and kwargs[opt.Option.START] != '':
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-    log.logger.debug('Input settings = %s', str(settings))
+    if kwargs.get(opt.Option.START, '') != '':
+        log.logger.debug("Adding start = %s", str(kwargs[opt.Option.START]))
+        settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
+    if _must_encode_video(**kwargs) and util.use_hardware_accel(**kwargs):
+        settings.append(util.HW_ACCEL_PREFIX)
+    log.logger.debug('get_input_settings returns %s', str(settings))
     return settings
 
 
@@ -202,43 +200,38 @@ def get_prefilter_settings(**kwargs):
 
 
 def get_output_settings(file_type=fil.FileType.VIDEO_FILE, **kwargs):
-    settings = []
-    log.logger.debug('Output options = %s', str(kwargs))
+    settings = {}
+    log.logger.debug('get_output_setting(%s)', str(kwargs))
 
     if file_type == fil.FileType.VIDEO_FILE:
-        settings.append(_get_vcodec(**kwargs))
+        settings[opt.Option.VCODEC] = _get_vcodec(**kwargs)
 
         if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.RESOLUTION, kwargs[opt.Option.RESOLUTION]))
+            settings[opt.OptionFfmpeg.RESOLUTION] = kwargs[opt.Option.RESOLUTION]
 
         if kwargs.get(opt.Option.VBITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.VBITRATE, kwargs[opt.Option.VBITRATE]))
+            settings[opt.OptionFfmpeg.VBITRATE] = kwargs[opt.Option.VBITRATE]
 
         if kwargs.get(opt.Option.DEINTERLACE, False):
-            settings.append(f'-{opt.OptionFfmpeg.DEINTERLACE}')
+            settings[opt.OptionFfmpeg.DEINTERLACE] = True
 
-        if _must_encode_video(**kwargs):
-            if kwargs.get(opt.Option.START, '') != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-
-            if kwargs.get(opt.Option.STOP, '') != '':
-                settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, kwargs[opt.Option.STOP]))
-
+    start = 0
+    if kwargs.get(opt.Option.START, '') != '':
+        start = util.to_seconds(kwargs[opt.Option.START])
     if kwargs.get(opt.Option.STOP, '') != '':
-        start = 0
-        if kwargs.get(opt.Option.START, '') != '':
-            start = util.to_seconds(kwargs[opt.Option.START])
         stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
-        settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.STOP, stop))
+        settings[opt.OptionFfmpeg.STOP] = stop
 
     if kwargs.get(opt.Option.MUTE, False):
-        settings.append(f'-{opt.OptionFfmpeg.MUTE}')
+        settings[opt.OptionFfmpeg.MUTE] = True
     else:
-        settings.append(_get_acodec(**kwargs))
+        settings[opt.Option.ACODEC] = _get_acodec(**kwargs)
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
-            settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.ABITRATE, kwargs[opt.Option.ABITRATE]))
+            settings[opt.OptionFfmpeg.ABITRATE] = kwargs[opt.Option.ABITRATE]
+        if kwargs.get(opt.Option.ABITRATE, None) is not None:
+            settings[opt.OptionFfmpeg.ACODEC] = kwargs[opt.Option.ACODEC]
 
-    log.logger.debug('Output settings = %s', str(settings))
+    log.logger.debug('get_output_settings returns %s', str(settings))
     return settings
 
 
@@ -259,26 +252,19 @@ def _get_vcodec(**kwargs):
             vcodec = opt.CODECS[vcodec]
     else:
         vcodec = 'copy'
-    if vcodec is None:
-        return ''
-    else:
-        return opt.OPT_FMT.format(opt.OptionFfmpeg.VCODEC, vcodec)
+    return vcodec
 
 def _get_acodec(**kwargs):
     acodec = None
-    audio_encode = _must_encode_audio(**kwargs)
-    if not audio_encode:
+    if not _must_encode_audio(**kwargs):
         acodec = 'copy'
     else:
         acodec = kwargs.get(opt.Option.ACODEC, conf.get_property('default.audio.codec'))
-    if acodec is None:
-        return ''
-    else:
-        return f'-acodec {acodec}'
+    return acodec
 
 def _must_encode_audio(**kwargs):
     for k, v in kwargs.items():
-        if k in (opt.Option.ACODEC, opt.Option.ABITRATE, 'volume'):
+        if k in (opt.Option.ABITRATE, 'volume'):
             return True
         if k == opt.Option.ACODEC and v != 'copy':
             return True
@@ -357,16 +343,20 @@ def strip_ffmpeg_options(options):
     return strip
 
 
-def build_ffmpeg_options(options):
+def build_ffmpeg_options(options, with_mapping=False):
     cmd = ''
     for k, v in options.items():
-        if options[k] is None or k not in opt.M2F_MAPPING:
+        if with_mapping:
+            if k not in opt.M2F_MAPPING:
+                log.logger.warning("Option %s can't be mapped to ffmpeg option", str(k))
+                continue
+            else:
+                k = opt.M2F_MAPPING[k]
+        if v is None or not v:
             continue
-        if options[k] is False:
-            continue
-        if options[k] is True:
-            cmd = cmd + " -%s" % (opt.M2F_MAPPING[k])
+        if v is True:
+            cmd = cmd + f" -{k}"
         else:
-            cmd = cmd + " -%s %s" % (opt.M2F_MAPPING[k], v)
-    log.logger.debug("ffmpeg options = %s", cmd)
+            cmd = cmd + f' -{k} "{v}"'
+    log.logger.debug("Mapped ffmpeg options = %s", cmd)
     return cmd
