@@ -63,8 +63,15 @@ def main():
         print('Usage: {} [-g <debug_level>] <directory>', me)
         sys.exit(1)
 
-    filelist = fil.dir_list(master_dir, recurse=True)
-    hashes = audio.get_hash_list(filelist)
+    hash_file = f"{master_dir}.json"
+    if os.path.exists(hash_file):
+        log.logger.info("Reading existing hash")
+        hashes = audio.read_hash_list(hash_file)
+    else:
+        log.logger.info("Rebuilding file hash")
+        filelist = fil.dir_list(master_dir, recurse=True)
+        hashes = audio.get_hash_list(filelist)
+        audio.save_hash_list(hash_file, master_dir, hashes)
     collection = fil.dir_list(directory, recurse=False)
 
     for file in collection:
