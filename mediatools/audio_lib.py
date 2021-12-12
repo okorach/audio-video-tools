@@ -39,7 +39,7 @@ def main():
         elif os.path.isdir(arg):
             directory = arg
     if directory is None:
-        print('Usage: {} [-g <debug_level>] <directory>', me)
+        print(f'Usage: {fil.basename(me)} [-g <debug_level>] <directory>')
         sys.exit(1)
     for file in fil.dir_list(directory, recurse=False):
         if not fil.is_link(file):
