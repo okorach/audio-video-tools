@@ -1,2 +1,2 @@
-linker -d "%~1" -m "F:\\Musique\\Master"
+linker -d "%~1" -m "D:\\Musique\\Master"
 pause
