@@ -270,4 +270,4 @@ def read_hash_list(file):
     data = None
     with open(file, 'r') as fh:
         data = json.loads(fh.read())
-    return data
+    return data['hashes']
