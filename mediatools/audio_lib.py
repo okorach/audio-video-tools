@@ -22,10 +22,21 @@
 import os
 import sys
 import shutil
+from pathlib import Path
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
+
+def __search_on_other_drives(file):
+    for drive_letter in ('C', 'D', 'E', 'F'):
+        new_file = f"{drive_letter}{file[1:]}"
+        log.logger.debug("Checking existence of %s", new_file)
+        if os.path.isfile(new_file):
+            log.logger.debug("Found %s", new_file)
+            return new_file
+    util.logger.debug("Found no file")
+    return None
 
 
 def main():
@@ -43,20 +54,39 @@ def main():
         sys.exit(1)
     for file in fil.dir_list(directory, recurse=False):
         if not fil.is_link(file):
+            if fil.is_audio_file(file):
+                f = audio.AudioFile(file)
+                p = Path(file)
+                new_name = f"{p.parent}{os.sep}{f.title} - {f.artist}.{fil.extension(file)}"
+                if new_name != file:
+                    try:
+                        os.rename(file, new_name)
+                    except FileExistsError:
+                        pass
             continue
         tgt = fil.read_link(file)
+        if not os.path.isfile(tgt):
+            old_tgt = tgt
+            log.logger.info("Trying to fix symlink %s --> Target = %s", old_tgt, file)
+            tgt = __search_on_other_drives(old_tgt)
+            if tgt is None:
+                log.logger.error("Can't find target %s for file %s", old_tgt, file)
+            else:
+                os.remove(file)
+                fil.create_link(tgt, file)
         log.logger.info("Symlink %s --> Target = %s", file, tgt)
-        f_audio = audio.AudioFile(tgt)
-        # tags = f_audio.get_tags()
+        f = audio.AudioFile(tgt)
+        # tags = f.get_tags()
         # if 'title' in tags and 'artist' in tags:
         #     base = "{} - {}".format(tags['title'], tags['artist'])
         # elif 'title' in tags:
         #     base = tags['title']
         # else:
         #     base = tgt.split(os.path.sep)[-1]
-        base = "{} - {}.mp3".format(f_audio.title, f_audio.artist)
-        log.logger.info("Copy to = %s", dir + os.path.sep + base)
-        shutil.copy(tgt, dir + os.path.sep + base)
+        if f.title is None or f.artist is None:
+            log.logger.warning("Can't copy file because %s has empty title or artist", tgt)
+        else:
+            shutil.copy(tgt, directory + os.path.sep + f.title + " - " + f.artist + ".mp3")
     sys.exit(0)
 
 
