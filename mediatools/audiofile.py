@@ -263,11 +263,11 @@ def save_hash_list(file, root_dir, hashlist):
     data['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data['root_directory'] = root_dir
     data['hashes'] = hashlist
-    with open(file, 'w') as fh:
+    with open(file, 'w', encoding='utf-8') as fh:
         print(json.dumps(data, indent=4, sort_keys=False, separators=(',', ': ')), file=fh)
 
 def read_hash_list(file):
     data = None
-    with open(file, 'r') as fh:
+    with open(file, 'r', encoding='utf-8') as fh:
         data = json.loads(fh.read())
     return data['hashes']

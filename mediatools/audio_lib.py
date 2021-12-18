@@ -35,8 +35,34 @@ def __search_on_other_drives(file):
         if os.path.isfile(new_file):
             log.logger.debug("Found %s", new_file)
             return new_file
-    util.logger.debug("Found no file")
+    log.logger.debug("Found no file")
     return None
+
+
+def __check_file_name(file):
+    if not fil.is_audio_file(file):
+        return
+    f = audio.AudioFile(file)
+    p = Path(file)
+    new_name = f"{p.parent}{os.sep}{f.title} - {f.artist}.{fil.extension(file)}"
+    if new_name == file:
+        return
+    try:
+        os.rename(file, new_name)
+    except FileExistsError:
+        pass
+
+
+def __fix_symlink(symlink, target_file):
+    old_tgt = target_file
+    log.logger.info("Trying to fix symlink %s --> Target = %s", symlink, old_tgt)
+    target_file = __search_on_other_drives(old_tgt)
+    if target_file is None:
+        log.logger.error("Can't find target %s for file %s", symlink, old_tgt)
+    else:
+        os.remove(symlink)
+        fil.create_link(target_file, symlink)
+    return target_file
 
 
 def main():
@@ -52,29 +78,14 @@ def main():
     if directory is None:
         print(f'Usage: {fil.basename(me)} [-g <debug_level>] <directory>')
         sys.exit(1)
-    for file in fil.dir_list(directory, recurse=False):
-        if not fil.is_link(file):
-            if fil.is_audio_file(file):
-                f = audio.AudioFile(file)
-                p = Path(file)
-                new_name = f"{p.parent}{os.sep}{f.title} - {f.artist}.{fil.extension(file)}"
-                if new_name != file:
-                    try:
-                        os.rename(file, new_name)
-                    except FileExistsError:
-                        pass
+    for symlink in fil.dir_list(directory, recurse=False):
+        if not fil.is_link(symlink):
+            __check_file_name(symlink)
             continue
-        tgt = fil.read_link(file)
+        tgt = fil.read_link(symlink)
         if not os.path.isfile(tgt):
-            old_tgt = tgt
-            log.logger.info("Trying to fix symlink %s --> Target = %s", old_tgt, file)
-            tgt = __search_on_other_drives(old_tgt)
-            if tgt is None:
-                log.logger.error("Can't find target %s for file %s", old_tgt, file)
-            else:
-                os.remove(file)
-                fil.create_link(tgt, file)
-        log.logger.info("Symlink %s --> Target = %s", file, tgt)
+            tgt = __fix_symlink(tgt, symlink)
+        log.logger.info("Symlink %s --> Target = %s", symlink, tgt)
         f = audio.AudioFile(tgt)
         # tags = f.get_tags()
         # if 'title' in tags and 'artist' in tags:
