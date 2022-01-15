@@ -9,7 +9,7 @@ on:
   #  - cron: '17 0 * * 4'
 jobs:
   scan:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     #strategy:
     #  matrix:
     #    python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
