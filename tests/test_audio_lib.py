@@ -32,9 +32,9 @@ def test_changed_drive():
     if platform.system() == "Windows":
         original_file = os.path.abspath(SONG)
         moved_file = "Z" + original_file[1:]
-        assert ad.__search_on_other_drives(moved_file) == original_file
+        assert ad.search_on_other_drives(moved_file) == original_file
         moved_file = "Z:\\foo.txt"
-        assert ad.__search_on_other_drives(moved_file) is None
+        assert ad.search_on_other_drives(moved_file) is None
     else:
         assert True
 
