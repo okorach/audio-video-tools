@@ -22,6 +22,8 @@
 import re
 import os
 import shutil
+from datetime import datetime
+import json
 from mp3_tagger import MP3File
 from mediatools import log
 import mediatools.exceptions as ex
@@ -255,3 +257,17 @@ def get_hash_list(filelist, algo='audio'):
         if (i % 100) == 0:
             log.logger.info("%d audio hashes computed", i)
     return hashes
+
+def save_hash_list(file, root_dir, hashlist):
+    data = {}
+    data['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data['root_directory'] = root_dir
+    data['hashes'] = hashlist
+    with open(file, 'w', encoding='utf-8') as fh:
+        print(json.dumps(data, indent=4, sort_keys=False, separators=(',', ': ')), file=fh)
+
+def read_hash_list(file):
+    data = None
+    with open(file, 'r', encoding='utf-8') as fh:
+        data = json.loads(fh.read())
+    return data['hashes']

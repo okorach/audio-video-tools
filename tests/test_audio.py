@@ -24,6 +24,7 @@ import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.avfile as av
 import mediatools.audiofile as audio
+import mediatools.file as fil
 
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 H1 = "Seal-Crazy-Seal-1991-03-357.093878-mp3"
@@ -88,3 +89,12 @@ def test_cut3():
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
     assert abs(10 - v.duration) <= 0.06
     os.remove(v.filename)
+
+def test_hash_list_2():
+    h_file = "h.json"
+    filelist = fil.dir_list("it", recurse=True)
+    hash = audio.get_hash_list(filelist)
+    audio.save_hash_list(h_file, ".", hash)
+    new_hash = audio.read_hash_list(h_file)
+    os.remove(h_file)
+    assert new_hash == hash
