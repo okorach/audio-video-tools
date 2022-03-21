@@ -33,6 +33,7 @@ import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
 
+_CSV_KEYS = ('filename', 'artist', 'title', 'album', 'year', 'duration', 'acodec', 'abitrate', 'audio_sample_rate', 'genre', 'has_album_art')
 
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
@@ -55,9 +56,21 @@ class AudioFile(media.MediaFile):
         self.track = None
         self.genre = None
         self.comment = None
+        self._hash = None
 
         super().__init__(filename)
         self.get_specs()
+
+    def csv_values(self):
+        d = vars(self)
+        log.logger.debug("FIle = %s", json.dumps(d, separators=(',', ': '), indent=3))
+        arr = []
+        for k in _CSV_KEYS:
+            v = ''
+            if k in d and d[k] is not None:
+                v = str(d[k])
+            arr.append(v)
+        return arr
 
     def get_specs(self):
         for stream in self.specs['streams']:
@@ -69,9 +82,9 @@ class AudioFile(media.MediaFile):
                     self.audio_sample_rate = stream['sample_rate']
                 except KeyError as e:
                     log.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
-            elif stream['codec_type'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
+            elif stream['codec_name'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
                 self.has_album_art = True
-                self.album_art_size = '{}x{}'.format(stream['coded_width'], stream['coded_height'])
+                self.album_art_size = f"{stream['coded_width']}x{stream['coded_height']}"
         self.get_tags()
         return self.specs
 
@@ -271,3 +284,10 @@ def read_hash_list(file):
     with open(file, 'r', encoding='utf-8') as fh:
         data = json.loads(fh.read())
     return data['hashes']
+
+
+def csv_headers():
+    arr = []
+    for k in _CSV_KEYS:
+        arr.append(k)
+    return arr
