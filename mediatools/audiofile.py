@@ -25,6 +25,7 @@ import shutil
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
+import music_tag
 from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.file as fil
@@ -226,6 +227,21 @@ class AudioFile(media.MediaFile):
             self.filename, album_art_file, album_art_std_settings, target_file))
         shutil.copy(target_file, self.filename)
         os.remove(target_file)
+
+    def set_tag(self, tag, value):
+        f = music_tag.load_file(self.filename)
+        # dict access returns a MetadataItem
+        util.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
+        f[tag] = value
+        f.save()
+
+    def get_a_tag(self, tag):
+        try:
+            f = music_tag.load_file(self.filename)
+        except:
+            return ''
+        # dict access returns a MetadataItem
+        return f.get(tag, '')
 
 
 def album_art(*file_list, scale=None):
