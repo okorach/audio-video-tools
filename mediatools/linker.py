@@ -48,7 +48,7 @@ def link_file(file, directory, hash_data):
     return directory + os.sep + base
 
 def copy_file(file, directory, hash_data):
-    if not fil.is_link(file) or not fil.is_audio_file(file):
+    if not fil.is_link(file):
         return None
     shortcut = fil.File(file)
     srcfile = shortcut.read_link()
