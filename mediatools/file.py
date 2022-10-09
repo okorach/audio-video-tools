@@ -198,7 +198,7 @@ def strip_file_extension(filename):
     return '.'.join(filename.split('.')[:-1])
 
 
-def __match_extension__(file, regex):
+def __match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     ext = '.' + extension(file)
     p = re.compile(regex, re.IGNORECASE)
@@ -235,7 +235,7 @@ def file_list(*args, file_type=None, recurse=False):
 
 def __is_type_file(file, type_of_media):
     return type_of_media is None or (
-        os.path.isfile(file) and __match_extension__(file, FileType.FILE_EXTENSIONS[type_of_media]))
+        os.path.isfile(file) and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media]))
 
 
 def is_audio_file(file):
