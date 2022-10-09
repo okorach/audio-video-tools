@@ -21,13 +21,16 @@
 
 import os
 import sys
+import shutil
+import argparse
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
 
 
-def link_file(file, directory, hashes):
+def link_file(file, directory, hash_data):
+    hashes = hash_data["hashes"]
     if fil.is_link(file) or not fil.is_audio_file(file):
         return None
     h = audio.AudioFile(file).hash('audio')
@@ -43,39 +46,54 @@ def link_file(file, directory, hashes):
     srcfile.create_link(base)
     return directory + os.sep + base
 
+def copy_file(file, directory, hash_data):
+    if not fil.is_link(file) or not fil.is_audio_file(file):
+        return None
+    shortcut = fil.File(file)
+    srcfile = shortcut.read_link()
+    targetfile = directory + os.sep + fil.basename(srcfile)
+    shutil.copyfile(srcfile, targetfile)
+    return targetfile
 
 def main():
     util.init('audio-linker')
-    me = sys.argv.pop(0)
     directory = None
     master_dir = None
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "-m":
-            master_dir = sys.argv.pop(0)
-        elif arg == "-d":
-            directory = sys.argv.pop(0)
-        else:
-            sys.argv.pop(0)
-    if directory is None or master_dir is None:
-        print('Usage: {} [-g <debug_level>] <directory>', me)
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Manages audio collections')
+    parser.add_argument('-m', '--master', help='master audio directory', required=True)
+    parser.add_argument('-d', '--directory', help='directory with collection', required=True)
+    parser.add_argument('-u', '--updateHash', action="store_true", default=False, help='ask to update hash of master directory', required=False)
+    parser.add_argument('-l', '--linkFiles', action="store_true", default=False, help='ask to link files of collection directory', required=False)
+    parser.add_argument('-c', '--copyFiles', action="store_true", default=False, help='ask to copy files linked from master directory', required=False)
+    parser.add_argument('-a', '--all', action="store_true", default=False, help='Do everything', required=False)
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    kwargs = util.parse_media_args(parser)
 
+    master_dir = kwargs["master"]
+    directory = kwargs["directory"]
     hash_file = f"{master_dir}.json"
-    if os.path.exists(hash_file):
+
+    if not os.path.exists(hash_file) or kwargs["updateHash"]:
+        log.logger.info("Rebuilding file hash")
+        hashes = audio.update_hash_list(master_dir)
+        if kwargs["updateHash"]:
+            sys.exit(0)
+    else:
         log.logger.info("Reading existing hash")
         hashes = audio.read_hash_list(hash_file)
-    else:
-        log.logger.info("Rebuilding file hash")
-        filelist = fil.dir_list(master_dir, recurse=True)
-        hashes = audio.get_hash_list(filelist)
-        audio.save_hash_list(hash_file, master_dir, hashes)
+
     collection = fil.dir_list(directory, recurse=False)
 
-    for file in collection:
-        link_file(file, directory, hashes)
+    if kwargs["linkFiles"]:
+        for file in collection:
+            link_file(file, directory, hashes)
+    elif kwargs["copyFiles"]:
+        for file in collection:
+            copy_file(file, directory, hashes)
+    elif kwargs["all"]:
+        for file in collection:
+            link_file(file, directory, hashes)
+            copy_file(file, directory, hashes)
 
     sys.exit(0)
 

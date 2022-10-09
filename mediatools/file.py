@@ -47,24 +47,39 @@ class File:
 
     def __init__(self, filename):
         self.filename = filename
-        self.size = None
+        self._size = None
         self.created = None
         self.modified = None
-        self.stat = None
+        self._stat = None
         self._hash = None
         self.algo = None
 
-    def probe(self, force=False):
-        if self.stat is not None and not force:
+    def stat(self, force=False):
+        if self._stat is not None and not force:
             return True
         try:
-            self.stat = os.stat(self.filename)
-            self.modified = time.localtime(self.stat[stat.ST_MTIME])
-            self.created = time.localtime(self.stat[stat.ST_CTIME])
-            self.size = self.stat[stat.ST_SIZE]
+            self._stat = os.stat(self.filename)
+            self.modified = time.localtime(self._stat[stat.ST_MTIME])
+            self.created = time.localtime(self._stat[stat.ST_CTIME])
+            self._size = self._stat[stat.ST_SIZE]
             return True
         except FileNotFoundError:
             return False
+
+    def modification_date(self, force=False):
+        if self.modified is None or force:
+            self.stat()
+        return self.modified
+
+    def creation_date(self, force=False):
+        if self.created is None or force:
+            self.stat()
+        return self.created
+
+    def size(self, force=False):
+        if self.size is None or force:
+            self.stat()
+        return self._size
 
     def is_shortcut(self):
         if platform.system() != 'Windows':

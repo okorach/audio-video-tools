@@ -22,6 +22,7 @@
 import re
 import os
 import shutil
+import time
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
@@ -60,7 +61,7 @@ class AudioFile(media.MediaFile):
         self._hash = None
 
         super().__init__(filename)
-        self.get_specs()
+        # self.get_specs()
 
     def csv_values(self):
         d = vars(self)
@@ -74,6 +75,8 @@ class AudioFile(media.MediaFile):
         return arr
 
     def get_specs(self):
+        if self.specs is None:
+            self.probe()
         for stream in self.specs['streams']:
             if stream['codec_type'] == 'audio':
                 try:
@@ -265,7 +268,7 @@ def album_art(*file_list, scale=None):
     return True
 
 
-def get_hash_list(filelist, algo='audio'):
+def get_hash_list(filelist, algo='audio', old_hash=None):
     log.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes = {}
     i = 0
@@ -287,19 +290,56 @@ def get_hash_list(filelist, algo='audio'):
             log.logger.info("%d audio hashes computed", i)
     return hashes
 
-def save_hash_list(file, root_dir, hashlist):
-    data = {}
-    data['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    data['root_directory'] = root_dir
-    data['hashes'] = hashlist
-    with open(file, 'w', encoding='utf-8') as fh:
-        print(json.dumps(data, indent=4, sort_keys=False, separators=(',', ': ')), file=fh)
+def update_hash_list(master_dir, hash_file_name=None):
+    log.logger.info("Updating file hash")
+    filelist = fil.dir_list(master_dir, recurse=True)
+    if hash_file_name is None:
+        hash_file_name = f"{master_dir}.json"
+    hash = read_hash_list(hash_file_name)
+    log.logger.info("Getting audio hashes of %d files", len(filelist))
+    last_date = datetime.strptime(hash["datetime"], "%Y-%m-%d %H:%M:%S")
+    hashes = hash["hashes"]
+    files = hash.get("files", {})
+    log.logger.info("Already %d files in hash", len(files))
+    i, j, k = 0, 0, 0
+    hash['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for f in filelist:
+        try:
+            file_o = AudioFile(f)
+            if file_o.filename not in files or datetime(*(time.localtime(file_o.modification_date())[:6])) > last_date:
+                log.logger.debug("File %s already in hash", f)
+                file_o.probe()
+                file_o.get_specs()
+                h = file_o.hash('audio')
+                files[f] = h
+                if h in hashes:
+                    hashes[h].append(f)
+                else:
+                    hashes[h] = [f]
+                k += 1
+            else:
+                log.logger.debug("File %s already in hash", f)
+            j += 1
+        except ex.FileTypeError:
+            pass
+        i += 1
+        if (i % 100) == 0:
+            log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
+    log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
+    hash['root_directory'] = master_dir
+    hash['hashes'] = hashes
+    hash['files'] = files
+    with open(hash_file_name, 'w', encoding='utf-8') as fh:
+        print(json.dumps(hash, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
+    return hashes
 
 def read_hash_list(file):
-    data = None
-    with open(file, 'r', encoding='utf-8') as fh:
-        data = json.loads(fh.read())
-    return data['hashes']
+    try:
+        with open(file, 'r', encoding='utf-8') as fh:
+            data = json.loads(fh.read())
+    except FileNotFoundError:
+        data = {"datetime": "1970-01-01 00:00:00", "hashes": {}, "files": {}, "root_directory": ""}
+    return data
 
 
 def csv_headers():
