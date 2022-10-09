@@ -37,6 +37,7 @@ def link_file(file, directory, hash_data):
     if h is None:
         log.logger.warning("Can't hash %s", file)
         return None
+    log.logger.debug("Hash for %s is %s", file, h)
     if h not in hashes.keys():
         log.logger.warning("Can't find master file for %s", file)
         return None
@@ -81,7 +82,7 @@ def main():
     else:
         log.logger.info("Reading existing hash")
         hashes = audio.read_hash_list(hash_file)
-
+    log.logger.info("%d files in hash", len(hashes["hashes"]))
     collection = fil.dir_list(directory, recurse=False)
 
     if kwargs["linkFiles"]:

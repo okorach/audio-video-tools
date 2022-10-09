@@ -96,6 +96,7 @@ class AudioFile(media.MediaFile):
         if algo != 'audio':
             return super().hash(algo=algo, force=force)
         if self._hash is None or force:
+            self.get_specs()
             self.get_tags()
             self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
                 self.year, self.track, self.duration, self.acodec)
@@ -131,6 +132,7 @@ class AudioFile(media.MediaFile):
         return vars(self)
 
     def get_tags(self, version=None):
+        self.probe()
         try:
             tags = self.specs['format']['tags']
         except KeyError:
@@ -306,7 +308,7 @@ def update_hash_list(master_dir, hash_file_name=None):
     for f in filelist:
         try:
             file_o = AudioFile(f)
-            if file_o.filename not in files or datetime(*(time.localtime(file_o.modification_date())[:6])) > last_date:
+            if file_o.filename not in files or datetime(*(file_o.modification_date())[:6]) > last_date:
                 log.logger.debug("File %s already in hash", f)
                 file_o.probe()
                 file_o.get_specs()
