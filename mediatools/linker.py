@@ -27,6 +27,7 @@ from mediatools import log
 import mediatools.utilities as util
 import mediatools.file as fil
 import mediatools.audiofile as audio
+import mediatools.exceptions as exc
 
 
 def link_file(file, directory, hash_data):
@@ -51,9 +52,14 @@ def copy_file(file, directory, hash_data):
     if not fil.is_link(file):
         return None
     shortcut = fil.File(file)
-    srcfile = shortcut.read_link()
-    targetfile = directory + os.sep + fil.basename(srcfile)
-    shutil.copyfile(srcfile, targetfile)
+    try:
+        srcfile = audio.AudioFile(shortcut.read_link())
+    except exc.FileTypeError:
+        log.logger.error("Shortcut %s is not pointing to an existing audio file", file)
+        return None
+    srcfile.get_tags()
+    targetfile = "{}{}{} - {}.{}".format(directory, os.sep, srcfile.title, srcfile.artist, srcfile.extension())
+    shutil.copyfile(srcfile.filename, targetfile)
     return targetfile
 
 def main():
