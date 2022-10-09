@@ -20,7 +20,7 @@
 
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-   video-encode -i "%%~F" -p 2mbps --width 960 --vbitrate 1000k -o "%%~F.1mbps.960x.mp4"
+   video-encode -i "%%~F" -p 2mbps --width 960 --vcodec x265 --vbitrate 1000k -o "%%~F.1mbps.960x.mp4"
 )
 
 :: "E:\Tools\ffmpeg\bin\ffmpeg.exe" -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -vf scale_cuda=1280:720 -c:a copy -c:v h264_nvenc -b:v 5M output.mp4

@@ -20,6 +20,6 @@
 
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    E:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 10000k -vf "transpose=1" "%%~F".rotate90.mp4"
+    video-encode -i "%%~F" -p 720p --vcodec x265 --vbitrate 1536k --width 1280 -o "%%~F.x265.720p.mp4"
 )
 pause
