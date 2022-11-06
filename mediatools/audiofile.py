@@ -22,7 +22,6 @@
 import re
 import os
 import shutil
-import time
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
