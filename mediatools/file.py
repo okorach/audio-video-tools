@@ -25,7 +25,7 @@ import time
 import stat
 import platform
 import hashlib
-from mediatools import log
+from mediatools import log, utilities
 if platform.system() == 'Windows':
     import win32com.client
 
@@ -250,7 +250,7 @@ def file_list(*args, file_type=None, recurse=False):
 
 def __is_type_file(file, type_of_media):
     return type_of_media is None or (
-        os.path.isfile(file) and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media]))
+        (os.path.isfile(file) or file[0:2] == '\\\\') and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media]))
 
 
 def is_audio_file(file):
