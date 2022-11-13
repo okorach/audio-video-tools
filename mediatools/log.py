@@ -43,7 +43,11 @@ ch.setFormatter(formatter)
 def set_logger(name):
     global logger
     logger = logging.getLogger(name)
-    new_fh = logging.FileHandler(name + '.log')
+    try:
+        new_fh = logging.FileHandler(name + '.log')
+    except PermissionError:
+        fallback_log = pathlib.Path(os.getenv("TMP", "/")) / (name + '.log')
+        new_fh = logging.FileHandler(fallback_log)
     new_ch = logging.StreamHandler()
     logger.addHandler(new_fh)
     logger.addHandler(new_ch)
