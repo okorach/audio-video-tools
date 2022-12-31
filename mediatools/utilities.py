@@ -102,13 +102,14 @@ def __compute_eta__(line, total_time):
         return ''
     # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
     #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+) bitrate=.* speed=\s*([\d\.]+)x", line)
+    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x", line)
     if not m:
+        log.logger.debug("%s does not match %s", line, r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x")
         return ''
     speed = float(m.group(2))
     if speed == 0:
         return " ETA=Undefined"
-    return " ETA=" + to_hms_str((total_time - to_seconds(m.group(1))) / speed)
+    return " ETA=" + to_hms_str(max(0, (total_time - to_seconds(m.group(1))) / speed))
 
 
 def __get_log_level_from_ffmpeg_log__(line):
@@ -282,8 +283,8 @@ def parse_media_args(parser, args=None):
     log.logger.debug('Raw args = %s', str(kwargs))
     kwargs.pop('debug')
     (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
-    if kwargs.get('timeranges', None) is not None:
-        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
+    # if kwargs.get('timeranges', None) is not None:
+    #    kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     if kwargs.get('hw_accel', None) is None:
         kwargs['hw_accel'] = conf.get_property('default.hw_accel')
     if kwargs.get('hw_accel', None) is None:
@@ -336,16 +337,23 @@ def get_cmdline_params(cmdline):
         # Format -<option> <value>
         m = re.search(r'^-(\S+)\s+([A-Za-z0-9]\S*)', cmdline)
         if m:
-            parms['-' + m.group(1)] = m.group(2)
+            k = m.group(1)
+            if k in opt.F2M_MAPPING:
+                k = opt.M2F_MAPPING[opt.F2M_MAPPING[k]]
+            parms[k] = m.group(2)
             cmdline = re.sub(r'^-(\S+)\s+([A-Za-z0-9]\S*)', '', cmdline)
         else:
             # Format -<option>
             m = re.search(r'^-(\S+)\s*', cmdline)
             if m:
-                parms['-' + m.group(1)] = None
+                k = m.group(1)
+                if k in opt.F2M_MAPPING:
+                    k = opt.M2F_MAPPING[opt.F2M_MAPPING[k]]
+                parms[k] = True
                 cmdline = re.sub(r'^-(\S+)\s*', '', cmdline)
             else:
                 found = False
+    log.logger.debug("ffmpeg cmd line settings = %s", str(parms))
     return parms
 
 
@@ -389,33 +397,45 @@ def get_ffmpeg_cmdline_params(cmdline):
         opt.Option.SAMPLERATE: get_ffmpeg_cmdline_param(cmdline, opt.OptionFfmpeg.SAMPLERATE)
     })
 
-def get_default_options():
-    return remove_nones({
-        opt.Option.FORMAT: get_conf_property('default.video.format'),
-        opt.Option.VCODEC: get_conf_property('default.video.codec'),
+def get_default_options(filetype=fil.FileType.VIDEO_FILE):
+    audio_opts = {
         opt.Option.ACODEC: get_conf_property('default.audio.codec'),
         opt.Option.ABITRATE: get_conf_property('default.audio.bitrate'),
-        opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
-        opt.Option.FPS: get_conf_property('default.video.fps'),
-        opt.Option.ASPECT: get_conf_property('default.video.aspect'),
-        opt.Option.RESOLUTION: get_conf_property('default.video.resolution'),
         opt.Option.ACHANNEL: get_conf_property('default.audio.channels'),
         opt.Option.SAMPLERATE: get_conf_property('default.audio.samplerate')
-    })
+    }
+    video_opts = {}
+    if filetype == fil.FileType.VIDEO_FILE:
+        video_opts = {
+            opt.Option.FORMAT: get_conf_property('default.video.format'),
+            opt.Option.VCODEC: get_conf_property('default.video.codec'),
+            opt.Option.VBITRATE: get_conf_property('default.video.bitrate'),
+            opt.Option.FPS: get_conf_property('default.video.fps'),
+            opt.Option.ASPECT: get_conf_property('default.video.aspect'),
+            opt.Option.RESOLUTION: get_conf_property('default.video.resolution')
+        }
+    return remove_nones({**audio_opts, **video_opts})
 
 def get_profile_options(profile):
     return get_ffmpeg_cmdline_params(get_conf_property(profile + '.cmdline'))
 
-def get_all_options(**cmdline_args):
+def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
+    log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
         return cmdline_args
-    p = get_default_options()
+    p = get_default_options(filetype)
     if 'profile' in cmdline_args:
         q = get_profile_options(cmdline_args['profile'])
         p = {**p, **q}
     cmdline_args = {**p, **cmdline_args}
+    if cmdline_args.get('acodec', None) == 'copy':
+        cmdline_args.pop('abitrate', None)
+    if cmdline_args.get('vcodec', None) == 'copy':
+        cmdline_args.pop('vbitrate', None)
     (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
+    log.logger.debug("get_all_options return: %s", str(cmdline_args))
     return cmdline_args
+
 
 def swap_keys_values(p):
     return {v: k for k, v in p.items()}

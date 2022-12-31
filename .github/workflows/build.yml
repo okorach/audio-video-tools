@@ -21,11 +21,10 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pylint bandit pytest coverage jprops argparse datetime mp3_tagger ffmpeg-python ExifRead
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           sudo apt update
           sudo apt install ffmpeg
@@ -43,15 +42,17 @@ jobs:
         run: |
           chmod +x ./run_tests.sh
           ./run_tests.sh
-          echo "--------- UT report ---------"; cat build/ut.xml
-          echo "---------Coverage report ---------"; cat build/coverage.xml
+          # echo "--------- UT report ---------"; cat build/ut.xml
+          # echo "---------Coverage report ---------"; cat build/coverage.xml
       - name: Run linters
         working-directory: .
         run: |
           chmod +x ./run_linters.sh
           ./run_linters.sh
-          pwd
-          find .
+      - name: Patch project version
+        run: |
+          version=$(grep VERSION mediatools/version.py | cut -d "=" -f 2 | sed "s/[\'\" ]//g")
+          echo "sonar.projectVersion=$version" >> sonar-project.properties
       - name: Cache SonarQube packages
         uses: actions/cache@v1
         with:

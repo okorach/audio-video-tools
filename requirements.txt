@@ -1,0 +1,12 @@
+flake8
+pylint
+bandit
+pytest
+coverage
+jprops
+argparse
+datetime
+mp3_tagger
+ffmpeg-python
+ExifRead
+music_tag

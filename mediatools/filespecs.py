@@ -119,6 +119,7 @@ def main():
         except ex.FileTypeError:
             continue
         specs = file_object.get_properties()
+        log.logger.info("Specs = %s", str(specs))
         log.logger.debug("Specs = %s", util.json_fmt(specs))
         if fmt == 'csv':
             print(__to_csv__(specs, all_props))

@@ -20,21 +20,22 @@
 #
 
 '''
-This script cuts a video
-It will be improved soon
+This script cuts a video or audio file
 '''
 
 import sys
 from mediatools import log
-import mediatools.videofile as video
 import mediatools.utilities as util
+import mediatools.videofile as video
+import mediatools.avfile as av
+
 
 MISSING_PARAM = '''--start and --stop or --timeranges options is mandatory,
-type video-cut -h for more details'''
+type media-cut -h for more details'''
 
 
 def main():
-    parser = util.get_common_args('video-cut', 'Cuts a time window of the input video file')
+    parser = util.get_common_args('media-cut', 'Cuts a time window of the input video file')
     parser = video.add_video_args(parser)
     parser.add_argument('--start', required=False, help='Cut start timestamp')
     parser.add_argument('--stop', required=False, help='Cut stop timestamp')
@@ -44,9 +45,33 @@ def main():
         if ranges is None:
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
-
-    outputfile = video.cut(kwargs.pop('inputfile'), **kwargs)
-    util.generated_file(outputfile)
+    else:
+        ranges = f"{kwargs.get('start', '')}-{kwargs.get('stop', '')}"
+    i = 0
+    last_stop = 0
+    t_ranges = ranges.split(',')
+    ifile = kwargs.pop('inputfile')
+    for range in t_ranges:
+        i += 1
+        t_bounds = range.split('-')
+        if len(t_bounds) != 2:
+            start = t_bounds[0]
+            stop = None
+            if i == 1:
+                stop = start
+                start = 0
+            else:
+                stop = start
+                start = last_stop
+            outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
+            av.cut(ifile, output=outputfile, start=start, stop=stop)
+            last_stop = stop
+            if i == len(t_ranges):
+                i += 1
+                outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
+                av.cut(ifile, output=outputfile, start=stop)
+        else:
+            av.cut(kwargs.pop('inputfile'), output=kwargs.get('outputfile', None), **kwargs)
 
 
 if __name__ == "__main__":

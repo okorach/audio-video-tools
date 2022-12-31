@@ -19,6 +19,6 @@
 ::
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p mp3_128k
+    video-encode -i "%%~F" -p mp3_128k --abitrate 128k
 )
 

@@ -70,7 +70,7 @@ setuptools.setup(
             'video-concat = mediatools.concat:main',
             'media-crop = mediatools.crop:main',
             'media-volume = mediatools.volume:main',
-            'video-cut = mediatools.cut:main',
+            'media-cut = mediatools.cut:main',
             'video-stabilize = mediatools.deshake:main',
             'audio-album-art = mediatools.album_art:main',
             'image-to-video = mediatools.image2video:main',
@@ -78,6 +78,7 @@ setuptools.setup(
             'video-reverse = mediatools.reverse:main',
             'video-metadata = mediatools.metadata:main',
             'audio-lib = mediatools.audio_lib:main',
+            'audio-list = mediatools.audio_list:main',
             'linker = mediatools.linker:main'
         ]
     },

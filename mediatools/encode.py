@@ -51,26 +51,24 @@ def encode_file(file, file_type, **kwargs):
         file_object.encode(kwargs.get('outputfile', None), **kwargs)
         return
 
-    if kwargs.get('outputfile', None) is None:
-        ext = util.get_profile_extension(kwargs.get('profile'))
+    ext = util.get_profile_extension(kwargs.get('profile'))
     count = 0
     filelist = []
     timeranges = kwargs.get('timeranges', None).split(',')
     for t_r in timeranges:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = t_r.split('-')
         count += 1
-        if kwargs.get('outputfile', None) is None:
-            target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, str(count), ext)
-        else:
-            target_file = kwargs.get('outputfile', None)
-
+        target_file = util.automatic_output_file_name(None, file, str(count), ext)
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
         log.logger.info("File %s generated", outputfile)
         print(f"File {outputfile} generated")
+
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
-        target_file = util.automatic_output_file_name(kwargs.get('outputfile', None), file, "combined", ext)
+        target_file = kwargs.get('outputfile', None)
+        if target_file is None:
+            target_file = util.automatic_output_file_name(target_file, file, "combined", ext)
         video.concat(target_file, filelist)
         log.logger.info("Concatenated file %s generated", target_file)
         print(f"Concatenated file {target_file} generated")
