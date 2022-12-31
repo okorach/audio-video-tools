@@ -217,7 +217,7 @@ def __match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     ext = '.' + extension(file)
     p = re.compile(regex, re.IGNORECASE)
-    return not re.search(p, ext) is None
+    return re.search(p, ext) is not None
 
 
 def dir_list(root_dir, recurse=False, file_type=None):

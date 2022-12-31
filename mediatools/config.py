@@ -18,9 +18,10 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 import os
+import json
 import pathlib
 import jprops
-from mediatools import log, utilities
+from mediatools import log
 
 _CONFIG_SETTINGS = None
 
@@ -69,7 +70,7 @@ def load(config_name=None, settings=None):
             except ValueError:
                 pass
 
-    log.logger.debug("Audit settings = %s", utilities.json_dump(_CONFIG_SETTINGS))
+    log.logger.debug("Audit settings = %s", json.dumps(_CONFIG_SETTINGS))
     return _CONFIG_SETTINGS
 
 
