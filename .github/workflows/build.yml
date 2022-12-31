@@ -49,6 +49,10 @@ jobs:
         run: |
           chmod +x ./run_linters.sh
           ./run_linters.sh
+      - name: Patch project version
+        run: |
+          version=$(grep VERSION mediatools/version.py | cut -d "=" -f 2 | sed "s/[\'\" ]//g")
+          echo "sonar.projectVersion=$version" >> sonar-project.properties
       - name: Cache SonarQube packages
         uses: actions/cache@v1
         with:
