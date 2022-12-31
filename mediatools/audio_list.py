@@ -49,6 +49,8 @@ def main():
                 continue
             log.logger.info("Outputting file: %s", file)
             f = audio.AudioFile(file)
+            if str(f.get_a_tag('album')).lower() == 'Album':
+                f.set_tag('album', '')
             csv_writer.writerow(f.csv_values())
     sys.exit(0)
 

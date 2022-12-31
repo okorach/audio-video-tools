@@ -24,5 +24,3 @@ for %%F in (%*) do (
 )
 
 :: "E:\Tools\ffmpeg\bin\ffmpeg.exe" -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -vf scale_cuda=1280:720 -c:a copy -c:v h264_nvenc -b:v 5M output.mp4
-
-pause

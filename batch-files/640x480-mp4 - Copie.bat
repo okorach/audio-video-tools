@@ -18,9 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
-for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
-)
+E:\Tools\ffmpeg\bin\ffmpeg -i "%~1" -f mp4 -acodec aac -b:a 64k -vcodec libx264 -b:v 800k "%~1.640x480.mp4"
+
 pause

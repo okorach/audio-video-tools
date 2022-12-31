@@ -19,11 +19,18 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import logging
+import pathlib
 
 logger = logging.getLogger('mediatools')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh = logging.FileHandler('mediatools.log')
+try:
+    fh = logging.FileHandler('mediatools.log')
+except PermissionError:
+    fallback_log = pathlib.Path(os.getenv("TMP", "/")) / 'mediatools.log'
+    fh = logging.FileHandler(fallback_log)
+
 # fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 # ch.setLevel(logging.DEBUG)
@@ -36,7 +43,11 @@ ch.setFormatter(formatter)
 def set_logger(name):
     global logger
     logger = logging.getLogger(name)
-    new_fh = logging.FileHandler(name + '.log')
+    try:
+        new_fh = logging.FileHandler(name + '.log')
+    except PermissionError:
+        _fallback_log = pathlib.Path(os.getenv("TMP", "/")) / (name + '.log')
+        new_fh = logging.FileHandler(_fallback_log)
     new_ch = logging.StreamHandler()
     logger.addHandler(new_fh)
     logger.addHandler(new_ch)

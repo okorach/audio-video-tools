@@ -17,10 +17,9 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-
 setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
+    video-encode -i "%%~F" -p aac128 --abitrate 128k
 )
+
 pause

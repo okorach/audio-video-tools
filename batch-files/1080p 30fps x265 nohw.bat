@@ -19,8 +19,8 @@
 ::
 
 setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
+
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
+    video-encode -i "%%~F" -p 1080p --hw_accel off --vcodec x265 --width 1920 --aspect 16:9 --vbitrate 6000k --fps 25 -o "%%~F.tis.mp4"
 )
 pause

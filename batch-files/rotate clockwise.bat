@@ -19,8 +19,6 @@
 ::
 
 setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
+    E:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 10000k -vf "transpose=1" "%%~F".rotate90.mp4"
 )
-pause

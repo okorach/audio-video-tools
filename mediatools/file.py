@@ -47,24 +47,39 @@ class File:
 
     def __init__(self, filename):
         self.filename = filename
-        self.size = None
+        self._size = None
         self.created = None
         self.modified = None
-        self.stat = None
+        self._stat = None
         self._hash = None
         self.algo = None
 
-    def probe(self, force=False):
-        if self.stat is not None and not force:
+    def stat(self, force=False):
+        if self._stat is not None and not force:
             return True
         try:
-            self.stat = os.stat(self.filename)
-            self.modified = time.localtime(self.stat[stat.ST_MTIME])
-            self.created = time.localtime(self.stat[stat.ST_CTIME])
-            self.size = self.stat[stat.ST_SIZE]
+            self._stat = os.stat(self.filename)
+            self.modified = time.localtime(self._stat[stat.ST_MTIME])
+            self.created = time.localtime(self._stat[stat.ST_CTIME])
+            self._size = self._stat[stat.ST_SIZE]
             return True
         except FileNotFoundError:
             return False
+
+    def modification_date(self, force=False):
+        if self.modified is None or force:
+            self.stat()
+        return self.modified
+
+    def creation_date(self, force=False):
+        if self.created is None or force:
+            self.stat()
+        return self.created
+
+    def size(self, force=False):
+        if self.size is None or force:
+            self.stat()
+        return self._size
 
     def is_shortcut(self):
         if platform.system() != 'Windows':
@@ -198,11 +213,11 @@ def strip_file_extension(filename):
     return '.'.join(filename.split('.')[:-1])
 
 
-def __match_extension__(file, regex):
+def __match_extension(file, regex):
     """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
     ext = '.' + extension(file)
     p = re.compile(regex, re.IGNORECASE)
-    return not re.search(p, ext) is None
+    return re.search(p, ext) is not None
 
 
 def dir_list(root_dir, recurse=False, file_type=None):
@@ -235,7 +250,7 @@ def file_list(*args, file_type=None, recurse=False):
 
 def __is_type_file(file, type_of_media):
     return type_of_media is None or (
-        os.path.isfile(file) and __match_extension__(file, FileType.FILE_EXTENSIONS[type_of_media]))
+        (os.path.isfile(file) or file[0:2] == '\\\\') and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media]))
 
 
 def is_audio_file(file):

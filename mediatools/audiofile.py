@@ -25,6 +25,7 @@ import shutil
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
+import music_tag
 from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.file as fil
@@ -59,7 +60,7 @@ class AudioFile(media.MediaFile):
         self._hash = None
 
         super().__init__(filename)
-        self.get_specs()
+        # self.get_specs()
 
     def csv_values(self):
         d = vars(self)
@@ -73,6 +74,8 @@ class AudioFile(media.MediaFile):
         return arr
 
     def get_specs(self):
+        if self.specs is None:
+            self.probe()
         for stream in self.specs['streams']:
             if stream['codec_type'] == 'audio':
                 try:
@@ -92,6 +95,7 @@ class AudioFile(media.MediaFile):
         if algo != 'audio':
             return super().hash(algo=algo, force=force)
         if self._hash is None or force:
+            self.get_specs()
             self.get_tags()
             self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
                 self.year, self.track, self.duration, self.acodec)
@@ -127,6 +131,7 @@ class AudioFile(media.MediaFile):
         return vars(self)
 
     def get_tags(self, version=None):
+        self.probe()
         try:
             tags = self.specs['format']['tags']
         except KeyError:
@@ -200,10 +205,10 @@ class AudioFile(media.MediaFile):
         output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
         ext = target_file.split('.')[-1].lower()
         log.logger.debug("Output file extension = %s", ext)
-        if ext == 'mp3':
+        if ext == 'mp3' and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
             output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
             log.logger.info("Patching codec for MP3 audio output")
-        elif ext in ('m3a', 'aac'):
+        elif ext in ('m3a', 'aac') and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
             output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
             log.logger.info("Patching codec for AAC audio output")
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
@@ -227,6 +232,21 @@ class AudioFile(media.MediaFile):
         shutil.copy(target_file, self.filename)
         os.remove(target_file)
 
+    def set_tag(self, tag, value):
+        f = music_tag.load_file(self.filename)
+        # dict access returns a MetadataItem
+        log.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
+        f[tag] = value
+        f.save()
+
+    def get_a_tag(self, tag):
+        try:
+            f = music_tag.load_file(self.filename)
+        except:
+            return ''
+        # dict access returns a MetadataItem
+        return f.get(tag, '')
+
 
 def album_art(*file_list, scale=None):
     log.logger.debug("Album art(%s)", str(file_list))
@@ -249,7 +269,7 @@ def album_art(*file_list, scale=None):
     return True
 
 
-def get_hash_list(filelist, algo='audio'):
+def get_hash_list(filelist, algo='audio', old_hash=None):
     log.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes = {}
     i = 0
@@ -271,19 +291,56 @@ def get_hash_list(filelist, algo='audio'):
             log.logger.info("%d audio hashes computed", i)
     return hashes
 
-def save_hash_list(file, root_dir, hashlist):
-    data = {}
-    data['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    data['root_directory'] = root_dir
-    data['hashes'] = hashlist
-    with open(file, 'w', encoding='utf-8') as fh:
-        print(json.dumps(data, indent=4, sort_keys=False, separators=(',', ': ')), file=fh)
+def update_hash_list(master_dir, hash_file_name=None):
+    log.logger.info("Updating file hash")
+    filelist = fil.dir_list(master_dir, recurse=True)
+    if hash_file_name is None:
+        hash_file_name = f"{master_dir}.json"
+    _hash = read_hash_list(hash_file_name)
+    log.logger.info("Getting audio hashes of %d files", len(filelist))
+    last_date = datetime.strptime(_hash["datetime"], "%Y-%m-%d %H:%M:%S")
+    hashes = _hash["hashes"]
+    files = _hash.get("files", {})
+    log.logger.info("Already %d files in hash", len(files))
+    i, j, k = 0, 0, 0
+    _hash['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for f in filelist:
+        try:
+            file_o = AudioFile(f)
+            if file_o.filename not in files or datetime(*(file_o.modification_date())[:6]) > last_date:
+                log.logger.debug("File %s already in hash", f)
+                file_o.probe()
+                file_o.get_specs()
+                h = file_o.hash('audio')
+                files[f] = h
+                if h in hashes:
+                    hashes[h].append(f)
+                else:
+                    hashes[h] = [f]
+                k += 1
+            else:
+                log.logger.debug("File %s already in hash", f)
+            j += 1
+        except ex.FileTypeError:
+            pass
+        i += 1
+        if (i % 100) == 0:
+            log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
+    log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
+    _hash['root_directory'] = master_dir
+    _hash['hashes'] = hashes
+    _hash['files'] = files
+    with open(hash_file_name, 'w', encoding='utf-8') as fh:
+        print(json.dumps(_hash, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
+    return hashes
 
 def read_hash_list(file):
-    data = None
-    with open(file, 'r', encoding='utf-8') as fh:
-        data = json.loads(fh.read())
-    return data['hashes']
+    try:
+        with open(file, 'r', encoding='utf-8') as fh:
+            data = json.loads(fh.read())
+    except FileNotFoundError:
+        data = {"datetime": "1970-01-01 00:00:00", "hashes": {}, "files": {}, "root_directory": ""}
+    return data
 
 
 def csv_headers():

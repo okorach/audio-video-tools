@@ -1,6 +1,6 @@
 ::
 :: media-tools
-:: Copyright (C) 2019-2021 Olivier Korach
+:: Copyright (C) 2019-2022 Olivier Korach
 :: mailto:olivier.korach AT gmail DOT com
 ::
 :: This program is free software; you can redistribute it and/or
@@ -18,9 +18,7 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
-for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
-)
+set /p ranges=Ranges ?
+
+media-cut -i "%~1" --timeranges %ranges% -g 5
 pause

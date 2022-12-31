@@ -19,8 +19,8 @@
 ::
 
 setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
+   video-encode -i "%%~F" -p 2mbps --hw_accel off --width 960 --vcodec x265 --vbitrate 1000k -o "%%~F.1mbps.960x.mp4
 )
-pause
+
+:: "E:\Tools\ffmpeg\bin\ffmpeg.exe" -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -vf scale_cuda=1280:720 -c:a copy -c:v h264_nvenc -b:v 5M output.mp4

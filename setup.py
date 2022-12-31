@@ -78,6 +78,7 @@ setuptools.setup(
             'video-reverse = mediatools.reverse:main',
             'video-metadata = mediatools.metadata:main',
             'audio-lib = mediatools.audio_lib:main',
+            'audio-list = mediatools.audio_list:main',
             'linker = mediatools.linker:main'
         ]
     },

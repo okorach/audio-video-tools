@@ -45,7 +45,10 @@ def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
         file_object = audio.AudioFile(file)
     elif t == fil.FileType.VIDEO_FILE:
         file_object = video.VideoFile(file)
-
+        kwargs['vcodec'] = 'copy'
+        kwargs.pop('vbitrate', None)
+    kwargs['acodec'] = 'copy'
+    kwargs.pop('abitrate', None)
     if start is None and stop is None:
         i = 1
         for r in timeranges.split(','):

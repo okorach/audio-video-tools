@@ -19,8 +19,10 @@
 ::
 
 setlocal enabledelayedexpansion
-set /p speed=Speed factor ?:
+set /p width=Width ?:
+set /p vb=Video bitrate ?:
+set /p ab=Audio bitrate ?:
+
 for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
+    video-encode -i "%%~F" -p 2mbps --width %width% --vbitrate %vb% --vcodec x265 --acodec aac --abitrate %ab% -o "%%~F.%vb%.mp4"
 )
-pause
