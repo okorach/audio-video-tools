@@ -9,3 +9,4 @@ datetime
 mp3_tagger
 ffmpeg-python
 ExifRead
+music_tag
