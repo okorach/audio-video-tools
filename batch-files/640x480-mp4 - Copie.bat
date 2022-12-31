@@ -18,8 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    video-encode -i "%%~F" -p 720p --vcodec x265 --vbitrate 1536k --width 1280 --height 720 --aspect 16:9 -o "%%~F.x265.720p.mp4"
-)
+E:\Tools\ffmpeg\bin\ffmpeg -i "%~1" -f mp4 -acodec aac -b:a 64k -vcodec libx264 -b:v 800k "%~1.640x480.mp4"
+
 pause
