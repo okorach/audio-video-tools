@@ -218,11 +218,11 @@ def get_output_settings(file_type=fil.FileType.VIDEO_FILE, **kwargs):
             settings[opt.OptionFfmpeg.DEINTERLACE] = True
 
     start = 0
-    if kwargs.get(opt.Option.START, '') != '':
+    if kwargs.get(opt.Option.START, None) not in ('', None):
         start = util.to_seconds(kwargs[opt.Option.START])
-    if kwargs.get(opt.Option.STOP, '') != '':
-        stop = str(util.to_seconds(kwargs[opt.Option.STOP]) - start)
-        settings[opt.OptionFfmpeg.STOP] = stop
+        # settings[opt.OptionFfmpeg.START] = start
+    if kwargs.get(opt.Option.STOP, None) not in ('', None):
+        settings[opt.OptionFfmpeg.STOP] = util.to_seconds(kwargs[opt.Option.STOP]) - start
 
     if kwargs.get(opt.Option.MUTE, False):
         settings[opt.OptionFfmpeg.MUTE] = True
@@ -230,7 +230,7 @@ def get_output_settings(file_type=fil.FileType.VIDEO_FILE, **kwargs):
         settings[opt.Option.ACODEC] = _get_acodec(**kwargs)
         if kwargs.get(opt.Option.ABITRATE, None) is not None:
             settings[opt.OptionFfmpeg.ABITRATE] = kwargs[opt.Option.ABITRATE]
-        if kwargs.get(opt.Option.ABITRATE, None) is not None:
+        if kwargs.get(opt.Option.ACODEC, None) is not None:
             settings[opt.OptionFfmpeg.ACODEC] = kwargs[opt.Option.ACODEC]
 
     log.logger.debug('get_output_settings returns %s', str(settings))

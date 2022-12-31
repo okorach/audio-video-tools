@@ -45,7 +45,33 @@ def main():
         if ranges is None:
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
-    av.cut(kwargs.pop('inputfile'), output=kwargs.get('outputfile', None), **kwargs)
+    else:
+        ranges = f"{kwargs.get('start', '')}-{kwargs.get('stop', '')}"
+    i = 0
+    last_stop = 0
+    t_ranges = ranges.split(',')
+    ifile = kwargs.pop('inputfile')
+    for range in t_ranges:
+        i += 1
+        t_bounds = range.split('-')
+        if len(t_bounds) != 2:
+            start = t_bounds[0]
+            stop = None
+            if i == 1:
+                stop = start
+                start = 0
+            else:
+                stop = start
+                start = last_stop
+            outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
+            av.cut(ifile, output=outputfile, start=start, stop=stop)
+            last_stop = stop
+            if i == len(t_ranges):
+                i += 1
+                outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
+                av.cut(ifile, output=outputfile, start=stop)
+        else:
+            av.cut(kwargs.pop('inputfile'), output=kwargs.get('outputfile', None), **kwargs)
 
 
 if __name__ == "__main__":

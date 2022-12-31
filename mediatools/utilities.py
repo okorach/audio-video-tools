@@ -281,8 +281,8 @@ def parse_media_args(parser, args=None):
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
     set_debug_level(kwargs.pop('debug', 3))
     (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
-    if kwargs.get('timeranges', None) is not None:
-        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
+    # if kwargs.get('timeranges', None) is not None:
+    #    kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
     if kwargs.get('hw_accel', None) is None:
         kwargs['hw_accel'] = conf.get_property('default.hw_accel')
     if kwargs.get('hw_accel', None) is None:
@@ -426,6 +426,10 @@ def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
         q = get_profile_options(cmdline_args['profile'])
         p = {**p, **q}
     cmdline_args = {**p, **cmdline_args}
+    if cmdline_args.get('acodec', None) == 'copy':
+        cmdline_args.pop('abitrate', None)
+    if cmdline_args.get('vcodec', None) == 'copy':
+        cmdline_args.pop('vbitrate', None)
     (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
     log.logger.debug("get_all_options return: %s", str(cmdline_args))
     return cmdline_args

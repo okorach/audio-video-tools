@@ -205,10 +205,10 @@ class AudioFile(media.MediaFile):
         output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
         ext = target_file.split('.')[-1].lower()
         log.logger.debug("Output file extension = %s", ext)
-        if ext == 'mp3':
+        if ext == 'mp3' and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
             output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
             log.logger.info("Patching codec for MP3 audio output")
-        elif ext in ('m3a', 'aac'):
+        elif ext in ('m3a', 'aac') and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
             output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
             log.logger.info("Patching codec for AAC audio output")
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
