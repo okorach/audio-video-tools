@@ -25,7 +25,7 @@ import time
 import stat
 import platform
 import hashlib
-from mediatools import log, utilities
+from mediatools import log
 if platform.system() == 'Windows':
     import win32com.client
 

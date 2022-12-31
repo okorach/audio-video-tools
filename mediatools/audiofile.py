@@ -235,7 +235,7 @@ class AudioFile(media.MediaFile):
     def set_tag(self, tag, value):
         f = music_tag.load_file(self.filename)
         # dict access returns a MetadataItem
-        util.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
+        log.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
         f[tag] = value
         f.save()
 
@@ -296,14 +296,14 @@ def update_hash_list(master_dir, hash_file_name=None):
     filelist = fil.dir_list(master_dir, recurse=True)
     if hash_file_name is None:
         hash_file_name = f"{master_dir}.json"
-    hash = read_hash_list(hash_file_name)
+    _hash = read_hash_list(hash_file_name)
     log.logger.info("Getting audio hashes of %d files", len(filelist))
-    last_date = datetime.strptime(hash["datetime"], "%Y-%m-%d %H:%M:%S")
-    hashes = hash["hashes"]
-    files = hash.get("files", {})
+    last_date = datetime.strptime(_hash["datetime"], "%Y-%m-%d %H:%M:%S")
+    hashes = _hash["hashes"]
+    files = _hash.get("files", {})
     log.logger.info("Already %d files in hash", len(files))
     i, j, k = 0, 0, 0
-    hash['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _hash['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for f in filelist:
         try:
             file_o = AudioFile(f)
@@ -327,11 +327,11 @@ def update_hash_list(master_dir, hash_file_name=None):
         if (i % 100) == 0:
             log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
     log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
-    hash['root_directory'] = master_dir
-    hash['hashes'] = hashes
-    hash['files'] = files
+    _hash['root_directory'] = master_dir
+    _hash['hashes'] = hashes
+    _hash['files'] = files
     with open(hash_file_name, 'w', encoding='utf-8') as fh:
-        print(json.dumps(hash, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
+        print(json.dumps(_hash, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
     return hashes
 
 def read_hash_list(file):

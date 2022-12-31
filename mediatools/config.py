@@ -20,7 +20,7 @@
 import os
 import pathlib
 import jprops
-from mediatools import log
+from mediatools import log, utilities
 
 _CONFIG_SETTINGS = None
 
@@ -69,7 +69,7 @@ def load(config_name=None, settings=None):
             except ValueError:
                 pass
 
-    log.logger.debug("Audit settings = %s", log.json_dump(_CONFIG_SETTINGS))
+    log.logger.debug("Audit settings = %s", utilities.json_dump(_CONFIG_SETTINGS))
     return _CONFIG_SETTINGS
 
 
