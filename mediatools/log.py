@@ -39,7 +39,6 @@ logger.addHandler(ch)
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 
-
 def set_logger(name):
     global logger
     logger = logging.getLogger(name)
