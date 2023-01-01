@@ -260,7 +260,7 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         log.logger.debug("zoom(%s)", str(kwargs))
-        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom(1, 1.3))]
+        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', _get_random_zoom(1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
         log.logger.debug("DUR %s", str(kwargs.get('duration', None)))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
@@ -433,7 +433,7 @@ class ImageFile(media.MediaFile):
             x = random.randint(0, 1)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
         else:
-            return self.zoom(effect=__get_random_zoom(), **kwargs)
+            return self.zoom(effect=_get_random_zoom(), **kwargs)
 
 
 def get_rectangle(color, w, h):
@@ -598,7 +598,7 @@ def zoom(file, zoom_level, **kwargs):
 #     return (xstart, xstop, ystart, ystop)
 
 
-def __get_random_zoom(zmin=1, zmax=1.3):
+def _get_random_zoom(zmin=1, zmax=1.3):
     rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
     rmin = round(zmin, 2)
     rmax = round(rmax, 2)
