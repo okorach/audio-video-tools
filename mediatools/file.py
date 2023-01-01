@@ -77,7 +77,7 @@ class File:
         return self.created
 
     def size(self, force=False):
-        if self.size is None or force:
+        if self._size is None or force:
             self.stat()
         return self._size
 
