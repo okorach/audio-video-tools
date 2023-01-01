@@ -30,7 +30,7 @@ TMP_VID = util.get_tmp_file() + '.mp4'
 TMP_IMG = util.get_tmp_file() + '.jpg'
 
 def get_img(w, h, orientation='landscape'):
-    small_img = image.__get_background__('black')
+    small_img = image.get_background('black')
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img

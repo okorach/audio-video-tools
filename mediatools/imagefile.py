@@ -156,7 +156,7 @@ class ImageFile(media.MediaFile):
 
     def blindify(self, out_file=None, **kwargs):
         nbr_slices = int(kwargs.pop('blinds', 10))
-        files = [ImageFile(__get_background__(kwargs.pop('background_color', 'black'))), self]
+        files = [ImageFile(get_background(kwargs.pop('background_color', 'black'))), self]
         fcomp = filters.Complex(*files)
         direction = kwargs.pop('direction', 'vertical')
         w, h = self.resolution.width, self.resolution.height
@@ -438,10 +438,10 @@ class ImageFile(media.MediaFile):
 
 def get_rectangle(color, w, h):
     temp_name = util.get_tmp_file() + '.jpg'
-    return ImageFile(__get_background__(color)).scale(w, h, out_file=temp_name)
+    return ImageFile(get_background(color)).scale(w, h, out_file=temp_name)
 
 
-def __get_background__(color):
+def get_background(color):
     bgfile = "white.jpg" if color == "white" else "black.jpg"
     return str(util.package_home() / bgfile)
 
@@ -527,7 +527,7 @@ def posterize(*file_list, out_file=None, **kwargs):
 
     (full_w, full_h, max_w, max_h, gap, red) = __downsize__(full_w, full_h, max_w, max_h, gap)
 
-    fcomplex.insert_input(0, ImageFile(__get_background__(kwargs['background_color'])))
+    fcomplex.insert_input(0, ImageFile(get_background(kwargs['background_color'])))
 
     img_outs = [i for i in range(len(fcomplex.inputs))]
     img_outs[0] = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
