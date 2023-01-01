@@ -175,20 +175,20 @@ def test_blindify():
 
 # Those tests fail. image shake is broken
 
-# def test_shake_1():
-#     w, h = 1000, 200
-#     img = get_img(w, h)
-#     # util.set_debug_level(4)
-#     f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
-#     assert f.height == 210
-#     del_files(img, f)
+def test_shake_1():
+    w, h = 1000, 200
+    img = get_img(w, h)
+    # util.set_debug_level(4)
+    f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
+    assert f.height == 210
+    del_files(img, f)
 
-# def test_shake_2():
-#     w, h = 1000, 200
-#     img = get_img(w, h)
-#     f = image.ImageFile(img.shake(nbr_slices=20, direction='horizontal', shake_pct=10))
-#     assert f.width == 1100
-#     del_files(img, f)
+def test_shake_2():
+    w, h = 1000, 200
+    img = get_img(w, h)
+    f = image.ImageFile(img.shake(nbr_slices=20, direction='horizontal', shake_pct=10))
+    assert f.width == 1100
+    del_files(img, f)
 
 
 def test_rotate():
