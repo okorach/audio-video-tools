@@ -335,6 +335,7 @@ def update_hash_list(master_dir, hash_file_name=None):
     return hashes
 
 def save_hash_list(h_file, hash_data):
+    """Saves hash data in a file"""
     with open(h_file, 'w', encoding='utf-8') as fh:
         print(json.dumps(hash_data, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
 

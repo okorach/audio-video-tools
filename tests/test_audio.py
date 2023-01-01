@@ -25,7 +25,6 @@ import mediatools.utilities as util
 import mediatools.avfile as av
 import mediatools.audiofile as audio
 import mediatools.file as fil
-import mediatools.log as log
 
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 H1 = "Seal-Crazy-Seal-1991-03-357.093878-mp3"
