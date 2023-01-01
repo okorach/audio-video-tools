@@ -32,18 +32,17 @@ FILE_SIZE = 2001067
 
 def test_file_std():
     f = fil.File(FILE)
-    assert f.probe()
-    assert f.probe()
-    assert f.size == FILE_SIZE
+    assert f.stat()
+    assert f.size() == FILE_SIZE
 
 def test_file_video():
     f = video.VideoFile(FILE)
-    assert f.probe()
-    assert f.size == FILE_SIZE
+    assert f.stat()
+    assert f.size() == FILE_SIZE
 
 def test_file_unexisting():
     f = fil.File('nonexist.txt')
-    assert not f.probe()
+    assert not f.stat()
 
 def test_extension():
     assert fil.extension(FILE) == 'mp4'
@@ -59,9 +58,9 @@ def test_basename():
 
 def test_dirname():
     dirname = os.sep.join('/usr/local/bin'.split('/'))
-    file = dirname + os.sep + 'python3'
-    assert fil.dirname(file) == dirname
-    f = fil.File(file)
+    filename = dirname + os.sep + 'python3'
+    assert fil.dirname(filename) == dirname
+    f = fil.File(filename)
     assert f.dirname() == dirname
 
 def test_link():

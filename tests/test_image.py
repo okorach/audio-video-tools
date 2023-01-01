@@ -95,7 +95,9 @@ def test_type():
 def test_to_image_effect():
     w, h = 3000, 2000
     img = get_img(w, h)
+    util.set_debug_level(4)
     vid_o = video.VideoFile(img.to_video(with_effect=True, duration=3, speed=0.02, out_file=TMP_VID)[0])
+    vid_o.get_specs()
     assert vid_o.duration == 3
     del_files(img, vid_o)
 

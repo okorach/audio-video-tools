@@ -48,14 +48,18 @@ def test_main_v_with_output():
     start, stop = 3, 7
     with patch.object(sys, 'argv', [CMD, '--start', str(start), '--stop', str(stop), '-i', VIDEO, '-o', TMPV]):
         cut.main()
-        assert abs(video.VideoFile(TMPV).duration + start - stop) < 0.06
+        v = video.VideoFile(TMPV)
+        v.get_specs()
+        assert abs(v.duration + start - stop) < 0.06
         os.remove(TMPV)
 
 def test_main_a_with_output():
     start, stop = 30, 60
     with patch.object(sys, 'argv', [CMD, '--start', str(start), '--stop', str(stop), '-i', AUDIO, '-o', TMPA]):
         cut.main()
-        assert abs(audio.AudioFile(TMPA).duration + start - stop) < 0.06
+        audiofile = audio.AudioFile(TMPA)
+        audiofile.get_specs()
+        assert abs(audiofile.duration + start - stop) < 0.06
         os.remove(TMPA)
 
 def test_main_help():

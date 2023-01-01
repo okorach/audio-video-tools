@@ -40,18 +40,24 @@ def test_main():
             assert True
         except SystemExit as e:
             assert int(str(e)) == 0
-            assert video.VideoFile(TMP1).duration > 0
+            v = video.VideoFile(TMP1)
+            v.get_specs()
+            assert v.duration > 0
 
 
 def test_main_with_output():
     with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', AUDIO1, VIDEO, AUDIO2, '-o', TMP1]):
         try:
             mux.main()
-            assert video.VideoFile(TMP1).duration > 0
+            v = video.VideoFile(TMP1)
+            v.get_specs()
+            assert v.duration > 0
             os.remove(TMP1)
         except SystemExit as e:
             assert int(str(e)) == 0
-            assert video.VideoFile(TMP1).duration > 0
+            v = video.VideoFile(TMP1)
+            v.get_specs()
+            assert v.duration > 0
             os.remove(TMP1)
 
 

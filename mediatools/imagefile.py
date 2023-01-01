@@ -262,6 +262,7 @@ class ImageFile(media.MediaFile):
         log.logger.debug("zoom(%s)", str(kwargs))
         (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom__(1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
+        log.logger.debug("DUR %s", str(kwargs.get('duration', None)))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 2
@@ -411,9 +412,10 @@ class ImageFile(media.MediaFile):
         speed = 0.05 * random.randrange(-1, 3, 2)
         if 'speed' in kwargs:
             speed = float(kwargs.pop('speed'))
-        duration = 5
+        duration = 5.0
         if 'duration' in kwargs:
             duration = float(kwargs.pop('duration'))
+            log.logger.debug("Setting duration to %5f", duration)
         drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
 
         if self.resolution.ratio <= (3 / 4 + 0.00001):
