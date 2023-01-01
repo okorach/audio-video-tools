@@ -71,7 +71,7 @@ def main():
                 outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
                 av.cut(ifile, output=outputfile, start=stop)
         else:
-            av.cut(kwargs.pop('inputfile'), output=kwargs.get('outputfile', None), **kwargs)
+            av.cut(ifile, output=kwargs.get('outputfile', None), **kwargs)
 
 
 if __name__ == "__main__":
