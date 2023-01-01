@@ -135,7 +135,7 @@ class AudioFile(media.MediaFile):
         try:
             tags = self.specs['format']['tags']
         except KeyError:
-            return
+            return None
         self.title = tags.get('title', None)
         self.artist = tags.get('artist', None)
         self.year = tags.get('date', None)
