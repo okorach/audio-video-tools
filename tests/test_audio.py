@@ -20,6 +20,8 @@
 #
 
 import os
+import json
+from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.avfile as av
@@ -64,7 +66,12 @@ def test_tags():
     assert f.genre == 'Pop'
 
 def test_tags_2():
+    util.set_debug_level(4)
     f = audio.AudioFile(AUDIO_FILE)
+    tags = f.get_tags()
+    #log.logger.debug("TEST TAGS = %S", util.json_fmt(tags))
+    # log.logger.debug("FILE = %S", str(vars(f)))
+    
     assert f.get_title() == 'Crazy'
     assert f.get_author() == 'Seal'
     assert f.get_album() == 'Seal'
@@ -127,3 +134,5 @@ def test_hash_list_2():
     new_hash = audio.read_hash_list(h_file)
     os.remove(h_file)
     assert new_hash == f_hash
+
+test_tags_2()
