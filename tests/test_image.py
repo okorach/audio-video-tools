@@ -85,12 +85,12 @@ def test_type():
         _ = image.ImageFile('it/seal.mp3')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
     try:
         _ = image.ImageFile('it/video-720p.mp4')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
 def test_to_image_effect():
     w, h = 3000, 2000
@@ -175,20 +175,20 @@ def test_blindify():
 
 # Those tests fail. image shake is broken
 
-# def test_shake_1():
-#     w, h = 1000, 200
-#     img = get_img(w, h)
-#     # util.set_debug_level(4)
-#     f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
-#     assert f.height == 210
-#     del_files(img, f)
+def test_shake_1():
+    w, h = 1000, 200
+    img = get_img(w, h)
+    # util.set_debug_level(4)
+    f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
+    assert f.height == 210
+    del_files(img, f)
 
-# def test_shake_2():
-#     w, h = 1000, 200
-#     img = get_img(w, h)
-#     f = image.ImageFile(img.shake(nbr_slices=20, direction='horizontal', shake_pct=10))
-#     assert f.width == 1100
-#     del_files(img, f)
+def test_shake_2():
+    w, h = 1000, 200
+    img = get_img(w, h)
+    f = image.ImageFile(img.shake(nbr_slices=20, direction='horizontal', shake_pct=10))
+    assert f.width == 1100
+    del_files(img, f)
 
 
 def test_rotate():
@@ -200,7 +200,7 @@ def test_rotate():
         image.ImageFile(img.rotate(degrees=180))
         assert False
     except ex.InputError:
-        assert True
+        pass
     except Exception:
         assert False
     finally:

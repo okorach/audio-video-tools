@@ -131,11 +131,14 @@ class AudioFile(media.MediaFile):
         return vars(self)
 
     def get_tags(self, version=None):
+        log.logger.debug("Getting tags of %s", self.filename)
         self.probe()
         try:
             tags = self.specs['format']['tags']
         except KeyError:
-            return
+            log.logger.warning("Can't get tags for %s", self.filename)
+            return None
+        log.logger.debug("Tags = %s", util.json_fmt(tags))
         self.title = tags.get('title', None)
         self.artist = tags.get('artist', None)
         self.year = tags.get('date', None)
@@ -145,9 +148,11 @@ class AudioFile(media.MediaFile):
         self.album = tags.get('album', None)
         self.genre = tags.get('genre', None)
         # self.comment = tags.get('comment', None)
-        return vars(self)
+        log.logger.debug("self.title = %s", str(self.title))
+        return tags
 
     def get_title(self):
+        log.logger.debug("get_title(%s)", str(self.title))
         if self.title is None:
             self.get_tags()
         return self.title
@@ -158,9 +163,12 @@ class AudioFile(media.MediaFile):
         return self.album
 
     def get_author(self):
-        if self.author is None:
+        return self.get_artist()
+
+    def get_artist(self):
+        if self.artist is None:
             self.get_tags()
-        return self.author
+        return self.artist
 
     def get_track(self):
         if self.track is None:

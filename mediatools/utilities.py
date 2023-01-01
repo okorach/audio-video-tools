@@ -179,7 +179,7 @@ def get_media_properties():
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         PROPERTIES_VALUES = conf.load()
-        log.logger.debug("Props = %s", str(PROPERTIES_VALUES))
+        log.logger.debug("Props = %s", json_fmt(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
 
 
