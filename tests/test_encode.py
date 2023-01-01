@@ -84,7 +84,6 @@ def test_main_file():
     try:
         with patch.object(sys, 'argv', ['video-encode', '-g', '4', '-p', '1mbps', '-i', file1, '--hw_accel', 'off', '--resolution', '640x360']):
             encode.main()
-        assert True
     except subprocess.CalledProcessError:
         # Encoding will fail... just to cover some source code
         assert False
@@ -110,7 +109,6 @@ def test_main_dir_timeranges_1():
                           '--resolution', '640x360', '--timeranges', '00:02-00:04', '-g', '4']):
             encode.main()
         # Can't delete output file, don't know the name
-        assert True
     except subprocess.CalledProcessError:
         assert False
 
@@ -125,6 +123,7 @@ def test_main_dir_timeranges_2():
             encode.main()
         # Output file is hardcoded for now :-(
         os.remove('it' + os.sep + 'video-720p.combined.mp4')
-        assert True
     except subprocess.CalledProcessError:
         assert False
+
+test_main_file()
