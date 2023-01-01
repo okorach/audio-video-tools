@@ -47,6 +47,13 @@ def test_hash_list():
     assert len(hashes.keys()) == 2
 
 
+def test_read_hash_list():
+    hashes = audio.read_hash_list("/tmp/nonexist.tser")
+    assert hashes['hashes'] == {}
+    assert hashes['datetime'] == "1970-01-01 00:00:00"
+    assert hashes['files'] == {}
+
+
 def test_tags():
     f = audio.AudioFile(AUDIO_FILE)
     f.get_specs()
@@ -56,6 +63,25 @@ def test_tags():
     assert f.year == 1991
     assert f.genre == 'Pop'
 
+def test_tags_2():
+    f = audio.AudioFile(AUDIO_FILE)
+    assert f.get_title() == 'Crazy'
+    assert f.get_author() == 'Seal'
+    assert f.get_album() == 'Seal'
+    assert f.get_year() == 1991
+    assert f.get_genre() == 'Pop'
+
+def test_set_tag():
+    start, stop = 12, 19
+    v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
+    v.set_tag('title', 'Soul')
+    v.set_tag('artist', 'Punkie')
+    v.set_tag('year', 2022)
+    v.set_tag('genre', 'Folk')
+    assert v.get_author() == 'Punkie'
+    assert v.get_album() == 'Seal'
+    assert v.get_year() == 2022
+    assert v.get_genre() == 'Folk'
 
 def test_type():
     try:
