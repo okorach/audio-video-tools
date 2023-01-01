@@ -164,7 +164,7 @@ class AudioFile(media.MediaFile):
 
     def get_author(self):
         return self.get_artist()
-    
+
     def get_artist(self):
         if self.artist is None:
             self.get_tags()

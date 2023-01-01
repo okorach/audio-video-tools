@@ -20,8 +20,6 @@
 #
 
 import os
-import json
-from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.avfile as av
@@ -68,10 +66,6 @@ def test_tags():
 def test_tags_2():
     util.set_debug_level(4)
     f = audio.AudioFile(AUDIO_FILE)
-    tags = f.get_tags()
-    #log.logger.debug("TEST TAGS = %S", util.json_fmt(tags))
-    # log.logger.debug("FILE = %S", str(vars(f)))
-    
     assert f.get_title() == 'Crazy'
     assert f.get_author() == 'Seal'
     assert f.get_album() == 'Seal'
@@ -95,12 +89,13 @@ def test_type():
         _ = audio.AudioFile('it/img-2320x4000.jpg')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
+
     try:
         _ = audio.AudioFile('it/video-720p.mp4')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
 
 def test_cut():

@@ -85,12 +85,12 @@ def test_type():
         _ = image.ImageFile('it/seal.mp3')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
     try:
         _ = image.ImageFile('it/video-720p.mp4')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
 def test_to_image_effect():
     w, h = 3000, 2000
@@ -200,7 +200,7 @@ def test_rotate():
         image.ImageFile(img.rotate(degrees=180))
         assert False
     except ex.InputError:
-        assert True
+        pass
     except Exception:
         assert False
     finally:
