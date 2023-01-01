@@ -97,6 +97,7 @@ def test_main_file_audio():
     # log.set_logger("tests")
     # log.logger.setLevel(log.get_logging_level(4))
     audio_f = audio.AudioFile(TMP_AUDIO)
+    audio_f.get_specs()
     assert audio_f.acodec == 'mp3'
     assert audio_f.format == 'mp3'
     os.remove(TMP_AUDIO)
