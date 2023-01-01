@@ -33,12 +33,12 @@ FILE_SIZE = 2001067
 def test_file_std():
     f = fil.File(FILE)
     assert f.stat()
-    assert f.size() == FILE_SIZE
+    assert f.filesize() == FILE_SIZE
 
 def test_file_video():
     f = video.VideoFile(FILE)
     assert f.stat()
-    assert f.size() == FILE_SIZE
+    assert f.filesize() == FILE_SIZE
 
 def test_file_unexisting():
     f = fil.File('nonexist.txt')
