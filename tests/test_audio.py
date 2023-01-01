@@ -63,6 +63,7 @@ def test_tags():
     assert f.year == 1991
     assert f.genre == 'Pop'
 
+
 def test_tags_2():
     util.set_debug_level(4)
     f = audio.AudioFile(AUDIO_FILE)
@@ -71,6 +72,7 @@ def test_tags_2():
     assert f.get_album() == 'Seal'
     assert f.get_year() == 1991
     assert f.get_genre() == 'Pop'
+
 
 def test_set_tag():
     start, stop = 12, 19
@@ -83,6 +85,7 @@ def test_set_tag():
     assert v.get_album() == 'Seal'
     assert v.get_year() == 2022
     assert v.get_genre() == 'Folk'
+
 
 def test_type():
     try:
@@ -106,6 +109,7 @@ def test_cut():
     assert abs(stop - start - v.duration) <= 0.06
     os.remove(v.filename)
 
+
 def test_cut2():
     util.set_debug_level(4)
     dur = 10
@@ -114,12 +118,14 @@ def test_cut2():
     assert abs(dur - v.duration) <= 0.06
     os.remove(v.filename)
 
+
 def test_cut3():
     util.set_debug_level(4)
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
     v.get_specs()
     assert abs(10 - v.duration) <= 0.06
     os.remove(v.filename)
+
 
 def test_hash_list_2():
     h_file = "h.json"
@@ -129,5 +135,3 @@ def test_hash_list_2():
     new_hash = audio.read_hash_list(h_file)
     os.remove(h_file)
     assert new_hash == f_hash
-
-test_tags_2()
