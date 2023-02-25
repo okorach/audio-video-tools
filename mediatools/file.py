@@ -36,7 +36,7 @@ class FileType:
     IMAGE_FILE = 'image'
     UNKNOWN_FILE = 'unknown'
     FILE_EXTENSIONS = {
-        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac)$',
+        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac|opus)$',
         VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
         IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$'
     }
