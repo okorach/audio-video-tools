@@ -36,3 +36,8 @@ it/*.stacked.jpg
 .coverage
 test-reports/
 audio_video_tools.egg-info/
+it/video*.*.mp4
+it/img*.*.mp4
+it/img*.*.jpg
+it/*.*.json
+it/*.*.mp3

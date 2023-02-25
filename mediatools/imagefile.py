@@ -260,8 +260,9 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         '''
         log.logger.debug("zoom(%s)", str(kwargs))
-        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', __get_random_zoom__(1, 1.3))]
+        (zstart, zstop) = [max(x, 1) for x in kwargs.get('effect', _get_random_zoom(1, 1.3))]
         fps = kwargs.get('framerate', conf.get_property(conf.VIDEO_FPS_KEY))
+        log.logger.debug("DUR %s", str(kwargs.get('duration', None)))
         duration = float(kwargs.get('duration', conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get('resolution', conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 2
@@ -411,9 +412,10 @@ class ImageFile(media.MediaFile):
         speed = 0.05 * random.randrange(-1, 3, 2)
         if 'speed' in kwargs:
             speed = float(kwargs.pop('speed'))
-        duration = 5
+        duration = 5.0
         if 'duration' in kwargs:
             duration = float(kwargs.pop('duration'))
+            log.logger.debug("Setting duration to %5f", duration)
         drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
 
         if self.resolution.ratio <= (3 / 4 + 0.00001):
@@ -431,7 +433,7 @@ class ImageFile(media.MediaFile):
             x = random.randint(0, 1)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
         else:
-            return self.zoom(effect=__get_random_zoom__(), **kwargs)
+            return self.zoom(effect=_get_random_zoom(), **kwargs)
 
 
 def get_rectangle(color, w, h):
@@ -575,28 +577,28 @@ def zoom(file, zoom_level, **kwargs):
     return ImageFile(file).zoom(effect=z, **kwargs)
 
 
-def __get_random_panorama__():
-    xstart = 0
-    xstop = 0
-    r = random.randint(0, 4)
-    if r == 0:
-        (ystart, ystop) = (0.1, 0.9)
-    elif r == 1:
-        (ystart, ystop) = (0.9, 0.1)
-    else:
-        (ystart, ystop) = (0.5, 0.5)
-    r = random.randint(0, 4)
-    if r == 0 and ystart != 0.5:
-        (xstart, xstop) = (0.5, 0.5)
-    elif r in (1, 2):
-        (xstart, xstop) = (0.9, 0.1)
-    else:
-        (xstart, xstop) = (0.1, 0.9)
+# def __get_random_panorama():
+#     xstart = 0
+#     xstop = 0
+#     r = random.randint(0, 4)
+#     if r == 0:
+#         (ystart, ystop) = (0.1, 0.9)
+#     elif r == 1:
+#         (ystart, ystop) = (0.9, 0.1)
+#     else:
+#         (ystart, ystop) = (0.5, 0.5)
+#     r = random.randint(0, 4)
+#     if r == 0 and ystart != 0.5:
+#         (xstart, xstop) = (0.5, 0.5)
+#     elif r in (1, 2):
+#         (xstart, xstop) = (0.9, 0.1)
+#     else:
+#         (xstart, xstop) = (0.1, 0.9)
+#
+#     return (xstart, xstop, ystart, ystop)
 
-    return (xstart, xstop, ystart, ystop)
 
-
-def __get_random_zoom__(zmin=1, zmax=1.3):
+def _get_random_zoom(zmin=1, zmax=1.3):
     rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
     rmin = round(zmin, 2)
     rmax = round(rmax, 2)

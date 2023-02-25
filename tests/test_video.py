@@ -35,16 +35,17 @@ def test_type():
         _ = video.VideoFile('it' + os.sep + 'seal.mp3')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
     try:
         _ = video.VideoFile('it' + os.sep + 'img-640x480.jpg')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
     v = video.VideoFile(FILE)
     assert v.filename == FILE
+
 
 def test_video_specs():
     v = video.VideoFile(FILE)
@@ -52,6 +53,33 @@ def test_video_specs():
     specs = v.get_video_specs()
     assert specs['streams'][0]['width'] == 1280
     assert specs['streams'][0]['codec_name'] == 'h264'
+
+def test_ffmpeg_cmdline():
+    cmd1 = "-c:a libmp3lame -vn -b:a 192k -map_metadata 0 -id3v2_version 3 -write_id3v1 1"
+    cmd2 = "-f mp4 -acodec aac -deinterlace -vcodec libx265 -f 60 -aspect 16:10 -b:v 1536k -s 720x400"
+    assert video.get_size_option(cmd1) == ""
+    assert video.get_size_option(cmd2) == "720x400"
+    assert video.get_video_codec_option(cmd1) == ""
+    assert video.get_video_codec_option(cmd2) == "libx265"
+    assert video.get_audio_codec_option(cmd1) == "libmp3lame"
+    assert video.get_audio_codec_option(cmd2) == "aac"
+    assert video.get_format_option(cmd1) == ""
+    assert video.get_format_option(cmd2) == "mp4"
+    assert video.get_audio_bitrate_option(cmd1) == "192k"
+    assert video.get_audio_bitrate_option(cmd2) == ""
+    assert video.get_video_bitrate_option(cmd1) == ""
+    assert video.get_video_bitrate_option(cmd2) == "1536k"
+    assert video.get_aspect_ratio_option(cmd1) == ""
+    assert video.get_aspect_ratio_option(cmd2) == "16:10"
+    assert video.get_frame_rate_option(cmd1) == ""
+    assert video.get_frame_rate_option(cmd2) == "60"
+
+
+def test_video_props():
+    f = video.VideoFile(FILE)
+    h = f.get_video_properties()
+    assert isinstance(h['file_size'], int)
+
 
 def test_attributes():
     v = video.VideoFile(FILE)

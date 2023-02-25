@@ -179,7 +179,7 @@ def get_media_properties():
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         PROPERTIES_VALUES = conf.load()
-        log.logger.debug("Props = %s", str(PROPERTIES_VALUES))
+        log.logger.debug("Props = %s", json_fmt(PROPERTIES_VALUES))
     return PROPERTIES_VALUES
 
 
@@ -283,8 +283,11 @@ def parse_media_args(parser, args=None):
     log.logger.debug('Raw args = %s', str(kwargs))
     kwargs.pop('debug')
     (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
-    # if kwargs.get('timeranges', None) is not None:
-    #    kwargs[opt.Option.START], kwargs[opt.Option.STOP] = kwargs['timeranges'].split(',')[0].split('-')
+    timerange = kwargs.get('timeranges', None)
+    if timerange:
+        timerange = timerange.split(',')[0]
+    if timerange and '-' in timerange:
+        kwargs[opt.Option.START], kwargs[opt.Option.STOP] = timerange.split('-')
     if kwargs.get('hw_accel', None) is None:
         kwargs['hw_accel'] = conf.get_property('default.hw_accel')
     if kwargs.get('hw_accel', None) is None:
@@ -488,13 +491,14 @@ def get_tmp_file():
 
 
 def resolve_resolution(**kwargs):
-    if opt.Option.WIDTH in kwargs:
-        if opt.Option.HEIGHT in kwargs:
+    log.logger.info("ARgs = %s", str(kwargs))
+    if kwargs.get(opt.Option.WIDTH, None):
+        if kwargs.get(opt.Option.HEIGHT, None):
             return (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT])
         else:
             return (kwargs[opt.Option.WIDTH], -1)
     else:
-        if opt.Option.HEIGHT in kwargs:
+        if kwargs.get(opt.Option.HEIGHT, None):
             return (-1, kwargs[opt.Option.HEIGHT])
     if kwargs.get(opt.Option.RESOLUTION, None) is None:
         return (None, None)

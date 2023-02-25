@@ -47,6 +47,13 @@ def test_hash_list():
     assert len(hashes.keys()) == 2
 
 
+def test_read_hash_list():
+    hashes = audio.read_hash_list("/tmp/nonexist.tser")
+    assert hashes['hashes'] == {}
+    assert hashes['datetime'] == "1970-01-01 00:00:00"
+    assert hashes['files'] == {}
+
+
 def test_tags():
     f = audio.AudioFile(AUDIO_FILE)
     f.get_specs()
@@ -57,44 +64,74 @@ def test_tags():
     assert f.genre == 'Pop'
 
 
+def test_tags_2():
+    util.set_debug_level(4)
+    f = audio.AudioFile(AUDIO_FILE)
+    assert f.get_title() == 'Crazy'
+    assert f.get_author() == 'Seal'
+    assert f.get_album() == 'Seal'
+    assert f.get_year() == 1991
+    assert f.get_genre() == 'Pop'
+
+
+def test_set_tag():
+    start, stop = 12, 19
+    v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
+    v.set_tag('title', 'Soul')
+    v.set_tag('artist', 'Punkie')
+    v.set_tag('year', 2022)
+    v.set_tag('genre', 'Folk')
+    assert v.get_author() == 'Punkie'
+    assert v.get_album() == 'Seal'
+    assert v.get_year() == 2022
+    assert v.get_genre() == 'Folk'
+
+
 def test_type():
     try:
         _ = audio.AudioFile('it/img-2320x4000.jpg')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
+
     try:
         _ = audio.AudioFile('it/video-720p.mp4')
         assert False
     except ex.FileTypeError:
-        assert True
+        pass
 
 
 def test_cut():
     util.set_debug_level(4)
     start, stop = 12, 19
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
+    v.get_specs()
     assert abs(stop - start - v.duration) <= 0.06
     os.remove(v.filename)
+
 
 def test_cut2():
     util.set_debug_level(4)
     dur = 10
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, stop=dur))
+    v.get_specs()
     assert abs(dur - v.duration) <= 0.06
     os.remove(v.filename)
+
 
 def test_cut3():
     util.set_debug_level(4)
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, timeranges='00:10-00:20'))
+    v.get_specs()
     assert abs(10 - v.duration) <= 0.06
     os.remove(v.filename)
+
 
 def test_hash_list_2():
     h_file = "h.json"
     filelist = fil.dir_list("it", recurse=True)
-    hash = audio.get_hash_list(filelist)
-    audio.save_hash_list(h_file, ".", hash)
+    f_hash = audio.get_hash_list(filelist)
+    audio.save_hash_list(h_file, f_hash)
     new_hash = audio.read_hash_list(h_file)
     os.remove(h_file)
-    assert new_hash == hash
+    assert new_hash == f_hash
