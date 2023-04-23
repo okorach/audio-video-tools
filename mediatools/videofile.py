@@ -218,7 +218,7 @@ class VideoFile(media.MediaFile):
         if self.video_codec is None:
             self.get_specs()
         return {
-            'file_size': self.size(), opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
+            'file_size': self.size, opt.Option.FORMAT: self.format, opt.Option.VBITRATE: self.video_bitrate,
             opt.Option.VCODEC: self.video_codec, opt.Option.FPS: self.video_fps,
             'width': self.get_width(), 'height': self.get_height(), opt.Option.ASPECT: self.aspect,
             'pixel_aspect_ratio': self.pixel_aspect, 'author': self.author,
