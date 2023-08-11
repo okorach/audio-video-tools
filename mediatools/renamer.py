@@ -27,6 +27,7 @@ import os
 import argparse
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
+import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
 
@@ -38,11 +39,11 @@ def main():
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
     root = kwargs['root']
-    seq = 1
     for file in kwargs['files']:
         with ExifToolHelper() as et:
-            for data in et.get_metadata(file):
+            for data in et.get_tags(file, tags=["DateTimeOriginal"]):
                 # 2023:07:26 08:36:01
+                log.logger.debug("Data = %s", util.json_fmt(data))
                 creation_date = datetime.strptime(data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
         new_filename = creation_date.strftime("%Y-%m-%d %H_%M_%S") + f" {root}." + fil.extension(file)
         dirname = fil.dirname(file)
