@@ -79,7 +79,8 @@ setuptools.setup(
             'video-metadata = mediatools.metadata:main',
             'audio-lib = mediatools.audio_lib:main',
             'audio-list = mediatools.audio_list:main',
-            'linker = mediatools.linker:main'
+            'linker = mediatools.linker:main',
+            'renamer = mediatools.renamer:main'
         ]
     },
     python_requires='>=3.6',
