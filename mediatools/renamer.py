@@ -66,7 +66,8 @@ def main():
     root = kwargs.get('root', None)
     fmt = kwargs['format']
     seq = int(kwargs.get('seqstart', 1))
-    for file in kwargs['files'].sort():
+    kwargs['files'].sort()
+    for file in kwargs['files']:
         with ExifToolHelper() as et:
             for data in et.get_metadata(file):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
@@ -89,6 +90,7 @@ def main():
         log.logger.info(f"Renaming {file} into {new_filename}")
         try:
             os.rename(file, new_filename)
+            seq += 1
         except os.error:
             success = False
             for seq in range(2, 10):
@@ -100,7 +102,9 @@ def main():
                     break
                 except os.error:
                     pass
-            if not success:
+            if success:
+                seq += 1
+            else:
                 log.logger.warning("Unable to rename")
 
 
