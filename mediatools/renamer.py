@@ -31,6 +31,8 @@ import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
 
+DATE_FMT = "%Y-%m-%d %H_%M_%S"
+
 def get_creation_date(exif_data):
     if "EXIF:DateTimeOriginal" in exif_data:
         creation_date = datetime.strptime(exif_data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
@@ -56,11 +58,15 @@ def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
+    parser.add_argument('--format', help='Format for the renamed files', required=False, default="%Y-%m-%d %H_%M_%S #DEVICE# #SEQ#")
+    parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
     parser.add_argument('-r', '--root', help='Root name', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
     root = kwargs.get('root', None)
-    for file in kwargs['files']:
+    fmt = kwargs['format']
+    seq = int(kwargs.get('seqstart', 1))
+    for file in kwargs['files'].sort():
         with ExifToolHelper() as et:
             for data in et.get_metadata(file):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
@@ -70,8 +76,13 @@ def main():
                 device = get_device(data)
                 postfix = device if root is None or root == "" else root
         log.logger.debug("Postfix = %s", postfix)
-
-        new_filename = fil.dirname(file) + os.sep + creation_date.strftime("%Y-%m-%d %H_%M_%S") + f" {postfix}." + fil.extension(file).lower()
+        dirname = fil.dirname(file)
+        file_fmt = fmt.replace("#DEVICE#", device)
+        file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
+        file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
+        file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
+        file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
+        new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + "." + fil.extension(file).lower()
         if new_filename == file:
             log.logger.info("File %s does need to be renamed, skipped...", file)
             continue
