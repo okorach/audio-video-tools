@@ -41,9 +41,8 @@ def main():
     root = kwargs.get('root', None)
     for file in kwargs['files']:
         with ExifToolHelper() as et:
-            for data in et.get_metadata(file):
-                # 2023:07:26 08:36:01
-                log.logger.debug("MetaData = %s", util.json_fmt(data))
+            # for data in et.get_metadata(file):
+            #    log.logger.debug("MetaData = %s", util.json_fmt(data))
             for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model"]):
                 log.logger.debug("Data = %s", util.json_fmt(data))
                 creation_date = datetime.strptime(data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
