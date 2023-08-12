@@ -46,7 +46,7 @@ def main():
             for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model"]):
                 log.logger.debug("Data = %s", util.json_fmt(data))
                 creation_date = datetime.strptime(data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
-                postfix = data["EXIF:Make"] + " " + data["EXIF:Model"] if root is None or root == "" else root
+                postfix = data.get("EXIF:Make", "") + " " + data.get("EXIF:Model", "") if root is None or root == "" else root
         log.logger.debug("Postfix = %s", postfix)
 
         new_filename = fil.dirname(file) + os.sep + creation_date.strftime("%Y-%m-%d %H_%M_%S") + f" {postfix}." + fil.extension(file).lower()
