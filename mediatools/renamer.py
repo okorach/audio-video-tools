@@ -31,6 +31,27 @@ import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
 
+def get_creation_date(exif_data):
+    if "EXIF:DateTimeOriginal" in exif_data:
+        creation_date = datetime.strptime(exif_data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
+    elif "File:FileModifyDate" in exif_data:
+        creation_date = datetime.strptime(exif_data["File:FileModifyDate"], '%Y:%m:%d %H:%M:%S%z')
+    else:
+        creation_date = datetime.strptime(exif_data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
+    return creation_date
+
+def get_device(exif_data):
+    log.logger.debug("Device = %s", util.json_fmt(exif_data))
+    if "EXIF:Make" in exif_data:
+        device = exif_data["EXIF:Make"]
+        if "EXIF:Model" in exif_data:
+            device += " " + exif_data["EXIF:Model"]
+    elif "QuickTime:Author" in exif_data:
+        device = exif_data["QuickTime:Author"]
+    else:
+        device = ""
+    return device
+
 def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
@@ -41,12 +62,13 @@ def main():
     root = kwargs.get('root', None)
     for file in kwargs['files']:
         with ExifToolHelper() as et:
-            # for data in et.get_metadata(file):
-            #    log.logger.debug("MetaData = %s", util.json_fmt(data))
-            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model"]):
-                log.logger.debug("Data = %s", util.json_fmt(data))
-                creation_date = datetime.strptime(data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
-                postfix = data.get("EXIF:Make", "") + " " + data.get("EXIF:Model", "") if root is None or root == "" else root
+            for data in et.get_metadata(file):
+                log.logger.debug("MetaData = %s", util.json_fmt(data))
+#            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
+#                log.logger.debug("Data = %s", util.json_fmt(data))
+                creation_date = get_creation_date(data)
+                device = get_device(data)
+                postfix = device if root is None or root == "" else root
         log.logger.debug("Postfix = %s", postfix)
 
         new_filename = fil.dirname(file) + os.sep + creation_date.strftime("%Y-%m-%d %H_%M_%S") + f" {postfix}." + fil.extension(file).lower()
@@ -57,7 +79,18 @@ def main():
         try:
             os.rename(file, new_filename)
         except os.error:
-            log.logger.warning("Unable to rename")
+            success = False
+            for seq in range(2, 10):
+                try:
+                    new_filename = fil.dirname(file) + os.sep + creation_date.strftime("%Y-%m-%d %H_%M_%S") + \
+                        f" {postfix}.{seq}." + fil.extension(file).lower()
+                    os.rename(file, new_filename)
+                    success = True
+                    break
+                except os.error:
+                    pass
+            if not success:
+                log.logger.warning("Unable to rename")
 
 
 if __name__ == "__main__":
