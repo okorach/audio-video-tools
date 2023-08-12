@@ -47,8 +47,11 @@ def main():
                 creation_date = datetime.strptime(data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
         new_filename = creation_date.strftime("%Y-%m-%d %H_%M_%S") + f" {root}." + fil.extension(file)
         dirname = fil.dirname(file)
-        os.rename(file, f"{dirname}{os.sep}{new_filename}")
-        # print(f"Rename {file} into {dirname}{os.sep}{new_filename}")
+        log.logger.info(f"Renaming {file} into {dirname}{os.sep}{new_filename}")
+        try:
+            os.rename(file, f"{dirname}{os.sep}{new_filename}")
+        except os.error:
+            util.logger.warning("Unable to rename")
 
 
 if __name__ == "__main__":
