@@ -6,4 +6,3 @@
 
 :: renamer -r "%root%" -f %* -g 5
 renamer --format "Andalousie 2023 #SEQ# - #TIMESTAMP# - #DEVICE#" --files %*
-pause
