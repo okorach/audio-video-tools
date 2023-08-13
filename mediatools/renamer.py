@@ -39,7 +39,8 @@ def get_creation_date(exif_data):
     elif "File:FileModifyDate" in exif_data:
         creation_date = datetime.strptime(exif_data["File:FileModifyDate"], '%Y:%m:%d %H:%M:%S%z')
     else:
-        creation_date = datetime.strptime(exif_data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
+        log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
+        creation_date = None
     return creation_date
 
 def get_device(exif_data):
@@ -61,13 +62,18 @@ def main():
     parser.add_argument('--format', help='Format for the renamed files', required=False, default="%Y-%m-%d %H_%M_%S #DEVICE# #SEQ#")
     parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
     parser.add_argument('-r', '--root', help='Root name', required=False)
+    parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
-    root = kwargs.get('root', None)
     fmt = kwargs['format']
     seq = int(kwargs.get('seqstart', 1))
-    kwargs['files'].sort()
-    for file in kwargs['files']:
+    sortby = kwargs['sortby']
+    filelist = {}
+    files = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
+    for file in files:
+        if fil.extension(file).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'vob', 'mov'):
+            continue
+        log.logger.info("Reading data for %s", file)
         with ExifToolHelper() as et:
             for data in et.get_metadata(file):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
@@ -75,8 +81,20 @@ def main():
 #                log.logger.debug("Data = %s", util.json_fmt(data))
                 creation_date = get_creation_date(data)
                 device = get_device(data)
-                postfix = device if root is None or root == "" else root
-        log.logger.debug("Postfix = %s", postfix)
+        if sortby == "name":
+            filelist[file] = {"creation_date": creation_date, "device": device, "file": file}
+        elif sortby == "device":
+            if device is not None:
+                filelist[f"{device} {seq:06}"] = {"creation_date": creation_date, "device": device, "file": file}
+        else:
+            if creation_date is not None:
+                filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = {"creation_date": creation_date, "device": device, "file": file}
+
+    seq = int(kwargs.get('seqstart', 1))
+    for key in sorted(filelist.keys()):
+        file = filelist[key]['file']
+        device = filelist[key]['device']
+        creation_date = filelist[key]['creation_date']
         dirname = fil.dirname(file)
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
@@ -93,10 +111,9 @@ def main():
             seq += 1
         except os.error:
             success = False
-            for seq in range(2, 10):
+            for v in range(2, 10):
                 try:
-                    new_filename = fil.dirname(file) + os.sep + creation_date.strftime("%Y-%m-%d %H_%M_%S") + \
-                        f" {postfix}.{seq}." + fil.extension(file).lower()
+                    new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + f" {v}." + fil.extension(file).lower()
                     os.rename(file, new_filename)
                     success = True
                     break
