@@ -73,16 +73,15 @@ def get_size(exif_data):
 
 def get_bitrate(exif_data):
     log.logger.debug("Bitrate = %s", util.json_fmt(exif_data))
-    bitrate = ""
+    bitrate = None
     if "Composite:AvgBitrate" in exif_data:
-        br = int(exif_data["Composite:AvgBitrate"] // 1024 // 1024 * 10) / 10
-        bitrate = f'{br:.1f} mbps'
+        bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
     return bitrate
 
 def get_fps(exif_data):
-    fps = ""
+    fps = None
     if "QuickTime:VideoFrameRate" in exif_data:
-        fps = f'{round(float(exif_data["QuickTime:VideoFrameRate"]))}'
+        fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
 
 def main():
@@ -132,8 +131,8 @@ def main():
         dirname = fil.dirname(file)
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
-        file_fmt = file_fmt.replace("#BITRATE#", filelist[key]['bitrate'])
-        file_fmt = file_fmt.replace("#FPS#", filelist[key]['fps'])
+        file_fmt = file_fmt.replace("#BITRATE#", str(filelist[key]['bitrate']))
+        file_fmt = file_fmt.replace("#FPS#", str(filelist[key]['fps']))
         file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
         file_fmt = file_fmt.replace("#SEQ1#", f"{seq:01}")
         file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
