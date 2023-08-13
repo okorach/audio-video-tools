@@ -45,15 +45,36 @@ def get_creation_date(exif_data):
 
 def get_device(exif_data):
     log.logger.debug("Device = %s", util.json_fmt(exif_data))
+    device = ""
     if "EXIF:Make" in exif_data:
         device = exif_data["EXIF:Make"]
         if "EXIF:Model" in exif_data:
             device += " " + exif_data["EXIF:Model"]
     elif "QuickTime:Author" in exif_data:
         device = exif_data["QuickTime:Author"]
-    else:
-        device = ""
+    elif "QuickTime:CompressorName" in exif_data:
+        device = exif_data["QuickTime:CompressorName"]
     return device
+
+def get_size(exif_data):
+    log.logger.debug("Size = %s", util.json_fmt(exif_data))
+    size = ""
+    if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
+        size = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
+    elif "EXIF:ExifImageWidth" in exif_data and "EXIF:ExifImageHeight" in exif_data:
+        size = f'{exif_data["EXIF:ExifImageWidth"]}x{exif_data["EXIF:ExifImageHeight"]}'
+    elif "QuickTime:SourceImageWidth" in exif_data and "QuickTime:SourceImageHeight":
+        size = f'{exif_data["QuickTime:SourceImageWidth"]}x{exif_data["QuickTime:SourceImageHeight"]}'
+    elif "QuickTime:ImageWidth" in exif_data and "QuickTime:ImageHeight":
+        size = f'{exif_data["QuickTime:ImageWidth"]}x{exif_data["QuickTime:ImageHeight"]}'
+    elif "Composite:ImageSize" in exif_data:
+        size = exif_data["Composite:ImageSize"].replace(" ", "x")
+    return size
+
+def get_bitrate(exif_data):
+    log.logger.debug("Bitrate = %s", util.json_fmt(exif_data))
+    bitrate = ""
+    return bitrate
 
 def main():
     util.init('renamer')
@@ -81,14 +102,17 @@ def main():
 #                log.logger.debug("Data = %s", util.json_fmt(data))
                 creation_date = get_creation_date(data)
                 device = get_device(data)
+                bitrate = get_bitrate(data)
+                size = get_size(data)
+        d = {"creation_date": creation_date, "device": device, "file": file, "bitrate": bitrate, "size": size}
         if sortby == "name":
-            filelist[file] = {"creation_date": creation_date, "device": device, "file": file}
+            filelist[file] = d
         elif sortby == "device":
             if device is not None:
-                filelist[f"{device} {seq:06}"] = {"creation_date": creation_date, "device": device, "file": file}
+                filelist[f"{device} {seq:06}"] = d
         else:
             if creation_date is not None:
-                filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = {"creation_date": creation_date, "device": device, "file": file}
+                filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = d
 
     seq = int(kwargs.get('seqstart', 1))
     for key in sorted(filelist.keys()):
@@ -98,6 +122,8 @@ def main():
         dirname = fil.dirname(file)
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
+        file_fmt = file_fmt.replace("#BITRATE#", filelist[key]['bitrate'])
+        file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
         file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
@@ -340,4 +366,293 @@ if __name__ == "__main__":
 "XMP:Creator": "Picasa",
 "XMP:ModifyDate": "2023:08:09 19:33:37+02:00",
 "XMP:XMPToolkit": "XMP Core 5.1.2"
+
+   "QuickTime:MediaDuration": 9.04533333333333,
+   "QuickTime:MediaHeaderVersion": 0,
+   "QuickTime:MediaLanguageCode": "und",
+   "QuickTime:MediaModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:MediaTimeScale": 48000,
+   "QuickTime:MinorVersion": "0.0.1",
+   "QuickTime:ModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:MovieHeaderVersion": 0,
+   "QuickTime:NextTrackID": 3,
+   "QuickTime:OpColor": "0 0 0",
+   "QuickTime:PosterTime": 0,
+   "QuickTime:PreferredRate": 1,
+   "QuickTime:PreferredVolume": 1,
+   "QuickTime:PreviewDuration": 0,
+   "QuickTime:PreviewTime": 0,
+   "QuickTime:SelectionDuration": 0,
+   "QuickTime:SelectionTime": 0,
+   "QuickTime:SourceImageHeight": 1080,
+   "QuickTime:SourceImageWidth": 1920,
+   "QuickTime:TimeScale": 180000,
+   "QuickTime:TrackCreateDate": "2023:07:26 08:00:52",
+   "QuickTime:TrackDuration": 9.009,
+   "QuickTime:TrackHeaderVersion": 0,
+   "QuickTime:TrackID": 1,
+   "QuickTime:TrackLayer": 0,
+   "QuickTime:TrackModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:TrackVolume": 0,
+   "QuickTime:TransferCharacteristics": 1,
+   "QuickTime:VideoFrameRate": 59.9400599400599,
+   "QuickTime:XResolution": 72,
+   "QuickTime:YResolution": 72,
+   "SourceFile": "//Freebox_Server/Tera2/Photos/2023Q3/Andalousie 2023/Vid?os/Andalousie 2023 - 0001 - 2023-07-26 08_00_51 - Panasonic DC-FZ82.mp4",
+   "XMP:GPSLatitude": 37.1759972221667,
+   "XMP:GPSLongitude": -3.59741388883333,
+   "XMP:XMPToolkit": "Image::ExifTool 12.64"
+}
+2023-08-13 10:50:27,325 - renamer - DEBUG - Size = {
+   "Composite:AdvancedSceneMode": "DC-FZ82 37 5",
+   "Composite:Aperture": 2.8,
+   "Composite:AvgBitrate": 27370471,
+   "Composite:BlueBalance": 1.8984375,
+   "Composite:CircleOfConfusion": "0.00491666083017817",
+   "Composite:FOV": 78.5788800977413,
+   "Composite:FocalLength35efl": 22,
+   "Composite:GPSLatitudeRef": "N",
+   "Composite:GPSLongitudeRef": "W",
+   "Composite:GPSPosition": "37.1759972221667 -3.59741388883333",
+   "Composite:HyperfocalDistance": 0.941405475879389,
+   "Composite:ImageSize": "1920 1080",
+   "Composite:LightValue": 13.6370776572014,
+   "Composite:Megapixels": 2.0736,
+   "Composite:RedBalance": 1.546875,
+   "Composite:Rotation": 0,
+   "Composite:ScaleFactor35efl": 6.11111111111111,
+   "Composite:ShutterSpeed": 0.0007692307692,
+   "Composite:SubSecCreateDate": "2023:07:26 08:00:51.985",
+   "Composite:SubSecDateTimeOriginal": "2023:07:26 08:00:51.985",
+   "Composite:SubSecModifyDate": "2023:07:26 08:00:51.985",
+   "EXIF:ColorSpace": 1,
+   "EXIF:ComponentsConfiguration": "1 2 3 0",
+   "EXIF:CompressedBitsPerPixel": 2,
+   "EXIF:Compression": 6,
+   "EXIF:Contrast": 0,
+   "EXIF:CreateDate": "2023:07:26 08:00:51",
+   "EXIF:CustomRendered": 0,
+   "EXIF:DateTimeOriginal": "2023:07:26 08:00:51",
+   "EXIF:DigitalZoomRatio": 0,
+   "EXIF:ExifImageHeight": 1080,
+   "EXIF:ExifImageWidth": 1920,
+   "EXIF:ExifVersion": "0230",
+   "EXIF:ExposureCompensation": 0,
+   "EXIF:ExposureMode": 0,
+   "EXIF:ExposureProgram": 8,
+   "EXIF:ExposureTime": 0.0007692307692,
+   "EXIF:FNumber": 2.8,
+   "EXIF:FileSource": 3,
+   "EXIF:Flash": 16,
+   "EXIF:FlashpixVersion": "0100",
+   "EXIF:FocalLength": 3.6,
+   "EXIF:FocalLengthIn35mmFormat": 22,
+   "EXIF:GainControl": 0,
+   "EXIF:ISO": 80,
+   "EXIF:InteropIndex": "R98",
+   "EXIF:InteropVersion": "0100",
+   "EXIF:LightSource": 0,
+   "EXIF:Make": "Panasonic",
+   "EXIF:MaxApertureValue": 2.80174979625871,
+   "EXIF:MeteringMode": 5,
+   "EXIF:Model": "DC-FZ82",
+   "EXIF:ModifyDate": "2023:07:26 08:00:51",
+   "EXIF:Orientation": 1,
+   "EXIF:ResolutionUnit": 2,
+   "EXIF:Saturation": 0,
+   "EXIF:SceneCaptureType": 0,
+   "EXIF:SceneType": 1,
+   "EXIF:SensingMethod": 2,
+   "EXIF:SensitivityType": 1,
+   "EXIF:Sharpness": 0,
+   "EXIF:Software": "Ver.1.1",
+   "EXIF:SubSecTime": 985,
+   "EXIF:SubSecTimeDigitized": 985,
+   "EXIF:SubSecTimeOriginal": 985,
+   "EXIF:ThumbnailLength": 0,
+   "EXIF:ThumbnailOffset": 14668,
+   "EXIF:WhiteBalance": 0,
+   "EXIF:XResolution": 180,
+   "EXIF:YCbCrPositioning": 2,
+   "EXIF:YResolution": 180,
+   "ExifTool:ExifToolVersion": 12.64,
+   "ExifTool:Warning": "FileName encoding not specified",
+   "File:Directory": "//Freebox_Server/Tera2/Photos/2023Q3/Andalousie 2023/Vid?os",
+   "File:ExifByteOrder": "II",
+   "File:FileAccessDate": "2023:08:10 18:06:11+02:00",
+   "File:FileCreateDate": "2023:08:10 18:06:11+02:00",
+   "File:FileModifyDate": "2023:08:10 18:06:11+02:00",
+   "File:FileName": "Andalousie 2023 - 0001 - 2023-07-26 08_00_51 - Panasonic DC-FZ82.mp4",
+   "File:FilePermissions": 100666,
+   "File:FileSize": 30923773,
+   "File:FileType": "MP4",
+   "File:FileTypeExtension": "MP4",
+   "File:MIMEType": "video/mp4",
+   "MakerNotes:AFAreaMode": "240 0",
+   "MakerNotes:AFAssistLamp": 2,
+   "MakerNotes:AFPointPosition": "0.0546875 0.51171875",
+   "MakerNotes:AccelerometerX": 0,
+   "MakerNotes:AccelerometerY": 0,
+   "MakerNotes:AccelerometerZ": 0,
+   "MakerNotes:AccessorySerialNumber": "0000000",
+   "MakerNotes:AccessoryType": "NO-ACCESSORY",
+   "MakerNotes:AdvancedSceneType": 5,
+   "MakerNotes:Audio": 3,
+   "MakerNotes:BabyAge": "9999:99:99 00:00:00",
+   "MakerNotes:BabyName": "",
+   "MakerNotes:BatteryLevel": 0,
+   "MakerNotes:BracketSettings": 0,
+   "MakerNotes:BurstMode": 0,
+   "MakerNotes:BurstSpeed": 0,
+   "MakerNotes:CameraOrientation": 0,
+   "MakerNotes:City": "",
+   "MakerNotes:City2": "",
+   "MakerNotes:ClearRetouch": 0,
+   "MakerNotes:ClearRetouchValue": "undef",
+   "MakerNotes:ColorEffect": 1,
+   "MakerNotes:ColorTempKelvin": 5000,
+   "MakerNotes:Contrast": 0,
+   "MakerNotes:ContrastMode": 1,
+   "MakerNotes:ConversionLens": 1,
+   "MakerNotes:Country": "",
+   "MakerNotes:DarkFocusEnvironment": 1,
+   "MakerNotes:DataDump": "(Binary data 8 bytes, use -b option to extract)",
+   "MakerNotes:DiffractionCorrection": 1,
+   "MakerNotes:FacesDetected": 0,
+   "MakerNotes:FacesRecognized": 0,
+   "MakerNotes:FilterEffect": "0 0",
+   "MakerNotes:FirmwareVersion": "0 1 1 0",
+   "MakerNotes:FlashBias": 0,
+   "MakerNotes:FlashCurtain": 0,
+   "MakerNotes:FocusBracket": 0,
+   "MakerNotes:FocusMode": 1,
+   "MakerNotes:HDR": 0,
+   "MakerNotes:HDRShot": 0,
+   "MakerNotes:HighlightShadow": "0 0",
+   "MakerNotes:HighlightWarning": 1,
+   "MakerNotes:ImageQuality": 11,
+   "MakerNotes:ImageStabilization": 2,
+   "MakerNotes:IntelligentD-Range": 0,
+   "MakerNotes:IntelligentResolution": 0,
+   "MakerNotes:InternalNDFilter": 0,
+   "MakerNotes:InternalSerialNumber": "XHL21061302626/",
+   "MakerNotes:JPEGQuality": 0,
+   "MakerNotes:Landmark": "",
+   "MakerNotes:LensFirmwareVersion": "0 21 21 0",
+   "MakerNotes:LensSerialNumber": "N/A",
+   "MakerNotes:LensType": "N/A",
+   "MakerNotes:LensTypeMake": 0,
+   "MakerNotes:Location": "",
+   "MakerNotes:MacroMode": 2,
+   "MakerNotes:MakerNoteVersion": "0152",
+   "MakerNotes:Model": "DC-FZ82",
+   "MakerNotes:MonochromeFilterEffect": 0,
+   "MakerNotes:MultiExposure": 0,
+   "MakerNotes:NoiseReduction": 0,
+   "MakerNotes:NumFacePositions": 0,
+   "MakerNotes:OpticalZoomMode": 1,
+   "MakerNotes:PanasonicExifVersion": "0412",
+   "MakerNotes:PanasonicImageHeight": 0,
+   "MakerNotes:PanasonicImageWidth": 0,
+   "MakerNotes:PhotoStyle": 1,
+   "MakerNotes:PitchAngle": 0,
+   "MakerNotes:PostFocusMerging": "0 0",
+   "MakerNotes:ProgramISO": 65535,
+   "MakerNotes:RedEyeRemoval": 1,
+   "MakerNotes:RollAngle": 0,
+   "MakerNotes:Rotation": 1,
+   "MakerNotes:Saturation": 0,
+   "MakerNotes:SceneMode": 37,
+   "MakerNotes:SelfTimer": 0,
+   "MakerNotes:SequenceNumber": 0,
+   "MakerNotes:Sharpness": 0,
+   "MakerNotes:ShootingMode": 37,
+   "MakerNotes:ShutterType": 0,
+   "MakerNotes:State": "",
+   "MakerNotes:SweepPanoramaDirection": 0,
+   "MakerNotes:SweepPanoramaFieldOfView": 0,
+   "MakerNotes:TextStamp": 1,
+   "MakerNotes:ThumbnailHeight": 240,
+   "MakerNotes:ThumbnailImage": "(Binary data 8561 bytes, use -b option to extract)",
+   "MakerNotes:ThumbnailWidth": 416,
+   "MakerNotes:TimeLapseShotNumber": 0,
+   "MakerNotes:TimeSincePowerOn": 69.6,
+   "MakerNotes:TimeStamp": "2023:07:26 16:00:51",
+   "MakerNotes:TimerRecording": 0,
+   "MakerNotes:Title": "",
+   "MakerNotes:TouchAE": 0,
+   "MakerNotes:TravelDay": 65535,
+   "MakerNotes:VideoBurstMode": 0,
+   "MakerNotes:VideoBurstResolution": 3,
+   "MakerNotes:WBBlueLevel": 1944,
+   "MakerNotes:WBGreenLevel": 1024,
+   "MakerNotes:WBRedLevel": 1584,
+   "MakerNotes:WBShiftAB": 0,
+   "MakerNotes:WBShiftCreativeControl": 0,
+   "MakerNotes:WBShiftGM": 0,
+   "MakerNotes:WBShiftIntelligentAuto": 0,
+   "MakerNotes:WhiteBalance": 1,
+   "MakerNotes:WorldTimeLocation": 2,
+   "PrintIM:PrintIMVersion": "0250",
+   "QuickTime:AudioBitsPerSample": 16,
+   "QuickTime:AudioChannels": 2,
+   "QuickTime:AudioFormat": "mp4a",
+   "QuickTime:AudioSampleRate": 48000,
+   "QuickTime:Balance": 0,
+   "QuickTime:BitDepth": 24,
+   "QuickTime:ColorPrimaries": 1,
+   "QuickTime:ColorProfiles": "nclx",
+   "QuickTime:CompatibleBrands": [
+      "mp42",
+      "avc1"
+   ],
+   "QuickTime:CompressorID": "avc1",
+   "QuickTime:CreateDate": "2023:07:26 08:00:52",
+   "QuickTime:CurrentTime": 0,
+   "QuickTime:Duration": 9.009,
+   "QuickTime:GraphicsMode": 0,
+   "QuickTime:HandlerType": "soun",
+   "QuickTime:ImageHeight": 1080,
+   "QuickTime:ImageWidth": 1920,
+   "QuickTime:MajorBrand": "mp42",
+   "QuickTime:MatrixCoefficients": 1,
+   "QuickTime:MatrixStructure": "1 0 0 0 1 0 0 0 1",
+   "QuickTime:MediaCreateDate": "2023:07:26 08:00:52",
+   "QuickTime:MediaDataOffset": 101201,
+   "QuickTime:MediaDataSize": 30822572,
+   "QuickTime:MediaDuration": 9.04533333333333,
+   "QuickTime:MediaHeaderVersion": 0,
+   "QuickTime:MediaLanguageCode": "und",
+   "QuickTime:MediaModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:MediaTimeScale": 48000,
+   "QuickTime:MinorVersion": "0.0.1",
+   "QuickTime:ModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:MovieHeaderVersion": 0,
+   "QuickTime:NextTrackID": 3,
+   "QuickTime:OpColor": "0 0 0",
+   "QuickTime:PosterTime": 0,
+   "QuickTime:PreferredRate": 1,
+   "QuickTime:PreferredVolume": 1,
+   "QuickTime:PreviewDuration": 0,
+   "QuickTime:PreviewTime": 0,
+   "QuickTime:SelectionDuration": 0,
+   "QuickTime:SelectionTime": 0,
+   "QuickTime:SourceImageHeight": 1080,
+   "QuickTime:SourceImageWidth": 1920,
+   "QuickTime:TimeScale": 180000,
+   "QuickTime:TrackCreateDate": "2023:07:26 08:00:52",
+   "QuickTime:TrackDuration": 9.009,
+   "QuickTime:TrackHeaderVersion": 0,
+   "QuickTime:TrackID": 1,
+   "QuickTime:TrackLayer": 0,
+   "QuickTime:TrackModifyDate": "2023:07:26 08:00:52",
+   "QuickTime:TrackVolume": 0,
+   "QuickTime:TransferCharacteristics": 1,
+   "QuickTime:VideoFrameRate": 59.9400599400599,
+   "QuickTime:XResolution": 72,
+   "QuickTime:YResolution": 72,
+   "SourceFile": "//Freebox_Server/Tera2/Photos/2023Q3/Andalousie 2023/Vid?os/Andalousie 2023 - 0001 - 2023-07-26 08_00_51 - Panasonic DC-FZ82.mp4",
+   "XMP:GPSLatitude": 37.1759972221667,
+   "XMP:GPSLongitude": -3.59741388883333,
+   "XMP:XMPToolkit": "Image::ExifTool 12.64"
 """
