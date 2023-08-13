@@ -74,7 +74,16 @@ def get_size(exif_data):
 def get_bitrate(exif_data):
     log.logger.debug("Bitrate = %s", util.json_fmt(exif_data))
     bitrate = ""
+    if "Composite:AvgBitrate" in exif_data:
+        br = int(exif_data["Composite:AvgBitrate"] // 1024 // 1024 * 10) / 10
+        bitrate = f'{br:.1f} mbps'
     return bitrate
+
+def get_fps(exif_data):
+    fps = ""
+    if "QuickTime:VideoFrameRate" in exif_data:
+        fps = f'{round(float(exif_data["QuickTime:VideoFrameRate"]))}'
+    return fps
 
 def main():
     util.init('renamer')
@@ -103,8 +112,9 @@ def main():
                 creation_date = get_creation_date(data)
                 device = get_device(data)
                 bitrate = get_bitrate(data)
+                fps = get_fps(data)
                 size = get_size(data)
-        d = {"creation_date": creation_date, "device": device, "file": file, "bitrate": bitrate, "size": size}
+        d = {"creation_date": creation_date, "device": device, "file": file, "bitrate": bitrate, "size": size, "fps": fps}
         if sortby == "name":
             filelist[file] = d
         elif sortby == "device":
@@ -123,8 +133,11 @@ def main():
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
         file_fmt = file_fmt.replace("#BITRATE#", filelist[key]['bitrate'])
+        file_fmt = file_fmt.replace("#FPS#", filelist[key]['fps'])
         file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
+        file_fmt = file_fmt.replace("#SEQ1#", f"{seq:01}")
         file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
+        file_fmt = file_fmt.replace("#SEQ2#", f"{seq:02}")
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
         new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + "." + fil.extension(file).lower()
