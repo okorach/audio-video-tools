@@ -5,4 +5,6 @@
 :: )
 
 :: renamer -r "%root%" -f %* -g 5
-renamer --format "Andalousie 2023 #SEQ# - #TIMESTAMP# - #DEVICE#" --files %*
+set /p seqstart=Sequence Start ?:
+renamer --seqstart %seqstart% --format "Andalousie 2023 - #SEQ4# - #TIMESTAMP# - #DEVICE#" --files %*
+pause
