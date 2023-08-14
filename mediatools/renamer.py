@@ -32,6 +32,9 @@ import mediatools.file as fil
 from datetime import datetime
 
 DATE_FMT = "%Y-%m-%d %H_%M_%S"
+DEFAULT_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #DEVICE#"
+DEFAULT_VIDEO_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #FPS#fps - #BITRATE#MBps"
+DEFAULT_PHOTO_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #DEVICE#"
 
 def get_creation_date(exif_data):
     if "EXIF:DateTimeOriginal" in exif_data:
@@ -88,13 +91,13 @@ def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--format', help='Format for the renamed files', required=False, default="%Y-%m-%d %H_%M_%S #DEVICE# #SEQ#")
+    parser.add_argument('--video_format', help='Format for the renamed video files', required=False, default=DEFAULT_VIDEO_FORMAT)
+    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False, default=DEFAULT_PHOTO_FORMAT)
     parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
     parser.add_argument('-r', '--root', help='Root name', required=False)
     parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
-    fmt = kwargs['format']
     seq = int(kwargs.get('seqstart', 1))
     sortby = kwargs['sortby']
     filelist = {}
@@ -124,18 +127,30 @@ def main():
                 filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = d
 
     seq = int(kwargs.get('seqstart', 1))
+    nb_files = len(filelist)
     for key in sorted(filelist.keys()):
         file = filelist[key]['file']
         device = filelist[key]['device']
         creation_date = filelist[key]['creation_date']
         dirname = fil.dirname(file)
+        if fil.get_type(file) == fil.FileType.IMAGE_FILE:
+            fmt = kwargs["photo_format"]
+        elif fil.get_type(file) == fil.FileType.VIDEO_FILE:
+            fmt = kwargs["video_format"]
+        else:
+            fmt = kwargs["format"]
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
         file_fmt = file_fmt.replace("#BITRATE#", str(filelist[key]['bitrate']))
         file_fmt = file_fmt.replace("#FPS#", str(filelist[key]['fps']))
         file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
         file_fmt = file_fmt.replace("#SEQ1#", f"{seq:01}")
-        file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
+        if nb_files < 100:
+            file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
+        elif nb_files < 1000:
+            file_fmt = file_fmt.replace("#SEQ#", f"{seq:03}")
+        else:
+            file_fmt = file_fmt.replace("#SEQ#", f"{seq:04}")
         file_fmt = file_fmt.replace("#SEQ2#", f"{seq:02}")
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
