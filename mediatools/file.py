@@ -20,7 +20,6 @@
 #
 
 import os
-import re
 import time
 import stat
 import platform
@@ -36,9 +35,9 @@ class FileType:
     IMAGE_FILE = 'image'
     UNKNOWN_FILE = 'unknown'
     FILE_EXTENSIONS = {
-        AUDIO_FILE: r'\.(mp3|ogg|aac|ac3|m4a|ape|flac|opus)$',
-        VIDEO_FILE: r'\.(avi|wmv|mp4|3gp|mpg|mpeg|mkv|ts|mts|m2ts|mov)$',
-        IMAGE_FILE: r'\.(jpg|jpeg|png|gif|svg|raw)$'
+        AUDIO_FILE: ("mp3", "ogg", "aac", "ac3", "m4a", "ape", "flac", "opus"),
+        VIDEO_FILE: ("avi", "wmv", "mp4", "3gp", "mpg", "mpeg", "mkv", "ts", "mts", "m2ts", "mov"),
+        IMAGE_FILE: ("jpg", "jpeg", "png", "gif", "svg", "raw")
     }
 
 
@@ -213,11 +212,9 @@ def strip_file_extension(filename):
     return '.'.join(filename.split('.')[:-1])
 
 
-def __match_extension(file, regex):
-    """Returns boolean, whether the file has a extension that matches the regex (case insensitive)"""
-    ext = '.' + extension(file)
-    p = re.compile(regex, re.IGNORECASE)
-    return re.search(p, ext) is not None
+def __match_extension(file, extension_list):
+    """Returns boolean, whether the file has a extension that is in the list"""
+    return extension(file) in extension_list
 
 
 def dir_list(root_dir, recurse=False, file_type=None):
