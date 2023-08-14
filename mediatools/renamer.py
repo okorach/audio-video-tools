@@ -23,6 +23,7 @@
 This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 '''
 
+import sys
 import os
 import argparse
 from exiftool import ExifToolHelper
@@ -32,9 +33,9 @@ import mediatools.file as fil
 from datetime import datetime
 
 DATE_FMT = "%Y-%m-%d %H_%M_%S"
-DEFAULT_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #DEVICE#"
-DEFAULT_VIDEO_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #FPS#fps - #BITRATE#MBps"
-DEFAULT_PHOTO_FORMAT = "%Y-%m-%d %H_%M_%S - #SEQ3# - #SIZE# - #DEVICE#"
+DEFAULT_FORMAT = "%Y-%m-%d %H%M%S - #SEQ3# - #SIZE# - #DEVICE#"
+DEFAULT_VIDEO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #FPS#fps - #BITRATE#MBps"
+DEFAULT_PHOTO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #DEVICE#"
 
 def get_creation_date(exif_data):
     if "EXIF:DateTimeOriginal" in exif_data:
@@ -87,27 +88,46 @@ def get_fps(exif_data):
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
 
+def get_formats(**kwargs):
+    prefix = kwargs.get('prefix', None)
+    if kwargs.get('video_format', None) in (None, ''):
+        if prefix is None:
+            print("Error: One of --prefix or --video_format option is required")
+            sys.exit(1)
+        vformat = f"{kwargs.get('prefix')} - {DEFAULT_VIDEO_FORMAT}"
+    if kwargs.get('photo_format', None) in (None, ''):
+        if prefix is None:
+            print("Error: One of --prefix or --photo_format option is required")
+            sys.exit(1)
+        pformat = f"{kwargs.get('prefix')} - {DEFAULT_PHOTO_FORMAT}"
+    return (pformat, vformat)
+
+
 def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--video_format', help='Format for the renamed video files', required=False, default=DEFAULT_VIDEO_FORMAT)
-    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False, default=DEFAULT_PHOTO_FORMAT)
+    parser.add_argument('--prefix', help='Prefix for files', required=False)
+    parser.add_argument('--video_format', help='Format for the renamed video files', required=False)
+    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False)
     parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
     parser.add_argument('-r', '--root', help='Root name', required=False)
     parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
-    seq = int(kwargs.get('seqstart', 1))
+    photo_seq = int(kwargs.get('seqstart', 1))
+    seq = 1
+    video_seq = photo_seq
     sortby = kwargs['sortby']
+    (photo_format, video_format) = get_formats(**kwargs)
     filelist = {}
     files = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
-    for file in files:
-        if fil.extension(file).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'vob', 'mov'):
+    for filename in files:
+        if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
             continue
-        log.logger.info("Reading data for %s", file)
+        log.logger.info("Reading data for %s", filename)
         with ExifToolHelper() as et:
-            for data in et.get_metadata(file):
+            for data in et.get_metadata(filename):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
 #            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
 #                log.logger.debug("Data = %s", util.json_fmt(data))
@@ -116,9 +136,9 @@ def main():
                 bitrate = get_bitrate(data)
                 fps = get_fps(data)
                 size = get_size(data)
-        d = {"creation_date": creation_date, "device": device, "file": file, "bitrate": bitrate, "size": size, "fps": fps}
+        d = {"creation_date": creation_date, "device": device, "file": filename, "bitrate": bitrate, "size": size, "fps": fps}
         if sortby == "name":
-            filelist[file] = d
+            filelist[filename] = d
         elif sortby == "device":
             if device is not None:
                 filelist[f"{device} {seq:06}"] = d
@@ -126,17 +146,23 @@ def main():
             if creation_date is not None:
                 filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = d
 
-    seq = int(kwargs.get('seqstart', 1))
-    nb_files = len(filelist)
+    photo_seq = int(kwargs.get('seqstart', 1))
+    video_seq = photo_seq
+    other_seq = photo_seq
+    nb_photo_files = sum(1 for d in filelist.values() if fil.extension(d['file']).lower() in ('jpg', 'jpeg', 'gif', 'png'))
+    nb_video_files = sum(1 for d in filelist.values() if fil.extension(d['file']).lower() in ('mp4', 'mpeg4', 'mpeg2', 'mp2', 'mpeg', 'vob', 'mov'))
+    nb_other_files = len(filelist) - nb_photo_files - nb_video_files
+    log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
     for key in sorted(filelist.keys()):
-        file = filelist[key]['file']
+        filename = filelist[key]['file']
+        ext = fil.extension(filename).lower()
         device = filelist[key]['device']
         creation_date = filelist[key]['creation_date']
-        dirname = fil.dirname(file)
-        if fil.get_type(file) == fil.FileType.IMAGE_FILE:
-            fmt = kwargs["photo_format"]
-        elif fil.get_type(file) == fil.FileType.VIDEO_FILE:
-            fmt = kwargs["video_format"]
+        dirname = fil.dirname(filename)
+        if fil.is_image_file(filename):
+            fmt = photo_format
+        elif fil.is_video_file(filename):
+            fmt = video_format
         else:
             fmt = kwargs["format"]
         file_fmt = fmt.replace("#DEVICE#", device)
@@ -144,36 +170,60 @@ def main():
         file_fmt = file_fmt.replace("#BITRATE#", str(filelist[key]['bitrate']))
         file_fmt = file_fmt.replace("#FPS#", str(filelist[key]['fps']))
         file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
+
+        if fil.is_image_file(filename):
+            seq = photo_seq
+            nb_files = nb_photo_files
+        elif fil.is_video_file(filename):
+            seq = video_seq
+            nb_files = nb_video_files
+        else:
+            seq = other_seq
+            nb_files = nb_other_files
+            log.logger.warning("%s is not a media file", filename)
         file_fmt = file_fmt.replace("#SEQ1#", f"{seq:01}")
         if nb_files < 100:
             file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
         elif nb_files < 1000:
             file_fmt = file_fmt.replace("#SEQ#", f"{seq:03}")
-        else:
+        elif nb_files < 10000:
             file_fmt = file_fmt.replace("#SEQ#", f"{seq:04}")
+        else:
+            file_fmt = file_fmt.replace("#SEQ#", f"{seq:05}")
         file_fmt = file_fmt.replace("#SEQ2#", f"{seq:02}")
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
-        new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + "." + fil.extension(file).lower()
-        if new_filename == file:
-            log.logger.info("File %s does need to be renamed, skipped...", file)
+        file_fmt = file_fmt.replace("#SEQ5#", f"{seq:05}")
+        new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + "." + ext
+        if new_filename == filename:
+            log.logger.info("File %s does need to be renamed, skipped...", filename)
             continue
-        log.logger.info(f"Renaming {file} into {new_filename}")
+        log.logger.info(f"Renaming {filename} into {new_filename}")
         try:
-            os.rename(file, new_filename)
-            seq += 1
+            file_type = fil.get_type(filename)
+            os.rename(filename, new_filename)
+            if file_type == fil.FileType.IMAGE_FILE:
+                photo_seq += 1
+            elif file_type == fil.FileType.VIDEO_FILE:
+                video_seq += 1
+            else:
+                other_seq += 1
+                log.logger.warning("%s is not a media file", filename)
         except os.error:
             success = False
             for v in range(2, 10):
                 try:
-                    new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + f" {v}." + fil.extension(file).lower()
-                    os.rename(file, new_filename)
+                    new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + f" {v}." + ext
+                    os.rename(filename, new_filename)
                     success = True
                     break
                 except os.error:
                     pass
             if success:
-                seq += 1
+                if file_type == fil.FileType.IMAGE_FILE:
+                    photo_seq += 1
+                elif file_type == fil.FileType.VIDEO_FILE:
+                    video_seq += 1
             else:
                 log.logger.warning("Unable to rename")
 
