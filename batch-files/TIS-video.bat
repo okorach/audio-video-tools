@@ -18,6 +18,8 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-video-concat -i  %* -o "%~1.concat.mp4"
-
-Pause
+setlocal enabledelayedexpansion
+for %%F in (%*) do (
+    video-encode -i "%%~F" -p 2mbps --vcodec x265 --hw_accel off --vbitrate 1024k --width 960 --abitrate 64k --acodec aac -o "%%~F.tis.mp4"
+)
+pause

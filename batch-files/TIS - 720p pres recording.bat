@@ -18,13 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-set /p box=Box ?:
-set /p top=Top ?:
-set /p left=Left ?:
-set /p range=Range ?:
-if %range% == "" (
-    video-crop -i "%~1" --box %box% --top %left% --left %top%
-) else (
-    video-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
+setlocal enabledelayedexpansion
+
+for %%F in (%*) do (
+    video-encode -i "%%~F" -p 1080p --vcodec x265 --width 1280 --hw_accel off --aspect 16:9 --vbitrate 800k --acodec aac --abitrate 96k -o "%%~F.pres.mp4"
 )
 pause

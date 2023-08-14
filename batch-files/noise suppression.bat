@@ -18,6 +18,10 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-video-concat -i  %* -o "%~1.concat.mp4"
-
-Pause
+setlocal enabledelayedexpansion
+for %%F in (%*) do (
+    :: C:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -af "afftdn, anlmdn" "%%~F-denoised.mp4"
+    C:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -af "afftdn=nr=50:nf=-50, anlmdn=s=1000:p=0.01
+    " "%%~F-denoised.mp4"
+)
+pause

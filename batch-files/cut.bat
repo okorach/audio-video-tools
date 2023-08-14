@@ -21,5 +21,5 @@
 set /p start=Start ?
 set /p stop=Stop ?
 
-media-cut -i "%~1" --start %start% --stop %stop% -g 5
+media-cut -i "%~1" --vbitrate 2048k --start %start% --stop %stop% -g 5
 pause

@@ -18,6 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-video-concat -i  %* -o "%~1.concat.mp4"
-
-Pause
+setlocal enabledelayedexpansion
+for %%F in (%*) do (
+    C:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -vf scale=3000:-1 "%%~F-v2.jpg"
+    :: rename /Y "%%~F-v2.jpg" "%%~F.jpg"
+)
+pause
