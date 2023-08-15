@@ -35,23 +35,37 @@ from datetime import datetime
 SEQ = "#SEQ#"
 SIZE = "#SIZE#"
 DEVICE = "#DEVICE#"
-DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
-DEFAULT_FORMAT = f"{DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
-DEFAULT_VIDEO_FORMAT = f"{DATE_FMT} - {SEQ} - {SIZE} - #FPS#fps - #BITRATE#MBps"
-DEFAULT_PHOTO_FORMAT = f"{DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
+FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
+ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
+DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
+
+DEFAULT_FORMAT = f"{FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
+DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - #FPS#fps - #BITRATE#MBps"
+DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
+
 
 def get_creation_date(exif_data):
     if "EXIF:DateTimeOriginal" in exif_data:
-        creation_date = datetime.strptime(exif_data["EXIF:DateTimeOriginal"], '%Y:%m:%d %H:%M:%S')
+        str_date = exif_data["EXIF:DateTimeOriginal"]
     elif "File:FileModifyDate" in exif_data:
-        creation_date = datetime.strptime(exif_data["File:FileModifyDate"], '%Y:%m:%d %H:%M:%S%z')
+        str_date = exif_data["File:FileModifyDate"]
     else:
         log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
-        creation_date = None
+        return None
+
+    creation_date = None
+    for fmt in DATE_FORMATS:
+        try:
+            creation_date = datetime.strptime(str_date, fmt)
+        except ValueError:
+            pass
+    if creation_date is None:
+        raise ValueError
     return creation_date
 
+
 def get_device(exif_data):
-    log.logger.debug("Device = %s", util.json_fmt(exif_data))
     device = ""
     if "EXIF:Make" in exif_data:
         device = exif_data["EXIF:Make"]
@@ -63,8 +77,8 @@ def get_device(exif_data):
         device = exif_data["QuickTime:CompressorName"]
     return device
 
+
 def get_size(exif_data):
-    log.logger.debug("Size = %s", util.json_fmt(exif_data))
     size = ""
     if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
         size = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
@@ -79,17 +93,18 @@ def get_size(exif_data):
     return size
 
 def get_bitrate(exif_data):
-    log.logger.debug("Bitrate = %s", util.json_fmt(exif_data))
     bitrate = None
     if "Composite:AvgBitrate" in exif_data:
         bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
     return bitrate
+
 
 def get_fps(exif_data):
     fps = None
     if "QuickTime:VideoFrameRate" in exif_data:
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
+
 
 def get_formats(nb_photos, nb_videos, **kwargs):
     prefix = kwargs.get('prefix', None)
@@ -111,6 +126,7 @@ def get_formats(nb_photos, nb_videos, **kwargs):
         else:
             pformat = kwargs['photo_format']
     return (pformat, vformat)
+
 
 def get_files_data(files, sortby):
     seq = 1
@@ -138,7 +154,7 @@ def get_files_data(files, sortby):
                 filelist[f"{device} {seq:06}"] = d
         else:
             if creation_date is not None:
-                filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = d
+                filelist[f"{creation_date.strftime(FILE_DATE_FMT)} {seq:06}"] = d
         seq += 1
     return filelist
 
@@ -208,7 +224,7 @@ def main():
     photo_seq = video_seq = other_seq = int(kwargs.get('seqstart', 1))
     (photo_format, video_format) = get_formats(nb_photo_files, nb_video_files, **kwargs)
 
-    files_data = get_files_data(file_list, kwargs['sortby'])
+    files_data = get_files_data(fil.file_list(*kwargs['files'], file_type=None, recurse=False), kwargs['sortby'])
 
     photo_seq = int(kwargs.get('seqstart', 1))
     video_seq = photo_seq
@@ -222,7 +238,7 @@ def main():
         dirname = fil.dirname(filename)
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace("#DEVICE#", device)
-        file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
+        file_fmt = file_fmt.replace("#TIMESTAMP#", FILE_DATE_FMT)
         file_fmt = file_fmt.replace("#BITRATE#", str(files_data[key]['bitrate']))
         file_fmt = file_fmt.replace("#FPS#", str(files_data[key]['fps']))
         file_fmt = file_fmt.replace("#SIZE#", files_data[key]['size'])
