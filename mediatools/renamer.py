@@ -32,10 +32,13 @@ import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
 
+SEQ = "#SEQ#"
+SIZE = "#SIZE#"
+DEVICE = "#DEVICE#"
 DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
-DEFAULT_FORMAT = "%Y-%m-%d %H%M%S - #SEQ3# - #SIZE# - #DEVICE#"
-DEFAULT_VIDEO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #FPS#fps - #BITRATE#MBps"
-DEFAULT_PHOTO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #DEVICE#"
+DEFAULT_FORMAT = f"{DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
+DEFAULT_VIDEO_FORMAT = f"{DATE_FMT} - {SEQ} - {SIZE} - #FPS#fps - #BITRATE#MBps"
+DEFAULT_PHOTO_FORMAT = f"{DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 def get_creation_date(exif_data):
     if "EXIF:DateTimeOriginal" in exif_data:
@@ -90,7 +93,7 @@ def get_fps(exif_data):
 
 def get_formats(nb_photos, nb_videos, **kwargs):
     prefix = kwargs.get('prefix', None)
-    pformat = vformat = "#SEQ#"
+    pformat = vformat = SEQ
     if nb_videos > 0:
         if kwargs.get('video_format', None) in (None, ''):
             if prefix is None:
@@ -139,6 +142,50 @@ def get_files_data(files, sortby):
         seq += 1
     return filelist
 
+def get_fmt(filename, photo, video, other):
+    if fil.is_image_file(filename):
+        fmt = photo
+    elif fil.is_video_file(filename):
+        fmt = video
+    else:
+        fmt = other
+    return fmt
+
+def rename(filename, new_filename):
+    log.logger.info(f"Renaming {filename} into {new_filename}")
+    photo = video = other = 0
+    try:
+        file_type = fil.get_type(filename)
+        os.rename(filename, new_filename)
+        if file_type == fil.FileType.IMAGE_FILE:
+            photo = 1
+        elif file_type == fil.FileType.VIDEO_FILE:
+            video = 1
+        else:
+            other = 1
+            log.logger.warning("%s is not a media file", filename)
+    except os.error:
+        success = False
+        ext = fil.extension(new_filename)
+        base = fil.strip_extension(filename)
+        for v in range(2, 10):
+            try:
+                os.rename(filename, f"{base} {v}.{ext}")
+                success = True
+                break
+            except os.error:
+                continue
+        if success:
+            if file_type == fil.FileType.IMAGE_FILE:
+                photo = 1
+            elif file_type == fil.FileType.VIDEO_FILE:
+                video = 1
+            else:
+                other = 1
+        else:
+            log.logger.warning("Unable to rename")
+    return (photo, video, other)
+
 def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
@@ -161,7 +208,7 @@ def main():
     photo_seq = video_seq = other_seq = int(kwargs.get('seqstart', 1))
     (photo_format, video_format) = get_formats(nb_photo_files, nb_video_files, **kwargs)
 
-    files_data = get_files_data(fil.file_list(*kwargs['files'], file_type=None, recurse=False), kwargs['sortby'])
+    files_data = get_files_data(file_list, kwargs['sortby'])
 
     photo_seq = int(kwargs.get('seqstart', 1))
     video_seq = photo_seq
@@ -173,12 +220,7 @@ def main():
         device = files_data[key]['device']
         creation_date = files_data[key]['creation_date']
         dirname = fil.dirname(filename)
-        if fil.is_image_file(filename):
-            fmt = photo_format
-        elif fil.is_video_file(filename):
-            fmt = video_format
-        else:
-            fmt = kwargs["format"]
+        fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
         file_fmt = file_fmt.replace("#BITRATE#", str(files_data[key]['bitrate']))
@@ -197,13 +239,13 @@ def main():
             log.logger.warning("%s is not a media file", filename)
         file_fmt = file_fmt.replace("#SEQ1#", f"{seq:01}")
         if nb_files < 100:
-            file_fmt = file_fmt.replace("#SEQ#", f"{seq:02}")
+            file_fmt = file_fmt.replace(SEQ, f"{seq:02}")
         elif nb_files < 1000:
-            file_fmt = file_fmt.replace("#SEQ#", f"{seq:03}")
+            file_fmt = file_fmt.replace(SEQ, f"{seq:03}")
         elif nb_files < 10000:
-            file_fmt = file_fmt.replace("#SEQ#", f"{seq:04}")
+            file_fmt = file_fmt.replace(SEQ, f"{seq:04}")
         else:
-            file_fmt = file_fmt.replace("#SEQ#", f"{seq:05}")
+            file_fmt = file_fmt.replace(SEQ, f"{seq:05}")
         file_fmt = file_fmt.replace("#SEQ2#", f"{seq:02}")
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
@@ -212,34 +254,11 @@ def main():
         if new_filename == filename:
             log.logger.info("File %s does need to be renamed, skipped...", filename)
             continue
-        log.logger.info(f"Renaming {filename} into {new_filename}")
-        try:
-            file_type = fil.get_type(filename)
-            os.rename(filename, new_filename)
-            if file_type == fil.FileType.IMAGE_FILE:
-                photo_seq += 1
-            elif file_type == fil.FileType.VIDEO_FILE:
-                video_seq += 1
-            else:
-                other_seq += 1
-                log.logger.warning("%s is not a media file", filename)
-        except os.error:
-            success = False
-            for v in range(2, 10):
-                try:
-                    new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + f" {v}." + ext
-                    os.rename(filename, new_filename)
-                    success = True
-                    break
-                except os.error:
-                    pass
-            if success:
-                if file_type == fil.FileType.IMAGE_FILE:
-                    photo_seq += 1
-                elif file_type == fil.FileType.VIDEO_FILE:
-                    video_seq += 1
-            else:
-                log.logger.warning("Unable to rename")
+
+        (p, v, o) = rename(filename, new_filename)
+        photo_seq += p
+        video_seq += v
+        other_seq += o
 
 
 if __name__ == "__main__":
