@@ -32,7 +32,7 @@ import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
 
-DATE_FMT = "%Y-%m-%d %H_%M_%S"
+DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
 DEFAULT_FORMAT = "%Y-%m-%d %H%M%S - #SEQ3# - #SIZE# - #DEVICE#"
 DEFAULT_VIDEO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #FPS#fps - #BITRATE#MBps"
 DEFAULT_PHOTO_FORMAT = "%Y-%m-%d %Hh%Mm%Ss - #SEQ# - #SIZE# - #DEVICE#"
@@ -95,11 +95,15 @@ def get_formats(**kwargs):
             print("Error: One of --prefix or --video_format option is required")
             sys.exit(1)
         vformat = f"{kwargs.get('prefix')} - {DEFAULT_VIDEO_FORMAT}"
+    else:
+        vformat = kwargs['video_format']
     if kwargs.get('photo_format', None) in (None, ''):
         if prefix is None:
             print("Error: One of --prefix or --photo_format option is required")
             sys.exit(1)
         pformat = f"{kwargs.get('prefix')} - {DEFAULT_PHOTO_FORMAT}"
+    else:
+        pformat = kwargs['photo_format']
     return (pformat, vformat)
 
 
@@ -109,6 +113,7 @@ def main():
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
     parser.add_argument('--prefix', help='Prefix for files', required=False)
     parser.add_argument('--video_format', help='Format for the renamed video files', required=False)
+    parser.add_argument('--format', help='Format for files', required=False, default=DEFAULT_FORMAT)
     parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False)
     parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
     parser.add_argument('-r', '--root', help='Root name', required=False)
