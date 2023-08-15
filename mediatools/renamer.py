@@ -67,9 +67,9 @@ def get_size(exif_data):
         size = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
     elif "EXIF:ExifImageWidth" in exif_data and "EXIF:ExifImageHeight" in exif_data:
         size = f'{exif_data["EXIF:ExifImageWidth"]}x{exif_data["EXIF:ExifImageHeight"]}'
-    elif "QuickTime:SourceImageWidth" in exif_data and "QuickTime:SourceImageHeight":
+    elif "QuickTime:SourceImageWidth" in exif_data and "QuickTime:SourceImageHeight" in exif_data:
         size = f'{exif_data["QuickTime:SourceImageWidth"]}x{exif_data["QuickTime:SourceImageHeight"]}'
-    elif "QuickTime:ImageWidth" in exif_data and "QuickTime:ImageHeight":
+    elif "QuickTime:ImageWidth" in exif_data and "QuickTime:ImageHeight" in exif_data:
         size = f'{exif_data["QuickTime:ImageWidth"]}x{exif_data["QuickTime:ImageHeight"]}'
     elif "Composite:ImageSize" in exif_data:
         size = exif_data["Composite:ImageSize"].replace(" ", "x")
@@ -88,49 +88,35 @@ def get_fps(exif_data):
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
 
-def get_formats(**kwargs):
+def get_formats(nb_photos, nb_videos, **kwargs):
     prefix = kwargs.get('prefix', None)
-    if kwargs.get('video_format', None) in (None, ''):
-        if prefix is None:
-            print("Error: One of --prefix or --video_format option is required")
-            sys.exit(1)
-        vformat = f"{kwargs.get('prefix')} - {DEFAULT_VIDEO_FORMAT}"
-    else:
-        vformat = kwargs['video_format']
-    if kwargs.get('photo_format', None) in (None, ''):
-        if prefix is None:
-            print("Error: One of --prefix or --photo_format option is required")
-            sys.exit(1)
-        pformat = f"{kwargs.get('prefix')} - {DEFAULT_PHOTO_FORMAT}"
-    else:
-        pformat = kwargs['photo_format']
+    pformat = vformat = "#SEQ#"
+    if nb_videos > 0:
+        if kwargs.get('video_format', None) in (None, ''):
+            if prefix is None:
+                print("Error: One of --prefix or --video_format option is required")
+                sys.exit(1)
+            vformat = f"{kwargs.get('prefix')} - {DEFAULT_VIDEO_FORMAT}"
+        else:
+            vformat = kwargs['video_format']
+    if nb_photos > 0:
+        if kwargs.get('photo_format', None) in (None, ''):
+            if prefix is None:
+                print("Error: One of --prefix or --photo_format option is required")
+                sys.exit(1)
+            pformat = f"{kwargs.get('prefix')} - {DEFAULT_PHOTO_FORMAT}"
+        else:
+            pformat = kwargs['photo_format']
     return (pformat, vformat)
 
-
-def main():
-    util.init('renamer')
-    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--prefix', help='Prefix for files', required=False)
-    parser.add_argument('--video_format', help='Format for the renamed video files', required=False)
-    parser.add_argument('--format', help='Format for files', required=False, default=DEFAULT_FORMAT)
-    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False)
-    parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
-    parser.add_argument('-r', '--root', help='Root name', required=False)
-    parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
-    kwargs = util.parse_media_args(parser)
-    photo_seq = int(kwargs.get('seqstart', 1))
+def get_files_data(files, sortby):
     seq = 1
-    video_seq = photo_seq
-    sortby = kwargs['sortby']
-    (photo_format, video_format) = get_formats(**kwargs)
     filelist = {}
-    files = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
+    nb_files = len(files)
     for filename in files:
         if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
             continue
-        log.logger.info("Reading data for %s", filename)
+        log.logger.info("Reading data %d/%d for %s", seq, nb_files, filename)
         with ExifToolHelper() as et:
             for data in et.get_metadata(filename):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
@@ -150,19 +136,42 @@ def main():
         else:
             if creation_date is not None:
                 filelist[f"{creation_date.strftime(DATE_FMT)} {seq:06}"] = d
+        seq += 1
+    return filelist
+
+def main():
+    util.init('renamer')
+    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
+    parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
+    parser.add_argument('--prefix', help='Prefix for files', required=False)
+    parser.add_argument('--video_format', help='Format for the renamed video files', required=False)
+    parser.add_argument('--format', help='Format for files', required=False, default=DEFAULT_FORMAT)
+    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False)
+    parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
+    parser.add_argument('-r', '--root', help='Root name', required=False)
+    parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
+    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    kwargs = util.parse_media_args(parser)
+
+    file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
+    nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in ('jpg', 'jpeg', 'gif', 'png'))
+    nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in ('mp4', 'mpeg4', 'mpeg2', 'mp2', 'mpeg', 'vob', 'mov'))
+    nb_other_files = len(file_list) - nb_photo_files - nb_video_files
+
+    photo_seq = video_seq = other_seq = int(kwargs.get('seqstart', 1))
+    (photo_format, video_format) = get_formats(nb_photo_files, nb_video_files, **kwargs)
+
+    files_data = get_files_data(fil.file_list(*kwargs['files'], file_type=None, recurse=False), kwargs['sortby'])
 
     photo_seq = int(kwargs.get('seqstart', 1))
     video_seq = photo_seq
     other_seq = photo_seq
-    nb_photo_files = sum(1 for d in filelist.values() if fil.extension(d['file']).lower() in ('jpg', 'jpeg', 'gif', 'png'))
-    nb_video_files = sum(1 for d in filelist.values() if fil.extension(d['file']).lower() in ('mp4', 'mpeg4', 'mpeg2', 'mp2', 'mpeg', 'vob', 'mov'))
-    nb_other_files = len(filelist) - nb_photo_files - nb_video_files
     log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
-    for key in sorted(filelist.keys()):
-        filename = filelist[key]['file']
+    for key in sorted(files_data.keys()):
+        filename = files_data[key]['file']
         ext = fil.extension(filename).lower()
-        device = filelist[key]['device']
-        creation_date = filelist[key]['creation_date']
+        device = files_data[key]['device']
+        creation_date = files_data[key]['creation_date']
         dirname = fil.dirname(filename)
         if fil.is_image_file(filename):
             fmt = photo_format
@@ -172,9 +181,9 @@ def main():
             fmt = kwargs["format"]
         file_fmt = fmt.replace("#DEVICE#", device)
         file_fmt = file_fmt.replace("#TIMESTAMP#", DATE_FMT)
-        file_fmt = file_fmt.replace("#BITRATE#", str(filelist[key]['bitrate']))
-        file_fmt = file_fmt.replace("#FPS#", str(filelist[key]['fps']))
-        file_fmt = file_fmt.replace("#SIZE#", filelist[key]['size'])
+        file_fmt = file_fmt.replace("#BITRATE#", str(files_data[key]['bitrate']))
+        file_fmt = file_fmt.replace("#FPS#", str(files_data[key]['fps']))
+        file_fmt = file_fmt.replace("#SIZE#", files_data[key]['size'])
 
         if fil.is_image_file(filename):
             seq = photo_seq
