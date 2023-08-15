@@ -39,18 +39,18 @@ FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
 ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
 DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-
+CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
 DEFAULT_FORMAT = f"{FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - #FPS#fps - #BITRATE#MBps"
 DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 
 def get_creation_date(exif_data):
-    if "EXIF:DateTimeOriginal" in exif_data:
-        str_date = exif_data["EXIF:DateTimeOriginal"]
-    elif "File:FileModifyDate" in exif_data:
-        str_date = exif_data["File:FileModifyDate"]
-    else:
+    for tag in CREATION_DATE_TAGS:
+        if tag in exif_data:
+            str_date = exif_data[tag]
+            break
+    if str_date is None:
         log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
         return None
 
