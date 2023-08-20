@@ -19,7 +19,9 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from datetime import datetime
 import re
+from exiftool import ExifToolHelper
 import ffmpeg
 from mediatools import log
 import mediatools.file as fil
@@ -28,6 +30,17 @@ import mediatools.utilities as util
 import mediatools.filters as filters
 import mediatools.options as opt
 import mediatools.media_config as conf
+
+EXIF_LONGITUDE_TAG = "EXIF:GPSLongitude"
+EXIF_LONG_REF_TAG = "EXIF:GPSLongitudeRef"
+EXIF_LATITUDE_TAG = "EXIF:GPSLatitude"
+EXIF_LAT_REF_TAG = "EXIF:GPSLatitudeRef"
+
+EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
+ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+TIME_FMT = "%H:%M:%S"
+DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
+CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
 
 
 class MediaFile(fil.File):
@@ -52,6 +65,7 @@ class MediaFile(fil.File):
         self.title = None
         self.bitrate = None
         self.comment = None
+        self._exif_data = None
         # self.probe()
 
     def __str__(self):
@@ -168,6 +182,108 @@ class MediaFile(fil.File):
             else:
                 left = (iw - width) // 2
         return (top, left, pos)
+
+    def get_exif_data(self, force=False):
+        if self._exif_data is None or force:
+            with ExifToolHelper() as et:
+                self._exif_data = et.get_metadata(self.filename)[0]
+        return self._exif_data
+
+    def set_exif_creation_date(self, some_datetime):
+        if type(some_datetime) == datetime:
+            time_to_set = datetime.strftime(some_datetime, EXIF_DATE_FMT)
+        else:
+            time_to_set = some_datetime
+        with ExifToolHelper() as et:
+            et.set_tags([self.filename], tags={"DateTimeOriginal": time_to_set}, params=["-P", "-overwrite_original"])
+
+    def get_exif_creation_date(self):
+        exif_data = self.get_exif_data()
+        if "EXIF:DateTimeOriginal" in exif_data:
+            str_date = exif_data["EXIF:DateTimeOriginal"]
+        elif "File:FileModifyDate" in exif_data:
+            str_date = exif_data["File:FileModifyDate"]
+        else:
+            log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
+            return None
+
+        str_date = creation_date = None
+        for tag in CREATION_DATE_TAGS:
+            if tag in exif_data:
+                str_date = exif_data[tag]
+                break
+        if str_date is None:
+            log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
+            return None
+
+        if str_date == "0000:00:00 00:00:00":
+            str_date = "1900:01:01 00:00:00"
+
+        for fmt in DATE_FORMATS:
+            try:
+                creation_date = datetime.strptime(str_date, fmt)
+            except ValueError:
+                continue
+        if creation_date is None:
+            raise ValueError
+        return creation_date
+
+    def get_exif_device(self):
+        exif_data = self.get_exif_data()
+        device = ""
+        if "EXIF:Make" in exif_data:
+            device = exif_data["EXIF:Make"]
+            if "EXIF:Model" in exif_data:
+                device += " " + exif_data["EXIF:Model"]
+        elif "QuickTime:Author" in exif_data:
+            device = exif_data["QuickTime:Author"]
+        elif "QuickTime:CompressorName" in exif_data:
+            device = exif_data["QuickTime:CompressorName"]
+        return device
+
+    def get_exif_dimensions(self):
+        exif_data = self.get_exif_data()
+        dimensions = ""
+        if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
+            dimensions = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
+        elif "EXIF:ExifImageWidth" in exif_data and "EXIF:ExifImageHeight" in exif_data:
+            dimensions = f'{exif_data["EXIF:ExifImageWidth"]}x{exif_data["EXIF:ExifImageHeight"]}'
+        elif "QuickTime:SourceImageWidth" in exif_data and "QuickTime:SourceImageHeight" in exif_data:
+            dimensions = f'{exif_data["QuickTime:SourceImageWidth"]}x{exif_data["QuickTime:SourceImageHeight"]}'
+        elif "QuickTime:ImageWidth" in exif_data and "QuickTime:ImageHeight" in exif_data:
+            dimensions = f'{exif_data["QuickTime:ImageWidth"]}x{exif_data["QuickTime:ImageHeight"]}'
+        elif "Composite:ImageSize" in exif_data:
+            dimensions = exif_data["Composite:ImageSize"].replace(" ", "x")
+        return dimensions
+
+    def get_exif_gps_coordinates(self):
+        (lat, long) = (None, None)
+        exif_data = self.get_exif_data()
+        if EXIF_LATITUDE_TAG in exif_data:
+            lat = exif_data[EXIF_LATITUDE_TAG]
+            if exif_data.get(EXIF_LAT_REF_TAG, "N") == "S":
+                lat = "-" + lat
+        if EXIF_LONGITUDE_TAG in exif_data:
+            long = exif_data[EXIF_LONGITUDE_TAG]
+            if exif_data.get(EXIF_LONG_REF_TAG, "E") == "W":
+                long = "-" + long
+        return (float(lat), float(long))
+
+    def set_exif_gps_coordinates(self, latitude, longitude):
+        if latitude < 0:
+            latitude = -latitude
+            lat_ref = "S"
+        if longitude < 0:
+            longitude = -longitude
+            long_ref = "W"
+        with ExifToolHelper() as et:
+            et.set_tags([self.filename], tags={
+                "EXIF:GPSLatitude": latitude,
+                "EXIF:GPSLatitudeRef": lat_ref,
+                "EXIF:GPSLongitude": longitude,
+                "EXIF:GPSLongitudeRef": long_ref
+            },
+                params=["-P", "-overwrite_original"])
 
 
 # ---------------- Class methods ---------------------------------
@@ -298,6 +414,26 @@ def compute_fps(rate):
         a, b = [int(x) for x in rate.split('/')]
         return str(round(a / b, 1))
     return rate
+
+
+def get_exif_creation_date(filename):
+    return MediaFile(filename).get_exif_creation_date()
+
+
+def set_exif_creation_date(filename, some_datetime):
+    MediaFile(filename).set_exif_creation_date(some_datetime)
+
+
+def get_dimensions(filename):
+    return MediaFile(filename).get_dimensions()
+
+
+def get_exif_gps_coordinates(filename):
+    return MediaFile(filename).get_exif_gps_coordinates()
+
+
+def set_exif_gps_coordinates(filename, latitude, longitude):
+    MediaFile(filename).set_exif_gps_coordinates(latitude, longitude)
 
 
 def reduce_aspect_ratio(aspect_ratio, height=None):

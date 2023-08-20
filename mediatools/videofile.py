@@ -22,6 +22,8 @@
 '''Video file tools'''
 
 from __future__ import print_function
+import datetime
+from exiftool import ExifToolHelper
 import re
 from mediatools import log
 import mediatools.exceptions as ex
@@ -373,6 +375,62 @@ class VideoFile(media.MediaFile):
         util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
+
+    def set_creation_date(self, some_datetime):
+        if type(some_datetime) == datetime.datetime:
+            time_to_set = datetime.strftime(some_datetime, media.EXIF_DATE_FMT)
+        else:
+            time_to_set = some_datetime
+        p = ["-P", "-overwrite_original"]
+        with ExifToolHelper() as et:
+            et.set_tags([self.filename], tags={
+                "CreateDate": time_to_set,
+                "ModifyDate": time_to_set,
+                "DateTimeOriginal": time_to_set
+            }, params=p)
+            et.set_tags([self.filename], tags={
+                "EXIF:CreateDate": time_to_set,
+                "EXIF:ModifyDate": time_to_set,
+                "EXIF:DateTimeOriginal": time_to_set
+            }, params=p)
+            et.set_tags([self.filename], tags={
+                "Composite:SubSecCreateDate": time_to_set,
+                "Composite:SubSecDateTimeOriginal": time_to_set,
+                "Composite:SubSecModifyDate": time_to_set,
+                "Quicktime:CreateDate": time_to_set,
+                "Quicktime:DateTimeOriginal": time_to_set,
+                "QuickTime:MediaCreateDate": time_to_set,
+                "QuickTime:MediaModifyDate": time_to_set,
+                "QuickTime:TrackCreateDate": time_to_set,
+                "QuickTime:TrackModifyDate": time_to_set,
+                "QuickTime:CreateDate": time_to_set,
+                "QuickTime:ModifyDate": time_to_set
+            }, params=p)
+
+    def get_exif_bitrate(self):
+        exif_data = self.get_exif_data()
+        bitrate = None
+        if "Composite:AvgBitrate" in exif_data:
+            bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
+        return bitrate
+
+    def get_exif_codec(self):
+        exif_data = self.get_exif_data()
+        codec = ""
+        if "QuickTime:CompressorID" in exif_data:
+            codec = exif_data["QuickTime:CompressorID"]
+        if codec == "avc1":
+            codec = "h264"
+        elif codec == "hev1":
+            codec = "h265"
+        return codec
+
+    def get_exif_fps(self):
+        exif_data = self.get_exif_data()
+        fps = None
+        if "QuickTime:VideoFrameRate" in exif_data:
+            fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
+        return fps
 
     # ----------------- Private methods ------------------------------------------
 
