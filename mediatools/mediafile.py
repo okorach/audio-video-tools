@@ -349,6 +349,9 @@ def get_output_settings(file_type=fil.FileType.VIDEO_FILE, **kwargs):
         if kwargs.get(opt.Option.ACODEC, None) is not None:
             settings[opt.OptionFfmpeg.ACODEC] = kwargs[opt.Option.ACODEC]
 
+    if kwargs.get(opt.Option.FPS, None) not in ('', None):
+        settings[opt.OptionFfmpeg.FPS] = kwargs[opt.Option.FPS]
+
     log.logger.debug('get_output_settings returns %s', str(settings))
     return settings
 
