@@ -103,9 +103,6 @@ def main():
                         "EXIF:DateTimeOriginal": new_date
                     }, params=p)
                     et.set_tags([filename], tags={
-                        # "CreateDate": new_date,
-                        # "ModifyDate": new_date,
-                        # "DateTimeOriginal": new_date,
                         "Composite:SubSecCreateDate": new_date,
                         "Composite:SubSecDateTimeOriginal": new_date,
                         "Composite:SubSecModifyDate": new_date,
