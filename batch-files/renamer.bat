@@ -8,5 +8,5 @@
 :: renamer -r "%root%" -f %* -g 5
 set /p prefix=Prefix ?
 set /p seqstart=Sequence Start ?
-renamer --seqstart %seqstart% --prefix "%prefix%" --files %*
+renamer --seqstart %seqstart% --prefix "%prefix%" --photo_format "%prefix%" --video_format "%prefix%" --files %*
 pause
