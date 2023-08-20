@@ -46,6 +46,7 @@ DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 
 def get_creation_date(exif_data):
+    str_date = creation_date = None
     for tag in CREATION_DATE_TAGS:
         if tag in exif_data:
             str_date = exif_data[tag]
@@ -54,7 +55,9 @@ def get_creation_date(exif_data):
         log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
         return None
 
-    creation_date = None
+    if str_date == "0000:00:00 00:00:00":
+        str_date = "1900:01:01 00:00:00"
+
     for fmt in DATE_FORMATS:
         try:
             creation_date = datetime.strptime(str_date, fmt)
@@ -63,7 +66,6 @@ def get_creation_date(exif_data):
     if creation_date is None:
         raise ValueError
     return creation_date
-
 
 def get_device(exif_data):
     device = ""
@@ -76,7 +78,6 @@ def get_device(exif_data):
     elif "QuickTime:CompressorName" in exif_data:
         device = exif_data["QuickTime:CompressorName"]
     return device
-
 
 def get_size(exif_data):
     size = ""
@@ -98,13 +99,23 @@ def get_bitrate(exif_data):
         bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
     return bitrate
 
+def get_codec(exif_data):
+    codec = ""
+    if "QuickTime:CompressorID" in exif_data:
+        codec = exif_data["QuickTime:CompressorID"]
+
+    if codec == "avc1":
+        codec = "h264"
+    elif codec == "hev1":
+        codec = "h265"
+
+    return codec
 
 def get_fps(exif_data):
     fps = None
     if "QuickTime:VideoFrameRate" in exif_data:
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
-
 
 def get_formats(nb_photos, nb_videos, **kwargs):
     prefix = kwargs.get('prefix', None)
@@ -126,7 +137,6 @@ def get_formats(nb_photos, nb_videos, **kwargs):
         else:
             pformat = kwargs['photo_format']
     return (pformat, vformat)
-
 
 def get_files_data(files, sortby):
     seq = 1
@@ -226,9 +236,6 @@ def main():
 
     files_data = get_files_data(fil.file_list(*kwargs['files'], file_type=None, recurse=False), kwargs['sortby'])
 
-    photo_seq = int(kwargs.get('seqstart', 1))
-    video_seq = photo_seq
-    other_seq = photo_seq
     log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
     for key in sorted(files_data.keys()):
         filename = files_data[key]['file']
