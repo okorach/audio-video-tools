@@ -35,13 +35,17 @@ from datetime import datetime
 SEQ = "#SEQ#"
 SIZE = "#SIZE#"
 DEVICE = "#DEVICE#"
+TIMESTAMP = "#TIMESTAMP#"
+FPS = "#FPS#"
+BITRATE = "#BITRATE#"
+
 FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
 ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
 DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
 CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
 DEFAULT_FORMAT = f"{FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
-DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - #FPS#fps - #BITRATE#MBps"
+DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
 DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 
@@ -175,6 +179,8 @@ def get_fmt(filename, photo, video, other):
         fmt = video
     else:
         fmt = other
+    if TIMESTAMP not in fmt and SEQ[:3] not in fmt:
+        fmt = f"{SEQ} - {fmt}"
     return fmt
 
 def rename(filename, new_filename):
@@ -244,11 +250,11 @@ def main():
         creation_date = files_data[key]['creation_date']
         dirname = fil.dirname(filename)
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
-        file_fmt = fmt.replace("#DEVICE#", device)
-        file_fmt = file_fmt.replace("#TIMESTAMP#", FILE_DATE_FMT)
-        file_fmt = file_fmt.replace("#BITRATE#", str(files_data[key]['bitrate']))
-        file_fmt = file_fmt.replace("#FPS#", str(files_data[key]['fps']))
-        file_fmt = file_fmt.replace("#SIZE#", files_data[key]['size'])
+        file_fmt = fmt.replace(DEVICE, device)
+        file_fmt = file_fmt.replace(TIMESTAMP, FILE_DATE_FMT)
+        file_fmt = file_fmt.replace(BITRATE, str(files_data[key]['bitrate']))
+        file_fmt = file_fmt.replace(FPS, str(files_data[key]['fps']))
+        file_fmt = file_fmt.replace(SIZE, files_data[key]['size'])
 
         if fil.is_image_file(filename):
             seq = photo_seq
