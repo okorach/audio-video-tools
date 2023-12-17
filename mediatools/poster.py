@@ -43,6 +43,7 @@ def main():
     parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
         default='black', help='Background color of frame')
     parser.add_argument('-m', '--margin', required=False, default=0, help='Width of margin')
+    parser.add_argument('-l', '--layout', required=False, help='Layout of pictures cols x rows')
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
         default=False, help='Stretch images so that they have the same width and height')
     kwargs = util.parse_media_args(parser)
