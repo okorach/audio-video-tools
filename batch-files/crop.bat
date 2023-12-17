@@ -21,10 +21,14 @@
 set /p box=Box ?:
 set /p top=Top ?:
 set /p left=Left ?:
-set /p range=Range ?:
-if %range% == "" (
-    video-crop -i "%~1" --box %box% --top %left% --left %top%
-) else (
-    video-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
+for %%F in (%*) do (
+    media-crop -i "%%~F" --box %box% --top %left% --left %top%
 )
+
+::set /p range=Range ?:
+@REM if %range% == "" (
+@REM     media-crop -i "%~1" --box %box% --top %left% --left %top%
+@REM ) else (
+@REM     media-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
+@REM )
 pause
