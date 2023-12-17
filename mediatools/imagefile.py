@@ -469,7 +469,7 @@ def avg_width(files):
 def __get_layout__(nb_files, **kwargs):
     if 'rows' in kwargs and 'columns' in kwargs:
         return (int(kwargs['rows']), int(kwargs['columns']))
-    if 'disposition' in kwargs:
+    if 'layout' in kwargs:
         return [int(s) for s in kwargs['layout'].split('x')]
     rows = math.ceil(math.sqrt(nb_files))
     cols = (nb_files + rows - 1) // rows
