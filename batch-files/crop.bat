@@ -21,8 +21,11 @@
 set /p box=Box ?:
 set /p top=Top ?:
 set /p left=Left ?:
-for %%F in (%*) do (
-    media-crop -i "%%~F" --box %box% --top %left% --left %top%
+set /p range=Range ?:
+if %range% == "" (
+    media-crop -i "%~1" --box %box% --top %left% --left %top%
+) else (
+    media-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
 )
 
 ::set /p range=Range ?:

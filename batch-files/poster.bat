@@ -19,4 +19,4 @@
 ::
 
 image-poster -i %* --layout 5x2 --margin 40
-:: pause
+pause
