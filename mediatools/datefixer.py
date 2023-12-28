@@ -35,15 +35,16 @@ ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
 TIME_FMT = "%H:%M:%S"
 
-def get_creation_date(exif_data):
-    if "EXIF:DateTimeOriginal" in exif_data:
-        str_date = exif_data["EXIF:DateTimeOriginal"]
-    elif "File:FileModifyDate" in exif_data:
-        str_date = exif_data["File:FileModifyDate"]
-    else:
-        log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
-        return None
-
+def get_creation_date(filename):
+    with ExifToolHelper() as et:
+        for exif_data in et.get_metadata(filename):
+            if "EXIF:DateTimeOriginal" in exif_data:
+                str_date = exif_data["EXIF:DateTimeOriginal"]
+            elif "File:FileModifyDate" in exif_data:
+                str_date = exif_data["File:FileModifyDate"]
+            else:
+                log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
+                return None
     # remove timezone if any
     str_date = str_date.split("+")[0]
     try:
@@ -53,7 +54,43 @@ def get_creation_date(exif_data):
     return creation_date
 
 
-def main():
+def set_file_date(filename, new_date) -> None:
+    log.logger.info("Setting creation date of %s to %s", filename, new_date)
+    p = ["-P", "-overwrite_original"]
+    with ExifToolHelper() as et:
+        if fil.is_image_file(filename):
+            et.set_tags([filename], tags={"DateTimeOriginal": new_date}, params=p)
+        elif fil.is_video_file(filename):
+            log.logger.info("Tagging video file")
+            et.set_tags([filename], tags={
+                "CreateDate": new_date,
+                "ModifyDate": new_date,
+                "DateTimeOriginal": new_date
+            }, params=p)
+            et.set_tags([filename], tags={
+                # "CreateDate": new_date,
+                # "ModifyDate": new_date,
+                # "DateTimeOriginal": new_date,
+                "EXIF:CreateDate": new_date,
+                "EXIF:ModifyDate": new_date,
+                "EXIF:DateTimeOriginal": new_date
+            }, params=p)
+            et.set_tags([filename], tags={
+                "Composite:SubSecCreateDate": new_date,
+                "Composite:SubSecDateTimeOriginal": new_date,
+                "Composite:SubSecModifyDate": new_date,
+                "Quicktime:CreateDate": new_date,
+                "Quicktime:DateTimeOriginal": new_date,
+                "QuickTime:MediaCreateDate": new_date,
+                "QuickTime:MediaModifyDate": new_date,
+                "QuickTime:TrackCreateDate": new_date,
+                "QuickTime:TrackModifyDate": new_date,
+                "QuickTime:CreateDate": new_date,
+                "QuickTime:ModifyDate": new_date
+            }, params=p)
+
+
+def main() -> None:
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
@@ -66,9 +103,15 @@ def main():
     nb_files = len(file_list)
     sign = 1
     str_offset = kwargs['offset']
+    type_fix = "RELATIVE"
     if str_offset[0] == '-':
         sign = -1
         str_offset = str_offset[1:]
+    elif str_offset[0] == '+':
+        str_offset = str_offset[1:]
+    else:
+        type_fix = "ABSOLUTE"
+        absolute_date = datetime.strftime(datetime.strptime(str_offset, ISO_DATE_FMT), EXIF_DATE_FMT)
 
     [year, month, day] = [0, 0, 0]
     if " " in str_offset:
@@ -78,49 +121,19 @@ def main():
     [h, m, s] = [int(i) * sign for i in str_offset.split(":")]
     offset = relativedelta(years=year, months=month, days=day, hours=h, minutes=m, seconds=s)
 
-    log.logger.info("%d files to process, time offset = %s", nb_files, str(offset))
+    if type_fix == "ABSOLUTE":
+        log.logger.info("%d files to process, absolute date = %s", nb_files, str(absolute_date))
+    else:
+        log.logger.info("%d files to process, relative offset = %s", nb_files, str(offset))
     for filename in file_list:
         log.logger.info("Processing file %d/%d for %s", seq, nb_files, filename)
         if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
             continue
-        with ExifToolHelper() as et:
-            for data in et.get_metadata(filename):
-                creation_date = get_creation_date(data)
-                new_date = datetime.strftime(creation_date + offset, EXIF_DATE_FMT)
-                log.logger.info("Setting creation date of %s to %s", filename, new_date)
-                p = ["-P", "-overwrite_original"]
-                if fil.is_image_file(filename):
-                    et.set_tags([filename], tags={"DateTimeOriginal": new_date}, params=p)
-                elif fil.is_video_file(filename):
-                    log.logger.info("Tagging video file")
-                    et.set_tags([filename], tags={
-                        "CreateDate": new_date,
-                        "ModifyDate": new_date,
-                        "DateTimeOriginal": new_date
-                    }, params=p)
-                    et.set_tags([filename], tags={
-                        # "CreateDate": new_date,
-                        # "ModifyDate": new_date,
-                        # "DateTimeOriginal": new_date,
-                        "EXIF:CreateDate": new_date,
-                        "EXIF:ModifyDate": new_date,
-                        "EXIF:DateTimeOriginal": new_date
-                    }, params=p)
-                    et.set_tags([filename], tags={
-                        "Composite:SubSecCreateDate": new_date,
-                        "Composite:SubSecDateTimeOriginal": new_date,
-                        "Composite:SubSecModifyDate": new_date,
-                        "Quicktime:CreateDate": new_date,
-                        "Quicktime:DateTimeOriginal": new_date,
-                        "QuickTime:MediaCreateDate": new_date,
-                        "QuickTime:MediaModifyDate": new_date,
-                        "QuickTime:TrackCreateDate": new_date,
-                        "QuickTime:TrackModifyDate": new_date,
-                        "QuickTime:CreateDate": new_date,
-                        "QuickTime:ModifyDate": new_date
-                    }, params=["-P", "-overwrite_original"])
-            for data in et.get_metadata(filename):
-                log.logger.debug("MetaData = %s", util.json_fmt(data))
+
+        if type_fix == "ABSOLUTE":
+            set_file_date(filename, absolute_date)
+        else:
+            set_file_date(filename, datetime.strftime(get_creation_date(filename) + offset, EXIF_DATE_FMT))
         seq += 1
 
 
