@@ -1,0 +1,1 @@
+exiftool -exif:all= -tagsfromfile @ -exif:all -unsafe -thumbnailimage -F %*
