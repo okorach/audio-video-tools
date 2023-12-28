@@ -29,6 +29,7 @@ import mediatools.utilities as util
 import mediatools.log as log
 import mediatools.file as fil
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
@@ -54,27 +55,28 @@ def main():
     util.init('renamer')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
     parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--add_time', help='Time to add', required=False)
-    parser.add_argument('--remove_time', help='Time to remove', required=False)
+    parser.add_argument('--offset', help='Time to add or remove, prefix with - to remove', required=True)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
 
     file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
     seq = 1
     nb_files = len(file_list)
-    epoc = datetime(1900, 1, 1)
-    if "remove_time" in kwargs and kwargs["remove_time"] not in (None, ""):
-        if len(kwargs['remove_time']) > 8:
-            offset = epoc - datetime.strptime(kwargs['remove_time'], ISO_DATE_FMT)
-        else:
-            offset = epoc - datetime.strptime(kwargs['remove_time'], TIME_FMT)
-    if "add_time" in kwargs and kwargs["add_time"] not in (None, ""):
-        if len(kwargs['add_time']) > 8:
-            offset = datetime.strptime(kwargs['add_time'], ISO_DATE_FMT) - epoc
-        else:
-            offset = datetime.strptime(kwargs['add_time'], TIME_FMT) - epoc
+    sign = 1
+    str_offset = kwargs['offset']
+    if str_offset[0] == '-':
+        sign = -1
+        str_offset = str_offset[1:]
 
-    log.logger.info("%d files to process", nb_files)
+    [year, month, day] = [0, 0, 0]
+    if " " in str_offset:
+        [dt, str_offset] = str_offset.split(" ")
+        [year, month, day] = [int(i) * sign for i in dt.split("-")]
+
+    [h, m, s] = [int(i) * sign for i in str_offset.split(":")]
+    offset = relativedelta(years=year, months=month, days=day, hours=h, minutes=m, seconds=s)
+
+    log.logger.info("%d files to process, time offset = %s", nb_files, str(offset))
     for filename in file_list:
         log.logger.info("Processing file %d/%d for %s", seq, nb_files, filename)
         if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
