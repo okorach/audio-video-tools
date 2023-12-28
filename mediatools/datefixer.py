@@ -44,6 +44,8 @@ def get_creation_date(exif_data):
         log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
         return None
 
+    # remove timezone if any
+    str_date = str_date.split("+")[0]
     try:
         creation_date = datetime.strptime(str_date, EXIF_DATE_FMT)
     except ValueError:
