@@ -214,7 +214,7 @@ def strip_file_extension(filename):
 
 def __match_extension(file, extension_list):
     """Returns boolean, whether the file has a extension that is in the list"""
-    return extension(file) in extension_list
+    return extension(file).lower() in extension_list
 
 
 def dir_list(root_dir, recurse=False, file_type=None):
