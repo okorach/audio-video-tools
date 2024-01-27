@@ -23,6 +23,7 @@
 
 from __future__ import print_function
 import datetime
+import math
 from exiftool import ExifToolHelper
 import re
 from mediatools import log
@@ -86,7 +87,7 @@ class VideoFile(media.MediaFile):
             except KeyError:
                 log.logger.error("Can't find video_bitrate in %s", str(self.specs))
         self.duration = round(float(stream.get('duration', 0)), 3)
-        if self.duration == 0.0:
+        if math.isclose(self.duration, 0.0):
             log.logger.error("Can't find duration in %s", str(stream))
         try:
             self.copyright = self.specs['format']['tags']['copyright']
@@ -377,7 +378,7 @@ class VideoFile(media.MediaFile):
         return target_file
 
     def set_creation_date(self, some_datetime):
-        if type(some_datetime) == datetime.datetime:
+        if type(some_datetime) is datetime.datetime:
             time_to_set = datetime.strftime(some_datetime, media.EXIF_DATE_FMT)
         else:
             time_to_set = some_datetime
@@ -528,7 +529,7 @@ def concat(target_file, file_list, with_audio=True):
     files_str = filters.inputs_str(file_list)
     count = 0
     cmplx = ''
-    for file in file_list:
+    for _ in file_list:
         cmplx += f"[{count}:v]"
         if with_audio:
             cmplx += f"[{count}:a]"
