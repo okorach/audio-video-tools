@@ -17,8 +17,11 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+
 setlocal enabledelayedexpansion
+
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p mp3_192k --abitrate 192k
+    video-encode -i "%%~F" --hw_accel on --fps 25 -p 1080p --width 1920 --vbitrate 12288k -o "%%~F.1080p.mp4"
 )
-:: pause
+
+pause
