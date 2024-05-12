@@ -18,6 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-video-concat %* "%~1.concat.mp4"
+video-concat -i %* "%~1.concat.mp4"
 
 Pause

@@ -9,3 +9,5 @@
 set /p prefix=Prefix ?
 set /p seqstart=Sequence Start ?
 renamer -g 5 --seqstart %seqstart% --prefix "%prefix%" --photo_format "%prefix%" --video_format "%prefix%" --files %*
+
+pause

@@ -21,5 +21,5 @@
 setlocal enabledelayedexpansion
 
 for %%F in (%*) do (
-    video-encode -i "%%~F" --hw_accel off --fps 25 -p 1080p --width 1920 --vbitrate 20000k -o "%%~F.1080p.mp4"
+    video-encode -i "%%~F" --hw_accel off --fps 60 -p 1080p --width 1920 --vbitrate 20000k -o "%%~F.1080p.mp4"
 )

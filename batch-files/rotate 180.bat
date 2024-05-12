@@ -19,9 +19,6 @@
 ::
 
 setlocal enabledelayedexpansion
-
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p 1080p --vcodec h265 --width 1920 --vbitrate 6144k --fps 25 -o "%%~F.x265.1080p.mp4"
+    D:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 30000k -vf "transpose=2,transpose=2" "%%~F".180.mp4"
 )
-
-:: pause
