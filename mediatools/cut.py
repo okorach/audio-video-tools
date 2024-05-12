@@ -40,37 +40,38 @@ def main():
     parser.add_argument('--start', required=False, help='Cut start timestamp')
     parser.add_argument('--stop', required=False, help='Cut stop timestamp')
     kwargs = util.parse_media_args(parser)
-    if kwargs.get('start', None) is None and kwargs.get('stop', None) is None:
+    if kwargs.get('timeranges', None) is not None:
+        log.logger.info("Getting multiple ranges")
         ranges = kwargs.get('timeranges', None)
         if ranges is None:
             log.logger.error(MISSING_PARAM)
             sys.exit(1)
     else:
+        log.logger.info("Getting single start/stop range")
         ranges = f"{kwargs.get('start', '')}-{kwargs.get('stop', '')}"
     i = 0
     last_stop = 0
+    log.logger.info("Ranges = %s", str(ranges))
     t_ranges = ranges.split(',')
     ifile = kwargs.pop('inputfile')
-    for range in t_ranges:
+    log.logger.info("t_Ranges = %s", str(t_ranges))
+    for time_interval in t_ranges:
         i += 1
-        t_bounds = range.split('-')
-        if len(t_bounds) != 2:
-            start = t_bounds[0]
-            stop = None
-            if i == 1:
-                stop = start
-                start = 0
-            else:
-                stop = start
-                start = last_stop
+        log.logger.info("Cutting range %s", time_interval)
+        t_bounds = time_interval.split('-')
+        log.logger.info("t_bounds = %s len = %d", str(t_bounds), len(t_bounds))
+        if len(t_bounds) == 2:
+            (start, stop) = t_bounds
             outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
+            log.logger.info("Generating file %s", outputfile)
             av.cut(ifile, output=outputfile, start=start, stop=stop)
             last_stop = stop
             if i == len(t_ranges):
                 i += 1
                 outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f'cut{i}')
-                av.cut(ifile, output=outputfile, start=stop)
+                av.cut(ifile, output=outputfile, start=start, stop=stop)
         else:
+            log.logger.info("Generating single cut")
             av.cut(ifile, output=kwargs.get('outputfile', None), **kwargs)
 
 
