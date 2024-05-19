@@ -43,7 +43,7 @@ FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
 ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
 DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
+CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileCreateDate")
 DEFAULT_FORMAT = f"{FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
 DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
@@ -52,7 +52,7 @@ DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 def get_creation_date(exif_data):
     str_date = creation_date = None
     for tag in CREATION_DATE_TAGS:
-        if tag in exif_data:
+        if exif_data.get(tag, "") != "":
             str_date = exif_data[tag]
             break
     if str_date is None:
@@ -61,7 +61,6 @@ def get_creation_date(exif_data):
 
     if str_date == "0000:00:00 00:00:00":
         str_date = "1900:01:01 00:00:00"
-
     for fmt in DATE_FORMATS:
         try:
             creation_date = datetime.strptime(str_date, fmt)
