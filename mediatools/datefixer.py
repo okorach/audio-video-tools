@@ -31,26 +31,10 @@ import mediatools.file as fil
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
-EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
-TIME_FMT = "%H:%M:%S"
-
-def get_creation_date(filename):
+def __get_creation_date(filename):
     with ExifToolHelper() as et:
         for exif_data in et.get_metadata(filename):
-            if "EXIF:DateTimeOriginal" in exif_data:
-                str_date = exif_data["EXIF:DateTimeOriginal"]
-            elif "File:FileModifyDate" in exif_data:
-                str_date = exif_data["File:FileModifyDate"]
-            else:
-                log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
-                return None
-    # remove timezone if any
-    str_date = str_date.split("+")[0]
-    try:
-        creation_date = datetime.strptime(str_date, EXIF_DATE_FMT)
-    except ValueError:
-        creation_date = datetime.strptime(str_date, ISO_DATE_FMT)
+            creation_date = util.get_creation_date(exif_data)
     return creation_date
 
 
@@ -111,7 +95,7 @@ def main() -> None:
         str_offset = str_offset[1:]
     else:
         type_fix = "ABSOLUTE"
-        absolute_date = datetime.strftime(datetime.strptime(str_offset, ISO_DATE_FMT), EXIF_DATE_FMT)
+        absolute_date = datetime.strftime(datetime.strptime(str_offset, util.ISO_DATE_FMT), util.EXIF_DATE_FMT)
 
     [year, month, day] = [0, 0, 0]
     if " " in str_offset:
@@ -133,7 +117,7 @@ def main() -> None:
         if type_fix == "ABSOLUTE":
             set_file_date(filename, absolute_date)
         else:
-            set_file_date(filename, datetime.strftime(get_creation_date(filename) + offset, EXIF_DATE_FMT))
+            set_file_date(filename, datetime.strftime(__get_creation_date(filename) + offset, util.EXIF_DATE_FMT))
         seq += 1
 
 

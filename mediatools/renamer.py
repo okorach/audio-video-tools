@@ -39,36 +39,9 @@ TIMESTAMP = "#TIMESTAMP#"
 FPS = "#FPS#"
 BITRATE = "#BITRATE#"
 
-FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
-ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
-EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
-DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileCreateDate")
-DEFAULT_FORMAT = f"{FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
-DEFAULT_VIDEO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
-DEFAULT_PHOTO_FORMAT = f"{FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
-
-
-def get_creation_date(exif_data):
-    str_date = creation_date = None
-    for tag in CREATION_DATE_TAGS:
-        if exif_data.get(tag, "") != "":
-            str_date = exif_data[tag]
-            break
-    if str_date is None:
-        log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
-        return None
-
-    if str_date == "0000:00:00 00:00:00":
-        str_date = "1900:01:01 00:00:00"
-    for fmt in DATE_FORMATS:
-        try:
-            creation_date = datetime.strptime(str_date, fmt)
-        except ValueError:
-            pass
-    if creation_date is None:
-        raise ValueError
-    return creation_date
+DEFAULT_FORMAT = f"{util.FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
+DEFAULT_VIDEO_FORMAT = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
+DEFAULT_PHOTO_FORMAT = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 def get_device(exif_data):
     device = ""
@@ -154,7 +127,7 @@ def get_files_data(files, sortby):
                 log.logger.debug("MetaData = %s", util.json_fmt(data))
 #            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
 #                log.logger.debug("Data = %s", util.json_fmt(data))
-                creation_date = get_creation_date(data)
+                creation_date = util.get_creation_date(data)
                 device = get_device(data)
                 bitrate = get_bitrate(data)
                 fps = get_fps(data)
@@ -167,7 +140,7 @@ def get_files_data(files, sortby):
                 filelist[f"{device} {seq:06}"] = d
         else:
             if creation_date is not None:
-                filelist[f"{creation_date.strftime(FILE_DATE_FMT)} {seq:06}"] = d
+                filelist[f"{creation_date.strftime(util.FILE_DATE_FMT)} {seq:06}"] = d
         seq += 1
     return filelist
 
@@ -250,7 +223,7 @@ def main():
         dirname = fil.dirname(filename)
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace(DEVICE, device)
-        file_fmt = file_fmt.replace(TIMESTAMP, FILE_DATE_FMT)
+        file_fmt = file_fmt.replace(TIMESTAMP, util.FILE_DATE_FMT)
         file_fmt = file_fmt.replace(BITRATE, str(files_data[key]['bitrate']))
         file_fmt = file_fmt.replace(FPS, str(files_data[key]['fps']))
         file_fmt = file_fmt.replace(SIZE, files_data[key]['size'])

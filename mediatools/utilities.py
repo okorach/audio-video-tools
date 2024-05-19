@@ -29,6 +29,7 @@ import pathlib
 import tempfile
 import subprocess
 import shlex
+from datetime import datetime
 from mediatools import version
 from mediatools import log
 import mediatools.options as opt
@@ -44,6 +45,12 @@ HW_ACCEL_PREFIX = "-hwaccel cuda -hwaccel_output_format cuda"
 LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
 
 OPTIONS_VERBATIM = ['ss', 'to']
+
+FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
+ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
+DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
+CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileCreateDate")
 
 config_props = os.path.realpath(__file__).split(os.path.sep)
 config_props.pop()
@@ -545,3 +552,25 @@ def use_hardware_accel(**kwargs):
         HW_ACCEL = False
     log.logger.info("Auto hardware acceleration = %s", str(HW_ACCEL))
     return HW_ACCEL
+
+
+def get_creation_date(exif_data):
+    str_date = creation_date = None
+    for tag in CREATION_DATE_TAGS:
+        if exif_data.get(tag, "") != "":
+            str_date = exif_data[tag]
+            break
+    if str_date is None:
+        log.logger.warning("Can't find creation date in %s", json_fmt(exif_data))
+        return None
+
+    if str_date == "0000:00:00 00:00:00":
+        str_date = "1900:01:01 00:00:00"
+    for fmt in DATE_FORMATS:
+        try:
+            creation_date = datetime.strptime(str_date, fmt)
+        except ValueError:
+            pass
+    if creation_date is None:
+        raise ValueError
+    return creation_date
