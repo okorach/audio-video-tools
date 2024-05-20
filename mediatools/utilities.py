@@ -50,7 +50,7 @@ FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
 ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
 EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
 DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileCreateDate")
+CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate", "File:FileCreateDate")
 
 config_props = os.path.realpath(__file__).split(os.path.sep)
 config_props.pop()
@@ -557,8 +557,9 @@ def use_hardware_accel(**kwargs):
 def get_creation_date(exif_data):
     str_date = creation_date = None
     for tag in CREATION_DATE_TAGS:
-        if exif_data.get(tag, "") != "":
-            str_date = exif_data[tag]
+        tag_val = exif_data.get(tag, "")
+        if tag_val != "" and int(tag_val[0:4]) > 1970:
+            str_date = tag_val
             break
     if str_date is None:
         log.logger.warning("Can't find creation date in %s", json_fmt(exif_data))
@@ -569,6 +570,7 @@ def get_creation_date(exif_data):
     for fmt in DATE_FORMATS:
         try:
             creation_date = datetime.strptime(str_date, fmt)
+            break
         except ValueError:
             pass
     if creation_date is None:
