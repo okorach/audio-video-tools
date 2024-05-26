@@ -15,11 +15,11 @@ jobs:
     #    python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install dependencies
@@ -54,7 +54,7 @@ jobs:
           version=$(grep VERSION mediatools/version.py | cut -d "=" -f 2 | sed "s/[\'\" ]//g")
           echo "sonar.projectVersion=$version" >> sonar-project.properties
       - name: Cache SonarQube packages
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
