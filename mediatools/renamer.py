@@ -160,7 +160,8 @@ def rename(filename, new_filename):
     photo = video = other = 0
     try:
         file_type = fil.get_type(filename)
-        os.rename(filename, new_filename)
+        if filename != new_filename:
+            os.rename(filename, new_filename)
         if file_type == fil.FileType.IMAGE_FILE:
             photo = 1
         elif file_type == fil.FileType.VIDEO_FILE:
@@ -174,7 +175,8 @@ def rename(filename, new_filename):
         base = fil.strip_extension(filename)
         for v in range(2, 10):
             try:
-                os.rename(filename, f"{base} {v}.{ext}")
+                if filename != f"{base} {v}.{ext}":
+                    os.rename(filename, f"{base} {v}.{ext}")
                 success = True
                 break
             except os.error:
