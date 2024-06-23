@@ -709,3 +709,47 @@ def reverse(filename, output=None, **kwargs):
 def deshake(filename, output=None, **kwargs):
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix='deshake')
     return VideoFile(filename).encode(target_file=output, **kwargs)
+
+
+
+def set_creation_date(filename, new_date) -> None:
+    log.logger.info("Setting creation date of %s to %s", filename, new_date)
+    p = ["-P", "-overwrite_original"]
+    with ExifToolHelper() as et:
+        if fil.is_image_file(filename):
+            et.set_tags([filename], tags={"DateTimeOriginal": new_date}, params=p)
+        elif fil.is_video_file(filename):
+            log.logger.info("Tagging video file")
+            et.set_tags([filename], tags={
+                "CreateDate": new_date,
+                "ModifyDate": new_date,
+                "DateTimeOriginal": new_date
+            }, params=p)
+            et.set_tags([filename], tags={
+                # "CreateDate": new_date,
+                # "ModifyDate": new_date,
+                # "DateTimeOriginal": new_date,
+                "EXIF:CreateDate": new_date,
+                "EXIF:ModifyDate": new_date,
+                "EXIF:DateTimeOriginal": new_date
+            }, params=p)
+            et.set_tags([filename], tags={
+                "Composite:SubSecCreateDate": new_date,
+                "Composite:SubSecDateTimeOriginal": new_date,
+                "Composite:SubSecModifyDate": new_date,
+                "Quicktime:CreateDate": new_date,
+                "Quicktime:DateTimeOriginal": new_date,
+                "QuickTime:MediaCreateDate": new_date,
+                "QuickTime:MediaModifyDate": new_date,
+                "QuickTime:TrackCreateDate": new_date,
+                "QuickTime:TrackModifyDate": new_date,
+                "QuickTime:CreateDate": new_date,
+                "QuickTime:ModifyDate": new_date
+            }, params=p)
+
+
+def get_creation_date(filename):
+    with ExifToolHelper() as et:
+        for exif_data in et.get_metadata(filename):
+            creation_date = util.get_creation_date(exif_data)
+    return creation_date

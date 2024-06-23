@@ -29,50 +29,10 @@ from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import mediatools.log as log
 import mediatools.file as fil
+from mediatools import videofile
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-def __get_creation_date(filename):
-    with ExifToolHelper() as et:
-        for exif_data in et.get_metadata(filename):
-            creation_date = util.get_creation_date(exif_data)
-    return creation_date
-
-
-def set_file_date(filename, new_date) -> None:
-    log.logger.info("Setting creation date of %s to %s", filename, new_date)
-    p = ["-P", "-overwrite_original"]
-    with ExifToolHelper() as et:
-        if fil.is_image_file(filename):
-            et.set_tags([filename], tags={"DateTimeOriginal": new_date}, params=p)
-        elif fil.is_video_file(filename):
-            log.logger.info("Tagging video file")
-            et.set_tags([filename], tags={
-                "CreateDate": new_date,
-                "ModifyDate": new_date,
-                "DateTimeOriginal": new_date
-            }, params=p)
-            et.set_tags([filename], tags={
-                # "CreateDate": new_date,
-                # "ModifyDate": new_date,
-                # "DateTimeOriginal": new_date,
-                "EXIF:CreateDate": new_date,
-                "EXIF:ModifyDate": new_date,
-                "EXIF:DateTimeOriginal": new_date
-            }, params=p)
-            et.set_tags([filename], tags={
-                "Composite:SubSecCreateDate": new_date,
-                "Composite:SubSecDateTimeOriginal": new_date,
-                "Composite:SubSecModifyDate": new_date,
-                "Quicktime:CreateDate": new_date,
-                "Quicktime:DateTimeOriginal": new_date,
-                "QuickTime:MediaCreateDate": new_date,
-                "QuickTime:MediaModifyDate": new_date,
-                "QuickTime:TrackCreateDate": new_date,
-                "QuickTime:TrackModifyDate": new_date,
-                "QuickTime:CreateDate": new_date,
-                "QuickTime:ModifyDate": new_date
-            }, params=p)
 
 
 def main() -> None:
@@ -117,9 +77,9 @@ def main() -> None:
                 continue
 
             if type_fix == "ABSOLUTE":
-                set_file_date(filename, absolute_date)
+                videofile.set_creation_date(filename, absolute_date)
             else:
-                set_file_date(filename, datetime.strftime(__get_creation_date(filename) + offset, util.EXIF_DATE_FMT))
+                videofile.set_creation_date(filename, datetime.strftime(videofile.get_creation_date(filename) + offset, util.EXIF_DATE_FMT))
             seq += 1
     elif "year" in kwargs:
         good_year = int(kwargs["year"])
