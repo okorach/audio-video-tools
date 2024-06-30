@@ -82,7 +82,8 @@ setuptools.setup(
             'audio-list = mediatools.audio_list:main',
             'linker = mediatools.linker:main',
             'renamer = mediatools.renamer:main',
-            'datefixer = mediatools.datefixer:main'
+            'datefixer = mediatools.datefixer:main',
+            'encode = mediatools.encodeauto:main'
         ]
     },
     python_requires='>=3.6',

@@ -272,6 +272,7 @@ def get_common_args(executable, desc):
     parser.add_argument('--aspect', required=False, help='Aspect Ratio eg 16:9, 4:3, 1.5 ...')
 
     parser.add_argument('-g', '--debug', required=False, help='Debug level')
+    parser.add_argument('--keepName', required=False, default=False, action="store_true", help='Generate new file with same name as old')
 
     return parser
 
@@ -289,7 +290,7 @@ def parse_media_args(parser, args=None):
     set_debug_level(kwargs.get('debug', 3))
     log.logger.debug('Raw args = %s', str(kwargs))
     kwargs.pop('debug')
-    (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
+    # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get('timeranges', None)
     if timerange:
         timerange = timerange.split(',')[0]
