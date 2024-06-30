@@ -746,10 +746,13 @@ def set_creation_date(filename, new_date) -> None:
                 "QuickTime:CreateDate": new_date,
                 "QuickTime:ModifyDate": new_date
             }, params=p)
-
+    log.logger.info("File %s creation date updated", filename)
 
 def get_creation_date(filename):
     with ExifToolHelper() as et:
         for exif_data in et.get_metadata(filename):
             creation_date = util.get_creation_date(exif_data)
     return creation_date
+
+def get_duration(filename: str) -> float:
+    return VideoFile(filename).get_duration()
