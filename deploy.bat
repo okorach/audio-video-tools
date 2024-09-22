@@ -22,9 +22,8 @@ del /F /Q build\*.* dist\*.*
 python setup.py sdist bdist_wheel
 
 :: Deploy locally for tests
-python -m pip uninstall audio-video-tools
 for %%a in (dist\*.whl) do (
-    echo "y" | python -m pip install %%a
+    python -m pip install --upgrade --force-reinstall  %%a
 )
 
 :: Deploy on pypi.org once released
