@@ -1,6 +1,6 @@
 ::
 :: media-tools
-:: Copyright (C) 2019-2021 Olivier Korach
+:: Copyright (C) 2024 Olivier Korach
 :: mailto:olivier.korach AT gmail DOT com
 ::
 :: This program is free software; you can redistribute it and/or
@@ -18,9 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    D:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 15000k -vf "transpose=2" "%%~F".rotate-90.mp4"
-)
+shuffle -g 5 -i %*
 
 pause

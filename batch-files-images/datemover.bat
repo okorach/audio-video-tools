@@ -2,6 +2,6 @@
 
 :: set /p year=Proper year ?
 :: datefixer --year="%year%" --files %*
-datefixer --year=2019 --files %*
+datefixer --year=2024 --files %*
 
 :: pause
