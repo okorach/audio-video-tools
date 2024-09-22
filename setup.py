@@ -83,6 +83,7 @@ setuptools.setup(
             'linker = mediatools.linker:main',
             'renamer = mediatools.renamer:main',
             'datefixer = mediatools.datefixer:main',
+            'shuffle = cli.shuffle:main',
             'encode = mediatools.encodeauto:main'
         ]
     },
