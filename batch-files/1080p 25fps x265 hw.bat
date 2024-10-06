@@ -24,4 +24,4 @@ for %%F in (%*) do (
     video-encode -i "%%~F" -p 1080p --vcodec h265 --width 1920 --vbitrate 6144k --fps 25 -o "%%~F.x265.1080p.mp4"
 )
 
-:: pause
+pause
