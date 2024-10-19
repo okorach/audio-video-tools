@@ -5,9 +5,6 @@ import mediatools.exceptions as ex
 
 
 
-ERR_ROTATION_ARG_1 = 'rotation must be one of {}'.format(', '.join(ROTATION_VALUES))
-ERR_ROTATION_ARG_2 = 'rotation must be between 0 and 7'
-ERR_ROTATION_ARG_3 = 'incorrect value for rotation'
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -204,21 +201,23 @@ class Deshake(Simple):
 
 
 class Transpose(Simple):
-    ROTATIONS = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
+    TRANSPOSITIONS = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
+    ERR_ROTATION_ARG_1 = f'transposition must be one of {', '.join(TRANSPOSITIONS)}'
+    ERR_ROTATION_ARG_2 = 'transposition must be between 0 and 7'
 
-    def __init__(self, rotation: str | int = 90) -> None:
+    def __init__(self, transposition: str | int = 90) -> None:
 
-        if isinstance(rotation, str):
-            if rotation not in Transpose.ROTATIONS:
-                raise ex.InputError(ERR_ROTATION_ARG_1, 'rotate')
+        if isinstance(transposition, str):
+            if transposition not in Transpose.TRANSPOSITIONS:
+                raise ex.InputError(Transpose.ERR_ROTATION_ARG_1, 'transpose')
         else:
-            if rotation == 90:
-                rotation = 1
-            if rotation == -90:
-                rotation = 2
-            if rotation < 0 or rotation > 7:
-                raise ex.InputError(ERR_ROTATION_ARG_2, 'rotate')
-        self.rotation = rotation
+            if transposition == 90:
+                transposition = 1
+            if transposition == -90:
+                transposition = 2
+            if transposition < 0 or transposition > 7:
+                raise ex.InputError(Transpose.ERR_ROTATION_ARG_2, 'transpose')
+        self.rotation = transposition
 
     def __str__(self) -> str:
         return f"transpose={self.rotation}"
