@@ -28,7 +28,7 @@ import exifread
 
 from mediatools import log
 import mediatools.utilities as util
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.resolution as res
 import mediatools.exceptions as ex
 import mediatools.mediafile as media

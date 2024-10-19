@@ -30,7 +30,7 @@ from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.resolution as res
 import mediatools.utilities as util
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.options as opt

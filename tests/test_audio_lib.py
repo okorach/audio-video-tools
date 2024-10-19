@@ -22,7 +22,7 @@ import os
 import platform
 import mediatools.utilities as util
 import mediatools.audio_lib as ad
-import mediatools.file as fil
+import utilities.file as fil
 
 SONG = "it/song.mp3"
 TITLE = 'Love Is Stronger Than Pride'

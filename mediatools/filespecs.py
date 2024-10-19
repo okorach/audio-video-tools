@@ -23,7 +23,7 @@ import argparse
 from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.creator as creator
 import mediatools.options as opt
 

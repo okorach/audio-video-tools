@@ -28,7 +28,7 @@ from mp3_tagger import MP3File
 import music_tag
 from mediatools import log
 import mediatools.exceptions as ex
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util

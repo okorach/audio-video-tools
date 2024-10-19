@@ -28,7 +28,7 @@ import argparse
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import mediatools.log as log
-import mediatools.file as fil
+import utilities.file as fil
 from mediatools import videofile
 from datetime import datetime
 from dateutil.relativedelta import relativedelta

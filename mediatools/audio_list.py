@@ -24,7 +24,7 @@ import sys
 import csv
 import mediatools.utilities as util
 from mediatools import log
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.audiofile as audio
 
 

@@ -21,7 +21,7 @@
 import os
 import re
 import platform
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.videofile as video
 import mediatools.version as version
 

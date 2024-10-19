@@ -20,7 +20,7 @@
 #
 
 import mediatools.exceptions as ex
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.audiofile as audio
 import mediatools.videofile as video
 import mediatools.imagefile as image

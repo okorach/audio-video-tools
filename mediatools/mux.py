@@ -25,7 +25,7 @@
 import sys
 import argparse
 from mediatools import log
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.videofile as video
 import mediatools.utilities as util
 

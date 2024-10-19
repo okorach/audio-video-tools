@@ -34,7 +34,7 @@ from mediatools import version
 from mediatools import log
 import mediatools.options as opt
 import mediatools.resolution as res
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.media_config as conf
 
 DEBUG_LEVEL = 0
