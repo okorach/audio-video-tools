@@ -153,7 +153,7 @@ class Crop(Simple):
         self.y_formula = y_formula
 
     def __str__(self) -> str:
-        return f"crop=" + ":".join([str(p) for p in (self.x, self.y, self.x_formula, self.y_formula)])
+        return "crop=" + ":".join([str(p) for p in (self.x, self.y, self.x_formula, self.y_formula)])
 
 class Reverse(Simple):
     """Reverses a video clip see https://ffmpeg.org/ffmpeg-filters.html#toc-reverse"""
