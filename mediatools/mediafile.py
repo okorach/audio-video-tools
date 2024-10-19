@@ -190,7 +190,7 @@ class MediaFile(fil.File):
         return self._exif_data
 
     def set_exif_creation_date(self, some_datetime):
-        if type(some_datetime) == datetime:
+        if isinstance(some_datetime, datetime):
             time_to_set = datetime.strftime(some_datetime, EXIF_DATE_FMT)
         else:
             time_to_set = some_datetime
