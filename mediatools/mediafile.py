@@ -24,7 +24,7 @@ import re
 from exiftool import ExifToolHelper
 import ffmpeg
 from mediatools import log
-import mediatools.file as fil
+import utilities.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.filters as filters
@@ -183,7 +183,7 @@ class MediaFile(fil.File):
                 left = (iw - width) // 2
         return (top, left, pos)
 
-    def get_exif_data(self, force=False):
+    def get_exif_data(self, force=False) -> dict[str, str]:
         if self._exif_data is None or force:
             with ExifToolHelper() as et:
                 self._exif_data = et.get_metadata(self.filename)[0]
@@ -231,29 +231,23 @@ class MediaFile(fil.File):
     def get_exif_device(self):
         exif_data = self.get_exif_data()
         device = ""
-        if "EXIF:Make" in exif_data:
-            device = exif_data["EXIF:Make"]
-            if "EXIF:Model" in exif_data:
-                device += " " + exif_data["EXIF:Model"]
-        elif "QuickTime:Author" in exif_data:
-            device = exif_data["QuickTime:Author"]
-        elif "QuickTime:CompressorName" in exif_data:
-            device = exif_data["QuickTime:CompressorName"]
+        for key in "EXIF:Make", "QuickTime:Author", "QuickTime:CompressorName":
+            if key in exif_data:
+                device = exif_data[key]
+                break
+        if "EXIF:Model" in exif_data:
+            device += " " + exif_data["EXIF:Model"]
         return device
 
     def get_exif_dimensions(self):
         exif_data = self.get_exif_data()
-        dimensions = ""
-        if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
-            dimensions = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
-        elif "EXIF:ExifImageWidth" in exif_data and "EXIF:ExifImageHeight" in exif_data:
-            dimensions = f'{exif_data["EXIF:ExifImageWidth"]}x{exif_data["EXIF:ExifImageHeight"]}'
-        elif "QuickTime:SourceImageWidth" in exif_data and "QuickTime:SourceImageHeight" in exif_data:
-            dimensions = f'{exif_data["QuickTime:SourceImageWidth"]}x{exif_data["QuickTime:SourceImageHeight"]}'
-        elif "QuickTime:ImageWidth" in exif_data and "QuickTime:ImageHeight" in exif_data:
-            dimensions = f'{exif_data["QuickTime:ImageWidth"]}x{exif_data["QuickTime:ImageHeight"]}'
-        elif "Composite:ImageSize" in exif_data:
-            dimensions = exif_data["Composite:ImageSize"].replace(" ", "x")
+        for w_key, h_key in (("File:ImageWidth", "File:ImageHeight"), ("EXIF:ExifImageWidth", "EXIF:ExifImageHeight"),
+                     ("QuickTime:SourceImageWidth", "QuickTime:SourceImageHeight"), ("QuickTime:ImageWidth", "QuickTime:ImageHeight")):
+            if w_key in exif_data and h_key in exif_data:
+                dimensions = f'{exif_data[w_key]}x{exif_data[h_key]}'
+                break
+        if not dimensions:
+            dimensions = exif_data.get("Composite:ImageSize", "").replace(" ", "x")
         return dimensions
 
     def get_exif_gps_coordinates(self):
