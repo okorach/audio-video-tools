@@ -47,7 +47,7 @@ def main():
             files_to_shuffle.append(file)
 
     log.logger.info("Unfiltered files (%d)", len(files_to_shuffle))
-    files_to_shuffle = [f for f in files_to_shuffle if fil.is_audio_file(f)]
+    files_to_shuffle = [f for f in files_to_shuffle if fil.is_media_file(f)]
     log.logger.info("Filtered files (%d)", len(files_to_shuffle))
     nb_files = len(files_to_shuffle)
     seq = 0
