@@ -1,6 +1,6 @@
 ::
 :: media-tools
-:: Copyright (C) 2019-2021 Olivier Korach
+:: Copyright (C) 2024 Olivier Korach
 :: mailto:olivier.korach AT gmail DOT com
 ::
 :: This program is free software; you can redistribute it and/or
@@ -18,4 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-image-poster -i %* --layout 5x2 --margin 150
+shuffle -g 5 -i %*
+
+pause

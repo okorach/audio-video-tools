@@ -22,6 +22,6 @@ setlocal enabledelayedexpansion
 set /p scale=Max size ?:
 for %%F in (%*) do (
     ren "%%~F" "%%~nxF.before-scale.jpg"
-    E:\Tools\ffmpeg\bin\ffmpeg -i "%%~F.before-scale.jpg" -vf scale=%scale%:-1 "%%~F"
+    D:\Tools\ffmpeg\bin\ffmpeg -i "%%~F.before-scale.jpg" -vf scale=%scale%:-1 "%%~F"
 )
 pause
