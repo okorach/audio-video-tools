@@ -278,8 +278,8 @@ def get_common_args(executable, desc):
     return parser
 
 
-def remove_nones(p):
-    return dict((k, v) for k, v in p.items() if v is not None)
+def remove_nones(d):
+    return {k: v for k, v in d.items() if v is not None}
 
 
 def parse_media_args(parser, args=None):
@@ -290,7 +290,8 @@ def parse_media_args(parser, args=None):
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
     set_debug_level(kwargs.get('debug', 3))
     log.logger.debug('Raw args = %s', str(kwargs))
-    kwargs.pop('debug')
+    kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
+    kwargs.pop('debug', None)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get('timeranges', None)
     if timerange:
