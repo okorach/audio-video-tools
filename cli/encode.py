@@ -67,6 +67,8 @@ def main():
     log.logger.info("Filtered files (%d)", len(files_to_encode))
     # nb_files = len(files_to_encode)
     postfix = ""
+    if "width" in kwargs:
+        postfix += "." + kwargs["width"] + "px"
     if "vbitrate" in kwargs:
         postfix += kwargs["vbitrate"]
     if "vcodec" in kwargs:
