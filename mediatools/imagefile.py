@@ -32,7 +32,7 @@ import utilities.file as fil
 import mediatools.resolution as res
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
-import mediatools.filters as filters
+import filters.filters as filters
 import mediatools.media_config as conf
 
 INPUT_FILE_FMT = ' -i "%s"'

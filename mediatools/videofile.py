@@ -34,7 +34,8 @@ import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.options as opt
-from mediatools import filters
+from filters import filter
+from filters import filters
 import mediatools.media_config as conf
 
 FFMPEG_CLASSIC_FMT = '-i "{0}" {1} "{2}"'
@@ -352,7 +353,7 @@ class VideoFile(media.MediaFile):
 
         input_settings = media.get_input_settings(**kwargs)
         prefilter_settings = media.get_prefilter_settings(**kwargs)
-        video_filters = self.__get_video_filters__(**kwargs)
+        video_filters = self.__get_video_filters(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
         output_settings = media.get_output_settings(**kwargs)
@@ -442,23 +443,22 @@ class VideoFile(media.MediaFile):
                 n += 1
         return n
 
-    def __get_video_filters__(self, **kwargs):
+    def __get_video_filters(self, **kwargs):
         log.logger.debug('Vfilters options = %s', str(kwargs))
-        vfilters = filters.Simple(filters.VIDEO_TYPE)
+        vfilters = filter.Simple(filters.VIDEO_TYPE)
         if kwargs.get('speed', None) is not None:
-            vfilters.append(filters.speed(kwargs['speed']))
+            vfilters.append(filter.speed(kwargs['speed']))
         if kwargs.get('reverse', False):
-            vfilters.append(filters.reverse())
+            vfilters.append(filter.Reverse())
         if 'deshake' in kwargs:
             rx, ry = [int(x) for x in kwargs['deshake'].split('x')]
-            vfilters.append(filters.deshake(rx=rx, ry=ry))
+            vfilters.append(filter.deshake(rx=rx, ry=ry))
             if not kwargs.get('no_crop', False):
                 w, h = self.dimensions()
-                vfilters.append(filters.crop(w - rx, h - ry, rx // 2, ry // 2))
+                vfilters.append(filter.crop(w - rx, h - ry, rx // 2, ry // 2))
         if kwargs.get('fade', False):
-            vfilters.append(filters.fade_in(start=util.to_seconds(kwargs.get(opt.Option.START, 0)), duration=0.5))
-            vfilters.append(filters.fade_out(
-                start=util.to_seconds(kwargs.get(opt.Option.STOP, self.duration)) - 0.5, duration=0.5))
+            vfilters.append(filter.FadeIn(duration=0.5))
+            vfilters.append(filter.FadeOut(duration=0.5))
         if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
             vfilters.append(f'scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}')
         log.logger.debug('vfilters = %s', str(vfilters))

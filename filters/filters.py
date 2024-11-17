@@ -39,7 +39,7 @@ VIDEO_TYPE = 0
 AUDIO_TYPE = 1
 
 
-class Simple:
+class Simple(object):
     def __init__(self, filter_type=VIDEO_TYPE, stream_in=None, stream_out=None, filters=None):
         self.filter_type = filter_type
         self.stream_in = stream_in
@@ -144,17 +144,6 @@ def format(pix_fmts):
         raise FilterError("Unexpected pix_fmts {}".format(pix_fmts))
     return "format=pix_fmts={}".format(s)
 
-
-def fade(direction='in', start=0, duration=0.5, alpha=1):
-    return "fade=t={}:st={}:d={}:alpha={}".format(direction, start, duration, alpha)
-
-
-def fade_in(start=0, duration=0.5, alpha=1):
-    return fade('in', start, duration, alpha)
-
-
-def fade_out(start=0, duration=0.5, alpha=1):
-    return fade('out', start, duration, alpha)
 
 
 def overlay(x=0, y=0):

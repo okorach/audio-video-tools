@@ -18,7 +18,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import mediatools.filters as fil
+import filters.filters as fil
 import mediatools.exceptions as ex
 
 ROTATE = 'rotate: '

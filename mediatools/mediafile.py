@@ -27,7 +27,7 @@ from mediatools import log
 import utilities.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.filters as filters
+import filters.filters as filters
 import mediatools.options as opt
 import mediatools.media_config as conf
 

@@ -41,11 +41,11 @@ class Simple(Filter):
     def __str__(self):
         if not self.filters:
             return ''
-        f = ','.join(self.filters)
-        s_in = '' if self.stream_in is None else '[{}]'.format(self.stream_in)
-        s_out = '' if self.stream_in is None else '[{}]'.format(self.stream_out)
+        f = ','.join([str(f) for f in self.filters])
+        s_in = '' if not self.stream_in else f'[{self.stream_in}]'
+        s_out = '' if not self.stream_out else f'[{self.stream_out}]'
         t = '-af' if self.filter_type == AUDIO_TYPE else '-vf'
-        return '{} "{}{}{}"'.format(t, s_in, f, s_out)
+        return f'{t} "{s_in}{f}{s_out}"'
 
     def insert(self, pos, a_filter):
         self.filters.insert(pos, a_filter)
@@ -251,6 +251,17 @@ def setpts(pts_formula):
 def select(expr):
     return "select='{}'".format(expr)
 
+
+def fade(direction='in', start=0, duration=0.5, alpha=1):
+    return "fade=t={}:st={}:d={}:alpha={}".format(direction, start, duration, alpha)
+
+
+def fade_in(start=0, duration=0.5, alpha=1):
+    return fade('in', start, duration, alpha)
+
+
+def fade_out(start=0, duration=0.5, alpha=1):
+    return fade('out', start, duration, alpha)
 
 
 
