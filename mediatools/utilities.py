@@ -262,7 +262,8 @@ def get_common_args(executable, desc):
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
+    #parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
+    parser.add_argument('-i', '--inputfiles', required=True, metavar='N', type=str, nargs='+', help='List of files to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
 
     parser.add_argument('--' + opt.Option.WIDTH, required=False, type=int, help='width of video/image')
@@ -434,11 +435,11 @@ def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get('vcodec', None) == 'copy' and cmdline_args.get('acodec', None) == 'copy':
         return cmdline_args
-    p = get_default_options(filetype)
-    if 'profile' in cmdline_args:
-        q = get_profile_options(cmdline_args['profile'])
-        p = {**p, **q}
-    cmdline_args = {**p, **cmdline_args}
+    #p = get_default_options(filetype)
+    #if 'profile' in cmdline_args:
+    #    q = get_profile_options(cmdline_args['profile'])
+    #    p = {**p, **q}
+    #cmdline_args = {**p, **cmdline_args}
     if cmdline_args.get('acodec', None) == 'copy':
         cmdline_args.pop('abitrate', None)
     if cmdline_args.get('vcodec', None) == 'copy':
