@@ -20,6 +20,19 @@
 
 setlocal enabledelayedexpansion
 
-for %%F in (%*) do (
-    video-encode -i "%%~F" -p 1080p --width 1920 --vbitrate 12000k -o "%%~F.1080p.mp4"
-)
+set vcodec=h265
+set vbitrate=12000k
+set acodec=aac
+set abitrate=128k
+set width=1920
+set hwaccel=on
+
+set /p "width=Video width [%width%] ? "
+set /p "vbitrate=Video bitrate [%vbitrate%] ? "
+set /p "vcodec=Video codec [%vcodec%] ? "
+set /p "hwaccel=Hardware acceleration [%hwaccel%] ? "
+set /p "fps=FPS ? "
+
+encode -i %* --hw_accel "%hwaccel%" --width "%width%" --vbitrate "%vbitrate%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%"
+
+pause

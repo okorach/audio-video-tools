@@ -19,10 +19,5 @@
 ::
 
 setlocal enabledelayedexpansion
-set /p width=Width ?:
-set /p vb=Video bitrate ?:
-set /p ab=Audio bitrate ?:
 
-for %%F in (%*) do (
-    video-encode -i "%%~F" -p 2mbps --hw_accel off --width %width% --vbitrate %vb% --vcodec x265 --acodec aac --abitrate %ab% -o "%%~F.%vb%.mp4"
-)
+encode -i %* --hw_accel off --vcodec x264 --width 1920 --vbitrate 20000k --acodec aac --abitrate 128k

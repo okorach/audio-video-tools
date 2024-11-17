@@ -20,8 +20,4 @@
 
 setlocal enabledelayedexpansion
 
-for %%F in (%*) do (
-    video-encode -i "%%~F" --hw_accel off --fps 25 -p 1080p --width 1920 --deinterlace --vbitrate 12288k -o "%%~F.1080p.mp4"
-)
-
-pause
+encode -i %* --hw_accel on --vcodec x264 --width 1920 --vbitrate 20000k --acodec aac --abitrate 128k
