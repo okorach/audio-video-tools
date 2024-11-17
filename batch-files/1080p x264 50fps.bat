@@ -20,6 +20,6 @@
 
 setlocal enabledelayedexpansion
 
-encode -i %* --hw_accel on --vcodec x265 --width 1920 --vbitrate 6000k --acodec aac --abitrate 128k --fps 50
+encode -i %* --hw_accel on --vcodec x264 --width 1920 --vbitrate 6000k --acodec aac --abitrate 128k --fps 50
 
 pause
