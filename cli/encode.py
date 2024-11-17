@@ -77,6 +77,8 @@ def main():
         postfix += "." + kwargs["fps"] + "fps"
     if postfix == "":
         postfix = "encoded"
+    else:
+        postfix = postfix[1:]
     for ifile in files_to_encode:
         ofile = build_file_name(ifile, postfix)
         vf.VideoFile(ifile).encode(target_file=ofile, profile=None, **kwargs)
