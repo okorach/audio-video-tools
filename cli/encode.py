@@ -51,7 +51,7 @@ def get_expanded_file_list(file_list: list[str]) -> list[str]:
 
 def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
     pieces = file.split(".")
-    # ext = pieces.pop()
+    pieces.pop()
     base = ".".join(pieces)
     if not os.path.exists(f"{base}.{postfix}.{ext}"):
         return f"{base}.{postfix}.{ext}"
@@ -68,9 +68,9 @@ def main():
     # nb_files = len(files_to_encode)
     postfix = ""
     if "width" in kwargs:
-        postfix += "." + kwargs["width"] + "px"
+        postfix += "." + str(kwargs["width"]) + "px"
     if "vbitrate" in kwargs:
-        postfix += kwargs["vbitrate"]
+        postfix += "." + kwargs["vbitrate"]
     if "vcodec" in kwargs:
         postfix += "." + kwargs["vcodec"]
     if "fps" in kwargs:
