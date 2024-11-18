@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--align', required=False, default='center', help='How to crop')
     parser.add_argument('--ratio', required=True, help='W/H ratio of picture like 2, 1.5')
     kwargs = util.parse_media_args(parser)
-    image.ImageFile(kwargs['inputfile']).crop_any(kwargs['ratio'], kwargs['align'])
+    image.ImageFile(kwargs['inputfiles']).crop_any(kwargs['ratio'], kwargs['align'])
 
 
 if __name__ == "__main__":

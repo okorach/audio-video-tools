@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
         default=False, help='Stretch images so that they have the same width and height')
     kwargs = util.parse_media_args(parser)
-    file_list = kwargs['inputfile']
+    file_list = kwargs['inputfiles']
 
     posterfile = image.posterize(*file_list, out_file=kwargs.get('outputfile', None), **kwargs)
     util.generated_file(posterfile)

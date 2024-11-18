@@ -40,7 +40,7 @@ def main():
     # parser.add_argument('args', nargs=argparse.REMAINDER)
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get('debug', 3))
-    inputfile = kwargs.pop("inputfile")
+    inputfile = kwargs.pop("inputfiles")
     filesplit = inputfile.split('.')
     before = " ".join(kwargs.pop("before"))
     after = " ".join(kwargs.pop("after"))

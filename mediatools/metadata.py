@@ -42,7 +42,7 @@ def main():
         help='Languages of tracks, eg "0:fre:Francais sans sous-title" "1:eng:English with music"')
     kwargs = util.parse_media_args(parser)
 
-    inputfile = kwargs.pop('inputfile')
+    inputfile = kwargs.pop('inputfiles')
     if fil.is_video_file(inputfile):
         output = video.VideoFile(inputfile).add_metadata(**kwargs)
         util.generated_file(output)

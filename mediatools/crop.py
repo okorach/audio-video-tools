@@ -41,7 +41,7 @@ def main():
 
     kwargs['width'], kwargs['height'] = kwargs['box'].split("x", maxsplit=2)
     log.logger.debug("KW=%s", str(kwargs))
-    outputfile = creator.file(kwargs['inputfile']).crop(out_file=kwargs.get('outputfile', None), **kwargs)
+    outputfile = creator.file(kwargs['inputfiles']).crop(out_file=kwargs.get('outputfile', None), **kwargs)
     log.logger.info('Generated %s', outputfile)
     print("Generated {}".format(outputfile))
 

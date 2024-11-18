@@ -53,7 +53,7 @@ def main():
     last_stop = 0
     log.logger.info("Ranges = %s", str(ranges))
     t_ranges = ranges.split(',')
-    ifile = kwargs.pop('inputfile')
+    ifile = kwargs.pop('inputfiles')
     log.logger.info("t_Ranges = %s", str(t_ranges))
     for time_interval in t_ranges:
         i += 1

@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
         default=False, help='Enable hardware (GPU) acceleration')
     kwargs = util.parse_media_args(parser)
-    output = video.reverse(kwargs.pop('inputfile'), kwargs.get('outputfile', None), **kwargs)
+    output = video.reverse(kwargs.pop('inputfiles'), kwargs.get('outputfile', None), **kwargs)
     util.generated_file(output)
 
 

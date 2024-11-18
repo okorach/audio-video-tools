@@ -58,7 +58,7 @@ def test_args():
     kw = util.parse_media_args(parser, ['-i', 'file.mp4', '--resolution', '640x480'])
     assert kw['width'] == 640
     assert kw['resolution'] == '640x480'
-    assert kw['inputfile'] == 'file.mp4'
+    assert kw['inputfiles'] == 'file.mp4'
     assert 'aspect' not in kw
 
     kw = util.parse_media_args(parser, ['-i', 'file2.mp4', '--resolution', 'x480'])

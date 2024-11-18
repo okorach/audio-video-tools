@@ -38,7 +38,7 @@ def main():
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     kwargs = util.parse_media_args(parser)
 
-    afiles = kwargs.pop('inputfile')
+    afiles = kwargs.pop('inputfiles')
     vfile = None
     for f in afiles.copy():
         if fil.is_video_file(f):

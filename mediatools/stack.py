@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
         default=False, help='Stretch images so that they have the same width or height')
     kwargs = util.parse_media_args(parser)
-    files = kwargs['inputfile']
+    files = kwargs['inputfiles']
     output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
     util.generated_file(output)
     sys.exit(0)

@@ -316,7 +316,7 @@ def parse_media_args(parser, args=None):
 
 def cleanup_options(kwargs):
     new_options = remove_nones(kwargs)
-    for key in ['inputfile', 'outputfile', 'profile']:
+    for key in ['inputfiles', 'outputfile', 'profile']:
         new_options.pop(key, None)
     return new_options
 

@@ -34,7 +34,7 @@ def main():
     parser.add_argument('-c', '--background_color', required=False, default='black', help='Blinds color')
     parser.add_argument('-b', '--blinds_size', required=False, default="3%", help='Size of the blind like 2%')
     kwargs = util.parse_media_args(parser)
-    output = image.ImageFile(kwargs.pop('inputfile')).blindify(**kwargs)
+    output = image.ImageFile(kwargs.pop('inputfiles')).blindify(**kwargs)
     log.logger.info("Generated file %s", output)
     print("Generated file {}".format(output))
 

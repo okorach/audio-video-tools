@@ -65,7 +65,6 @@ def main():
     files_to_encode = get_expanded_file_list(kwargs.pop("inputfiles"))
     files_to_encode = [f for f in files_to_encode if fil.is_media_file(f)]
     log.logger.info("Filtered files (%d)", len(files_to_encode))
-    # nb_files = len(files_to_encode)
     postfix = ""
     if "width" in kwargs:
         postfix += "." + str(kwargs["width"]) + "px"

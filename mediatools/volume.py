@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--volume', required=True, help='Change volume like 400% (relative change) or 6dB (absolute)')
     kwargs = util.parse_media_args(parser)
 
-    output = video.volume(kwargs.pop('inputfile'), kwargs.pop('volume'))
+    output = video.volume(kwargs.pop('inputfiles'), kwargs.pop('volume'))
     util.generated_file(output)
 
 

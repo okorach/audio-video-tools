@@ -39,7 +39,7 @@ def main():
     kwargs = util.parse_media_args(parser)
 
     kwargs['deshake'] = '{}x{}'.format(kwargs.pop('rx'), kwargs.pop('ry'))
-    outputfile = video.deshake(kwargs['inputfile'], out_file=kwargs.get('outputfile', None), **kwargs)
+    outputfile = video.deshake(kwargs['inputfiles'], out_file=kwargs.get('outputfile', None), **kwargs)
     print('Generated {}'.format(outputfile))
 
 
