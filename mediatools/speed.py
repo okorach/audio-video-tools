@@ -49,7 +49,7 @@ def main():
             speed, ', '.join(ALLOWED_SPEEDS))
         sys.exit(1)
 
-    output = video.speed(filename=kwargs.pop('inputfiles'), target_speed=speed,
+    output = video.speed(filename=kwargs.pop('inputfiles')[0], target_speed=speed,
         output=kwargs.pop('outputfile', None), **kwargs)
     util.generated_file(output)
 

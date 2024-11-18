@@ -28,7 +28,7 @@ import mediatools.videofile as video
 def main():
     util.init('video-reverse')
     parser = argparse.ArgumentParser(description='Reverse a video')
-    parser.add_argument('-i', '--inputfile', help='Video file to reverse', required=True)
+    parser.add_argument('-i', '--inputfiles', help='Video file to reverse', required=True)
     parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     parser.add_argument('-k', '--keep_audio', required=False, dest=opt.Option.MUTE, action='store_false',
@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--hw_accel', required=False, dest='hw_accel', action='store_true',
         default=False, help='Enable hardware (GPU) acceleration')
     kwargs = util.parse_media_args(parser)
-    output = video.reverse(kwargs.pop('inputfiles'), kwargs.get('outputfile', None), **kwargs)
+    output = video.reverse(kwargs.pop('inputfiles')[0], kwargs.get('outputfile', None), **kwargs)
     util.generated_file(output)
 
 

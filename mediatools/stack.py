@@ -36,7 +36,7 @@ def main():
     files = []
     util.init('image-stack')
     parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-i', '--inputfile', nargs='+', help='List of files to stack', required=True)
+    parser.add_argument('-i', '--inputfiles', nargs='+', help='List of files to stack', required=True)
     parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
     parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
     parser.add_argument('-d', '--direction', required=False, choices=['vertical', 'horizontal'],

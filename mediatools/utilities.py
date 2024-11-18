@@ -262,7 +262,6 @@ def get_common_args(executable, desc):
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    #parser.add_argument('-i', '--inputfile', required=True, help='Input file or directory to encode')
     parser.add_argument('-i', '--inputfiles', required=True, metavar='N', type=str, nargs='+', help='List of files to encode')
     parser.add_argument('-o', '--outputfile', required=False, help='Output file or directory')
 

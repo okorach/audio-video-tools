@@ -38,7 +38,7 @@ def main():
     parser.add_argument('-r', '--shake_ratio', required=False, type=float, default=3.0, help='Size of the shake')
     kwargs = util.parse_media_args(parser)
 
-    output = image.ImageFile(kwargs.pop('inputfiles')).shake(
+    output = image.ImageFile(kwargs.pop('inputfiles')[0]).shake(
         kwargs['slices'], kwargs['shake_ratio'], kwargs['color'], kwargs['direction'])
     log.logger.info("Generated %s", output)
     print("Generated %s", output)

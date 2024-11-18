@@ -31,7 +31,7 @@ import utilities.file as fileutil
 
 def main():
     parser = argparse.ArgumentParser(description="Simple encoder")
-    parser.add_argument('-i', '--inputfile', type=str, required=True)
+    parser.add_argument('-i', '--inputfiles', type=str, required=True)
     parser.add_argument('-g', '--debug', required=False)
     parser.add_argument('--nooverwrite', required=False, default=False, action='store_true')
     parser.add_argument('--keepName', required=False, default=False, action='store_true')
@@ -40,7 +40,7 @@ def main():
     # parser.add_argument('args', nargs=argparse.REMAINDER)
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get('debug', 3))
-    inputfile = kwargs.pop("inputfiles")
+    inputfile = kwargs.pop("inputfiles")[0]
     filesplit = inputfile.split('.')
     before = " ".join(kwargs.pop("before"))
     after = " ".join(kwargs.pop("after"))

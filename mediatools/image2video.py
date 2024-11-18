@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--duration', required=False, type=float, help='Panorama or zoom duration')
     kwargs = util.parse_media_args(parser)
 
-    inputfile = kwargs.pop('inputfiles')
+    inputfile = kwargs.pop('inputfiles')[0]
     resolution = kwargs.get('resolution', conf.get_property('default.video.resolution'))
     kwargs.pop('resolution')
 

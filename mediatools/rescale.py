@@ -39,7 +39,7 @@ def __int_or_empty(x):
 def main():
     parser = util.get_common_args('image-scale', 'Rescale image dimensions of a file or directory')
     kwargs = util.parse_media_args(parser)
-    outputfile = image.ImageFile(kwargs['inputfiles']).scale(
+    outputfile = image.ImageFile(kwargs['inputfiles'][0]).scale(
         kwargs.get('width', -1), kwargs.get('height', -1), out_file=kwargs.get('outputfile', None))
 
     print('Generated', outputfile)
