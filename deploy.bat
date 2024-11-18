@@ -23,7 +23,8 @@ python setup.py sdist bdist_wheel
 
 :: Deploy locally for tests
 for %%a in (dist\*.whl) do (
-    python -m pip install --upgrade --force-reinstall  %%a
+    :: --upgrade
+    python -m pip install --no-deps --force-reinstall  %%a
 )
 
 :: Deploy on pypi.org once released
