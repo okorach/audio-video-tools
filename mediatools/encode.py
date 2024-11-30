@@ -89,7 +89,7 @@ def main():
 
     kwargs = util.parse_media_args(parser)
 
-    file_list = fil.file_list(kwargs['inputfiles'])
+    file_list = fil.file_list(*kwargs['inputfiles'])
     nb_files = len(file_list)
     for i in range(nb_files):
         log.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
