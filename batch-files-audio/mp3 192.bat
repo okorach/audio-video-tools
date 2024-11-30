@@ -18,7 +18,5 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    video-encode -i "%%~F" -p mp3_192k --abitrate 192k
-)
-:: pause
+video-encode -i %* -p mp3_192k --abitrate 192k
+pause
