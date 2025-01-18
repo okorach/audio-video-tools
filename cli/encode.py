@@ -81,7 +81,7 @@ def main():
     for ifile in files_to_encode:
         ofile = build_file_name(ifile, postfix)
         vf.VideoFile(ifile).encode(target_file=ofile, profile=None, **kwargs)
-
+        vf.set_creation_date(ofile, vf.get_creation_date(ifile))
     sys.exit(0)
 
 
