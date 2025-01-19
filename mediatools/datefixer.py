@@ -56,7 +56,6 @@ def guess_date(string: str) -> datetime | None:
     if not m:
         log.logger.warning("No date match for %s", string)
         return None
-    log.logger.info("YMD HMS = %d %d %d %d %d %d", year, mon, day, hour, min, sec)
     return datetime(year, mon, day, hour, min, sec)
 
 def guess_offset(string: str) -> relativedelta | None:
@@ -82,7 +81,7 @@ def guess_offset(string: str) -> relativedelta | None:
 def change_files_date(change_mode: str, * file_list) -> int:
     nb_success = 0
     nb_files = len(file_list)
-    seq = 0
+    seq = 1
     for file in file_list:
         log.logger.info("Processing file %d/%d for %s", seq, nb_files, file)
         if change_mode == "auto":
@@ -112,7 +111,6 @@ def main() -> None:
 
     file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
     file_list = [f for f in file_list if fil.extension(f).lower() in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov')]
-    nb_files = len(file_list)
     if "offset" in kwargs:
         change_files_date(kwargs['offset'], * file_list)
     elif "year" in kwargs:
@@ -122,9 +120,7 @@ def main() -> None:
             log.logger.error("You must pass exactly 2 files to move creation date between files")
             sys.exit(1)
         for filename in file_list:
-            log.logger.info("Processing file %d/%d for %s", seq, nb_files, filename)
-            if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
-                continue
+            log.logger.info("Processing file %s", filename)
             if videofile.get_creation_date(filename).year == good_year:
                 good_file = filename
             else:
