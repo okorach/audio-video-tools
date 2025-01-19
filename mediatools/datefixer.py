@@ -25,6 +25,7 @@ This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 
 import sys
 import argparse
+import re
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import mediatools.log as log
@@ -34,6 +35,71 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
+
+def guess_date(string: str) -> datetime | None:
+    """Sets a file date from date or datetime that should be in the filename"""
+    (year, mon, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
+    log.logger.info("Searching a date in %s", string)
+    # 2017-05-07 08.13.42
+    m = re.match(r"(\d{4})[-:_\. ](\d{2})[-:_\. ](\d{2})[-:_\. ](\d{2})[-:_\. h](\d{2})[-:_\. m](\d{2})", string)
+    if not m:
+        # 20170507_123422
+        m = re.match(r"(\d{4})(\d{2})(\d{2})[-:_\. ](\d{2})(\d{2})(\d{2})", string)
+    if m:
+        (year, mon, day, hour, min, sec) = [int(m.group(i+1)) for i in range(6)]
+    else:
+        # 2017-05-07
+        m = re.match(r"(\d{4})[-:_\. ](\d{2})[-:_\. ](\d{2})", string)
+        if m:
+            (year, mon, day) = [int(m.group(i+1)) for i in range(3)]
+            (hour, min, sec) = (0, 0, 0)
+    if not m:
+        log.logger.warning("No date match for %s", string)
+        return None
+    log.logger.info("YMD HMS = %d %d %d %d %d %d", year, mon, day, hour, min, sec)
+    return datetime(year, mon, day, hour, min, sec)
+
+def guess_offset(string: str) -> relativedelta | None:
+    sign = int(f"{string[0]}1")
+    rest = string[1:]
+    (year, month, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
+    m = re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", rest)
+    if m:
+        [year, month, day, hour, min, sec] = [int(m.group(i+1)) * sign for i in range(6)]
+    else:
+        m = re.match(r"^\d{4}-\d{2}-\d{2}$", rest)
+        if m:
+            [year, month, day] = [int(m.group(i+1)) * sign for i in range(3)]
+        else:
+            m = re.match(r"^\d{2}:\d{2}:\d{2}$", rest)
+            if m:
+                [hour, min, sec] = [int(m.group(i+1)) * sign for i in range(3)]
+    if not m:
+        return None
+    return relativedelta(years=year, months=month, days=day, hours=hour, minutes=min, seconds=sec)
+
+
+def change_files_date(change_mode: str, * file_list) -> int:
+    nb_success = 0
+    nb_files = len(file_list)
+    seq = 0
+    for file in file_list:
+        log.logger.info("Processing file %d/%d for %s", seq, nb_files, file)
+        if change_mode == "auto":
+            new_date = guess_date(fil.basename(file))
+            if new_date and videofile.set_creation_date(file, new_date):
+                nb_success += 1
+        elif change_mode[0] in ('-', '+'):
+            offset = guess_offset(change_mode)
+            if offset and videofile.set_creation_date(file, videofile.get_creation_date(file) + offset):
+                nb_success += 1
+        else:
+            new_date = guess_date(change_mode)
+            if new_date and videofile.set_creation_date(file, new_date):
+                nb_success += 1
+        seq += 1
+    log.logger.info("Processed all files. Success rate %d/%d or %d%%", nb_success, nb_files, int(nb_success*100/nb_files))
+    return nb_success
 
 def main() -> None:
     util.init('renamer')
@@ -45,42 +111,10 @@ def main() -> None:
     kwargs = util.parse_media_args(parser)
 
     file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
-    seq = 1
+    file_list = [f for f in file_list if fil.extension(f).lower() in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov')]
     nb_files = len(file_list)
-    sign = 1
     if "offset" in kwargs:
-        str_offset = kwargs['offset']
-        type_fix = "RELATIVE"
-        if str_offset[0] == '-':
-            sign = -1
-            str_offset = str_offset[1:]
-        elif str_offset[0] == '+':
-            str_offset = str_offset[1:]
-        else:
-            type_fix = "ABSOLUTE"
-            absolute_date = datetime.strftime(datetime.strptime(str_offset, util.ISO_DATE_FMT), util.EXIF_DATE_FMT)
-        [year, month, day] = [0, 0, 0]
-        if " " in str_offset:
-            [dt, str_offset] = str_offset.split(" ")
-            [year, month, day] = [int(i) * sign for i in dt.split("-")]
-
-        [h, m, s] = [int(i) * sign for i in str_offset.split(":")]
-        offset = relativedelta(years=year, months=month, days=day, hours=h, minutes=m, seconds=s)
-
-        if type_fix == "ABSOLUTE":
-            log.logger.info("%d files to process, absolute date = %s", nb_files, str(absolute_date))
-        else:
-            log.logger.info("%d files to process, relative offset = %s", nb_files, str(offset))
-        for filename in file_list:
-            log.logger.info("Processing file %d/%d for %s", seq, nb_files, filename)
-            if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
-                continue
-
-            if type_fix == "ABSOLUTE":
-                videofile.set_creation_date(filename, absolute_date)
-            else:
-                videofile.set_creation_date(filename, datetime.strftime(videofile.get_creation_date(filename) + offset, util.EXIF_DATE_FMT))
-            seq += 1
+        change_files_date(kwargs['offset'], * file_list)
     elif "year" in kwargs:
         good_year = int(kwargs["year"])
         bad_file, good_file = None, None
@@ -91,12 +125,12 @@ def main() -> None:
             log.logger.info("Processing file %d/%d for %s", seq, nb_files, filename)
             if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
                 continue
-            if __get_creation_date(filename).year == good_year:
+            if videofile.get_creation_date(filename).year == good_year:
                 good_file = filename
             else:
                 bad_file = filename
         if good_file is not None and bad_file is not None:
-            set_file_date(bad_file, datetime.strftime(__get_creation_date(good_file), util.EXIF_DATE_FMT))
+            videofile.set_creation_date(bad_file, videofile.get_creation_date(good_file))
         else:
             log.logger.error("Can't detect file with bad date and good date")
             sys.exit(1)
@@ -104,9 +138,6 @@ def main() -> None:
     else:
         log.logger.error("--offet or --move must be specified")
         sys.exit(1)
-
-
-
 
     sys.exit(0)
 
