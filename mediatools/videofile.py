@@ -712,43 +712,45 @@ def deshake(filename, output=None, **kwargs):
 
 
 
-def set_creation_date(filename, new_date) -> None:
-    log.logger.info("Setting creation date of %s to %s", filename, new_date)
+def set_creation_date(filename: str, new_date: datetime.datetime) -> bool:
+    exif_date = datetime.datetime.strftime(new_date, util.EXIF_DATE_FMT)
+    log.logger.info("Setting creation date of %s to %s", filename, exif_date)
     p = ["-P", "-overwrite_original"]
     with ExifToolHelper() as et:
         if fil.is_image_file(filename):
-            et.set_tags([filename], tags={"DateTimeOriginal": new_date}, params=p)
+            et.set_tags([filename], tags={"DateTimeOriginal": exif_date}, params=p)
         elif fil.is_video_file(filename):
             log.logger.info("Tagging video file")
             et.set_tags([filename], tags={
-                "CreateDate": new_date,
-                "ModifyDate": new_date,
-                "DateTimeOriginal": new_date
+                "CreateDate": exif_date,
+                "ModifyDate": exif_date,
+                "DateTimeOriginal": exif_date
             }, params=p)
             et.set_tags([filename], tags={
                 # "CreateDate": new_date,
                 # "ModifyDate": new_date,
                 # "DateTimeOriginal": new_date,
-                "EXIF:CreateDate": new_date,
-                "EXIF:ModifyDate": new_date,
-                "EXIF:DateTimeOriginal": new_date
+                "EXIF:CreateDate": exif_date,
+                "EXIF:ModifyDate": exif_date,
+                "EXIF:DateTimeOriginal": exif_date
             }, params=p)
             et.set_tags([filename], tags={
-                "Composite:SubSecCreateDate": new_date,
-                "Composite:SubSecDateTimeOriginal": new_date,
-                "Composite:SubSecModifyDate": new_date,
-                "Quicktime:CreateDate": new_date,
-                "Quicktime:DateTimeOriginal": new_date,
-                "QuickTime:MediaCreateDate": new_date,
-                "QuickTime:MediaModifyDate": new_date,
-                "QuickTime:TrackCreateDate": new_date,
-                "QuickTime:TrackModifyDate": new_date,
-                "QuickTime:CreateDate": new_date,
-                "QuickTime:ModifyDate": new_date
+                "Composite:SubSecCreateDate": exif_date,
+                "Composite:SubSecDateTimeOriginal": exif_date,
+                "Composite:SubSecModifyDate": exif_date,
+                "Quicktime:CreateDate": exif_date,
+                "Quicktime:DateTimeOriginal": exif_date,
+                "QuickTime:MediaCreateDate": exif_date,
+                "QuickTime:MediaModifyDate": exif_date,
+                "QuickTime:TrackCreateDate": exif_date,
+                "QuickTime:TrackModifyDate": exif_date,
+                "QuickTime:CreateDate": exif_date,
+                "QuickTime:ModifyDate": exif_date
             }, params=p)
     log.logger.info("File %s creation date updated", filename)
+    return True
 
-def get_creation_date(filename):
+def get_creation_date(filename: str) -> datetime.datetime:
     with ExifToolHelper() as et:
         for exif_data in et.get_metadata(filename):
             creation_date = util.get_creation_date(exif_data)
