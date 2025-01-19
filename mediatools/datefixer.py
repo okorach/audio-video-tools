@@ -132,7 +132,7 @@ def main() -> None:
             sys.exit(1)
 
     else:
-        log.logger.error("--offet or --move must be specified")
+        log.logger.error("--offset or --year must be specified")
         sys.exit(1)
 
     sys.exit(0)
