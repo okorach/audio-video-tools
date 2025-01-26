@@ -41,15 +41,16 @@ def guess_date(string: str) -> datetime | None:
     (year, mon, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
     log.logger.info("Searching a date in %s", string)
     # 2017-05-07 08.13.42
-    m = re.match(r"(\d{4})[-:_\. ](\d{2})[-:_\. ](\d{2})[-:_\. ](\d{2})[-:_\. h](\d{2})[-:_\. m](\d{2})", string)
+    sep = r"[-:_\. hm]"
+    m = re.search(rf"(\d\d\d\d){sep}(\d\d){sep}(\d\d){sep}(\d\d){sep}(\d\d){sep}(\d\d)", string)
     if not m:
         # 20170507_123422
-        m = re.match(r"(\d{4})(\d{2})(\d{2})[-:_\. ](\d{2})(\d{2})(\d{2})", string)
+        m = re.search(rf"(\d\d\d\d)(\d\d)(\d\d){sep}(\d\d)(\d\d)(\d\d)", string)
     if m:
         (year, mon, day, hour, min, sec) = [int(m.group(i+1)) for i in range(6)]
     else:
         # 2017-05-07
-        m = re.match(r"(\d{4})[-:_\. ](\d{2})[-:_\. ](\d{2})", string)
+        m = re.search(rf"(\d\d\d\d){sep}(\d\d){sep}(\d\d)", string)
         if m:
             (year, mon, day) = [int(m.group(i+1)) for i in range(3)]
             (hour, min, sec) = (0, 0, 0)
@@ -85,6 +86,7 @@ def change_files_date(change_mode: str, * file_list) -> int:
     for file in file_list:
         log.logger.info("Processing file %d/%d for %s", seq, nb_files, file)
         if change_mode == "auto":
+            videofile.get_exif(file)
             new_date = guess_date(fil.basename(file))
             if new_date and videofile.set_creation_date(file, new_date):
                 nb_success += 1
