@@ -717,6 +717,10 @@ def set_creation_date(filename: str, new_date: datetime.datetime) -> bool:
     log.logger.info("Setting creation date of %s to %s", filename, exif_date)
     p = ["-P", "-overwrite_original"]
     with ExifToolHelper() as et:
+        et.set_tags([filename], tags={
+            "File:FileCreateDate": exif_date,
+            "File:FileModifyDate": exif_date
+        }, params=p)
         if fil.is_image_file(filename):
             et.set_tags([filename], tags={"DateTimeOriginal": exif_date}, params=p)
         elif fil.is_video_file(filename):
@@ -755,6 +759,12 @@ def get_creation_date(filename: str) -> datetime.datetime:
         for exif_data in et.get_metadata(filename):
             creation_date = util.get_creation_date(exif_data)
     return creation_date
+
+def get_exif(filename: str) -> dict:
+     with ExifToolHelper() as et:
+        for exif_data in et.get_metadata(filename):
+            for k, v in exif_data.items():
+                log.logger.info("EXIF - %s = %s", k, v)
 
 def get_duration(filename: str) -> float:
     return VideoFile(filename).get_duration()
