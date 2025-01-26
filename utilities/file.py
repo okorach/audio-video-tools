@@ -121,21 +121,20 @@ class File:
             os.symlink(self.filename, link)
             return link
 
-    def extension(self):
-        return self.filename.split('.').pop()
+    def extension(self) -> str:
+        return self.filename.split('.')[-1]
 
-    def basename(self, ext=None):
-        f = self.filename.split(os.sep).pop()
-        if ext is None:
-            return f
-        else:
-            return '.'.join(f.split('.')[0:-1])
+    def basename(self, strip_dir: bool = True, strip_ext: bool = True) -> str:
+        f = self.filename if not strip_dir else self.filename.split(os.sep)[-1]
+        log.logger.info("F = %s", f)
+        return '.'.join(f.split('.')[0:-1]) if strip_ext else f
 
-    def dirname(self):
+
+    def dirname(self) -> str:
         return os.sep.join(self.filename.split(os.sep)[0:-1])
 
     def strip_extension(self):
-        return '.'.join(self.filename.split('.')[0:-1])
+        return self.basename(strip_dir=False, strip_ext=True)
 
     def hash(self, algo='md5', force=False):
         if self._hash is not None and self.algo is not None and self.algo == algo and not force:
@@ -181,18 +180,18 @@ def rename(old: str, new: str, overwrite: bool = False):
     return File(old).rename(new, overwrite)
 
 
-def extension(f):
+def extension(f: str) -> str:
     return File(f).extension()
 
-def basename(f, ext=None):
-    return File(f).basename(ext)
+def basename(f: str, strip_dir: bool = True, strip_ext: bool = True) -> str:
+    return File(f).basename(strip_dir=strip_dir, strip_ext=strip_ext)
 
 
-def strip_extension(f):
+def strip_extension(f: str):
     return File(f).strip_extension()
 
 
-def dirname(f):
+def dirname(f: str) -> str:
     return File(f).dirname()
 
 
