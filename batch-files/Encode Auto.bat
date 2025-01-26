@@ -24,5 +24,3 @@ setlocal enabledelayedexpansion
 for %%F in (%*) do (
     encodeauto -i "%%~F" --nooverwrite --before "-y -hwaccel cuda -hwaccel_output_format cuda" --after "-vcodec hevc_nvenc -acodec aac -b:a 128k"
 )
-
-pause
