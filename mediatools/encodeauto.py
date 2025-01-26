@@ -40,17 +40,18 @@ def main():
     # parser.add_argument('args', nargs=argparse.REMAINDER)
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get('debug', 3))
-    inputfile = kwargs.pop("inputfiles")[0]
+    inputfile = kwargs.pop("inputfiles")
     filesplit = inputfile.split('.')
     before = " ".join(kwargs.pop("before"))
     after = " ".join(kwargs.pop("after"))
     force = not kwargs.pop("nooverwrite")
 
-    is_original = filesplit[-2] == "original"
+    is_original = len(filesplit) >= 3 and filesplit[-2] == "original"
     if is_original:
         del filesplit[-2]
-    base = '.'.join(filesplit[0:-1])
-    ext = filesplit[-1]
+    base = fileutil.basename(inputfile, strip_dir=False)
+    ext = fileutil.extension(inputfile)
+    logger.info("Input = %s, Base = %s ext = %s", inputfile, base, ext)
     seq = 0
     if not force:
         while os.path.isfile(f'{base}.encode.{seq:02}.{ext}'):
