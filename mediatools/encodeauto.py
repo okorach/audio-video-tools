@@ -51,24 +51,30 @@ def main():
         del filesplit[-2]
     base = fileutil.basename(inputfile, strip_dir=False)
     ext = fileutil.extension(inputfile)
-    logger.info("Input = %s, Base = %s ext = %s", inputfile, base, ext)
+    new_ext = ext
+    if ext == "mts":
+        after = f"-vf yadif_cuda=deint=all {after}"
+        new_ext = "mp4"
+    logger.info("Input = %s, Base = %s ext = %s", inputfile, base, new_ext)
     seq = 0
     if not force:
-        while os.path.isfile(f'{base}.encode.{seq:02}.{ext}'):
+        while os.path.isfile(f'{base}.encode.{seq:02}.{new_ext}'):
             seq += 1
-    outputfile = f'{base}.encode.{seq:02}.{ext}'
+    outputfile = f'{base}.encode.{seq:02}.{new_ext}'
 
     cmd = f'{before} -i "{inputfile}" {after} "{outputfile}"'
     logger.info("COMMAND = %s %s", "ffmpeg", cmd)
     util.run_ffmpeg(params=cmd, duration=video.get_duration(inputfile))
 
     video.set_creation_date(outputfile, video.get_creation_date(inputfile))
-    if not is_original:
-        renamed = f'{base}.original.{ext}'
-        fileutil.rename(inputfile, renamed, force)
-        fileutil.rename(outputfile, inputfile, force)
+    if ext == new_ext:
+        if not is_original:
+            renamed = f'{base}.original.{ext}'
+            fileutil.rename(inputfile, renamed, force)
+            fileutil.rename(outputfile, inputfile, force)
+        else:
+            os.rename(outputfile, '.'.join(filesplit))
     else:
-        os.rename(outputfile, '.'.join(filesplit))
-
+        fileutil.rename(outputfile, f"{base}.{new_ext}", force)
 if __name__ == "__main__":
     main()
