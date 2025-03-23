@@ -50,9 +50,9 @@ def main():
     if is_original:
         del filesplit[-2]
     base = fileutil.basename(inputfile, strip_dir=False)
-    ext = fileutil.extension(inputfile)
+    ext = fileutil.extension(inputfile).lower()
     new_ext = ext
-    if ext == "mts":
+    if ext in ("mts", "avi", "mkv"):
         after = f"-vf yadif_cuda=deint=all {after}"
         new_ext = "mp4"
     logger.info("Input = %s, Base = %s ext = %s", inputfile, base, new_ext)
