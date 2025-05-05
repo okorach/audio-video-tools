@@ -63,18 +63,20 @@ def guess_offset(string: str) -> relativedelta | None:
     sign = int(f"{string[0]}1")
     rest = string[1:]
     (year, month, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
-    m = re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", rest)
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$", rest)
     if m:
+        print(f"{str(m.group())}")
         [year, month, day, hour, min, sec] = [int(m.group(i+1)) * sign for i in range(6)]
     else:
-        m = re.match(r"^\d{4}-\d{2}-\d{2}$", rest)
+        m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", rest)
         if m:
             [year, month, day] = [int(m.group(i+1)) * sign for i in range(3)]
         else:
-            m = re.match(r"^\d{2}:\d{2}:\d{2}$", rest)
+            m = re.match(r"^(\d{2}):(\d{2}):(\d{2})$", rest)
             if m:
                 [hour, min, sec] = [int(m.group(i+1)) * sign for i in range(3)]
     if not m:
+        print("Not [+-]YYYY-MM-DD hh:mm:ss nor YYYY-MM-DD nor hh:mm:ss")
         return None
     return relativedelta(years=year, months=month, days=day, hours=hour, minutes=min, seconds=sec)
 
