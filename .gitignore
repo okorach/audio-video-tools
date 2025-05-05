@@ -41,3 +41,4 @@ it/img*.*.mp4
 it/img*.*.jpg
 it/*.*.json
 it/*.*.mp3
+.sonar/
