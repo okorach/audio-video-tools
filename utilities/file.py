@@ -130,7 +130,7 @@ class File:
 
 
     def dirname(self) -> str:
-        return os.sep.join(self.filename.split(os.sep)[0:-1])
+        return os.sep.join(os.path.abspath(self.filename).split(os.sep)[0:-1])
 
     def strip_extension(self):
         return self.basename(strip_dir=False, strip_ext=True)
