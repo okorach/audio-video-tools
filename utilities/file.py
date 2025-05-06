@@ -126,7 +126,6 @@ class File:
 
     def basename(self, strip_dir: bool = True, strip_ext: bool = True) -> str:
         f = self.filename if not strip_dir else self.filename.split(os.sep)[-1]
-        log.logger.info("F = %s", f)
         return '.'.join(f.split('.')[0:-1]) if strip_ext else f
 
 
