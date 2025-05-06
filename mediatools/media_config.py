@@ -24,17 +24,19 @@ import jprops
 from mediatools import log
 
 CONFIG_SETTINGS = {}
-CONFIG_FILE = '.mediatools.properties'
-VIDEO_RESOLUTION_KEY = 'default.video.resolution'
-VIDEO_FPS_KEY = 'default.video.fps'
-SLIDESHOW_DURATION_KEY = 'default.slideshow.duration'
+CONFIG_FILE = ".mediatools.properties"
+VIDEO_RESOLUTION_KEY = "default.video.resolution"
+VIDEO_FPS_KEY = "default.video.fps"
+SLIDESHOW_DURATION_KEY = "default.slideshow.duration"
+
 
 def load():
     import mediatools.utilities as util
+
     global CONFIG_SETTINGS, CONFIG_FILE
     target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
     if not os.path.isfile(target_file):
-        default_file = util.package_home() / 'media-tools.properties'
+        default_file = util.package_home() / "media-tools.properties"
         if not os.path.isfile(default_file):
             log.logger.critical("Default configuration file %s is missing, aborting...", default_file)
             raise FileNotFoundError
@@ -50,10 +52,10 @@ def load():
     fp.close()
     for key, value in CONFIG_SETTINGS.items():
         value = value.lower()
-        if value in ('yes', 'true', 'on'):
+        if value in ("yes", "true", "on"):
             CONFIG_SETTINGS[key] = True
             continue
-        if value in ('no', 'false', 'off'):
+        if value in ("no", "false", "off"):
             CONFIG_SETTINGS[key] = False
             continue
         try:

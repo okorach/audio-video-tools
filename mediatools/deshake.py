@@ -27,20 +27,18 @@ import mediatools.videofile as video
 
 
 def main():
-    parser = util.get_common_args('video-stabilize', 'Apply deshake filter')
+    parser = util.get_common_args("video-stabilize", "Apply deshake filter")
     parser = video.add_video_args(parser)
-    parser.add_argument('--rx', required=False, type=int, default=32, choices=range(65),
-        help='Deshake rx', metavar="[0-64]")
-    parser.add_argument('--ry', required=False, type=int, default=32, choices=range(65),
-        help='Deshake ry', metavar="[0-64]")
-    parser.add_argument('--crop', dest='nocrop', action='store_false', help='Crop video after stabilization')
-    parser.add_argument('--nocrop', dest='nocrop', action='store_true', help='Do not crop video after stabilization')
+    parser.add_argument("--rx", required=False, type=int, default=32, choices=range(65), help="Deshake rx", metavar="[0-64]")
+    parser.add_argument("--ry", required=False, type=int, default=32, choices=range(65), help="Deshake ry", metavar="[0-64]")
+    parser.add_argument("--crop", dest="nocrop", action="store_false", help="Crop video after stabilization")
+    parser.add_argument("--nocrop", dest="nocrop", action="store_true", help="Do not crop video after stabilization")
     parser.set_defaults(crop=True)
     kwargs = util.parse_media_args(parser)
 
-    kwargs['deshake'] = '{}x{}'.format(kwargs.pop('rx'), kwargs.pop('ry'))
-    outputfile = video.deshake(kwargs['inputfiles'], out_file=kwargs.get('outputfile', None), **kwargs)
-    print('Generated {}'.format(outputfile))
+    kwargs["deshake"] = "{}x{}".format(kwargs.pop("rx"), kwargs.pop("ry"))
+    outputfile = video.deshake(kwargs["inputfiles"], out_file=kwargs.get("outputfile", None), **kwargs)
+    print("Generated {}".format(outputfile))
 
 
 if __name__ == "__main__":

@@ -21,8 +21,9 @@
 
 
 class FileTypeError(Exception):
-    '''Error when passing a non media file'''
-    def __init__(self, file="file", expected_type='media', message=None):
+    """Error when passing a non media file"""
+
+    def __init__(self, file="file", expected_type="media", message=None):
         self.file = file
         self.message = message
         if message is None:
@@ -31,7 +32,8 @@ class FileTypeError(Exception):
 
 
 class InputError(Exception):
-    '''Error when passing wrong input arguments for media transformation'''
+    """Error when passing wrong input arguments for media transformation"""
+
     def __init__(self, message=None, operation=None):
         self.message = message
         self.operation = operation
@@ -43,7 +45,8 @@ class InputError(Exception):
 
 
 class DimensionError(Exception):
-    '''Error when copputing image or video dimensions'''
+    """Error when copputing image or video dimensions"""
+
     def __init__(self, message=None, operation=None):
         self.message = message
         self.operation = operation

@@ -19,9 +19,9 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
+"""
 This script renames files with format YYYY-MM-DD_HHMMSS_<root>
-'''
+"""
 
 import sys
 import argparse
@@ -35,7 +35,6 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-
 def guess_date(string: str) -> datetime | None:
     """Sets a file date from date or datetime that should be in the filename"""
     (year, mon, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
@@ -47,17 +46,18 @@ def guess_date(string: str) -> datetime | None:
         # 20170507_123422
         m = re.search(rf"(\d\d\d\d)(\d\d)(\d\d){sep}(\d\d)(\d\d)(\d\d)", string)
     if m:
-        (year, mon, day, hour, min, sec) = [int(m.group(i+1)) for i in range(6)]
+        (year, mon, day, hour, min, sec) = [int(m.group(i + 1)) for i in range(6)]
     else:
         # 2017-05-07
         m = re.search(rf"(\d\d\d\d){sep}(\d\d){sep}(\d\d)", string)
         if m:
-            (year, mon, day) = [int(m.group(i+1)) for i in range(3)]
+            (year, mon, day) = [int(m.group(i + 1)) for i in range(3)]
             (hour, min, sec) = (0, 0, 0)
     if not m:
         log.logger.warning("No date match for %s", string)
         return None
     return datetime(year, mon, day, hour, min, sec)
+
 
 def guess_offset(string: str) -> relativedelta | None:
     sign = int(f"{string[0]}1")
@@ -65,21 +65,21 @@ def guess_offset(string: str) -> relativedelta | None:
     (year, month, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
     m = re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$", rest)
     if m:
-        [year, month, day, hour, min, sec] = [int(m.group(i+1)) * sign for i in range(6)]
+        [year, month, day, hour, min, sec] = [int(m.group(i + 1)) * sign for i in range(6)]
     else:
         m = re.match(r"^\d{4}-\d{2}-\d{2}$", rest)
         if m:
-            [year, month, day] = [int(m.group(i+1)) * sign for i in range(3)]
+            [year, month, day] = [int(m.group(i + 1)) * sign for i in range(3)]
         else:
             m = re.match(r"^\d{2}:\d{2}:\d{2}$", rest)
             if m:
-                [hour, min, sec] = [int(m.group(i+1)) * sign for i in range(3)]
+                [hour, min, sec] = [int(m.group(i + 1)) * sign for i in range(3)]
     if not m:
         return None
     return relativedelta(years=year, months=month, days=day, hours=hour, minutes=min, seconds=sec)
 
 
-def change_files_date(change_mode: str, * file_list) -> int:
+def change_files_date(change_mode: str, *file_list) -> int:
     nb_success = 0
     nb_files = len(file_list)
     seq = 1
@@ -90,7 +90,7 @@ def change_files_date(change_mode: str, * file_list) -> int:
             new_date = guess_date(fil.basename(file))
             if new_date and videofile.set_creation_date(file, new_date):
                 nb_success += 1
-        elif change_mode[0] in ('-', '+'):
+        elif change_mode[0] in ("-", "+"):
             offset = guess_offset(change_mode)
             if offset and videofile.set_creation_date(file, videofile.get_creation_date(file) + offset):
                 nb_success += 1
@@ -99,22 +99,25 @@ def change_files_date(change_mode: str, * file_list) -> int:
             if new_date and videofile.set_creation_date(file, new_date):
                 nb_success += 1
         seq += 1
-    log.logger.info("Processed all files. Success rate %d/%d or %d%%", nb_success, nb_files, int(nb_success*100/nb_files))
+    log.logger.info("Processed all files. Success rate %d/%d or %d%%", nb_success, nb_files, int(nb_success * 100 / nb_files))
     return nb_success
 
+
 def main() -> None:
-    util.init('renamer')
-    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--offset', help='Time to add or remove, prefix with - to remove', required=False)
-    parser.add_argument('--year', help='Proper year of the file', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    util.init("renamer")
+    parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
+    parser.add_argument("-f", "--files", nargs="+", help="List of files to rename", required=True)
+    parser.add_argument("--offset", help="Time to add or remove, prefix with - to remove", required=False)
+    parser.add_argument("--year", help="Proper year of the file", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
-    file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
-    file_list = [f for f in file_list if fil.extension(f).lower() in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov')]
+    file_list = fil.file_list(*kwargs["files"], file_type=None, recurse=False)
+    file_list = [
+        f for f in file_list if fil.extension(f).lower() in ("jpg", "mp4", "jpeg", "gif", "png", "mp2", "mpeg", "mpeg4", "mpeg2", "vob", "mov")
+    ]
     if "offset" in kwargs:
-        change_files_date(kwargs['offset'], * file_list)
+        change_files_date(kwargs["offset"], *file_list)
     elif "year" in kwargs:
         good_year = int(kwargs["year"])
         bad_file, good_file = None, None
@@ -138,6 +141,7 @@ def main() -> None:
         sys.exit(1)
 
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

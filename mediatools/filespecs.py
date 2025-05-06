@@ -29,40 +29,73 @@ import mediatools.options as opt
 
 STD_FMT = "%-20s : %s"
 
-VIDEO_PROPS = ['filename', 'filesize', 'type',
-    opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, opt.Option.DURATION,
-    opt.Option.VCODEC, opt.Option.VBITRATE, opt.Option.ASPECT, 'pixel_aspect_ratio', opt.Option.FPS,
-    opt.Option.ACODEC, opt.Option.ABITRATE, opt.Option.LANGUAGE, opt.Option.ASAMPLING, opt.Option.AUTHOR]
+VIDEO_PROPS = [
+    "filename",
+    "filesize",
+    "type",
+    opt.Option.FORMAT,
+    opt.Option.WIDTH,
+    opt.Option.HEIGHT,
+    opt.Option.DURATION,
+    opt.Option.VCODEC,
+    opt.Option.VBITRATE,
+    opt.Option.ASPECT,
+    "pixel_aspect_ratio",
+    opt.Option.FPS,
+    opt.Option.ACODEC,
+    opt.Option.ABITRATE,
+    opt.Option.LANGUAGE,
+    opt.Option.ASAMPLING,
+    opt.Option.AUTHOR,
+]
 
-AUDIO_PROPS = ['filename', 'filesize', 'type', opt.Option.FORMAT, opt.Option.DURATION,
-    opt.Option.ACODEC, opt.Option.ABITRATE, opt.Option.ASAMPLING,
-    opt.Option.AUTHOR, opt.Option.TITLE, opt.Option.ALBUM, opt.Option.YEAR, opt.Option.TRACK, opt.Option.GENRE]
+AUDIO_PROPS = [
+    "filename",
+    "filesize",
+    "type",
+    opt.Option.FORMAT,
+    opt.Option.DURATION,
+    opt.Option.ACODEC,
+    opt.Option.ABITRATE,
+    opt.Option.ASAMPLING,
+    opt.Option.AUTHOR,
+    opt.Option.TITLE,
+    opt.Option.ALBUM,
+    opt.Option.YEAR,
+    opt.Option.TRACK,
+    opt.Option.GENRE,
+]
 
-IMAGE_PROPS = ['filename', 'filesize', 'type',
-    opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, 'pixels', opt.Option.AUTHOR, opt.Option.TITLE]
+IMAGE_PROPS = ["filename", "filesize", "type", opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, "pixels", opt.Option.AUTHOR, opt.Option.TITLE]
 
-UNITS = {'filesize': 'bytes', opt.Option.DURATION: 'time', opt.Option.VBITRATE: 'bits/s',
-        opt.Option.ABITRATE: 'bits/s', opt.Option.ASAMPLING: 'bits', 'pixels': 'pix'}
+UNITS = {
+    "filesize": "bytes",
+    opt.Option.DURATION: "time",
+    opt.Option.VBITRATE: "bits/s",
+    opt.Option.ABITRATE: "bits/s",
+    opt.Option.ASAMPLING: "bits",
+    "pixels": "pix",
+}
 
 
 def __to_csv__(specs, all_props):
-    s = ''
+    s = ""
     for prop in all_props:
         if prop not in specs:
-            s += ','
+            s += ","
         else:
-            s += str(specs[prop]) + ','
-        if prop == 'duration':
-            s += util.to_hms(specs[prop], fmt='string') + ','
+            s += str(specs[prop]) + ","
+        if prop == "duration":
+            s += util.to_hms(specs[prop], fmt="string") + ","
     return s[:-1]
 
 
 def __to_std__(specs, all_props):
-    s = ''
+    s = ""
     for prop in sorted(all_props):
         if prop not in specs:
             continue
-        u = ''
+        u = ""
         v = specs[prop]
         if v is None:
             s += "{}: - {}\n".format("%-20s" % prop, u)
@@ -70,48 +103,47 @@ def __to_std__(specs, all_props):
         if prop not in UNITS:
             s += "{}: {} {}\n".format("%-20s" % prop, v, u)
             continue
-        if UNITS[prop] in ('bytes', 'bits', 'pix', 'bytes/s', 'bits/s'):
+        if UNITS[prop] in ("bytes", "bits", "pix", "bytes/s", "bits/s"):
             v = float(v)
             if v > 1024 * 1024 * 1024:
                 v = round(v / 1024 / 1024 / 1024, 2)
-                u = 'G' + UNITS[prop]
+                u = "G" + UNITS[prop]
             elif v > 1024 * 1024:
                 v = round(v / 1024 / 1024, 2)
-                u = 'M' + UNITS[prop]
+                u = "M" + UNITS[prop]
             elif v > 1024:
                 v = round(v / 1024, 2)
-                u = 'k' + UNITS[prop]
+                u = "k" + UNITS[prop]
             else:
                 u = UNITS[prop]
-        elif UNITS[prop] == 'time':
-            v = util.to_hms(specs[prop], fmt='string')
+        elif UNITS[prop] == "time":
+            v = util.to_hms(specs[prop], fmt="string")
         s += "{}: {} {}\n".format("%-20s" % prop, v, u)
     return s[:-1]
 
 
 def main():
-    util.init('file-specs')
-    parser = argparse.ArgumentParser(description='Audio/Video/Image file specs extractor')
-    parser.add_argument('-i', '--inputfiles', required=True, help='Input file or directory to probe')
-    parser.add_argument('-f', '--format', required=False, default='txt', help='Output file format (txt or csv)')
-    parser.add_argument('-t', '--types', required=False, default='',
-                        help='Types of files to include [audio,video,image]')
-    parser.add_argument('-g', '--debug', required=False, default=0, help='Debug level')
-    parser.add_argument('--dry_run', required=False, default=0, help='Dry run mode')
+    util.init("file-specs")
+    parser = argparse.ArgumentParser(description="Audio/Video/Image file specs extractor")
+    parser.add_argument("-i", "--inputfiles", required=True, help="Input file or directory to probe")
+    parser.add_argument("-f", "--format", required=False, default="txt", help="Output file format (txt or csv)")
+    parser.add_argument("-t", "--types", required=False, default="", help="Types of files to include [audio,video,image]")
+    parser.add_argument("-g", "--debug", required=False, default=0, help="Debug level")
+    parser.add_argument("--dry_run", required=False, default=0, help="Dry run mode")
     kwargs = util.parse_media_args(parser)
 
-    filelist = fil.file_list(*kwargs['inputfiles'])
+    filelist = fil.file_list(*kwargs["inputfiles"])
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 
-    fmt = kwargs['format']
-    if fmt == 'csv':
+    fmt = kwargs["format"]
+    if fmt == "csv":
         print("# ")
         for prop in all_props:
-            print("%s," % prop, end='')
-            if prop == 'duration':
-                print("%s," % "Duration HH:MM:SS.x", end='')
-        print('')
+            print("%s," % prop, end="")
+            if prop == "duration":
+                print("%s," % "Duration HH:MM:SS.x", end="")
+        print("")
 
     for file in filelist:
         try:
@@ -121,7 +153,7 @@ def main():
         specs = file_object.get_properties()
         log.logger.info("Specs = %s", str(specs))
         log.logger.debug("Specs = %s", util.json_fmt(specs))
-        if fmt == 'csv':
+        if fmt == "csv":
             print(__to_csv__(specs, all_props))
         else:
             print(__to_std__(specs, all_props))

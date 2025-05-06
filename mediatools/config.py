@@ -29,7 +29,7 @@ _CONFIG_SETTINGS = None
 def _load_properties_file(file):
     settings = {}
     try:
-        with open(file, 'r', encoding="utf-8") as fp:
+        with open(file, "r", encoding="utf-8") as fp:
             log.logger.info("Loading config file %s", file)
             settings = jprops.load_properties(fp)
     except FileNotFoundError:
@@ -37,6 +37,7 @@ def _load_properties_file(file):
     except PermissionError:
         log.logger.warning("Insufficient permissions to open file %s, configuration will be skipped", file)
     return settings
+
 
 def load(config_name=None, settings=None):
     global _CONFIG_SETTINGS
@@ -54,10 +55,10 @@ def load(config_name=None, settings=None):
         if not isinstance(value, str):
             continue
         value = value.lower()
-        if value in ('yes', 'true', 'on'):
+        if value in ("yes", "true", "on"):
             _CONFIG_SETTINGS[key] = True
             continue
-        if value in ('no', 'false', 'off'):
+        if value in ("no", "false", "off"):
             _CONFIG_SETTINGS[key] = False
             continue
         try:
@@ -77,11 +78,12 @@ def load(config_name=None, settings=None):
 def get_property(name, settings=None):
     if settings is None:
         settings = _CONFIG_SETTINGS
-    return settings.get(name, '')
+    return settings.get(name, "")
+
 
 def configure(seed):
-    template_file = pathlib.Path(__file__).parent / f'{seed}.properties'
-    with open(template_file, 'r', encoding="utf-8") as fh:
+    template_file = pathlib.Path(__file__).parent / f"{seed}.properties"
+    with open(template_file, "r", encoding="utf-8") as fh:
         text = fh.read()
 
     config_file = f"{os.path.expanduser('~')}{os.sep}.{seed}.properties"
@@ -90,5 +92,5 @@ def configure(seed):
         print(text)
     else:
         log.logger.info("Creating file '%s'", config_file)
-        with open(config_file, "r", encoding='utf-8') as fh:
+        with open(config_file, "r", encoding="utf-8") as fh:
             print(text, file=fh)

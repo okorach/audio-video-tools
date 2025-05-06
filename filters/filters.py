@@ -23,11 +23,12 @@ from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 
-ROTATION_VALUES = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
+ROTATION_VALUES = ("clock", "cclock", "clock_flip", "cclock_flip")
 
-ERR_ROTATION_ARG_1 = 'rotation must be one of {}'.format(', '.join(ROTATION_VALUES))
-ERR_ROTATION_ARG_2 = 'rotation must be between 0 and 7'
-ERR_ROTATION_ARG_3 = 'incorrect value for rotation'
+ERR_ROTATION_ARG_1 = "rotation must be one of {}".format(", ".join(ROTATION_VALUES))
+ERR_ROTATION_ARG_2 = "rotation must be between 0 and 7"
+ERR_ROTATION_ARG_3 = "incorrect value for rotation"
+
 
 class FilterError(Exception):
     def __init__(self, message):
@@ -53,11 +54,11 @@ class Simple(object):
 
     def __str__(self):
         if not self.filters:
-            return ''
-        f = ','.join(self.filters)
-        s_in = '' if self.stream_in is None else '[{}]'.format(self.stream_in)
-        s_out = '' if self.stream_in is None else '[{}]'.format(self.stream_out)
-        t = '-af' if self.filter_type == AUDIO_TYPE else '-vf'
+            return ""
+        f = ",".join(self.filters)
+        s_in = "" if self.stream_in is None else "[{}]".format(self.stream_in)
+        s_out = "" if self.stream_in is None else "[{}]".format(self.stream_out)
+        t = "-af" if self.filter_type == AUDIO_TYPE else "-vf"
         return '{} "{}{}{}"'.format(t, s_in, f, s_out)
 
     def insert(self, pos, a_filter):
@@ -77,25 +78,25 @@ class Complex:
         self.filtergraph = []
 
     def __str__(self):
-        s = ''
+        s = ""
         for f in self.filtergraph:
             for inp in f[0]:
-                s += '[{}]'.format(inp)
+                s += "[{}]".format(inp)
             s += str(f[1])
-            s += '[{}];'.format(f[2])
+            s += "[{}];".format(f[2])
         return '-filter_complex "{}"'.format(s[:-1])
 
     def format_inputs(self):
-        return ' '.join(['-i "{}"'.format(f.filename) for f in self.inputs])
+        return " ".join(['-i "{}"'.format(f.filename) for f in self.inputs])
 
     def insert_input(self, pos, an_input):
         self.inputs.insert(pos, an_input)
 
     def add_filtergraph(self, inputs, simple_filter):
-        outs = 'out{}'.format(len(self.filtergraph))
+        outs = "out{}".format(len(self.filtergraph))
         if not isinstance(inputs, (list, tuple)):
             inputs = [str(inputs)]
-        log.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
+        log.logger.debug("Adding filtergraph %s, %s, %s", str(inputs), str(simple_filter), outs)
         self.filtergraph.append((inputs, simple_filter, outs))
         return outs
 
@@ -114,7 +115,7 @@ def wrap_in_streams(filter_list, in_stream, out_stream):
     if isinstance(filter_list, str):
         s = filter_list
     elif isinstance(filter_list, (list, tuple)):
-        s = ','.join(filter_list)
+        s = ",".join(filter_list)
     else:
         raise FilterError("Unexpected filter_list type {}".format(type(filter_list)))
     return "[{}]{}[{}]".format(in_stream, s, out_stream)
@@ -125,25 +126,25 @@ def in_out(filter_str, in_streams, out_streams):
 
 
 def setsar(ratio):
-    ratio = '/'.join(ratio.split(':'))
+    ratio = "/".join(ratio.split(":"))
     return "setsar={}".format(ratio)
 
 
 def zoompan(x_formula, y_formula, z_formula, **kwargs):
-    opts = ''
+    opts = ""
     for k in kwargs:
         opts += ":{}={}".format(k, kwargs[k])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}'{opts}"
 
+
 def format(pix_fmts):
     if isinstance(pix_fmts, list):
-        s = '|'.join(pix_fmts)
+        s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
         s = pix_fmts
     else:
         raise FilterError("Unexpected pix_fmts {}".format(pix_fmts))
     return "format=pix_fmts={}".format(s)
-
 
 
 def overlay(x=0, y=0):
@@ -153,13 +154,13 @@ def overlay(x=0, y=0):
 def trim(duration=None, start=None, stop=None):
     if duration is None and (start is None or stop is None):
         raise FilterError("No duration, start or stop for trim filter")
-    s = 'trim='
+    s = "trim="
     if duration is not None:
-        s += 'duration={}'.format(duration)
+        s += "duration={}".format(duration)
     if start is not None:
-        s += 'start={}'.format(start)
+        s += "start={}".format(start)
     if stop is not None:
-        s += 'stop={}'.format(stop)
+        s += "stop={}".format(stop)
     return s
 
 
@@ -174,9 +175,9 @@ def scale(x, y):
 def crop(x, y, x_formula=None, y_formula=None):
     s = "crop={}:{}".format(x, y)
     if x_formula is not None:
-        s += ':' + str(x_formula)
+        s += ":" + str(x_formula)
     if y_formula is not None:
-        s += ':' + str(y_formula)
+        s += ":" + str(y_formula)
     return s
 
 
@@ -193,29 +194,30 @@ def areverse():
 
 
 def volume(vol):
-    ''' Sets video / audio volume
-    Can pass vol as a multiplier of current volume or absolute value like -6.0dB '''
+    """Sets video / audio volume
+    Can pass vol as a multiplier of current volume or absolute value like -6.0dB"""
     return "volume={}".format(vol)
 
 
 def rotate(rotation=90):
     if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
-        raise ex.InputError(ERR_ROTATION_ARG_1, 'rotate')
+        raise ex.InputError(ERR_ROTATION_ARG_1, "rotate")
     if not isinstance(rotation, int):
-        raise ex.InputError(ERR_ROTATION_ARG_3, 'rotate')
+        raise ex.InputError(ERR_ROTATION_ARG_3, "rotate")
     rotation = int(rotation)
     if rotation == 90:
         rotation = 1
     if rotation == -90:
         rotation = 2
     if rotation < 0 or rotation > 7:
-        raise ex.InputError(ERR_ROTATION_ARG_2, 'rotate')
+        raise ex.InputError(ERR_ROTATION_ARG_2, "rotate")
     return "transpose={}".format(rotation)
+
 
 def speed(target_speed):
     s = float(util.percent_or_absolute(target_speed))
     if s > 1:
-        return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
+        return select("not(mod(n,{}))".format(s)) + "," + setpts("N/FRAME_RATE/TB")
     else:
         return setpts("{}*PTS".format(1 / float(s)))
 
@@ -226,32 +228,32 @@ def select(expr):
 
 def filtercomplex(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    sep = " "   # if platform.system() == 'Windows' else " \\\n"
-    return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+        return ""
+    sep = " "  # if platform.system() == 'Windows' else " \\\n"
+    return '-filter_complex "{}{}"'.format(sep, ("; " + sep).join(filter_list))
 
 
 def vfilter(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    return '-vf "{}"'.format(','.join(filter_list))
+        return ""
+    return '-vf "{}"'.format(",".join(filter_list))
 
 
 def afilter(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    return '-af "{}"'.format(','.join(filter_list))
+        return ""
+    return '-af "{}"'.format(",".join(filter_list))
 
 
 def inputs_str(input_list):
-    sep = " "   # if platform.system() == 'Windows' else " \\\n"
+    sep = " "  # if platform.system() == 'Windows' else " \\\n"
     return sep.join(['-i "{}"'.format(f) for f in input_list])
 
 
 def format_options(opts):
     if opts is None:
-        return ''
-    return ' '.join(opts)
+        return ""
+    return " ".join(opts)
 
 
 def metadata(key, value, track=None, track_type=None):
@@ -259,21 +261,21 @@ def metadata(key, value, track=None, track_type=None):
         return '-metadata {}="{}"'.format(key, value)
     else:
         if track_type is None:
-            track_type = 's:a'
+            track_type = "s:a"
         return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
 
 
 def vcodec(codec):
-    return '-vcodec {}'.format(codec)
+    return "-vcodec {}".format(codec)
 
 
 def acodec(codec):
-    return '-acodec {}'.format(codec)
+    return "-acodec {}".format(codec)
 
 
 def disposition(default_track, nb_tracks):
     # -disposition:a:0 default -disposition:a:1
-    disp = ''
+    disp = ""
     for t in range(nb_tracks):
         t_disp = "default" if t == default_track else "none"
         disp += "-disposition:a:{} {} ".format(t, t_disp)
@@ -281,12 +283,12 @@ def disposition(default_track, nb_tracks):
 
 
 def hw_accel_input(**kwargs):
-    if kwargs.get('hw_accel', False):
-        return '-hwaccel cuvid -c:v h264_cuvid'
-    return ''
+    if kwargs.get("hw_accel", False):
+        return "-hwaccel cuvid -c:v h264_cuvid"
+    return ""
 
 
 def hw_accel_output(**kwargs):
-    if kwargs.get('hw_accel', False):
-        return '-c:v h264_nvenc'
-    return ''
+    if kwargs.get("hw_accel", False):
+        return "-c:v h264_nvenc"
+    return ""

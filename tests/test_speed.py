@@ -26,19 +26,19 @@ from mediatools import speed
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = 'video-speed'
-VIDEO = 'it' + os.sep + 'video-360p-1.mp4'
-TMP1 = util.get_tmp_file() + '.mp4'
+CMD = "video-speed"
+VIDEO = "it" + os.sep + "video-360p-1.mp4"
+TMP1 = util.get_tmp_file() + ".mp4"
 
 
 def test_main():
-    with patch.object(sys, 'argv', [CMD, '-p', '360p', '-i', VIDEO, '--speed', '2']):
+    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "--speed", "2"]):
         speed.main()
         assert True
 
 
 def test_main_with_output():
-    with patch.object(sys, 'argv', [CMD, '-p', '360p', '-i', VIDEO, '-o', TMP1, '--speed', '200%']):
+    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "200%"]):
         speed.main()
         assert abs(video.VideoFile(VIDEO).duration - 2 * video.VideoFile(TMP1).duration) < 0.06
         assert video.VideoFile(TMP1).audio_codec is None
@@ -46,7 +46,7 @@ def test_main_with_output():
 
 
 def test_slowmo():
-    with patch.object(sys, 'argv', [CMD, '-p', '360p', '-i', VIDEO, '-o', TMP1, '--speed', '50%']):
+    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "50%"]):
         speed.main()
         assert abs(video.VideoFile(VIDEO).duration - 0.5 * video.VideoFile(TMP1).duration) < 0.06
         assert video.VideoFile(TMP1).audio_codec is None
@@ -54,16 +54,16 @@ def test_slowmo():
 
 
 def test_keep_audio():
-    with patch.object(sys, 'argv', [CMD, '-p', '360p', '-i', VIDEO, '-o', TMP1, '-k', '--speed', '4']):
+    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "-k", "--speed", "4"]):
         speed.main()
         # TODO - Truncate audio when video is shorter, and adjust tests
         assert abs(video.VideoFile(VIDEO).duration - 4 * video.VideoFile(TMP1).duration) < 0.06
-        assert video.VideoFile(TMP1).audio_codec == 'aac'
+        assert video.VideoFile(TMP1).audio_codec == "aac"
         os.remove(TMP1)
 
 
 def test_main_help():
-    with patch.object(sys, 'argv', [CMD, '-h']):
+    with patch.object(sys, "argv", [CMD, "-h"]):
         try:
             speed.main()
             assert False
@@ -72,7 +72,7 @@ def test_main_help():
 
 
 def test_main_bad_option():
-    with patch.object(sys, 'argv', [CMD, '-i', VIDEO, '--badoption', 'yes']):
+    with patch.object(sys, "argv", [CMD, "-i", VIDEO, "--badoption", "yes"]):
         try:
             speed.main()
             assert False
@@ -81,7 +81,7 @@ def test_main_bad_option():
 
 
 def test_main_no_file():
-    with patch.object(sys, 'argv', [CMD, '-o', TMP1]):
+    with patch.object(sys, "argv", [CMD, "-o", TMP1]):
         try:
             speed.main()
             assert False
@@ -90,7 +90,7 @@ def test_main_no_file():
 
 
 def test_bad_speed():
-    with patch.object(sys, 'argv', [CMD, '-i', VIDEO, '--speed', '212%']):
+    with patch.object(sys, "argv", [CMD, "-i", VIDEO, "--speed", "212%"]):
         try:
             speed.main()
             assert False

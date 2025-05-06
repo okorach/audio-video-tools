@@ -29,19 +29,20 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fileutil
 
+
 def main():
     parser = argparse.ArgumentParser(description="Simple encoder")
-    parser.add_argument('-i', '--inputfiles', type=str, required=True)
-    parser.add_argument('-g', '--debug', required=False)
-    parser.add_argument('--nooverwrite', required=False, default=False, action='store_true')
-    parser.add_argument('--keepName', required=False, default=False, action='store_true')
-    parser.add_argument('--before', nargs='*', required=True)
-    parser.add_argument('--after', nargs='*', required=True)
+    parser.add_argument("-i", "--inputfiles", type=str, required=True)
+    parser.add_argument("-g", "--debug", required=False)
+    parser.add_argument("--nooverwrite", required=False, default=False, action="store_true")
+    parser.add_argument("--keepName", required=False, default=False, action="store_true")
+    parser.add_argument("--before", nargs="*", required=True)
+    parser.add_argument("--after", nargs="*", required=True)
     # parser.add_argument('args', nargs=argparse.REMAINDER)
     kwargs = vars(parser.parse_args())
-    util.set_debug_level(kwargs.get('debug', 3))
+    util.set_debug_level(kwargs.get("debug", 3))
     inputfile = kwargs.pop("inputfiles")
-    filesplit = inputfile.split('.')
+    filesplit = inputfile.split(".")
     before = " ".join(kwargs.pop("before"))
     after = " ".join(kwargs.pop("after"))
     force = not kwargs.pop("nooverwrite")
@@ -58,9 +59,9 @@ def main():
     logger.info("Input = %s, Base = %s ext = %s", inputfile, base, new_ext)
     seq = 0
     if not force:
-        while os.path.isfile(f'{base}.encode.{seq:02}.{new_ext}'):
+        while os.path.isfile(f"{base}.encode.{seq:02}.{new_ext}"):
             seq += 1
-    outputfile = f'{base}.encode.{seq:02}.{new_ext}'
+    outputfile = f"{base}.encode.{seq:02}.{new_ext}"
 
     cmd = f'{before} -i "{inputfile}" {after} "{outputfile}"'
     logger.info("COMMAND = %s %s", "ffmpeg", cmd)
@@ -69,12 +70,14 @@ def main():
     video.set_creation_date(outputfile, video.get_creation_date(inputfile))
     if ext == new_ext:
         if not is_original:
-            renamed = f'{base}.original.{ext}'
+            renamed = f"{base}.original.{ext}"
             fileutil.rename(inputfile, renamed, force)
             fileutil.rename(outputfile, inputfile, force)
         else:
-            os.rename(outputfile, '.'.join(filesplit))
+            os.rename(outputfile, ".".join(filesplit))
     else:
         fileutil.rename(outputfile, f"{base}.{new_ext}", force)
+
+
 if __name__ == "__main__":
     main()

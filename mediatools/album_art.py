@@ -28,19 +28,19 @@ import argparse
 import mediatools.utilities as util
 import mediatools.audiofile as audio
 
-DEFAULT_RESCALING = '512x512'
+DEFAULT_RESCALING = "512x512"
 
 
 def main():
-    util.init('album-art')
-    parser = argparse.ArgumentParser(description='Adds album art to audio files')
-    parser.add_argument('inputfiles', metavar='N', type=str, nargs='+', help='List of files to mux')
-    parser.add_argument('--scale', help=f'Rescaling of image, {DEFAULT_RESCALING} by default', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    util.init("album-art")
+    parser = argparse.ArgumentParser(description="Adds album art to audio files")
+    parser.add_argument("inputfiles", metavar="N", type=str, nargs="+", help="List of files to mux")
+    parser.add_argument("--scale", help=f"Rescaling of image, {DEFAULT_RESCALING} by default", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
-    files = kwargs['inputfiles']
-    scale = kwargs.get('scale', DEFAULT_RESCALING)
+    files = kwargs["inputfiles"]
+    scale = kwargs.get("scale", DEFAULT_RESCALING)
     audio.album_art(*files, scale=scale)
 
 
