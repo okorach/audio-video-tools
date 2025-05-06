@@ -24,7 +24,7 @@ import logging
 import pathlib
 
 logger = logging.getLogger("mediatools")
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)-7s | %(threadName)-15s | %(message)s")
 try:
     fh = logging.FileHandler("mediatools.log")
 except PermissionError:
