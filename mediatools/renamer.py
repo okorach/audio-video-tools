@@ -171,10 +171,7 @@ def get_files_data(files: list[str], sortby: str) -> dict[str : dict[str:str]]:
                 result = future.result(timeout=10)  # Retrieve result or raise an exception
                 log.logger.debug("Result: %s", str(result))
             except TimeoutError:
-                log.logger.error(
-                    "Finding sync timed out after 60 seconds for %s, sync killed.",
-                    str(future),
-                )
+                log.logger.error("Finding sync timed out after 60 seconds for %s, sync killed.", str(future))
             except Exception as e:
                 log.logger.error("Task raised an exception: %s", str(e))
             if not result:
@@ -204,26 +201,28 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
 
 
 def rename(filename: str, new_filename: str) -> tuple[int, int, int]:
-    log.logger.info("Renaming %s into %s", filename, new_filename)
     photo = video = other = 0
     success = True
-    try:
-        file_type = fil.get_type(filename)
-        if filename != new_filename:
+    if os.path.abspath(filename) != os.path.abspath(new_filename):
+        log.logger.info("Renaming %s into %s", filename, new_filename)
+        try:
             os.rename(filename, new_filename)
-    except os.error:
-        success = False
-        ext = fil.extension(new_filename)
-        base = fil.strip_extension(filename)
-        for v in range(2, 10):
-            try:
-                if filename != f"{base} {v}.{ext}":
-                    os.rename(filename, f"{base} {v}.{ext}")
-                success = True
-                break
-            except os.error:
-                continue
+        except os.error:
+            success = False
+            ext = fil.extension(new_filename)
+            base = fil.strip_extension(filename)
+            for v in range(2, 10):
+                try:
+                    if filename != f"{base} {v}.{ext}":
+                        os.rename(filename, f"{base} {v}.{ext}")
+                    success = True
+                    break
+                except os.error:
+                    continue
+    else:
+        log.logger.info("File %s needs no renaming", filename)
     if success:
+        file_type = fil.get_type(filename)
         if file_type == fil.FileType.IMAGE_FILE:
             photo = 1
         elif file_type == fil.FileType.VIDEO_FILE:
