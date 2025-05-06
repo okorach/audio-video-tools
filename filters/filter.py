@@ -202,7 +202,7 @@ class Deshake(Simple):
 
 class Transpose(Simple):
     TRANSPOSITIONS = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
-    ERR_ROTATION_ARG_1 = f'transposition must be one of {', '.join(TRANSPOSITIONS)}'
+    ERR_ROTATION_ARG_1 = f"transposition must be one of {', '.join(TRANSPOSITIONS)}"
     ERR_ROTATION_ARG_2 = 'transposition must be between 0 and 7'
 
     def __init__(self, transposition: str | int = 90) -> None:
