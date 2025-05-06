@@ -26,6 +26,8 @@ This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 import sys
 import os
 import argparse
+from typing import Optional
+import concurrent.futures
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import mediatools.log as log
@@ -114,34 +116,49 @@ def get_formats(nb_photos, nb_videos, **kwargs):
             pformat = kwargs['photo_format']
     return (pformat, vformat)
 
+def get_file_data(filename: str) -> Optional[dict[str, str]]:
+    if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
+        return None
+
+    log.logger.info("Reading data for %s", filename)
+    with ExifToolHelper() as et:
+        for data in et.get_metadata(filename):
+            log.logger.debug("MetaData = %s", util.json_fmt(data))
+#            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
+#                log.logger.debug("Data = %s", util.json_fmt(data))
+            creation_date = util.get_creation_date(data)
+            device = get_device(data)
+            bitrate = get_bitrate(data)
+            fps = get_fps(data)
+            size = get_size(data)
+    return {"creation_date": creation_date, "device": device, "file": filename, "bitrate": bitrate, "size": size, "fps": fps}
+
 def get_files_data(files, sortby):
     seq = 1
     filelist = {}
     nb_files = len(files)
-    for filename in files:
-        if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
-            continue
-        log.logger.info("Reading data %d/%d for %s", seq, nb_files, filename)
-        with ExifToolHelper() as et:
-            for data in et.get_metadata(filename):
-                log.logger.debug("MetaData = %s", util.json_fmt(data))
-#            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
-#                log.logger.debug("Data = %s", util.json_fmt(data))
-                creation_date = util.get_creation_date(data)
-                device = get_device(data)
-                bitrate = get_bitrate(data)
-                fps = get_fps(data)
-                size = get_size(data)
-        d = {"creation_date": creation_date, "device": device, "file": filename, "bitrate": bitrate, "size": size, "fps": fps}
-        if sortby == "name":
-            filelist[filename] = d
-        elif sortby == "device":
-            if device is not None:
-                filelist[f"{device} {seq:06}"] = d
-        else:
-            if creation_date is not None:
-                filelist[f"{creation_date.strftime(util.FILE_DATE_FMT)} {seq:06}"] = d
-        seq += 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="GetMetadata") as executor:
+        futures = [executor.submit(get_file_data, file) for file in files]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                result = future.result(timeout=10)  # Retrieve result or raise an exception
+                log.logger.info("Result: %s", str(result))
+            except TimeoutError:
+                log.logger.error("Finding sync timed out after 60 seconds for %s, sync killed.", str(future))
+            except Exception as e:
+                log.logger.error("Task raised an exception: %s", str(e))
+            if not result:
+                continue
+            if sortby == "name":
+                filelist[result["filename"]] = result
+            elif sortby == "device":
+                if result["device"] is not None:
+                    filelist[f"{result['device']} {seq:06}"] = result
+            else:
+                if result["creation_date"] is not None:
+                    filelist[f"{result['creation_date'].strftime(util.FILE_DATE_FMT)} {seq:06}"] = result
+            seq += 1
+            log.logger.debug("Extracted %d/%d files = %d%%", seq, nb_files, (100 * seq) // nb_files)
     return filelist
 
 def get_fmt(filename, photo, video, other):
