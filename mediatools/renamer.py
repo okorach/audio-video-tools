@@ -19,9 +19,9 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
+"""
 This script renames files with format YYYY-MM-DD_HHMMSS_<root>
-'''
+"""
 
 import sys
 import os
@@ -45,7 +45,8 @@ DEFAULT_FORMAT = f"{util.FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
 DEFAULT_PHOTO_FORMAT = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
-def get_device(exif_data):
+
+def get_device(exif_data: dict[str, str]) -> str:
     device = ""
     if "EXIF:Make" in exif_data:
         device = exif_data["EXIF:Make"]
@@ -57,7 +58,8 @@ def get_device(exif_data):
         device = exif_data["QuickTime:CompressorName"]
     return device
 
-def get_size(exif_data):
+
+def get_size(exif_data: dict[str, str]) -> str:
     size = ""
     if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
         size = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
@@ -71,13 +73,15 @@ def get_size(exif_data):
         size = exif_data["Composite:ImageSize"].replace(" ", "x")
     return size
 
-def get_bitrate(exif_data):
+
+def get_bitrate(exif_data: dict[str, str]) -> int:
     bitrate = None
     if "Composite:AvgBitrate" in exif_data:
         bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
     return bitrate
 
-def get_codec(exif_data):
+
+def get_codec(exif_data: dict[str, str]) -> str:
     codec = ""
     if "QuickTime:CompressorID" in exif_data:
         codec = exif_data["QuickTime:CompressorID"]
@@ -89,51 +93,74 @@ def get_codec(exif_data):
 
     return codec
 
-def get_fps(exif_data):
+
+def get_fps(exif_data: dict[str, str]) -> int:
     fps = None
     if "QuickTime:VideoFrameRate" in exif_data:
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
 
+
 def get_formats(nb_photos, nb_videos, **kwargs):
-    prefix = kwargs.get('prefix', None)
+    prefix = kwargs.get("prefix", None)
     pformat = vformat = SEQ
     if nb_videos > 0:
-        if kwargs.get('video_format', None) in (None, ''):
+        if kwargs.get("video_format", None) in (None, ""):
             if prefix is None:
                 print("Error: One of --prefix or --video_format option is required")
                 sys.exit(1)
             vformat = f"{kwargs.get('prefix')} - {DEFAULT_VIDEO_FORMAT}"
         else:
-            vformat = kwargs['video_format']
+            vformat = kwargs["video_format"]
     if nb_photos > 0:
-        if kwargs.get('photo_format', None) in (None, ''):
+        if kwargs.get("photo_format", None) in (None, ""):
             if prefix is None:
                 print("Error: One of --prefix or --photo_format option is required")
                 sys.exit(1)
             pformat = f"{kwargs.get('prefix')} - {DEFAULT_PHOTO_FORMAT}"
         else:
-            pformat = kwargs['photo_format']
+            pformat = kwargs["photo_format"]
     return (pformat, vformat)
 
+
 def get_file_data(filename: str) -> Optional[dict[str, str]]:
-    if fil.extension(filename).lower() not in ('jpg', 'mp4', 'jpeg', 'gif', 'png', 'mp2', 'mpeg', 'mpeg4', 'mpeg2', 'vob', 'mov'):
+    if fil.extension(filename).lower() not in (
+        "jpg",
+        "mp4",
+        "jpeg",
+        "gif",
+        "png",
+        "mp2",
+        "mpeg",
+        "mpeg4",
+        "mpeg2",
+        "vob",
+        "mov",
+    ):
         return None
 
     log.logger.info("Reading data for %s", filename)
     with ExifToolHelper() as et:
         for data in et.get_metadata(filename):
             log.logger.debug("MetaData = %s", util.json_fmt(data))
-#            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
-#                log.logger.debug("Data = %s", util.json_fmt(data))
+            #            for data in et.get_tags(file, tags=["DateTimeOriginal", "Make", "Model", "FileModifyDate"]):
+            #                log.logger.debug("Data = %s", util.json_fmt(data))
             creation_date = util.get_creation_date(data)
             device = get_device(data)
             bitrate = get_bitrate(data)
             fps = get_fps(data)
             size = get_size(data)
-    return {"creation_date": creation_date, "device": device, "file": filename, "bitrate": bitrate, "size": size, "fps": fps}
+    return {
+        "creation_date": creation_date,
+        "device": device,
+        "file": filename,
+        "bitrate": bitrate,
+        "size": size,
+        "fps": fps,
+    }
 
-def get_files_data(files, sortby):
+
+def get_files_data(files: list[str], sortby: str) -> dict[str : dict[str:str]]:
     seq = 1
     filelist = {}
     nb_files = len(files)
@@ -144,7 +171,10 @@ def get_files_data(files, sortby):
                 result = future.result(timeout=10)  # Retrieve result or raise an exception
                 log.logger.info("Result: %s", str(result))
             except TimeoutError:
-                log.logger.error("Finding sync timed out after 60 seconds for %s, sync killed.", str(future))
+                log.logger.error(
+                    "Finding sync timed out after 60 seconds for %s, sync killed.",
+                    str(future),
+                )
             except Exception as e:
                 log.logger.error("Task raised an exception: %s", str(e))
             if not result:
@@ -161,31 +191,26 @@ def get_files_data(files, sortby):
             log.logger.debug("Extracted %d/%d files = %d%%", seq, nb_files, (100 * seq) // nb_files)
     return filelist
 
-def get_fmt(filename, photo, video, other):
+
+def get_fmt(filename: str, photo_format: str, video_format: str, other_format: str) -> str:
+    fmt = other_format
     if fil.is_image_file(filename):
-        fmt = photo
+        fmt = photo_format
     elif fil.is_video_file(filename):
-        fmt = video
-    else:
-        fmt = other
+        fmt = video_format
     if TIMESTAMP not in fmt and SEQ[:3] not in fmt:
         fmt = f"{SEQ} - {fmt}"
     return fmt
 
-def rename(filename, new_filename):
-    log.logger.info(f"Renaming {filename} into {new_filename}")
+
+def rename(filename: str, new_filename: str) -> tuple[int, int, int]:
+    log.logger.info("Renaming %s into %s", filename, new_filename)
     photo = video = other = 0
+    success = True
     try:
         file_type = fil.get_type(filename)
         if filename != new_filename:
             os.rename(filename, new_filename)
-        if file_type == fil.FileType.IMAGE_FILE:
-            photo = 1
-        elif file_type == fil.FileType.VIDEO_FILE:
-            video = 1
-        else:
-            other = 1
-            log.logger.warning("%s is not a media file", filename)
     except os.error:
         success = False
         ext = fil.extension(new_filename)
@@ -198,54 +223,66 @@ def rename(filename, new_filename):
                 break
             except os.error:
                 continue
-        if success:
-            if file_type == fil.FileType.IMAGE_FILE:
-                photo = 1
-            elif file_type == fil.FileType.VIDEO_FILE:
-                video = 1
-            else:
-                other = 1
+    if success:
+        if file_type == fil.FileType.IMAGE_FILE:
+            photo = 1
+        elif file_type == fil.FileType.VIDEO_FILE:
+            video = 1
         else:
-            log.logger.warning("Unable to rename")
+            other = 1
+            log.logger.warning("%s is not a media file", filename)
+    else:
+        log.logger.warning("Unable to rename")
     return (photo, video, other)
 
-def main():
-    util.init('renamer')
-    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-f', '--files', nargs='+', help='List of files to rename', required=True)
-    parser.add_argument('--prefix', help='Prefix for files', required=False)
-    parser.add_argument('--video_format', help='Format for the renamed video files', required=False)
-    parser.add_argument('--format', help='Format for files', required=False, default=DEFAULT_FORMAT)
-    parser.add_argument('--photo_format', help='Format for the renamed photo files', required=False)
-    parser.add_argument('--seqstart', help='Sequence number start for the renamed files', required=False, default=1)
-    parser.add_argument('-r', '--root', help='Root name', required=False)
-    parser.add_argument('--sortby', help='How to sort sequence numbers', required=False, default="timestamp")
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+
+def main() -> None:
+    util.init("renamer")
+    parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
+    parser.add_argument("-f", "--files", nargs="+", help="List of files to rename", required=True)
+    parser.add_argument("--prefix", help="Prefix for files", required=False)
+    parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
+    parser.add_argument("--format", help="Format for files", required=False, default=DEFAULT_FORMAT)
+    parser.add_argument("--photo_format", help="Format for the renamed photo files", required=False)
+    parser.add_argument(
+        "--seqstart",
+        help="Sequence number start for the renamed files",
+        required=False,
+        default=1,
+    )
+    parser.add_argument("-r", "--root", help="Root name", required=False)
+    parser.add_argument(
+        "--sortby",
+        help="How to sort sequence numbers",
+        required=False,
+        default="timestamp",
+    )
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
-    file_list = fil.file_list(*kwargs['files'], file_type=None, recurse=False)
-    nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in ('jpg', 'jpeg', 'gif', 'png'))
-    nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in ('mp4', 'mpeg4', 'mpeg2', 'mp2', 'mpeg', 'vob', 'mov'))
+    file_list = fil.file_list(*kwargs["files"], file_type=None, recurse=False)
+    nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in ("jpg", "jpeg", "gif", "png"))
+    nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in ("mp4", "mpeg4", "mpeg2", "mp2", "mpeg", "vob", "mov"))
     nb_other_files = len(file_list) - nb_photo_files - nb_video_files
 
-    photo_seq = video_seq = other_seq = int(kwargs.get('seqstart', 1))
+    photo_seq = video_seq = other_seq = int(kwargs.get("seqstart", 1))
     (photo_format, video_format) = get_formats(nb_photo_files, nb_video_files, **kwargs)
 
-    files_data = get_files_data(fil.file_list(*kwargs['files'], file_type=None, recurse=False), kwargs['sortby'])
+    files_data = get_files_data(fil.file_list(*kwargs["files"], file_type=None, recurse=False), kwargs["sortby"])
 
     log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
     for key in sorted(files_data.keys()):
-        filename = files_data[key]['file']
+        filename = files_data[key]["file"]
         ext = fil.extension(filename).lower()
-        device = files_data[key]['device']
-        creation_date = files_data[key]['creation_date']
+        device = files_data[key]["device"]
+        creation_date = files_data[key]["creation_date"]
         dirname = fil.dirname(filename)
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace(DEVICE, device)
         file_fmt = file_fmt.replace(TIMESTAMP, util.FILE_DATE_FMT)
-        file_fmt = file_fmt.replace(BITRATE, str(files_data[key]['bitrate']))
-        file_fmt = file_fmt.replace(FPS, str(files_data[key]['fps']))
-        file_fmt = file_fmt.replace(SIZE, files_data[key]['size'])
+        file_fmt = file_fmt.replace(BITRATE, str(files_data[key]["bitrate"]))
+        file_fmt = file_fmt.replace(FPS, str(files_data[key]["fps"]))
+        file_fmt = file_fmt.replace(SIZE, files_data[key]["size"])
 
         if fil.is_image_file(filename):
             seq = photo_seq
