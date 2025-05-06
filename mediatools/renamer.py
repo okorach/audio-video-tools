@@ -169,7 +169,7 @@ def get_files_data(files: list[str], sortby: str) -> dict[str : dict[str:str]]:
         for future in concurrent.futures.as_completed(futures):
             try:
                 result = future.result(timeout=10)  # Retrieve result or raise an exception
-                log.logger.info("Result: %s", str(result))
+                log.logger.debug("Result: %s", str(result))
             except TimeoutError:
                 log.logger.error(
                     "Finding sync timed out after 60 seconds for %s, sync killed.",
