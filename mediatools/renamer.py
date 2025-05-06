@@ -200,39 +200,26 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
     return fmt
 
 
-def rename(filename: str, new_filename: str) -> tuple[int, int, int]:
-    photo = video = other = 0
-    success = True
+def rename(filename: str, new_filename: str, nbr_copies: int = 10) -> bool:
     if os.path.abspath(filename) != os.path.abspath(new_filename):
-        log.logger.info("Renaming %s into %s", filename, new_filename)
-        try:
-            os.rename(filename, new_filename)
-        except os.error:
-            success = False
-            ext = fil.extension(new_filename)
-            base = fil.strip_extension(filename)
-            for v in range(2, 10):
-                try:
-                    if filename != f"{base} {v}.{ext}":
-                        os.rename(filename, f"{base} {v}.{ext}")
-                    success = True
-                    break
-                except os.error:
-                    continue
-    else:
         log.logger.info("File %s needs no renaming", filename)
-    if success:
-        file_type = fil.get_type(filename)
-        if file_type == fil.FileType.IMAGE_FILE:
-            photo = 1
-        elif file_type == fil.FileType.VIDEO_FILE:
-            video = 1
-        else:
-            other = 1
-            log.logger.warning("%s is not a media file", filename)
-    else:
+        return True
+    log.logger.info("Renaming %s into %s", filename, new_filename)
+    ext = fil.extension(new_filename)
+    base = fil.strip_extension(filename)
+    possible_files = [new_filename] + [f"{base} {v}.{ext}" for v in range(2, nbr_copies)]
+    success = True
+    for f in possible_files:
+        try:
+            os.rename(filename, f)
+            success = True
+            break
+        except os.error:
+            continue
+    if not success:
         log.logger.warning("Unable to rename")
-    return (photo, video, other)
+        return False
+    return True
 
 
 def main() -> None:
@@ -243,19 +230,9 @@ def main() -> None:
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
     parser.add_argument("--format", help="Format for files", required=False, default=DEFAULT_FORMAT)
     parser.add_argument("--photo_format", help="Format for the renamed photo files", required=False)
-    parser.add_argument(
-        "--seqstart",
-        help="Sequence number start for the renamed files",
-        required=False,
-        default=1,
-    )
+    parser.add_argument("--seqstart", help="Sequence number start for the renamed files", required=False, default=1)
     parser.add_argument("-r", "--root", help="Root name", required=False)
-    parser.add_argument(
-        "--sortby",
-        help="How to sort sequence numbers",
-        required=False,
-        default="timestamp",
-    )
+    parser.add_argument("--sortby", help="How to sort sequence numbers", required=False, default="timestamp")
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
@@ -275,7 +252,6 @@ def main() -> None:
         ext = fil.extension(filename).lower()
         device = files_data[key]["device"]
         creation_date = files_data[key]["creation_date"]
-        dirname = fil.dirname(filename)
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace(DEVICE, device)
         file_fmt = file_fmt.replace(TIMESTAMP, util.FILE_DATE_FMT)
@@ -306,15 +282,15 @@ def main() -> None:
         file_fmt = file_fmt.replace("#SEQ3#", f"{seq:03}")
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
         file_fmt = file_fmt.replace("#SEQ5#", f"{seq:05}")
-        new_filename = dirname + os.sep + creation_date.strftime(file_fmt) + "." + ext
-        if new_filename == filename:
-            log.logger.info("File %s does need to be renamed, skipped...", filename)
-            continue
-
-        (p, v, o) = rename(filename, new_filename)
-        photo_seq += p
-        video_seq += v
-        other_seq += o
+        new_filename = fil.dirname(filename) + os.sep + creation_date.strftime(file_fmt) + "." + ext
+        if rename(filename, new_filename):
+            file_type = fil.get_type(filename)
+            if file_type == fil.FileType.IMAGE_FILE:
+                photo_seq += 1
+            elif file_type == fil.FileType.VIDEO_FILE:
+                video_seq += 1
+            else:
+                other_seq += 1
 
 
 if __name__ == "__main__":
