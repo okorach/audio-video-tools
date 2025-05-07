@@ -22,23 +22,38 @@
 import mediatools.options as opt
 
 
-LANGUAGE_MAPPING = {'fre': 'French', 'eng': 'English'}
+LANGUAGE_MAPPING = {"fre": "French", "eng": "English"}
 
 
 class Encoder:
-    '''Encoder abstraction'''
-    SETTINGS = ['format', 'vcodec', 'vbitrate', 'acodec', 'abitrate', 'fps', 'aspect',
-                'vsize', 'deinterlace', 'achannel', 'asample', 'vfilter', 'start', 'stop']
+    """Encoder abstraction"""
+
+    SETTINGS = [
+        "format",
+        "vcodec",
+        "vbitrate",
+        "acodec",
+        "abitrate",
+        "fps",
+        "aspect",
+        "vsize",
+        "deinterlace",
+        "achannel",
+        "asample",
+        "vfilter",
+        "start",
+        "stop",
+    ]
 
     def __init__(self, **kwargs):
         self.format = None
         self.aspect = None
         self.resolution = None
-        self.vcodec = 'copy'
+        self.vcodec = "copy"
         self.vbitrate = None
         self.video_fps = None
         self.abitrate = None
-        self.acodec = 'copy'
+        self.acodec = "copy"
         self.audio_language = None
         self.audio_sample_rate = None
         self.start = None
@@ -52,23 +67,23 @@ class Encoder:
         for k in kwargs:
             if k in Encoder.SETTINGS and kwargs[k] is not None:
                 kwsettings[k] = kwargs[k]
-        if 'vcodec' in kwsettings:
+        if "vcodec" in kwsettings:
             self.vcodec = kwsettings[opt.Option.VCODEC]
-        if 'vbitrate' in kwsettings:
+        if "vbitrate" in kwsettings:
             self.vbitrate = kwsettings[opt.Option.VBITRATE]
-        if 'acodec' in kwsettings:
+        if "acodec" in kwsettings:
             self.acodec = kwsettings[opt.Option.ACODEC]
-        if 'abitrate' in kwsettings:
+        if "abitrate" in kwsettings:
             self.abitrate = kwsettings[opt.Option.ABITRATE]
-        if 'aspect' in kwsettings:
+        if "aspect" in kwsettings:
             self.aspect = kwsettings[opt.Option.ASPECT]
-        if 'resolution' in kwsettings:
+        if "resolution" in kwsettings:
             self.resolution = kwsettings[opt.Option.RESOLUTION]
-        if 'start' in kwsettings:
+        if "start" in kwsettings:
             self.start = kwsettings[opt.Option.START]
-        if 'stop' in kwsettings:
+        if "stop" in kwsettings:
             self.start = kwsettings[opt.Option.STOP]
-        if 'format' in kwsettings:
+        if "format" in kwsettings:
             self.format = kwsettings[opt.Option.FORMAT]
 
     def set_format(self, fmt):
@@ -78,7 +93,7 @@ class Encoder:
         self.vfilters.append(vfilter)
 
     def get_vfilters_string(self):
-        cmd = ''
+        cmd = ""
         for f in self.vfilters:
             cmd = cmd + '-filter:v "%s" ' % f
         return cmd.strip()
@@ -98,15 +113,15 @@ class Encoder:
         if stop is None:
             stop = self.stop
         fmt = "fade=type={0}:duration={1}:start_time={2}"
-        fader = fmt.format('in', fade_d, start) + "," + fmt.format('out', fade_d, stop - fade_d)
+        fader = fmt.format("in", fade_d, start) + "," + fmt.format("out", fade_d, stop - fade_d)
         self.add_vfilter(fader)
 
     def ffmpeg_opts(self):
-        '''Builds string corresponding to ffmpeg conventions'''
+        """Builds string corresponding to ffmpeg conventions"""
         options = vars(self)
-        cmd = ''
+        cmd = ""
         for option in options.keys():
             if options[option] is not None and not isinstance(options[option], list):
                 cmd = cmd + " -{0} {1}".format(opt.M2F_MAPPING[option], options[option])
-        cmd = cmd + ' ' + self.get_vfilters_string()
+        cmd = cmd + " " + self.get_vfilters_string()
         return cmd.strip()

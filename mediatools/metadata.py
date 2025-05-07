@@ -33,21 +33,22 @@ import mediatools.videofile as video
 
 
 def main():
-    parser = util.get_common_args('video-metadata', 'Tool to add metadata to media files')
-    parser.add_argument('--copyright', required=False, help='Copyright string without (c) sign')
-    parser.add_argument('--author', required=False, help='Author of the media file')
-    parser.add_argument('--year', required=False, help='Year the media file was produced')
-    parser.add_argument('--default_track', required=False, type=int, help='Default track')
-    parser.add_argument('--language', required=False, nargs='+',
-        help='Languages of tracks, eg "0:fre:Francais sans sous-title" "1:eng:English with music"')
+    parser = util.get_common_args("video-metadata", "Tool to add metadata to media files")
+    parser.add_argument("--copyright", required=False, help="Copyright string without (c) sign")
+    parser.add_argument("--author", required=False, help="Author of the media file")
+    parser.add_argument("--year", required=False, help="Year the media file was produced")
+    parser.add_argument("--default_track", required=False, type=int, help="Default track")
+    parser.add_argument(
+        "--language", required=False, nargs="+", help='Languages of tracks, eg "0:fre:Francais sans sous-title" "1:eng:English with music"'
+    )
     kwargs = util.parse_media_args(parser)
 
-    inputfile = kwargs.pop('inputfiles')[0]
+    inputfile = kwargs.pop("inputfiles")[0]
     if fil.is_video_file(inputfile):
         output = video.VideoFile(inputfile).add_metadata(**kwargs)
         util.generated_file(output)
     else:
-        log.logger.error('File %s is not a video file', inputfile)
+        log.logger.error("File %s is not a video file", inputfile)
 
 
 if __name__ == "__main__":

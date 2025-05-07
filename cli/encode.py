@@ -33,10 +33,10 @@ import mediatools.audiofile as audio
 
 
 def set_and_parse_cli_args() -> dict[str, str]:
-    util.init('encode')
+    util.init("encode")
     parser = util.get_common_args("encode", "ffmpeg front-end encoder")
     parser = vf.add_video_args(parser)
-    #parser.add_argument('-I', '--inputfiles', metavar='N', type=str, nargs='+', help='List of files to encode')
+    # parser.add_argument('-I', '--inputfiles', metavar='N', type=str, nargs='+', help='List of files to encode')
     return util.parse_media_args(parser)
 
 
@@ -49,6 +49,7 @@ def get_expanded_file_list(file_list: list[str]) -> list[str]:
             expanded_list.append(file)
     return expanded_list
 
+
 def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
     pieces = file.split(".")
     pieces.pop()
@@ -59,6 +60,7 @@ def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
     while os.path.exists(f"{base}.{postfix}.{seq}.{ext}"):
         seq += 1
     return f"{base}.{postfix}.{seq}.{ext}"
+
 
 def main():
     kwargs = set_and_parse_cli_args()

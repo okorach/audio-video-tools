@@ -27,8 +27,9 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.media_config as conf
 
+
 def _dump_report_(report, file):
-    dump = json.dumps(report, indent=4, sort_keys=False, separators=(',', ': '))
+    dump = json.dumps(report, indent=4, sort_keys=False, separators=(",", ": "))
     if file is None:
         log.logger.info("Dumping report to stdout")
         print(dump)
@@ -37,10 +38,11 @@ def _dump_report_(report, file):
             log.logger.info("Dumping report to file '%s'", file)
             print(dump, file=f)
 
+
 def main():
     files = []
-    util.init('video-slideshow')
-    resolution = conf.get_property('default.video.resolution')
+    util.init("video-slideshow")
+    resolution = conf.get_property("default.video.resolution")
     me = sys.argv.pop(0).split(os.sep)[-1]
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -55,7 +57,7 @@ def main():
             files.append(arg)
     if files:
         (output, operations) = video.slideshow(*files, resolution=resolution)
-        json_file = output + '.json'
+        json_file = output + ".json"
         _dump_report_(operations, json_file)
         msg = f"File {output} generated, report is {json_file}"
         log.logger.info(msg)

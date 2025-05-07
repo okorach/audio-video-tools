@@ -1,9 +1,6 @@
-
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
-
-
 
 
 class FilterError(Exception):
@@ -40,11 +37,11 @@ class Simple(Filter):
 
     def __str__(self):
         if not self.filters:
-            return ''
-        f = ','.join([str(f) for f in self.filters])
-        s_in = '' if not self.stream_in else f'[{self.stream_in}]'
-        s_out = '' if not self.stream_out else f'[{self.stream_out}]'
-        t = '-af' if self.filter_type == AUDIO_TYPE else '-vf'
+            return ""
+        f = ",".join([str(f) for f in self.filters])
+        s_in = "" if not self.stream_in else f"[{self.stream_in}]"
+        s_out = "" if not self.stream_out else f"[{self.stream_out}]"
+        t = "-af" if self.filter_type == AUDIO_TYPE else "-vf"
         return f'{t} "{s_in}{f}{s_out}"'
 
     def insert(self, pos, a_filter):
@@ -64,53 +61,56 @@ class Complex(Filter):
         self.filtergraph = []
 
     def __str__(self):
-        s = ''
+        s = ""
         for f in self.filtergraph:
             for inp in f[0]:
-                s += '[{}]'.format(inp)
+                s += "[{}]".format(inp)
             s += str(f[1])
-            s += '[{}];'.format(f[2])
+            s += "[{}];".format(f[2])
         return '-filter_complex "{}"'.format(s[:-1])
 
     def format_inputs(self):
-        return ' '.join(['-i "{}"'.format(f.filename) for f in self.inputs])
+        return " ".join(['-i "{}"'.format(f.filename) for f in self.inputs])
 
     def insert_input(self, pos, an_input):
         self.inputs.insert(pos, an_input)
 
     def add_filtergraph(self, inputs, simple_filter):
-        outs = 'out{}'.format(len(self.filtergraph))
+        outs = "out{}".format(len(self.filtergraph))
         if not isinstance(inputs, (list, tuple)):
             inputs = [str(inputs)]
-        log.logger.debug('Adding filtergraph %s, %s, %s', str(inputs), str(simple_filter), outs)
+        log.logger.debug("Adding filtergraph %s, %s, %s", str(inputs), str(simple_filter), outs)
         self.filtergraph.append((inputs, simple_filter, outs))
         return outs
 
 
 class Fade(Simple):
-    def __init__(self, start: float = 0.0, direction: str = 'out', duration: float = 0.5, **kwargs) -> None:
+    def __init__(self, start: float = 0.0, direction: str = "out", duration: float = 0.5, **kwargs) -> None:
         self.start = start
-        self.direction = 'in' if direction.lower() == 'in' else 'out'
+        self.direction = "in" if direction.lower() == "in" else "out"
         self.duration = duration
-        self.alpha = kwargs.get('alpha', 1)
+        self.alpha = kwargs.get("alpha", 1)
 
     def __str__(self) -> str:
         return f"fade=t={self.direction}:st={self.start}:d={self.duration}:alpha={self.alpha}"
 
+
 class FadeIn(Fade):
 
     def __init__(self, duration: float = 0.5, **kwargs) -> None:
-        super().__init__(start=0.0, direction='in', duration=duration, **kwargs)
+        super().__init__(start=0.0, direction="in", duration=duration, **kwargs)
+
 
 class FadeOut(Fade):
 
     def __init__(self, duration: float = 0.5, **kwargs) -> None:
-        super().__init__(start=self.inputs[0].duration() - duration, direction='in', duration=duration, **kwargs)
+        super().__init__(start=self.inputs[0].duration() - duration, direction="in", duration=duration, **kwargs)
+
 
 class Sar(Simple):
 
     def __init__(self, ratio: str) -> None:
-        self.ratio = '/'.join(ratio.split(':'))
+        self.ratio = "/".join(ratio.split(":"))
 
     def __str__(self) -> str:
         return f"setsar={self.ratio}"
@@ -129,6 +129,7 @@ class Trim(Simple):
 
 class Scale(Simple):
     """Scales a video - see https://ffmpeg.org/ffmpeg-filters.html#toc-scale-1"""
+
     def __init__(self, x: int, y: int, **kwargs) -> None:
         self.x = x
         self.y = y
@@ -146,7 +147,8 @@ class ScaleCuda(Scale):
 
 class Crop(Simple):
     """Crops a video - see https://ffmpeg.org/ffmpeg-filters.html#toc-crop"""
-    def __init__(self, x: int, y: int, x_formula: str = 'x', y_formula: str = 'y') -> None:
+
+    def __init__(self, x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> None:
         self.x = x
         self.y = y
         self.x_formula = x_formula
@@ -155,19 +157,24 @@ class Crop(Simple):
     def __str__(self) -> str:
         return "crop=" + ":".join([str(p) for p in (self.x, self.y, self.x_formula, self.y_formula)])
 
+
 class Reverse(Simple):
     """Reverses a video clip see https://ffmpeg.org/ffmpeg-filters.html#toc-reverse"""
+
     def __str__(self) -> str:
         return "reverse"
 
+
 class Areverse(Simple):
     """Reverses an audio clip See https://ffmpeg.org/ffmpeg-filters.html#toc-areverse"""
+
     def __str__(self) -> str:
         return "areverse"
 
+
 class Volume(Simple):
     """Sets video / audio volume: see https://ffmpeg.org/ffmpeg-filters.html#toc-volume
-    Can pass vol as a multiplier of current volume or absolute value like -6.0dB """
+    Can pass vol as a multiplier of current volume or absolute value like -6.0dB"""
 
     def __init__(self, vol: str, **kwargs) -> None:
         self.volume = vol
@@ -176,8 +183,10 @@ class Volume(Simple):
     def __str__(self) -> str:
         return f"volume={self.volume}" + "".join([f":{k}={v}" for k, v in self.params.items()])
 
+
 class Overlay(Complex):
     """Overlays one video over another see https://ffmpeg.org/ffmpeg-filters.html#toc-overlay-1"""
+
     def __init__(self, x: str = "0", y: str = "0") -> None:
         self.x = x
         self.y = y
@@ -185,64 +194,71 @@ class Overlay(Complex):
     def __str__(self) -> str:
         return f"overlay={self.x}:{self.y}"
 
+
 class OverlayCuda(Overlay):
     """Overlays one video over another see https://ffmpeg.org/ffmpeg-filters.html#toc-overlay-1"""
+
     def __str__(self) -> str:
         return f"overlay_cuda={self.x}:{self.y}"
+
 
 class Deshake(Simple):
 
     def __init__(self, rx: int = 32, ry: int = 32, **kwargs):
-        self.params = {'x': -1, 'y': -1, 'w': -1, 'h': -1}
+        self.params = {"x": -1, "y": -1, "w": -1, "h": -1}
         self.params.update(kwargs.copy())
 
     def __str__(self) -> str:
-        return "deshake=" + ":".join([ f"{k}={v}" for k, v in self.params.items()])
+        return "deshake=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
 
 
 class Transpose(Simple):
-    TRANSPOSITIONS = ('clock', 'cclock', 'clock_flip', 'cclock_flip')
-    ERR_ROTATION_ARG_1 = f'transposition must be one of {', '.join(TRANSPOSITIONS)}'
-    ERR_ROTATION_ARG_2 = 'transposition must be between 0 and 7'
+    TRANSPOSITIONS = ("clock", "cclock", "clock_flip", "cclock_flip")
+    ERR_ROTATION_ARG_1 = f"transposition must be one of {', '.join(TRANSPOSITIONS)}"
+    ERR_ROTATION_ARG_2 = "transposition must be between 0 and 7"
 
     def __init__(self, transposition: str | int = 90) -> None:
 
         if isinstance(transposition, str):
             if transposition not in Transpose.TRANSPOSITIONS:
-                raise ex.InputError(Transpose.ERR_ROTATION_ARG_1, 'transpose')
+                raise ex.InputError(Transpose.ERR_ROTATION_ARG_1, "transpose")
         else:
             if transposition == 90:
                 transposition = 1
             if transposition == -90:
                 transposition = 2
             if transposition < 0 or transposition > 7:
-                raise ex.InputError(Transpose.ERR_ROTATION_ARG_2, 'transpose')
+                raise ex.InputError(Transpose.ERR_ROTATION_ARG_2, "transpose")
         self.rotation = transposition
 
     def __str__(self) -> str:
         return f"transpose={self.rotation}"
 
+
 class Rotate(Simple):
-    """ Rotates a video, see https://ffmpeg.org/ffmpeg-filters.html#toc-rotate """
+    """Rotates a video, see https://ffmpeg.org/ffmpeg-filters.html#toc-rotate"""
+
     def __init__(self, angle: str, **kwargs) -> None:
-        """ Example angle = 'PI/2' """
+        """Example angle = 'PI/2'"""
         self.angle = angle
         self.params = kwargs.copy()
 
     def __str__(self):
-        return "rotate=" + ":".join([ f"{k}={v}" for k, v in self.params.items()])
+        return "rotate=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
 
 
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def speed(target_speed):
     s = float(util.percent_or_absolute(target_speed))
     if s > 1:
-        return select('not(mod(n,{}))'.format(s)) + ',' + setpts('N/FRAME_RATE/TB')
+        return select("not(mod(n,{}))".format(s)) + "," + setpts("N/FRAME_RATE/TB")
     else:
         return setpts("{}*PTS".format(1 / float(s)))
+
 
 def setpts(pts_formula):
     return "setpts={}".format(pts_formula)
@@ -252,17 +268,16 @@ def select(expr):
     return "select='{}'".format(expr)
 
 
-def fade(direction='in', start=0, duration=0.5, alpha=1):
+def fade(direction="in", start=0, duration=0.5, alpha=1):
     return "fade=t={}:st={}:d={}:alpha={}".format(direction, start, duration, alpha)
 
 
 def fade_in(start=0, duration=0.5, alpha=1):
-    return fade('in', start, duration, alpha)
+    return fade("in", start, duration, alpha)
 
 
 def fade_out(start=0, duration=0.5, alpha=1):
-    return fade('out', start, duration, alpha)
-
+    return fade("out", start, duration, alpha)
 
 
 def __str_streams__(streams):
@@ -279,7 +294,7 @@ def wrap_in_streams(filter_list, in_stream, out_stream):
     if isinstance(filter_list, str):
         s = filter_list
     elif isinstance(filter_list, (list, tuple)):
-        s = ','.join(filter_list)
+        s = ",".join(filter_list)
     else:
         raise FilterError("Unexpected filter_list type {}".format(type(filter_list)))
     return "[{}]{}[{}]".format(in_stream, s, out_stream)
@@ -289,17 +304,16 @@ def in_out(filter_str, in_streams, out_streams):
     return "{}{}{}".format(__str_streams__(in_streams), filter_str, __str_streams__(out_streams))
 
 
-
-
 def zoompan(x_formula, y_formula, z_formula, **kwargs):
-    opts = ''
+    opts = ""
     for k in kwargs:
         opts += ":{}={}".format(k, kwargs[k])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}'{opts}"
 
+
 def format(pix_fmts):
     if isinstance(pix_fmts, list):
-        s = '|'.join(pix_fmts)
+        s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
         s = pix_fmts
     else:
@@ -309,32 +323,32 @@ def format(pix_fmts):
 
 def filtercomplex(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    sep = " "   # if platform.system() == 'Windows' else " \\\n"
-    return '-filter_complex "{}{}"'.format(sep, ('; ' + sep).join(filter_list))
+        return ""
+    sep = " "  # if platform.system() == 'Windows' else " \\\n"
+    return '-filter_complex "{}{}"'.format(sep, ("; " + sep).join(filter_list))
 
 
 def vfilter(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    return '-vf "{}"'.format(','.join(filter_list))
+        return ""
+    return '-vf "{}"'.format(",".join(filter_list))
 
 
 def afilter(filter_list):
     if filter_list is None or not filter_list:
-        return ''
-    return '-af "{}"'.format(','.join(filter_list))
+        return ""
+    return '-af "{}"'.format(",".join(filter_list))
 
 
 def inputs_str(input_list):
-    sep = " "   # if platform.system() == 'Windows' else " \\\n"
+    sep = " "  # if platform.system() == 'Windows' else " \\\n"
     return sep.join(['-i "{}"'.format(f) for f in input_list])
 
 
 def format_options(opts):
     if opts is None:
-        return ''
-    return ' '.join(opts)
+        return ""
+    return " ".join(opts)
 
 
 def metadata(key, value, track=None, track_type=None):
@@ -342,21 +356,21 @@ def metadata(key, value, track=None, track_type=None):
         return '-metadata {}="{}"'.format(key, value)
     else:
         if track_type is None:
-            track_type = 's:a'
+            track_type = "s:a"
         return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
 
 
 def vcodec(codec):
-    return '-vcodec {}'.format(codec)
+    return "-vcodec {}".format(codec)
 
 
 def acodec(codec):
-    return '-acodec {}'.format(codec)
+    return "-acodec {}".format(codec)
 
 
 def disposition(default_track, nb_tracks):
     # -disposition:a:0 default -disposition:a:1
-    disp = ''
+    disp = ""
     for t in range(nb_tracks):
         t_disp = "default" if t == default_track else "none"
         disp += "-disposition:a:{} {} ".format(t, t_disp)
@@ -364,12 +378,12 @@ def disposition(default_track, nb_tracks):
 
 
 def hw_accel_input(**kwargs):
-    if kwargs.get('hw_accel', False):
-        return '-hwaccel cuvid -c:v h264_cuvid'
-    return ''
+    if kwargs.get("hw_accel", False):
+        return "-hwaccel cuvid -c:v h264_cuvid"
+    return ""
 
 
 def hw_accel_output(**kwargs):
-    if kwargs.get('hw_accel', False):
-        return '-c:v h264_nvenc'
-    return ''
+    if kwargs.get("hw_accel", False):
+        return "-c:v h264_nvenc"
+    return ""

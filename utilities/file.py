@@ -25,24 +25,25 @@ import stat
 import platform
 import hashlib
 from mediatools import log
-if platform.system() == 'Windows':
+
+if platform.system() == "Windows":
     import win32com.client
 
 
 class FileType:
-    AUDIO_FILE = 'audio'
-    VIDEO_FILE = 'video'
-    IMAGE_FILE = 'image'
-    UNKNOWN_FILE = 'unknown'
+    AUDIO_FILE = "audio"
+    VIDEO_FILE = "video"
+    IMAGE_FILE = "image"
+    UNKNOWN_FILE = "unknown"
     FILE_EXTENSIONS = {
         AUDIO_FILE: ("mp3", "ogg", "aac", "ac3", "m4a", "ape", "flac", "opus"),
         VIDEO_FILE: ("avi", "wmv", "mp4", "3gp", "mpg", "mpeg", "mkv", "ts", "mts", "m2ts", "mov"),
-        IMAGE_FILE: ("jpg", "jpeg", "png", "gif", "svg", "raw")
+        IMAGE_FILE: ("jpg", "jpeg", "png", "gif", "svg", "raw"),
     }
 
 
 class File:
-    '''File abstraction'''
+    """File abstraction"""
 
     def __init__(self, filename):
         self.filename = filename
@@ -81,14 +82,14 @@ class File:
         return self._size
 
     def is_shortcut(self):
-        if platform.system() != 'Windows':
+        if platform.system() != "Windows":
             return False
         f = self.filename.lower()
-        return f.endswith('.lnk') or f.endswith('.url')
+        return f.endswith(".lnk") or f.endswith(".url")
 
     def is_link(self):
-        if platform.system() == 'Windows':
-            return self.filename.lower().endswith('.lnk')
+        if platform.system() == "Windows":
+            return self.filename.lower().endswith(".lnk")
         else:
             return os.path.islink(self.filename)
 
@@ -96,17 +97,17 @@ class File:
         if not is_link(self.filename):
             return None
         log.logger.info("Checking symlink %s", self.filename)
-        if platform.system() == 'Windows':
+        if platform.system() == "Windows":
             shell = win32com.client.Dispatch("WScript.Shell")
             return shell.CreateShortCut(self.filename).Targetpath
         else:
             return os.readlink(self.filename)
 
     def create_link(self, link, dir=None, icon=None):
-        if platform.system() == 'Windows':
-            shell = win32com.client.Dispatch('WScript.Shell')
-            if not link.endswith('.lnk'):
-                link += '.lnk'
+        if platform.system() == "Windows":
+            shell = win32com.client.Dispatch("WScript.Shell")
+            if not link.endswith(".lnk"):
+                link += ".lnk"
             log.logger.debug("Create shortcut: %s --> %s", link, self.filename)
             shortcut = shell.CreateShortCut(link)
             shortcut.Targetpath = self.filename
@@ -122,27 +123,25 @@ class File:
             return link
 
     def extension(self) -> str:
-        return self.filename.split('.')[-1]
+        return self.filename.split(".")[-1]
 
     def basename(self, strip_dir: bool = True, strip_ext: bool = True) -> str:
         f = self.filename if not strip_dir else self.filename.split(os.sep)[-1]
-        log.logger.info("F = %s", f)
-        return '.'.join(f.split('.')[0:-1]) if strip_ext else f
-
+        return ".".join(f.split(".")[0:-1]) if strip_ext else f
 
     def dirname(self) -> str:
-        return os.sep.join(self.filename.split(os.sep)[0:-1])
+        return os.sep.join(os.path.abspath(self.filename).split(os.sep)[0:-1])
 
     def strip_extension(self):
         return self.basename(strip_dir=False, strip_ext=True)
 
-    def hash(self, algo='md5', force=False):
+    def hash(self, algo="md5", force=False):
         if self._hash is not None and self.algo is not None and self.algo == algo and not force:
             return self._hash
         BLOCK_SIZE = 65536  # The size of each read from the file
         try:
             file_hash = hashlib.md5()
-            with open(self.filename, 'rb') as f:
+            with open(self.filename, "rb") as f:
                 fb = f.read(BLOCK_SIZE)
                 while len(fb) > 0:
                     file_hash.update(fb)
@@ -162,9 +161,9 @@ class File:
                 base = ".".join(file_split[0:-1])
                 ext = file_split[-1]
                 seq = 0
-                while os.path.isfile(f'{base}.{seq:03}.{ext}'):
+                while os.path.isfile(f"{base}.{seq:03}.{ext}"):
                     seq += 1
-                os.rename(new_name, f'{base}.bak.{seq:03}.{ext}')
+                os.rename(new_name, f"{base}.bak.{seq:03}.{ext}")
         os.rename(self.filename, new_name)
         return new_name
 
@@ -183,6 +182,7 @@ def rename(old: str, new: str, overwrite: bool = False):
 def extension(f: str) -> str:
     return File(f).extension()
 
+
 def basename(f: str, strip_dir: bool = True, strip_ext: bool = True) -> str:
     return File(f).basename(strip_dir=strip_dir, strip_ext=strip_ext)
 
@@ -198,6 +198,7 @@ def dirname(f: str) -> str:
 def add_postfix(file: str, postfix: str, extension=None):
     """Adds a postfix to a file before the file extension"""
     return File(file).add_postfix(postfix)
+
 
 def is_link(f):
     return File(f).is_link()
@@ -215,7 +216,7 @@ def create_link(f, link):
     return File(f).create_link(link)
 
 
-def get_hash_list(filelist, algo='md5'):
+def get_hash_list(filelist, algo="md5"):
     log.logger.info("Getting hashes of %d files", len(filelist))
     hashes = {}
     i = 0
@@ -235,7 +236,7 @@ def get_hash_list(filelist, algo='md5'):
 
 def strip_file_extension(filename):
     """Removes the file extension and returns the string"""
-    return '.'.join(filename.split('.')[:-1])
+    return ".".join(filename.split(".")[:-1])
 
 
 def __match_extension(file, extension_list):
@@ -273,7 +274,8 @@ def file_list(*args, file_type=None, recurse=False):
 
 def __is_type_file(file, type_of_media):
     return type_of_media is None or (
-        (os.path.isfile(file) or file[0:2] == '\\\\') and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media]))
+        (os.path.isfile(file) or file[0:2] == "\\\\") and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media])
+    )
 
 
 def is_audio_file(file):
@@ -305,6 +307,7 @@ def get_type(file):
     log.logger.debug("Filetype of %s is %s", file, t)
     return t
 
+
 def random_name(original_file, pattern, extension=None):
-    extension = '' if extension is None else f'.{extension}'
-    return f'{strip_extension(original_file)}.{pattern}.{os.getpid()}{extension}'
+    extension = "" if extension is None else f".{extension}"
+    return f"{strip_extension(original_file)}.{pattern}.{os.getpid()}{extension}"

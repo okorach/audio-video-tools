@@ -28,8 +28,9 @@ import mediatools.utilities as util
 import utilities.file as fil
 import mediatools.audiofile as audio
 
+
 def search_on_other_drives(file):
-    for drive_letter in ('C', 'D', 'E', 'F'):
+    for drive_letter in ("C", "D", "E", "F"):
         new_file = f"{drive_letter}{file[1:]}"
         log.logger.debug("Checking existence of %s", new_file)
         if os.path.isfile(new_file):
@@ -66,7 +67,7 @@ def __fix_symlink(symlink, target_file):
 
 
 def main():
-    util.init('audio-lib')
+    util.init("audio-lib")
     me = sys.argv.pop(0)
     directory = None
     while sys.argv:
@@ -76,7 +77,7 @@ def main():
         elif os.path.isdir(arg):
             directory = arg
     if directory is None:
-        print(f'Usage: {fil.basename(me)} [-g <debug_level>] <directory>')
+        print(f"Usage: {fil.basename(me)} [-g <debug_level>] <directory>")
         sys.exit(1)
     for symlink in fil.dir_list(directory, recurse=False):
         if not fil.is_link(symlink):

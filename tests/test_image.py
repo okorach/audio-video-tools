@@ -1,4 +1,3 @@
-
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -26,17 +25,20 @@ import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.videofile as video
 
-TMP_VID = util.get_tmp_file() + '.mp4'
+TMP_VID = util.get_tmp_file() + ".mp4"
 
-def get_img(w, h, orientation='landscape'):
-    img = image.ImageFile(image.get_rectangle('black', w, h))
+
+def get_img(w, h, orientation="landscape"):
+    img = image.ImageFile(image.get_rectangle("black", w, h))
     img.probe()
     img.orientation = orientation
     return img
 
+
 def del_files(*imgs):
     for o in imgs:
         os.remove(o.filename)
+
 
 def test_str():
     img = get_img(400, 300)
@@ -48,12 +50,14 @@ def test_str():
     # assert f"'filename': '{img.filename}'" in s
     del_files(img)
 
+
 def test_scale_1():
     w, h = 400, 200
     img = get_img(w, h)
     assert img.resolution.width == w
     assert img.resolution.height == h
     del_files(img)
+
 
 def test_needed_frame_1():
     w, h = 4000, 3000
@@ -72,6 +76,7 @@ def test_needed_frame_2():
     assert tot_h == 4500
     del_files(img)
 
+
 def test_needed_frame_3():
     w, h = 4000, 3000
     img = get_img(w, h)
@@ -80,17 +85,19 @@ def test_needed_frame_3():
     assert tot_h == 3600
     del_files(img)
 
+
 def test_type():
     try:
-        _ = image.ImageFile('it/seal.mp3')
+        _ = image.ImageFile("it/seal.mp3")
         assert False
     except ex.FileTypeError:
         pass
     try:
-        _ = image.ImageFile('it/video-720p.mp4')
+        _ = image.ImageFile("it/video-720p.mp4")
         assert False
     except ex.FileTypeError:
         pass
+
 
 def test_to_image_effect():
     w, h = 3000, 2000
@@ -101,6 +108,7 @@ def test_to_image_effect():
     assert vid_o.duration == 3
     del_files(img, vid_o)
 
+
 def test_to_image_still():
     w, h = 2000, 2000
     img = get_img(w, h)
@@ -109,10 +117,11 @@ def test_to_image_still():
     assert vid_o.duration == 3
     del_files(img, vid_o)
 
+
 def test_widths_and_heights():
     w, h = 4000, 3000
     img = get_img(w, h)
-    pt = get_img(w, h, orientation='portrait')
+    pt = get_img(w, h, orientation="portrait")
     widths = image.get_widths([img.filename, pt.filename, img.filename])
     assert widths == [4000, 4000, 4000]
     assert image.avg_width([img.filename, pt.filename, img.filename, pt.filename]) == 4000
@@ -121,31 +130,35 @@ def test_widths_and_heights():
     assert image.avg_height([img.filename, pt.filename, pt.filename, pt.filename]) == 3000
     del_files(img, pt)
 
+
 def test_properties():
     w, h = 3000, 2000
     img = get_img(w, h)
     props = img.get_properties()
-    assert props['format'] == 'mjpeg'
-    assert props['width'] == 3000
+    assert props["format"] == "mjpeg"
+    assert props["width"] == 3000
     props = img.get_image_properties()
-    assert props['format'] == 'mjpeg'
-    assert props['height'] == 2000
+    assert props["format"] == "mjpeg"
+    assert props["height"] == 2000
     del_files(img)
+
 
 def test_dimensions_2():
     w, h = 4000, 3000
-    img = get_img(w, h, orientation='portrait')
+    img = get_img(w, h, orientation="portrait")
     (w, h) = img.dimensions(ignore_orientation=False)
     assert w == 3000
     assert h == 4000
     del_files(img)
 
+
 def test_crop():
     w, h = 4000, 3000
-    img = get_img(w, h, orientation='portrait')
-    f = image.ImageFile(img.crop(position='center-top', width=3500, height=2000))
+    img = get_img(w, h, orientation="portrait")
+    f = image.ImageFile(img.crop(position="center-top", width=3500, height=2000))
     assert f.width == 3500 and f.height == 2000
     del_files(img, f)
+
 
 def test_scale():
     w, h = 4000, 3000
@@ -164,36 +177,40 @@ def test_no_scale():
     assert f.width == 4000 and f.height == 3000
     del_files(img, f)
 
+
 def test_blindify():
     w, h = 4000, 3000
     img = get_img(w, h)
-    f = image.ImageFile(img.blindify(blinds=5, direction='vertical', blinds_size=50))
+    f = image.ImageFile(img.blindify(blinds=5, direction="vertical", blinds_size=50))
     assert f.width == 4200
-    f = image.ImageFile(img.blindify(blinds=10, direction='horizontal', blinds_size='1%'))
+    f = image.ImageFile(img.blindify(blinds=10, direction="horizontal", blinds_size="1%"))
     assert f.height == 3810
     del_files(img, f)
 
+
 # Those tests fail. image shake is broken
+
 
 def test_shake_1():
     w, h = 1000, 200
     img = get_img(w, h)
     # util.set_debug_level(4)
-    f = image.ImageFile(img.shake(nbr_slices=20, direction='vertical', shake_pct=5))
+    f = image.ImageFile(img.shake(nbr_slices=20, direction="vertical", shake_pct=5))
     assert f.height == 210
     del_files(img, f)
+
 
 def test_shake_2():
     w, h = 1000, 200
     img = get_img(w, h)
-    f = image.ImageFile(img.shake(nbr_slices=20, direction='horizontal', shake_pct=10))
+    f = image.ImageFile(img.shake(nbr_slices=20, direction="horizontal", shake_pct=10))
     assert f.width == 1100
     del_files(img, f)
 
 
 def test_rotate():
     w, h = 4000, 3000
-    img = get_img(w, h, orientation='portrait')
+    img = get_img(w, h, orientation="portrait")
     f = image.ImageFile(img.rotate())
     assert f.width == 3000 and f.height == 4000
     try:

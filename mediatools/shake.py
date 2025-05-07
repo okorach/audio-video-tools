@@ -19,11 +19,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
+"""
 This scripts adds a shaky effect to an image
 Effect can be horizontal or vertical
 Arguments: -c <color> -r <ratio> -n <slices> -d <direction>
-'''
+"""
 
 from mediatools import log
 import mediatools.utilities as util
@@ -31,15 +31,14 @@ import mediatools.imagefile as image
 
 
 def main():
-    parser = util.get_common_args('image-shake', 'Image shake effect')
-    parser.add_argument('-n', '--slices', required=False, type=int, default=10, help='Number of slices')
-    parser.add_argument('-d', '--direction', required=False, default='vertical', help='Direction to slice')
-    parser.add_argument('-c', '--color', required=False, default='black', help='Blinds color')
-    parser.add_argument('-r', '--shake_ratio', required=False, type=float, default=3.0, help='Size of the shake')
+    parser = util.get_common_args("image-shake", "Image shake effect")
+    parser.add_argument("-n", "--slices", required=False, type=int, default=10, help="Number of slices")
+    parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")
+    parser.add_argument("-c", "--color", required=False, default="black", help="Blinds color")
+    parser.add_argument("-r", "--shake_ratio", required=False, type=float, default=3.0, help="Size of the shake")
     kwargs = util.parse_media_args(parser)
 
-    output = image.ImageFile(kwargs.pop('inputfiles')[0]).shake(
-        kwargs['slices'], kwargs['shake_ratio'], kwargs['color'], kwargs['direction'])
+    output = image.ImageFile(kwargs.pop("inputfiles")[0]).shake(kwargs["slices"], kwargs["shake_ratio"], kwargs["color"], kwargs["direction"])
     log.logger.info("Generated %s", output)
     print("Generated %s", output)
 

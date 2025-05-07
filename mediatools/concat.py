@@ -28,13 +28,13 @@ import mediatools.videofile as video
 
 
 def main():
-    util.init('video-concat')
-    parser = argparse.ArgumentParser(description='Concatenates several videos')
-    parser.add_argument('-i', '--inputfiles', nargs='+', help='List of files to concatenate', required=True)
-    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    util.init("video-concat")
+    parser = argparse.ArgumentParser(description="Concatenates several videos")
+    parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to concatenate", required=True)
+    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
-    output = video.concat(kwargs.get('outputfile', None), kwargs.pop('inputfiles'))
+    output = video.concat(kwargs.get("outputfile", None), kwargs.pop("inputfiles"))
     util.generated_file(output)
 
 

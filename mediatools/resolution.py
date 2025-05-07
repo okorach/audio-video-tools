@@ -23,20 +23,21 @@ import re
 import mediatools.options as opt
 import mediatools.exceptions as ex
 
+
 def canonical(res):
-    if res == '720p':
+    if res == "720p":
         res = Resolution.RES_720P
-    elif res == '540p':
+    elif res == "540p":
         res = Resolution.RES_540P
-    elif res == '400p':
+    elif res == "400p":
         res = Resolution.RES_400P
-    elif res in ('vga', 'VGA'):
+    elif res in ("vga", "VGA"):
         res = Resolution.RES_VGA
-    elif res in ('xga', 'XGA'):
+    elif res in ("xga", "XGA"):
         res = Resolution.RES_XGA
-    elif res == '1080p':
+    elif res == "1080p":
         res = Resolution.RES_1080P
-    elif res in ('4k', '4K', '2160p'):
+    elif res in ("4k", "4K", "2160p"):
         res = Resolution.RES_4K
     return res
 
@@ -64,13 +65,13 @@ class Resolution:
         self.height = 0
         self.pixels = 0
         self.ratio = None
-        if 'width' in kwargs and 'height' in kwargs:
-            w = kwargs['width']
-            h = kwargs['height']
-        elif 'resolution' in kwargs or opt.Option.RESOLUTION in kwargs:
-            r = canonical(kwargs.get('resolution', kwargs.get(opt.Option.RESOLUTION, None)))
-            if re.search(r'[x:]', r):
-                (w, h) = re.split(r'[x:]', r, maxsplit=2)
+        if "width" in kwargs and "height" in kwargs:
+            w = kwargs["width"]
+            h = kwargs["height"]
+        elif "resolution" in kwargs or opt.Option.RESOLUTION in kwargs:
+            r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION, None)))
+            if re.search(r"[x:]", r):
+                (w, h) = re.split(r"[x:]", r, maxsplit=2)
         if int(w) <= 0 or int(h) <= 0:
             raise ex.DimensionError("width and height must be strictly positive")
         self.width = int(w)
@@ -90,14 +91,14 @@ class Resolution:
     def is_ratio(self, ratio):
         return abs(ratio - self.ratio) < 0.02
 
-    def calc_resolution(self, width, height, orientation='landscape'):
+    def calc_resolution(self, width, height, orientation="landscape"):
         iw, ih = self.width, self.height
-        if orientation == 'portrait':
+        if orientation == "portrait":
             width, height = height, width
             iw, ih = ih, iw
-        a = str(width).split('%')
+        a = str(width).split("%")
         w = int(width) if len(a) == 1 else int(iw * int(a[0]) / 100)
-        a = str(height).split('%')
+        a = str(height).split("%")
         h = int(height) if len(a) == 1 else int(ih * int(a[0]) / 100)
         return (w, h)
 

@@ -1,4 +1,3 @@
-
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -26,11 +25,12 @@ import mediatools.videofile as video
 import mediatools.exceptions as ex
 
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
-TMP_VID = util.get_tmp_file() + '.mp4'
-TMP_IMG = util.get_tmp_file() + '.jpg'
+TMP_VID = util.get_tmp_file() + ".mp4"
+TMP_IMG = util.get_tmp_file() + ".jpg"
 
-def get_img(w, h, orientation='landscape'):
-    small_img = image.__get_background__('black')
+
+def get_img(w, h, orientation="landscape"):
+    small_img = image.__get_background__("black")
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
@@ -115,7 +115,7 @@ def test_pan_6():
 
 
 def test_pan_portrait():
-    img = get_img(3000, 4000, 'portrait')
+    img = get_img(3000, 4000, "portrait")
     (vid, _) = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
