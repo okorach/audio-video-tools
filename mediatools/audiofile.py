@@ -66,14 +66,8 @@ class AudioFile(media.MediaFile):
     def csv_values(self):
         self.get_specs()
         d = vars(self)
-        log.logger.debug("FIle = %s", json.dumps(d, separators=(",", ": "), indent=3))
-        arr = []
-        for k in _CSV_KEYS:
-            v = ""
-            if k in d and d[k] is not None:
-                v = str(d[k])
-            arr.append(v)
-        return arr
+        log.logger.debug("File = %s", json.dumps(d, separators=(",", ": "), indent=3))
+        return [str(d.get(k, "") if d.get(k, "") is not None else "") for k in _CSV_KEYS]
 
     def get_specs(self):
         if self.specs is None:
