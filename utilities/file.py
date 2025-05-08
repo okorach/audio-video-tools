@@ -53,7 +53,7 @@ class File:
     """File abstraction"""
 
     def __init__(self, filename: str) -> None:
-        self.filename = filename
+        self.filename = os.path.abspath(filename)
         self._size = None
         self.created = None
         self.modified = None
