@@ -64,6 +64,7 @@ class AudioFile(media.MediaFile):
         # self.get_specs()
 
     def csv_values(self):
+        self.get_specs()
         d = vars(self)
         log.logger.debug("FIle = %s", json.dumps(d, separators=(",", ": "), indent=3))
         arr = []
