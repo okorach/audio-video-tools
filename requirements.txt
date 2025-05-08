@@ -7,7 +7,8 @@ jprops
 argparse
 datetime
 python-dateutil
-mp3_tagger
+mp3-tagger
+music-tag
 ffmpeg-python
 ExifRead
 music_tag
