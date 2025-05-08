@@ -42,10 +42,17 @@ class FileType:
     }
 
 
+MEDIA_FILE_EXTENSIONS = (
+    FileType.FILE_EXTENSIONS[FileType.AUDIO_FILE] + FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
+)
+
+IMAGE_AND_VIDEO_EXTENSIONS = FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
+
+
 class File:
     """File abstraction"""
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
         self._size = None
         self.created = None
@@ -54,7 +61,7 @@ class File:
         self._hash = None
         self.algo = None
 
-    def stat(self, force=False):
+    def stat(self, force: bool = False) -> bool:
         if self._stat is not None and not force:
             return True
         try:
@@ -66,17 +73,17 @@ class File:
         except FileNotFoundError:
             return False
 
-    def modification_date(self, force=False):
+    def modification_date(self, force: bool = False):
         if self.modified is None or force:
             self.stat()
         return self.modified
 
-    def creation_date(self, force=False):
+    def creation_date(self, force: bool = False):
         if self.created is None or force:
             self.stat()
         return self.created
 
-    def size(self, force=False):
+    def size(self, force: bool = False) -> int:
         if self._size is None or force:
             self.stat()
         return self._size
@@ -103,7 +110,7 @@ class File:
         else:
             return os.readlink(self.filename)
 
-    def create_link(self, link, dir=None, icon=None):
+    def create_link(self, link: str, dir: str = None, icon: str = None) -> str:
         if platform.system() == "Windows":
             shell = win32com.client.Dispatch("WScript.Shell")
             if not link.endswith(".lnk"):
@@ -175,7 +182,7 @@ class File:
 # ------------------------------------------------------------------------------
 
 
-def rename(old: str, new: str, overwrite: bool = False):
+def rename(old: str, new: str, overwrite: bool = False) -> str:
     return File(old).rename(new, overwrite)
 
 
@@ -195,16 +202,16 @@ def dirname(f: str) -> str:
     return File(f).dirname()
 
 
-def add_postfix(file: str, postfix: str, extension=None):
+def add_postfix(file: str, postfix: str):
     """Adds a postfix to a file before the file extension"""
     return File(file).add_postfix(postfix)
 
 
-def is_link(f):
+def is_link(f) -> bool:
     return File(f).is_link()
 
 
-def is_shortcut(f):
+def is_shortcut(f) -> bool:
     return File(f).is_shortcut()
 
 
@@ -212,11 +219,11 @@ def read_link(f):
     return File(f).read_link()
 
 
-def create_link(f, link):
+def create_link(f: str, link: str) -> str:
     return File(f).create_link(link)
 
 
-def get_hash_list(filelist, algo="md5"):
+def get_hash_list(filelist, algo: str = "md5") -> dict[str, list[str]]:
     log.logger.info("Getting hashes of %d files", len(filelist))
     hashes = {}
     i = 0
@@ -234,17 +241,17 @@ def get_hash_list(filelist, algo="md5"):
     return hashes
 
 
-def strip_file_extension(filename):
+def strip_file_extension(filename: str) -> str:
     """Removes the file extension and returns the string"""
     return ".".join(filename.split(".")[:-1])
 
 
-def __match_extension(file, extension_list):
+def __match_extension(file: str, extension_list: list[str]) -> bool:
     """Returns boolean, whether the file has a extension that is in the list"""
     return extension(file).lower() in extension_list
 
 
-def dir_list(root_dir, recurse=False, file_type=None):
+def dir_list(root_dir: str, recurse: bool = False, file_type: str = None):
     """Returns and array of all files under a given root directory
     going down into sub directories"""
     log.logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
@@ -260,7 +267,7 @@ def dir_list(root_dir, recurse=False, file_type=None):
     return files
 
 
-def file_list(*args, file_type=None, recurse=False):
+def file_list(*args, file_type: str = None, recurse: bool = False):
     log.logger.debug("Searching files in %s", str(args))
     files = []
     for arg in args:
@@ -272,30 +279,30 @@ def file_list(*args, file_type=None, recurse=False):
     return files
 
 
-def __is_type_file(file, type_of_media):
+def __is_type_file(file, type_of_media: str) -> bool:
     return type_of_media is None or (
         (os.path.isfile(file) or file[0:2] == "\\\\") and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media])
     )
 
 
-def is_audio_file(file):
+def is_audio_file(file: str) -> bool:
     return __is_type_file(file, FileType.AUDIO_FILE)
 
 
-def is_video_file(file):
+def is_video_file(file: str) -> bool:
     return __is_type_file(file, FileType.VIDEO_FILE)
 
 
-def is_image_file(file):
+def is_image_file(file: str) -> bool:
     return __is_type_file(file, FileType.IMAGE_FILE)
 
 
-def is_media_file(file):
+def is_media_file(file: str) -> bool:
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
     return is_audio_file(file) or is_image_file(file) or is_video_file(file)
 
 
-def get_type(file):
+def get_type(file: str) -> str:
     if is_audio_file(file):
         t = FileType.AUDIO_FILE
     elif is_video_file(file):
@@ -308,6 +315,6 @@ def get_type(file):
     return t
 
 
-def random_name(original_file, pattern, extension=None):
-    extension = "" if extension is None else f".{extension}"
-    return f"{strip_extension(original_file)}.{pattern}.{os.getpid()}{extension}"
+def random_name(original_file: str, pattern: str, file_ext: str = None) -> str:
+    file_ext = "" if file_ext is None else f".{file_ext}"
+    return f"{strip_extension(original_file)}.{pattern}.{os.getpid()}{file_ext}"

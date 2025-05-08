@@ -32,7 +32,6 @@ from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import mediatools.log as log
 import utilities.file as fil
-from datetime import datetime
 
 SEQ = "#SEQ#"
 SIZE = "#SIZE#"
@@ -124,19 +123,7 @@ def get_formats(nb_photos, nb_videos, **kwargs):
 
 
 def get_file_data(filename: str) -> Optional[dict[str, str]]:
-    if fil.extension(filename).lower() not in (
-        "jpg",
-        "mp4",
-        "jpeg",
-        "gif",
-        "png",
-        "mp2",
-        "mpeg",
-        "mpeg4",
-        "mpeg2",
-        "vob",
-        "mov",
-    ):
+    if fil.extension(filename).lower() not in fil.IMAGE_AND_VIDEO_EXTENSIONS:
         return None
 
     log.logger.info("Reading data for %s", filename)
@@ -171,9 +158,9 @@ def get_files_data(files: list[str], sortby: str) -> dict[str : dict[str:str]]:
                 result = future.result(timeout=10)  # Retrieve result or raise an exception
                 log.logger.debug("Result: %s", str(result))
             except TimeoutError:
-                log.logger.error("Finding sync timed out after 60 seconds for %s, sync killed.", str(future))
+                log.logger.error("File renaming timed out after 60 seconds for %s, aborted.", str(future))
             except Exception as e:
-                log.logger.error("Task raised an exception: %s", str(e))
+                log.logger.error("File renaming task raised an exception: %s", str(e))
             if not result:
                 continue
             if sortby == "name":
@@ -185,7 +172,7 @@ def get_files_data(files: list[str], sortby: str) -> dict[str : dict[str:str]]:
                 if result["creation_date"] is not None:
                     filelist[f"{result['creation_date'].strftime(util.FILE_DATE_FMT)} {seq:06}"] = result
             seq += 1
-            log.logger.debug("Extracted %d/%d files = %d%%", seq, nb_files, (100 * seq) // nb_files)
+            log.logger.debug("Renamed %d/%d files = %d%%", seq, nb_files, (100 * seq) // nb_files)
     return filelist
 
 
@@ -237,8 +224,8 @@ def main() -> None:
     kwargs = util.parse_media_args(parser)
 
     file_list = fil.file_list(*kwargs["files"], file_type=None, recurse=False)
-    nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in ("jpg", "jpeg", "gif", "png"))
-    nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in ("mp4", "mpeg4", "mpeg2", "mp2", "mpeg", "vob", "mov"))
+    nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.IMAGE_FILE])
+    nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.VIDEO_FILE])
     nb_other_files = len(file_list) - nb_photo_files - nb_video_files
 
     photo_seq = video_seq = other_seq = int(kwargs.get("seqstart", 1))

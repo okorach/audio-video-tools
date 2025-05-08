@@ -27,13 +27,9 @@ import shutil
 import exifread
 
 from mediatools import log
-import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.resolution as res
-import mediatools.exceptions as ex
-import mediatools.mediafile as media
-import filters.filters as filters
-import mediatools.media_config as conf
+from mediatools import resolution as res, exceptions as ex, media_config as conf, mediafile as media, utilities as util
+from filters import filters
 
 INPUT_FILE_FMT = ' -i "%s"'
 STEP_FMT = "[step%d]; "
@@ -47,7 +43,7 @@ class ImageFile(media.MediaFile):
 
     SUPPORTED_IMG_CODECS = ("mjpeg", "png", "gif")
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         if not fil.is_image_file(filename):
             raise ex.FileTypeError(file=filename, expected_type="image")
         self.resolution = None
@@ -60,12 +56,12 @@ class ImageFile(media.MediaFile):
         super().__init__(filename)
         self.probe()
 
-    def __str__(self):
+    def __str__(self) -> str:
         d = vars(self).copy()
         d["resolution"] = str(self.resolution)
         return str(d)
 
-    def get_properties(self):
+    def get_properties(self) -> dict[str, str]:
         """Returns file media properties as a dict"""
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
@@ -73,7 +69,7 @@ class ImageFile(media.MediaFile):
         log.logger.debug("Returning image props %s", str(all_props))
         return all_props
 
-    def probe(self, force=False):
+    def probe(self, force: bool = False) -> None:
         if self.specs is not None:
             return
         super().probe(force=force)
@@ -88,7 +84,7 @@ class ImageFile(media.MediaFile):
         self.exif_read()
         log.logger.debug("Image = %s", str(vars(self)))
 
-    def exif_read(self):
+    def exif_read(self) -> dict[str, any]:
         f = open(self.filename, "rb")
         tags = exifread.process_file(f)
         # for tag in tags:
@@ -102,32 +98,32 @@ class ImageFile(media.MediaFile):
 
         return tags
 
-    def dimensions(self, ignore_orientation=True):
+    def dimensions(self, ignore_orientation=True) -> tuple[int, int]:
         if not ignore_orientation and self.orientation == "portrait":
             return (self.height, self.width)
         return (self.width, self.height)
 
-    def get_ratio(self):
+    def get_ratio(self) -> float:
         return self.width / self.height
 
-    def get_image_properties(self):
+    def get_image_properties(self) -> dict[str, any]:
         return {"format": self.format, "width": self.width, "height": self.height, "pixels": self.pixels}
 
-    def crop(self, out_file=None, **kwargs):
+    def crop(self, out_file: str = None, **kwargs) -> str:
         w, h = kwargs.pop("width"), kwargs.pop("height")
         (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
-        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_{0}x{1}-{2}".format(w, h, pos))
+        out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{w}x{h}-{pos}")
 
-        util.run_ffmpeg('-y -i "{}" -vf "{}" "{}"'.format(self.filename, filters.crop(w, h, left, top), out_file))
+        util.run_ffmpeg(f'-y -i "{self.filename}" -vf "{filters.crop(w, h, left, top)}" "{out_file}"')
         return out_file
 
     def scale(self, w=-1, h=-1, out_file=None):
-        out_file = util.automatic_output_file_name(out_file, self.filename, "scale-{}x{}".format(w, h))
+        out_file = util.automatic_output_file_name(out_file, self.filename, f"scale-{w}x{h}")
         if w == -1 and h == -1:
             shutil.copy(self.filename, out_file)
             return out_file
         log.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
-        util.run_ffmpeg('-i "{}" -vf "{}" "{}"'.format(self.filename, filters.scale(w, h), out_file))
+        util.run_ffmpeg(f'-i "{self.filename}" -vf "{filters.scale(w, h)}" "{out_file}"')
         return out_file
 
     def slice_vertical(self, nbr_slices, round_to=16):
@@ -181,7 +177,7 @@ class ImageFile(media.MediaFile):
             ovl = fcomp.add_filtergraph([ovl, out_slices[i]], overlay_filter)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
-        util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(fcomp.format_inputs(), str(fcomp), ovl, out_file))
+        util.run_ffmpeg(f'{fcomp.format_inputs()} {str(fcomp)} -map "[{ovl}]" "{out_file}"')
         return out_file
 
     def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
@@ -206,14 +202,14 @@ class ImageFile(media.MediaFile):
                 cmplx = cmplx + STEP_FMT % (j + 1)
             j += 1
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake", self.extension())
-        util.run_ffmpeg(' %s -filter_complex "%s" "%s"' % (filelist, cmplx, out_file))
+        util.run_ffmpeg(f' {filelist} -filter_complex "{cmplx}" "{out_file}"')
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
     def rotate(self, degrees=90, **kwargs):
         vfilters = [filters.rotate(degrees)]
         out_file = util.automatic_output_file_name(kwargs.get("out_file", None), self.filename, "rotate", extension=self.extension())
-        cmd = '-i "{}" -vf {} "{}"'.format(self.filename, ",".join(vfilters), out_file)
+        cmd = f'-i "{self.filename}" -vf {",".join(vfilters)} "{out_file}"'
         util.run_ffmpeg(cmd)
         return out_file
 
@@ -240,7 +236,7 @@ class ImageFile(media.MediaFile):
             j += 1
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
-        util.run_ffmpeg(' %s -filter_complex "%s" %s' % (filelist, cmplx, out_file))
+        util.run_ffmpeg(f' {filelist} -filter_complex "{cmplx}" {out_file}')
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
@@ -268,7 +264,7 @@ class ImageFile(media.MediaFile):
         out_file = kwargs.get("out_file", None)
         log.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(
-            out_file, self.filename, "zoom-{}-{}".format(zstart, zstop), extension=conf.get_property("default.video.format")
+            out_file, self.filename, f"zoom-{zstart}-{zstop}", extension=conf.get_property("default.video.format")
         )
         log.logger.debug("zoom(%s,%s) of image %s", str(zstart), str(zstop), self.filename)
 
@@ -383,19 +379,17 @@ class ImageFile(media.MediaFile):
 
         vfilters.append(filters.crop(needed_width, needed_height))
         if speed < 0:
-            x_formula = "'(iw-ow)-(ow*{0}*t)'".format(round(-speed, 5))
+            x_formula = f"'(iw-ow)-(ow*{round(-speed, 5)}*t)'"
         else:
-            x_formula = "'ow*{0}*t'".format(round(speed, 5))
+            x_formula = f"'ow*{round(speed, 5)}*t'"
         if vspeed < 0:
-            y_formula = "'(ih-oh)-(oh*{0}*t)'".format(round(-vspeed, 5))
+            y_formula = f"'(ih-oh)-(oh*{round(-vspeed, 5)}*t)'"
         else:
-            y_formula = "'oh*{0}*t'".format(round(vspeed, 5))
+            y_formula = f"'oh*{round(vspeed, 5)}*t'"
 
         vfilters.append(filters.crop(scale_res.width, scale_res.height, x_formula, y_formula))
 
-        cmd = '-framerate {} -loop 1 -i "{}" -filter_complex "[0:v]{}" -t {} -s {} "{}"'.format(
-            framerate, self.filename, ",".join(vfilters), duration, str(v_res), out_file
-        )
+        cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{",".join(vfilters)}" -t {duration} -s {str(v_res)} "{out_file}"'
         util.run_ffmpeg(cmd)
         return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "speed": speed, "vspeed": vspeed})
 
@@ -555,7 +549,7 @@ def posterize(*file_list, out_file=None, **kwargs):
             y += gap + max_h
 
     out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
-    util.run_ffmpeg('{} {} -map "[{}]" "{}"'.format(fcomplex.format_inputs(), str(fcomplex), out_stream, out_file))
+    util.run_ffmpeg(f'{fcomplex.format_inputs()} {str(fcomplex)} -map "[{out_stream}]" "{out_file}"')
     return out_file
 
 
