@@ -65,7 +65,9 @@ def main():
                 if data is not None:
                     csv_writer.writerow(data)
                 cur_file += 1
-                log.logger.info("Processed %d of %d files (%d%%)", cur_file, nb_files, (cur_file * 100) // nb_files)
+                log.logger.info(
+                    "Processed %d of %d files (%d%%) - File %s", cur_file, nb_files, (cur_file * 100) // nb_files, data[0] if data else "-"
+                )
 
     sys.exit(0)
 
