@@ -1,3 +1,4 @@
+from typing import Union
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
@@ -64,19 +65,19 @@ class Complex(Filter):
         s = ""
         for f in self.filtergraph:
             for inp in f[0]:
-                s += "[{}]".format(inp)
+                s += f"[{inp}]"
             s += str(f[1])
-            s += "[{}];".format(f[2])
-        return '-filter_complex "{}"'.format(s[:-1])
+            s += f"[{f[2]}];"
+        return f'-filter_complex "{s[:-1]}"'
 
     def format_inputs(self):
-        return " ".join(['-i "{}"'.format(f.filename) for f in self.inputs])
+        return " ".join([f'-i "{f.filename}"' for f in self.inputs])
 
     def insert_input(self, pos, an_input):
         self.inputs.insert(pos, an_input)
 
     def add_filtergraph(self, inputs, simple_filter):
-        outs = "out{}".format(len(self.filtergraph))
+        outs = f"out{len(self.filtergraph)}"
         if not isinstance(inputs, (list, tuple)):
             inputs = [str(inputs)]
         log.logger.debug("Adding filtergraph %s, %s, %s", str(inputs), str(simple_filter), outs)
@@ -217,7 +218,7 @@ class Transpose(Simple):
     ERR_ROTATION_ARG_1 = f"transposition must be one of {', '.join(TRANSPOSITIONS)}"
     ERR_ROTATION_ARG_2 = "transposition must be between 0 and 7"
 
-    def __init__(self, transposition: str | int = 90) -> None:
+    def __init__(self, transposition: Union[str, int] = 90) -> None:
 
         if isinstance(transposition, str):
             if transposition not in Transpose.TRANSPOSITIONS:
@@ -255,135 +256,123 @@ class Rotate(Simple):
 def speed(target_speed):
     s = float(util.percent_or_absolute(target_speed))
     if s > 1:
-        return select("not(mod(n,{}))".format(s)) + "," + setpts("N/FRAME_RATE/TB")
+        return select(f"not(mod(n,{s}))") + "," + setpts("N/FRAME_RATE/TB")
     else:
-        return setpts("{}*PTS".format(1 / float(s)))
+        return setpts(f"{1 / float(s)}*PTS")
 
 
 def setpts(pts_formula):
-    return "setpts={}".format(pts_formula)
+    return f"setpts={pts_formula}"
 
 
 def select(expr):
-    return "select='{}'".format(expr)
+    return f"select='{expr}'"
 
 
-def fade(direction="in", start=0, duration=0.5, alpha=1):
-    return "fade=t={}:st={}:d={}:alpha={}".format(direction, start, duration, alpha)
+def fade(direction: str = "in", start: float = 0.0, duration: float = 0.5, alpha: int = 1) -> str:
+    return f"fade=t={direction}:st={start}:d={duration}:alpha={alpha}"
 
 
-def fade_in(start=0, duration=0.5, alpha=1):
+def fade_in(start: float = 0.0, duration: float = 0.5, alpha: int = 1) -> str:
     return fade("in", start, duration, alpha)
 
 
-def fade_out(start=0, duration=0.5, alpha=1):
+def fade_out(start: float = 0.0, duration: float = 0.5, alpha: int = 1):
     return fade("out", start, duration, alpha)
 
 
-def __str_streams__(streams):
+def __str_streams(streams):
     if isinstance(streams, (list, tuple)):
-        s = "[" + "][".join(streams) + "]"
+        s = "][".join(streams)
     elif isinstance(streams, str):
-        s = f"[{streams}]"
+        s = f"{streams}"
     else:
         raise FilterError(f"Unexpected streams type {str(type(streams))}")
-    return s
+    return f"[{s}]"
 
 
-def wrap_in_streams(filter_list, in_stream, out_stream):
+def wrap_in_streams(filter_list, in_stream: str, out_stream: str) -> str:
     if isinstance(filter_list, str):
         s = filter_list
     elif isinstance(filter_list, (list, tuple)):
         s = ",".join(filter_list)
     else:
-        raise FilterError("Unexpected filter_list type {}".format(type(filter_list)))
-    return "[{}]{}[{}]".format(in_stream, s, out_stream)
+        raise FilterError(f"Unexpected filter_list type {type(filter_list)}")
+    return f"[{in_stream}]{s}[{out_stream}]"
 
 
-def in_out(filter_str, in_streams, out_streams):
-    return "{}{}{}".format(__str_streams__(in_streams), filter_str, __str_streams__(out_streams))
+def in_out(filter_str, in_streams: str, out_streams: str) -> str:
+    return f"{__str_streams(in_streams)}{filter_str}{__str_streams(out_streams)}"
 
 
-def zoompan(x_formula, y_formula, z_formula, **kwargs):
-    opts = ""
-    for k in kwargs:
-        opts += ":{}={}".format(k, kwargs[k])
-    return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}'{opts}"
+def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs):
+    opts = ":".join([f"{k}={v}" for k, v in kwargs])
+    return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
-def format(pix_fmts):
+def format(pix_fmts) -> str:
     if isinstance(pix_fmts, list):
         s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
         s = pix_fmts
     else:
-        raise FilterError("Unexpected pix_fmts {}".format(pix_fmts))
-    return "format=pix_fmts={}".format(s)
+        raise FilterError(f"Unexpected pix_fmts {pix_fmts}")
+    return f"format=pix_fmts={s}"
 
 
 def filtercomplex(filter_list):
     if filter_list is None or not filter_list:
         return ""
     sep = " "  # if platform.system() == 'Windows' else " \\\n"
-    return '-filter_complex "{}{}"'.format(sep, ("; " + sep).join(filter_list))
+    return f'-filter_complex "{sep}{("; " + sep).join(filter_list)}"'
 
 
 def vfilter(filter_list):
     if filter_list is None or not filter_list:
         return ""
-    return '-vf "{}"'.format(",".join(filter_list))
+    return f'-vf "{",".join(filter_list)}"'
 
 
 def afilter(filter_list):
     if filter_list is None or not filter_list:
         return ""
-    return '-af "{}"'.format(",".join(filter_list))
+    return f'-af "{",".join(filter_list)}"'
 
 
 def inputs_str(input_list):
     sep = " "  # if platform.system() == 'Windows' else " \\\n"
-    return sep.join(['-i "{}"'.format(f) for f in input_list])
+    return sep.join([f'-i "{f}"' for f in input_list])
 
 
 def format_options(opts):
-    if opts is None:
-        return ""
-    return " ".join(opts)
+    return "" if opts is None else " ".join(opts)
 
 
 def metadata(key, value, track=None, track_type=None):
     if track is None:
-        return '-metadata {}="{}"'.format(key, value)
+        return f'-metadata {key}="{value}"'
     else:
         if track_type is None:
             track_type = "s:a"
-        return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
+        return f'-metadata:{track_type}:{track} {key}="{value}"'
 
 
-def vcodec(codec):
-    return "-vcodec {}".format(codec)
+def vcodec(codec: str) -> str:
+    return f"-vcodec {codec}"
 
 
-def acodec(codec):
-    return "-acodec {}".format(codec)
+def acodec(codec: str) -> str:
+    return f"-acodec {codec}"
 
 
-def disposition(default_track, nb_tracks):
+def disposition(default_track: int, nb_tracks: int) -> str:
     # -disposition:a:0 default -disposition:a:1
-    disp = ""
-    for t in range(nb_tracks):
-        t_disp = "default" if t == default_track else "none"
-        disp += "-disposition:a:{} {} ".format(t, t_disp)
-    return disp.rstrip()
+    return " ".join([f"-disposition:a:{t} {'default' if t == default_track else 'none'}" for t in range(nb_tracks)])
 
 
-def hw_accel_input(**kwargs):
-    if kwargs.get("hw_accel", False):
-        return "-hwaccel cuvid -c:v h264_cuvid"
-    return ""
+def hw_accel_input(**kwargs) -> str:
+    return "-hwaccel cuvid -c:v h264_cuvid" if kwargs.get("hw_accel", False) else ""
 
 
-def hw_accel_output(**kwargs):
-    if kwargs.get("hw_accel", False):
-        return "-c:v h264_nvenc"
-    return ""
+def hw_accel_output(**kwargs) -> str:
+    return "-c:v h264_nvenc" if kwargs.get("hw_accel", False) else ""

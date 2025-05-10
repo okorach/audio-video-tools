@@ -6,8 +6,10 @@ coverage
 jprops
 argparse
 datetime
+python-dateutil
 mp3_tagger
 ffmpeg-python
 ExifRead
 music_tag
 PyExifTool
+exifread
