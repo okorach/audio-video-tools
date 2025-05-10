@@ -51,7 +51,8 @@ def load():
     CONFIG_SETTINGS = jprops.load_properties(fp)
     fp.close()
     for key, value in CONFIG_SETTINGS.items():
-        value = value.lower()
+        if isinstance(value, str):
+            value = value.lower()
         if value in ("yes", "true", "on"):
             CONFIG_SETTINGS[key] = True
             continue
