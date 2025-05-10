@@ -188,7 +188,7 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
 
 
 def rename(filename: str, new_filename: str, nbr_copies: int = 10) -> bool:
-    if os.path.abspath(filename) != os.path.abspath(new_filename):
+    if os.path.abspath(filename) == os.path.abspath(new_filename):
         log.logger.info("File %s needs no renaming", filename)
         return True
     log.logger.info("Renaming %s into %s", filename, new_filename)
