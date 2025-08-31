@@ -195,14 +195,14 @@ def rename(filename: str, new_filename: str, nbr_copies: int = 10) -> bool:
     ext = fil.extension(new_filename)
     base = fil.strip_extension(filename)
     possible_files = [new_filename] + [f"{base} {v}.{ext}" for v in range(2, nbr_copies)]
-    success = True
+    success = False
     for f in possible_files:
         try:
             os.rename(filename, f)
             success = True
             break
-        except os.error:
-            continue
+        except OSError as e:
+            log.logger.info("Rename error: %s", str(e))
     if not success:
         log.logger.warning("Unable to rename")
         return False
@@ -270,8 +270,8 @@ def main() -> None:
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
         file_fmt = file_fmt.replace("#SEQ5#", f"{seq:05}")
         new_filename = fil.dirname(filename) + os.sep + creation_date.strftime(file_fmt) + "." + ext
+        file_type = fil.get_type(filename)
         if rename(filename, new_filename):
-            file_type = fil.get_type(filename)
             if file_type == fil.FileType.IMAGE_FILE:
                 photo_seq += 1
             elif file_type == fil.FileType.VIDEO_FILE:
