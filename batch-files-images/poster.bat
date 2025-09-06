@@ -17,5 +17,5 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-
-image-poster -i %* --layout 5x2 --margin 150
+set /p layout=Layout ?
+image-poster -i %* --layout %layout% --margin 150
