@@ -41,7 +41,7 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     package_data={"mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]},
-    install_requires=["argparse", "datetime", "mp3_tagger", "ffmpeg-python", "ExifRead", "pyexiftool", "jprops"],
+    install_requires=["argparse", "datetime", "mp3_tagger", "ffmpeg-python", "ExifRead", "pyexiftool", "jprops", "librosa"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
@@ -76,6 +76,7 @@ setuptools.setup(
             "shuffle = cli.shuffle:main",
             "encodeauto = mediatools.encodeauto:main",
             "encode = cli.encode:main",
+            "audio-split = mediatools.audiosplit:main",
         ]
     },
     python_requires=">=3.6",
