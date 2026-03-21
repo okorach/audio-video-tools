@@ -33,8 +33,17 @@ import types as _types_mod
 try:
     import coverage as _coverage
     if not hasattr(_coverage, "types"):
-        _fake = _types_mod.ModuleType("coverage.types")
-        _fake.__getattr__ = lambda name: object
+        # numba/misc/coverage_support.py references coverage.types.Tracer, TTraceData,
+        # TShouldTraceFn and potentially others as base classes / type annotations.
+        # We stub the whole module, but only for non-dunder names so that inspect
+        # machinery (which checks __file__ etc.) still gets AttributeError as expected.
+        class _FakeCoverageTypes(_types_mod.ModuleType):
+            def __getattr__(self, name):
+                if name.startswith("_"):
+                    raise AttributeError(name)
+                return object
+
+        _fake = _FakeCoverageTypes("coverage.types")
         _coverage.types = _fake
         sys.modules["coverage.types"] = _fake
 except ImportError:
