@@ -34,7 +34,7 @@ try:
     import coverage as _coverage
     if not hasattr(_coverage, "types"):
         _fake = _types_mod.ModuleType("coverage.types")
-        _fake.Tracer = object
+        _fake.__getattr__ = lambda name: object
         _coverage.types = _fake
         sys.modules["coverage.types"] = _fake
 except ImportError:
