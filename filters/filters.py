@@ -269,6 +269,20 @@ def disposition(default_track: int, nb_tracks: int) -> str:
     return " ".join([f"-disposition:a:{t} {'default' if t == default_track else 'none'}" for t in range(nb_tracks)])
 
 
+def afade_in(start: float = 0, duration: float = 1.0) -> str:
+    return f"afade=t=in:st={start}:d={duration}"
+
+
+def afade_out(start: float = 0, duration: float = 1.0) -> str:
+    return f"afade=t=out:st={start}:d={duration}"
+
+
+def afade(fade_type: str, start: float = 0, duration: float = 1.0) -> str:
+    if fade_type not in ("in", "out"):
+        raise FilterError(f"afade type must be 'in' or 'out', got '{fade_type}'")
+    return f"afade=t={fade_type}:st={start}:d={duration}"
+
+
 def hw_accel_input(**kwargs) -> str:
     return "-hwaccel cuvid -c:v h264_cuvid" if kwargs.get("hw_accel", False) else ""
 
