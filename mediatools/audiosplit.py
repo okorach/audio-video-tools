@@ -24,13 +24,21 @@ This script detects tune/song changes in a long audio file (e.g. DJ mix, live co
 and splits it at those boundaries with fade-in/fade-out at each cut.
 """
 
-import os
 import sys
+import types as _types_mod
 
-# numba (used by librosa) conflicts with the `coverage` package on Windows
-# (coverage_support.py tries to access coverage.types.Tracer which doesn't exist).
-# Disabling JIT avoids loading that module entirely.
-os.environ.setdefault("NUMBA_DISABLE_JIT", "1")
+# numba (used by librosa) crashes on import when a newer `coverage` package is installed:
+# numba/misc/coverage_support.py references coverage.types.Tracer which no longer exists.
+# Inject a stub module so numba can import cleanly.
+try:
+    import coverage as _coverage
+    if not hasattr(_coverage, "types"):
+        _fake = _types_mod.ModuleType("coverage.types")
+        _fake.Tracer = object
+        _coverage.types = _fake
+        sys.modules["coverage.types"] = _fake
+except ImportError:
+    pass
 
 from mediatools import log
 import mediatools.utilities as util
