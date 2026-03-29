@@ -18,7 +18,10 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
-"""Converts Ruff report format to Sonar external issues format"""
+"""Converts ruff --output-format=concise output to SonarQube generic external issues JSON format.
+
+See https://docs.sonarsource.com/sonarqube-cloud/analyzing-source-code/importing-external-issues/generic-issue-data
+"""
 
 import sys
 import json
@@ -26,77 +29,60 @@ import re
 
 TOOLNAME = "ruff"
 
+# Ruff concise line pattern: path:line:col: RULE_ID message  (optionally " [*]" fixable marker)
+_ISSUE_RE = re.compile(r"^([^:]+):(\d+):(\d+): ([A-Z0-9]+)(?: \[\*\])? (.+)$")
+
 
 def main() -> None:
-    """Main script entry point"""
-    v1 = len(sys.argv) > 1 and sys.argv[1] == "v1"
-    rules_dict = {}
-    issue_list = []
-    lines = sys.stdin.read().splitlines()
-    i = 0
-    sonar_issue = None
-    issue_range = {}
-    nblines = len(lines)
-    end_line = None
-    while i < nblines:
-        line = lines[i]
-        # Search for pattern like "mediatools/videofile.py:196:13: B904 Within an `except` clause, raise exceptions"
-        if m := re.match(r"^([^:]+):(\d+):(\d+): ([A-Z0-9]+)( \[\*\])? (.+)$", line):
-            if sonar_issue is not None:
-                issue_list.append(sonar_issue)
-                end_line = None
-            file_path = m.group(1)
-            issue_range = {
-                "startLine": int(m.group(2)),
-                "endLine": int(m.group(2)),
-                "startColumn": int(m.group(3)) - 1,
-                "endColumn": int(m.group(3)),
-            }
-            rule_id = m.group(4)
-            message = m.group(6)
-            sonar_issue = {
-                "ruleId": rule_id,
-                "effortMinutes": 5,
-                "primaryLocation": {
-                    "message": message,
-                    "filePath": file_path,
-                    "textRange": issue_range,
-                },
-            }
-            if v1:
-                sonar_issue["engineId"] = TOOLNAME
-                sonar_issue["severity"] = "MAJOR"
-                sonar_issue["type"] = "CODE_SMELL"
-            rules_dict[rule_id] = {
-                "id": rule_id,
-                "name": rule_id,
-                "description": message,
-                "engineId": TOOLNAME,
-                "type": "CODE_SMELL",
-                "severity": "MAJOR",
-                "cleanCodeAttribute": "LOGICAL",
-                "impacts": [{"softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM"}],
-            }
-        elif m := re.match(r"\s+\|\s\|(_+)\^ [A-Z0-9]+", lines[i]):
-            issue_range["endLine"] = end_line or issue_range["startLine"]
-            end_line = None
-            if rule_id != "I001":
-                issue_range["endColumn"] = len(m.group(1))
-            else:
-                issue_range["endLine"] -= 1
-                issue_range.pop("startColumn")
-                issue_range.pop("endColumn")
-            end_line = None
-        elif m := re.match(r"\s*(\d+)\s\|\s\|.*$", lines[i]):
-            end_line = int(m.group(1))
-        i += 1
+    """Read ruff concise output from stdin and write SonarQube external issues JSON to stdout."""
+    rules_dict: dict = {}
+    issue_list: list = []
+    current_issue: dict | None = None
 
-    if len(issue_list) == 0:
-        return
-    external_issues = {"rules": list(rules_dict.values()), "issues": issue_list}
-    if v1:
-        external_issues.pop("rules")
-    print(json.dumps(external_issues, indent=3, separators=(",", ": ")))
+    for line in sys.stdin.read().splitlines():
+        m = _ISSUE_RE.match(line)
+        if not m:
+            continue
+        # Flush the previous issue before starting a new one
+        if current_issue is not None:
+            issue_list.append(current_issue)
+
+        file_path = m.group(1).replace("\\", "/")
+        start_line = int(m.group(2))
+        start_col = int(m.group(3)) - 1  # ruff is 1-based, Sonar expects 0-based
+        rule_id = m.group(4)
+        message = m.group(5)
+
+        current_issue = {
+            "ruleId": rule_id,
+            "effortMinutes": 5,
+            "primaryLocation": {
+                "message": message,
+                "filePath": file_path,
+                "textRange": {
+                    "startLine": start_line,
+                    "endLine": start_line,
+                    "startColumn": start_col,
+                    "endColumn": start_col + 1,
+                },
+            },
+        }
+
+        # Keep one rule definition per rule_id (deduplicated by overwrite)
+        rules_dict[rule_id] = {
+            "id": rule_id,
+            "name": rule_id,
+            "description": message,
+            "engineId": TOOLNAME,
+            "cleanCodeAttribute": "LOGICAL",
+            "impacts": [{"softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM"}],
+        }
+
+    # Flush the last issue
+    if current_issue is not None:
+        issue_list.append(current_issue)
+
+    print(json.dumps({"rules": list(rules_dict.values()), "issues": issue_list}, indent=2))
 
 
 if __name__ == "__main__":
