@@ -96,3 +96,15 @@ def test_bad_speed():
             assert False
         except SystemExit as e:
             assert int(str(e)) == 1
+
+
+def test_speed_api_removes_audio():
+    output = video.speed(VIDEO, "2", output=TMP1)
+    assert video.VideoFile(output).audio_codec is None
+    os.remove(output)
+
+
+def test_speed_api_keep_audio():
+    output = video.speed(VIDEO, "2", output=TMP1, mute=False)
+    assert video.VideoFile(output).audio_codec is not None
+    os.remove(output)

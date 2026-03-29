@@ -696,9 +696,9 @@ def slideshow(*inputs, resolution=None):
         return (concat(target_file=final_file, file_list=slideshows, with_audio=False), operations)
 
 
-def speed(filename, target_speed, output=None, **kwargs):
+def speed(filename, target_speed, output=None, mute=True, **kwargs):
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix=f"speed-{target_speed}")
-    return VideoFile(filename).encode(speed=target_speed, target_file=output, **kwargs)
+    return VideoFile(filename).encode(speed=target_speed, target_file=output, mute=mute, **kwargs)
 
 
 def volume(filename, vol, output=None, **kwargs):
@@ -706,10 +706,10 @@ def volume(filename, vol, output=None, **kwargs):
     return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
 
 
-def reverse(filename, output=None, **kwargs):
+def reverse(filename, output=None, mute=True, **kwargs):
     kwargs["hw_accel"] = False  # Reverse filter not compatible with HW accel
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="reverse")
-    return VideoFile(filename).encode(reverse=True, target_file=output, **kwargs)
+    return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
 
 
 def deshake(filename, output=None, **kwargs):
