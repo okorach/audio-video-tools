@@ -93,3 +93,15 @@ def test_main_no_file():
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
+
+
+def test_reverse_api_removes_audio():
+    output = video.reverse(VIDEO, output=TMP1)
+    assert video.VideoFile(output).audio_codec is None
+    os.remove(output)
+
+
+def test_reverse_api_keep_audio():
+    output = video.reverse(VIDEO, output=TMP1, mute=False)
+    assert video.VideoFile(output).audio_codec is not None
+    os.remove(output)
