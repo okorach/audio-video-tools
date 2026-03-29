@@ -23,9 +23,19 @@ buildDir="build"
 pylintReport="$buildDir/pylint-report.out"
 banditReport="$buildDir/bandit-report.json"
 flake8Report="$buildDir/flake8-report.out"
+ruffReport="$buildDir/ruff-report.json"
 
 [ ! -d $buildDir ] && mkdir $buildDir
 # rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
+
+echo "Running ruff"
+rm -f $ruffReport
+ruff check --output-format=concise . | tee "$buildDir/ruff-report.txt" | ./ruff2sonar.py >"$ruffReport"
+re=$?
+if [ "$re" == "32" ]; then
+    >&2 echo "ERROR: ruff execution failed, errcode $re, aborting..."
+    exit $re
+fi
 
 echo "Running pylint"
 rm -f $pylintReport

@@ -1,0 +1,52 @@
+[tool.ruff]
+line-length = 150
+target-version = "py310"
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["ALL"]
+extend-ignore = [
+    "D403",
+    "D415",
+    "D400",
+    "FBT002",
+    "FBT001",
+    "PTH123",  # `open()` should be replaced by `Path.open()`
+    "ISC001",
+    "COM812",  # Missing trailing comma
+    "D211",
+    "D213",
+    "D203",
+    "D401",
+    "ERA001",
+    "S101",
+    "I001",
+    "TRY003",
+    "EM102",
+    "C901",    # Complexity rule, better covered by SonarQube
+    "ANN401",  # Disallow Any type annotation
+    "TD001",   # Disallow TODO/FIXME comments
+    "EM101",   # Don't use string literals in exceptions raise
+    "UP004",   # Useless inheritance to object
+    "D209",    # Multiline docstrings quotes on separate line
+    "D205",    # 1 blank line between docstring title and body
+]
+
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "build",
+    "dist",
+]
