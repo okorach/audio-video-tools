@@ -37,6 +37,7 @@ OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
 OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
 
 MAX_INT = 2000000000
+DEFAULT_PAN_SPEED = 0.02  # 2% of image width traveled per second
 
 
 class ImageFile(media.MediaFile):
@@ -310,7 +311,7 @@ class ImageFile(media.MediaFile):
     def __get_panorama_params__(self, **kwargs):
         speed = util.percent_or_absolute(kwargs.get("speed", None))
         if speed is None:
-            speed = 0.05
+            speed = DEFAULT_PAN_SPEED
             if random.randint(0, 1) == 1:
                 speed = -speed
         duration = util.percent_or_absolute(kwargs.get("duration", 5))
@@ -406,7 +407,7 @@ class ImageFile(media.MediaFile):
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
         (w, h) = self.dimensions()
-        speed = 0.05 * random.randrange(-1, 3, 2)
+        speed = DEFAULT_PAN_SPEED * random.randrange(-1, 3, 2)
         if "speed" in kwargs:
             speed = float(kwargs.pop("speed"))
         duration = 5.0
