@@ -19,35 +19,36 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-from typing import Union
+from __future__ import annotations
+
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 
-ROTATION_VALUES = ("clock", "cclock", "clock_flip", "cclock_flip")
+ROTATION_VALUES: tuple[str, ...] = ("clock", "cclock", "clock_flip", "cclock_flip")
 
-ERR_ROTATION_ARG_1 = f"rotation must be one of {', '.join(ROTATION_VALUES)}"
-ERR_ROTATION_ARG_2 = "rotation must be between 0 and 7"
-ERR_ROTATION_ARG_3 = "incorrect value for rotation"
+ERR_ROTATION_ARG_1: str = f"rotation must be one of {', '.join(ROTATION_VALUES)}"
+ERR_ROTATION_ARG_2: str = "rotation must be between 0 and 7"
+ERR_ROTATION_ARG_3: str = "incorrect value for rotation"
 
 
 class FilterError(Exception):
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         super().__init__()
-        self.message = message
+        self.message: str = message
 
 
-VIDEO_TYPE = 0
-AUDIO_TYPE = 1
+VIDEO_TYPE: int = 0
+AUDIO_TYPE: int = 1
 
 
 class Simple(object):
-    def __init__(self, filter_type=VIDEO_TYPE, stream_in=None, stream_out=None, filters=None) -> None:
-        self.filter_type = filter_type
-        self.stream_in = stream_in
-        self.stream_out = stream_out
+    def __init__(self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None) -> None:
+        self.filter_type: int = filter_type
+        self.stream_in: str | None = stream_in
+        self.stream_out: str | None = stream_out
         if filters is None:
-            self.filters = []
+            self.filters: list = []
         elif isinstance(filters, list):
             self.filters = filters
         else:
@@ -62,35 +63,35 @@ class Simple(object):
         t = "-af" if self.filter_type == AUDIO_TYPE else "-vf"
         return f'{t} "{s_in}{f}{s_out}"'
 
-    def insert(self, pos, a_filter):
+    def insert(self, pos: int, a_filter: str) -> None:
         self.filters.insert(pos, a_filter)
 
-    def append(self, a_filter):
+    def append(self, a_filter: str) -> None:
         self.filters.append(a_filter)
 
-    def extend(self, filters):
+    def extend(self, filters: list[str]) -> None:
         self.filters.extend(filters)
 
 
 class Complex:
-    def __init__(self, *inputs):
-        self.inputs = list(inputs)
-        self.serial_filters = None
-        self.filtergraph = []
+    def __init__(self, *inputs: object) -> None:
+        self.inputs: list = list(inputs)
+        self.serial_filters: object | None = None
+        self.filtergraph: list = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = ""
         for f in self.filtergraph:
             s += "".join([f"[{inp}]" for inp in f[0]]) + str(f[1]) + f"[{f[2]}];"
         return f'-filter_complex "{s[:-1]}"'
 
-    def format_inputs(self):
+    def format_inputs(self) -> str:
         return " ".join([f'-i "{f.filename}"' for f in self.inputs])
 
-    def insert_input(self, pos, an_input):
+    def insert_input(self, pos: int, an_input: object) -> None:
         self.inputs.insert(pos, an_input)
 
-    def add_filtergraph(self, inputs, simple_filter):
+    def add_filtergraph(self, inputs: object, simple_filter: object) -> str:
         outs = f"out{len(self.filtergraph)}"
         if not isinstance(inputs, (list, tuple)):
             inputs = [str(inputs)]
@@ -99,7 +100,7 @@ class Complex:
         return outs
 
 
-def __str_streams(streams):
+def __str_streams(streams: list | tuple | str) -> str:
     if isinstance(streams, (list, tuple)):
         s = "[" + "][".join(streams) + "]"
     elif isinstance(streams, str):
@@ -109,7 +110,7 @@ def __str_streams(streams):
     return s
 
 
-def wrap_in_streams(filter_list, in_stream, out_stream):
+def wrap_in_streams(filter_list: list | tuple | str, in_stream: str, out_stream: str) -> str:
     if isinstance(filter_list, str):
         s = filter_list
     elif isinstance(filter_list, (list, tuple)):
@@ -119,21 +120,21 @@ def wrap_in_streams(filter_list, in_stream, out_stream):
     return f"[{in_stream}]{s}[{out_stream}]"
 
 
-def in_out(filter_str, in_streams, out_streams):
+def in_out(filter_str: str, in_streams: list | tuple | str, out_streams: list | tuple | str) -> str:
     return f"{__str_streams(in_streams)}{filter_str}{__str_streams(out_streams)}"
 
 
-def setsar(ratio):
+def setsar(ratio: str) -> str:
     ratio = "/".join(ratio.split(":"))
     return f"setsar={ratio}"
 
 
-def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs):
+def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
     opts = ":".join([f"{k}={v}" for k, v in kwargs])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
-def format(pix_fmts) -> str:
+def format(pix_fmts: list[str] | str) -> str:
     if isinstance(pix_fmts, list):
         s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
@@ -143,11 +144,11 @@ def format(pix_fmts) -> str:
     return f"format=pix_fmts={s}"
 
 
-def overlay(x: int = 0, y: int = 0):
+def overlay(x: int = 0, y: int = 0) -> str:
     return f"overlay={x}:{y}"
 
 
-def trim(duration: float = None, start: float = None, stop: float = None) -> str:
+def trim(duration: float | None = None, start: float | None = None, stop: float | None = None) -> str:
     if duration is None and (start is None or stop is None):
         raise FilterError("No duration, start or stop for trim filter")
     s = "trim="
@@ -160,7 +161,7 @@ def trim(duration: float = None, start: float = None, stop: float = None) -> str
     return s
 
 
-def setpts(pts_formula) -> str:
+def setpts(pts_formula: str) -> str:
     return f"setpts={pts_formula}"
 
 
@@ -168,7 +169,7 @@ def scale(x: int, y: int) -> str:
     return f"scale={x}:{y}"
 
 
-def crop(x: int, y: int, x_formula: str = None, y_formula: str = None) -> str:
+def crop(x: int, y: int, x_formula: str | None = None, y_formula: str | None = None) -> str:
     s = f"crop={x}:{y}"
     if x_formula is not None:
         s += f":{x_formula}"
@@ -189,11 +190,11 @@ def vidstabtransform(smoothing: int = 30, optzoom: int = 1, zoom: int = 0, trf_f
     return f"vidstabtransform=smoothing={smoothing}:optzoom={optzoom}:zoom={zoom}:input='{trf_file}'"
 
 
-def reverse():
+def reverse() -> str:
     return "reverse"
 
 
-def areverse():
+def areverse() -> str:
     return "areverse"
 
 
@@ -203,7 +204,7 @@ def volume(vol: str) -> str:
     return f"volume={vol}"
 
 
-def rotate(rotation: Union[int, str] = 90) -> str:
+def rotate(rotation: int | str = 90) -> str:
     if isinstance(rotation, str) and rotation not in ROTATION_VALUES:
         raise ex.InputError(ERR_ROTATION_ARG_1, "rotate")
     if not isinstance(rotation, int):
@@ -218,7 +219,7 @@ def rotate(rotation: Union[int, str] = 90) -> str:
     return f"transpose={rotation}"
 
 
-def speed(target_speed) -> str:
+def speed(target_speed: str | float) -> str:
     s = float(util.percent_or_absolute(target_speed))
     if s > 1:
         expr = f"not(mod(n,{s})),{setpts('N/FRAME_RATE/TB')}"
@@ -227,35 +228,35 @@ def speed(target_speed) -> str:
         return setpts(f"{1 / float(s)}*PTS")
 
 
-def filtercomplex(filter_list):
+def filtercomplex(filter_list: list[str] | None) -> str:
     if filter_list is None or not filter_list:
         return ""
     sep = " "  # if platform.system() == 'Windows' else " \\\n"
     return f'-filter_complex "{sep}{("; " + sep).join(filter_list)}"'
 
 
-def vfilter(filter_list):
+def vfilter(filter_list: list[str] | None) -> str:
     if filter_list is None or not filter_list:
         return ""
     return f'-vf "{",".join(filter_list)}"'
 
 
-def afilter(filter_list):
+def afilter(filter_list: list[str] | None) -> str:
     if filter_list is None or not filter_list:
         return ""
     return f'-af "{",".join(filter_list)}"'
 
 
-def inputs_str(input_list):
+def inputs_str(input_list: list[str]) -> str:
     sep = " "  # if platform.system() == 'Windows' else " \\\n"
     return sep.join([f'-i "{f}"' for f in input_list])
 
 
-def format_options(opts):
+def format_options(opts: list[str] | None) -> str:
     return "" if opts is None else " ".join(opts)
 
 
-def metadata(key, value, track=None, track_type=None):
+def metadata(key: str, value: str, track: int | None = None, track_type: str | None = None) -> str:
     if track is None:
         return '-metadata {}="{}"'.format(key, value)
     else:

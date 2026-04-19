@@ -23,22 +23,26 @@
 class FileTypeError(Exception):
     """Error when passing a non media file"""
 
-    def __init__(self, file="file", expected_type="media", message=None):
-        self.file = file
-        self.message = message
+    def __init__(self, file: str = "file", expected_type: str = "media", message: str | None = None) -> None:
+        self.file: str = file
+        self.message: str
         if message is None:
-            self.message = "File {} is not of the expected {} type".format(file, expected_type)
+            self.message = "File {} is not of the expected {} type".format(file, expected_type)
+        else:
+            self.message = message
         super().__init__(self.message)
 
 
 class InputError(Exception):
     """Error when passing wrong input arguments for media transformation"""
 
-    def __init__(self, message=None, operation=None):
-        self.message = message
-        self.operation = operation
+    def __init__(self, message: str | None = None, operation: str | None = None) -> None:
+        self.message: str
+        self.operation: str | None = operation
         if message is None:
             self.message = "Input parameters error"
+        else:
+            self.message = message
         if operation is not None:
             self.message = "{}: {}".format(operation, self.message)
         super().__init__(self.message)
@@ -47,11 +51,13 @@ class InputError(Exception):
 class DimensionError(Exception):
     """Error when copputing image or video dimensions"""
 
-    def __init__(self, message=None, operation=None):
-        self.message = message
-        self.operation = operation
+    def __init__(self, message: str | None = None, operation: str | None = None) -> None:
+        self.message: str
+        self.operation: str | None = operation
         if message is None:
             self.message = "Dimensions error"
+        else:
+            self.message = message
         if operation is not None:
             self.message = "{}: {}".format(operation, self.message)
         super().__init__(self.message)

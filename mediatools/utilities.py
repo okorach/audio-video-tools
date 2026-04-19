@@ -37,33 +37,33 @@ import mediatools.resolution as res
 import utilities.file as fil
 import mediatools.media_config as conf
 
-DEBUG_LEVEL = 0
-DRY_RUN = False
-HW_ACCEL = None
-HW_ACCEL_PREFIX = "-hwaccel cuda -hwaccel_output_format cuda"
+DEBUG_LEVEL: int = 0
+DRY_RUN: bool = False
+HW_ACCEL: bool | None = None
+HW_ACCEL_PREFIX: str = "-hwaccel cuda -hwaccel_output_format cuda"
 
-LANGUAGE_MAPPING = {"fre": "French", "eng": "English"}
+LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
 
-OPTIONS_VERBATIM = ["ss", "to"]
+OPTIONS_VERBATIM: list[str] = ["ss", "to"]
 
-FILE_DATE_FMT = "%Y-%m-%d %Hh%Mm%Ss"
-ISO_DATE_FMT = "%Y-%m-%d %H:%M:%S"
-EXIF_DATE_FMT = "%Y:%m:%d %H:%M:%S"
-DATE_FORMATS = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate", "File:FileCreateDate")
+FILE_DATE_FMT: str = "%Y-%m-%d %Hh%Mm%Ss"
+ISO_DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
+EXIF_DATE_FMT: str = "%Y:%m:%d %H:%M:%S"
+DATE_FORMATS: tuple[str, ...] = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
+CREATION_DATE_TAGS: tuple[str, ...] = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate", "File:FileCreateDate")
 
 config_props = os.path.realpath(__file__).split(os.path.sep)
 config_props.pop()
 config_props.pop()
 config_props.append("media-tools.properties")
-DEFAULT_PROPERTIES_FILE = os.path.sep.join(config_props)
+DEFAULT_PROPERTIES_FILE: str = os.path.sep.join(config_props)
 # log.logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
-PROPERTIES_FILE = ""
-PROPERTIES_VALUES = {}
+PROPERTIES_FILE: str = ""
+PROPERTIES_VALUES: dict = {}
 
 
-def add_postfix(file, postfix, extension=None):
+def add_postfix(file: str, postfix: str, extension: str | None = None) -> str:
     """Adds a postfix to a file before the file extension"""
     if extension is None:
         extension = conf.get_property(f"default.{fil.get_type(file)}.format")
@@ -72,14 +72,14 @@ def add_postfix(file, postfix, extension=None):
     return fil.strip_extension(file) + r"." + postfix + r"." + extension
 
 
-def automatic_output_file_name(outfile, infile, postfix, extension=None):
+def automatic_output_file_name(outfile: str | None, infile: str, postfix: str, extension: str | None = None) -> str:
     if outfile is not None:
         return outfile
     postfix.replace(":", "-")
     return add_postfix(infile, postfix, extension)
 
 
-def get_ffbin(ffprop):
+def get_ffbin(ffprop: str) -> str:
     props = get_media_properties()
 
     if not re.search("\\" + os.path.sep, props[ffprop]):
@@ -87,15 +87,15 @@ def get_ffbin(ffprop):
     return props[ffprop]  # os.path.realpath(props[ffprop])
 
 
-def get_ffmpeg():
+def get_ffmpeg() -> str:
     return get_ffbin("binaries.ffmpeg")
 
 
-def get_ffprobe():
+def get_ffprobe() -> str:
     return get_ffbin("binaries.ffprobe")
 
 
-def get_first_value(a_dict, key_list):
+def get_first_value(a_dict: dict | None, key_list: tuple | list):
     if a_dict is None:
         return None
     for tag in key_list:
@@ -104,7 +104,7 @@ def get_first_value(a_dict, key_list):
     return None
 
 
-def __compute_eta__(line, total_time):
+def __compute_eta__(line: str, total_time: float | str | None) -> str:
     if total_time is None:
         return ""
     # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
@@ -119,7 +119,7 @@ def __compute_eta__(line, total_time):
     return " ETA=" + to_hms_str(max(0, (total_time - to_seconds(m.group(1))) / speed))
 
 
-def __get_log_level_from_ffmpeg_log__(line):
+def __get_log_level_from_ffmpeg_log__(line: str) -> int:
     if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
         level = logging.WARNING
     elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
@@ -133,7 +133,7 @@ def __get_log_level_from_ffmpeg_log__(line):
     return level
 
 
-def run_os_cmd(cmd, total_time=None):
+def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
     log.logger.info("Running: %s", cmd)
     if total_time is not None and isinstance(total_time, str):
         total_time = to_seconds(total_time)
@@ -168,20 +168,20 @@ def run_os_cmd(cmd, total_time=None):
         raise e
 
 
-def run_ffmpeg(params, duration=None):
+def run_ffmpeg(params: str, duration: float | None = None) -> None:
     quot = '"' if platform.system() == "Windows" else ""
     cmd = f"{quot}{get_ffmpeg()}{quot} -y {params}"
     run_os_cmd(cmd, duration)
 
 
-def build_ffmpeg_complex_prep(input_file_list):
+def build_ffmpeg_complex_prep(input_file_list: list) -> str:
     s = ""
     for i in range(len(input_file_list) + 1):
         s += "[{0}]scale=iw:-1:flags=lanczos[pip{0}]; ".format(i)
     return s
 
 
-def get_media_properties():
+def get_media_properties() -> dict:
     """Returns all properties found in the properties file as dictionary"""
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
@@ -190,14 +190,14 @@ def get_media_properties():
     return PROPERTIES_VALUES
 
 
-def get_conf_property(prop):
+def get_conf_property(prop: str):
     global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]
 
 
-def to_hms(seconds, fmt="tuple"):
+def to_hms(seconds: float | str, fmt: str = "tuple") -> tuple[int, int, float] | str:
     try:
         s = int(float(seconds))
         hours = s // 3600
@@ -214,7 +214,7 @@ def to_hms(seconds, fmt="tuple"):
             return (0, 0, 0)
 
 
-def to_seconds(hms):
+def to_seconds(hms: float | str) -> float:
     a = [float(x) for x in str(hms).split(":")]
     if len(a) == 3:
         return a[0] * 3600 + a[1] * 60 + a[2]
@@ -224,39 +224,39 @@ def to_seconds(hms):
         return a[0]
 
 
-def difftime(stop, start):
+def difftime(stop: float | str, start: float | str) -> float:
     return to_seconds(stop) - to_seconds(start)
 
 
-def to_hms_str(seconds):
+def to_hms_str(seconds: float) -> str:
     hours, minutes, secs = to_hms(seconds)
     return "%02d:%02d:%06.3f" % (hours, minutes, secs)
 
 
-def json_fmt(json_data):
+def json_fmt(json_data: object) -> str:
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(",", ": "))
 
 
-def set_debug_level(level):
+def set_debug_level(level: int | str | None) -> None:
     global DEBUG_LEVEL
     DEBUG_LEVEL = 3 if level is None else int(level)
     log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
     log.logger.info("Set debug level to %d", DEBUG_LEVEL)
 
 
-def init(logger_name):
+def init(logger_name: str) -> None:
     log.set_logger(logger_name)
     log.logger.setLevel(log.get_logging_level(3))
     log.logger.info("audio-video-tools version %s", version.MEDIA_TOOLS_VERSION)
 
 
-def delete_files(*args):
+def delete_files(*args: str) -> None:
     for f in args:
         log.logger.debug("Deleting file %s", f)
         os.remove(f)
 
 
-def get_common_args(executable, desc):
+def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
 
     init(executable)
@@ -277,11 +277,11 @@ def get_common_args(executable, desc):
     return parser
 
 
-def remove_nones(d):
+def remove_nones(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def parse_media_args(parser, args=None):
+def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = None) -> dict:
     if args is None:
         kwargs = vars(parser.parse_args())
     else:
@@ -313,14 +313,14 @@ def parse_media_args(parser, args=None):
     return kwargs
 
 
-def cleanup_options(kwargs):
+def cleanup_options(kwargs: dict) -> dict:
     new_options = remove_nones(kwargs)
     for key in ["inputfiles", "outputfile", "profile"]:
         new_options.pop(key, None)
     return new_options
 
 
-def get_profile_extension(profile, properties=None):
+def get_profile_extension(profile: str | None, properties: dict | None = None) -> str | None:
     if profile is None:
         return "mp4"
     if properties is None:
@@ -331,18 +331,18 @@ def get_profile_extension(profile, properties=None):
     return extension
 
 
-def get_profile_params(profile):
+def get_profile_params(profile: str | None) -> dict:
     if profile is None:
         return {}
     props = get_media_properties()
     return get_cmdline_params(props[profile + ".cmdline"])
 
 
-def get_cmdline_params(cmdline):
+def get_cmdline_params(cmdline: str) -> dict:
     """Returns a dictionary of all parameters found on input string command line
     Parameters can be of the format -<option> <value> or -<option>"""
     found = True
-    parms = {}
+    parms: dict = {}
     while found:
         # Remove heading spaces
         cmdline = re.sub(r"^\s+", "", cmdline)
@@ -369,21 +369,21 @@ def get_cmdline_params(cmdline):
     return parms
 
 
-def get_ffmpeg_cmdline_param(cmdline, param):
+def get_ffmpeg_cmdline_param(cmdline: str, param: str) -> str | None:
     m = re.search(rf"-{param}\s+(\S+)", cmdline)
     if m:
         return m.group(1)
     return None
 
 
-def get_ffmpeg_cmdline_switch(cmdline, param):
+def get_ffmpeg_cmdline_switch(cmdline: str, param: str) -> bool:
     m = re.search(rf"-{param}\s", cmdline)
     if m:
         return True
     return False
 
 
-def get_ffmpeg_cmdline_params(cmdline):
+def get_ffmpeg_cmdline_params(cmdline: str) -> dict:
     for o in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
         acodec = get_ffmpeg_cmdline_param(cmdline, o)
         if acodec is not None:
@@ -412,14 +412,14 @@ def get_ffmpeg_cmdline_params(cmdline):
     )
 
 
-def get_default_options(filetype=fil.FileType.VIDEO_FILE):
+def get_default_options(filetype: str = fil.FileType.VIDEO_FILE) -> dict:
     audio_opts = {
         opt.Option.ACODEC: get_conf_property("default.audio.codec"),
         opt.Option.ABITRATE: get_conf_property("default.audio.bitrate"),
         opt.Option.ACHANNEL: get_conf_property("default.audio.channels"),
         opt.Option.SAMPLERATE: get_conf_property("default.audio.samplerate"),
     }
-    video_opts = {}
+    video_opts: dict = {}
     if filetype == fil.FileType.VIDEO_FILE:
         video_opts = {
             opt.Option.FORMAT: get_conf_property("default.video.format"),
@@ -432,11 +432,11 @@ def get_default_options(filetype=fil.FileType.VIDEO_FILE):
     return remove_nones({**audio_opts, **video_opts})
 
 
-def get_profile_options(profile):
+def get_profile_options(profile: str) -> dict:
     return get_ffmpeg_cmdline_params(get_conf_property(profile + ".cmdline"))
 
 
-def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
+def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args) -> dict:
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get("vcodec", None) == "copy" and cmdline_args.get("acodec", None) == "copy":
         return cmdline_args
@@ -454,11 +454,11 @@ def get_all_options(filetype=fil.FileType.VIDEO_FILE, **cmdline_args):
     return cmdline_args
 
 
-def swap_keys_values(p):
+def swap_keys_values(p: dict) -> dict:
     return {v: k for k, v in p.items()}
 
 
-def dict2str(options):
+def dict2str(options: dict) -> str:
     cmd = ""
     for k in options:
         if options[k] is None or options[k] is False:
@@ -472,7 +472,7 @@ def dict2str(options):
     return cmd
 
 
-def find_key(hashlist, keylist):
+def find_key(hashlist: dict, keylist: list | tuple):
     for key in keylist:
         if key not in hashlist:
             continue
@@ -482,7 +482,7 @@ def find_key(hashlist, keylist):
     return None
 
 
-def percent_or_absolute(x, reference=1):
+def percent_or_absolute(x: str | float | int, reference: float | int = 1) -> float | int:
     if isinstance(x, str):
         if re.match(r"-?\d+(.\d+)?%", x):
             return float(x[:-1]) * reference / 100
@@ -491,20 +491,20 @@ def percent_or_absolute(x, reference=1):
     return x
 
 
-def generated_file(filename):
+def generated_file(filename: str) -> None:
     log.logger.info("Generated %s", filename)
     print(f"Generated {filename}")
 
 
-def package_home():
+def package_home() -> pathlib.Path:
     return pathlib.Path(__file__).parent
 
 
-def get_tmp_file():
+def get_tmp_file() -> str:
     return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
 
 
-def resolve_resolution(**kwargs):
+def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:
     log.logger.info("ARgs = %s", str(kwargs))
     if kwargs.get(opt.Option.WIDTH, None):
         if kwargs.get(opt.Option.HEIGHT, None):
@@ -524,7 +524,7 @@ def resolve_resolution(**kwargs):
     return (w, h)
 
 
-def use_hardware_accel(**kwargs):
+def use_hardware_accel(**kwargs) -> bool:
     global HW_ACCEL
     my_hw_accel = kwargs.get("hw_accel", "auto")
     log.logger.debug("my hw accel = %s", str(my_hw_accel))
@@ -561,8 +561,9 @@ def use_hardware_accel(**kwargs):
     return HW_ACCEL
 
 
-def get_creation_date(exif_data):
-    str_date = creation_date = None
+def get_creation_date(exif_data: dict) -> datetime | None:
+    str_date: str | None = None
+    creation_date: datetime | None = None
     for tag in CREATION_DATE_TAGS:
         tag_val = exif_data.get(tag, "")
         if tag_val != "" and int(tag_val[0:4]) > 1970:

@@ -19,16 +19,18 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import mediatools.options as opt
 
 
-LANGUAGE_MAPPING = {"fre": "French", "eng": "English"}
+LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
 
 
 class Encoder:
     """Encoder abstraction"""
 
-    SETTINGS = [
+    SETTINGS: list[str] = [
         "format",
         "vcodec",
         "vbitrate",
@@ -45,24 +47,24 @@ class Encoder:
         "stop",
     ]
 
-    def __init__(self, **kwargs):
-        self.format = None
-        self.aspect = None
-        self.resolution = None
-        self.vcodec = "copy"
-        self.vbitrate = None
-        self.video_fps = None
-        self.abitrate = None
-        self.acodec = "copy"
-        self.audio_language = None
-        self.audio_sample_rate = None
-        self.start = None
-        self.stop = None
-        self.vfilters = []
+    def __init__(self, **kwargs) -> None:
+        self.format: str | None = None
+        self.aspect: str | None = None
+        self.resolution: str | None = None
+        self.vcodec: str = "copy"
+        self.vbitrate: int | None = None
+        self.video_fps: float | None = None
+        self.abitrate: int | None = None
+        self.acodec: str = "copy"
+        self.audio_language: str | None = None
+        self.audio_sample_rate: int | None = None
+        self.start: float | str | None = None
+        self.stop: float | str | None = None
+        self.vfilters: list[str] = []
         self.add_settings(**kwargs)
-        self.others = {}
+        self.others: dict = {}
 
-    def add_settings(self, **kwargs):
+    def add_settings(self, **kwargs) -> None:
         kwsettings = {}
         for k in kwargs:
             if k in Encoder.SETTINGS and kwargs[k] is not None:
@@ -86,26 +88,26 @@ class Encoder:
         if "format" in kwsettings:
             self.format = kwsettings[opt.Option.FORMAT]
 
-    def set_format(self, fmt):
+    def set_format(self, fmt: str) -> None:
         self.format = fmt
 
-    def add_vfilter(self, vfilter):
+    def add_vfilter(self, vfilter: str) -> None:
         self.vfilters.append(vfilter)
 
-    def get_vfilters_string(self):
+    def get_vfilters_string(self) -> str:
         cmd = ""
         for f in self.vfilters:
             cmd = cmd + '-filter:v "%s" ' % f
         return cmd.strip()
 
-    def add_crop_filter(self, width, height, top, left):
+    def add_crop_filter(self, width: int, height: int, top: int, left: int) -> None:
         self.add_vfilter("crop={0}:{1}:{2}:{3}".format(width, height, top, left))
 
-    def add_deshake_filter(self, width, height):
+    def add_deshake_filter(self, width: int, height: int) -> None:
         # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
         self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height))
 
-    def add_fade_filter(self, fade_d, start=None, stop=None):
+    def add_fade_filter(self, fade_d: float, start: float | None = None, stop: float | None = None) -> None:
         if start is None:
             start = self.start
         if start is None:
@@ -116,7 +118,7 @@ class Encoder:
         fader = fmt.format("in", fade_d, start) + "," + fmt.format("out", fade_d, stop - fade_d)
         self.add_vfilter(fader)
 
-    def ffmpeg_opts(self):
+    def ffmpeg_opts(self) -> str:
         """Builds string corresponding to ffmpeg conventions"""
         options = vars(self)
         cmd = ""

@@ -19,6 +19,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import argparse
 from mediatools import log
 import mediatools.exceptions as ex
@@ -27,9 +29,9 @@ import utilities.file as fil
 import mediatools.creator as creator
 import mediatools.options as opt
 
-STD_FMT = "%-20s : %s"
+STD_FMT: str = "%-20s : %s"
 
-VIDEO_PROPS = [
+VIDEO_PROPS: list[str] = [
     "filename",
     "filesize",
     "type",
@@ -49,7 +51,7 @@ VIDEO_PROPS = [
     opt.Option.AUTHOR,
 ]
 
-AUDIO_PROPS = [
+AUDIO_PROPS: list[str] = [
     "filename",
     "filesize",
     "type",
@@ -66,9 +68,9 @@ AUDIO_PROPS = [
     opt.Option.GENRE,
 ]
 
-IMAGE_PROPS = ["filename", "filesize", "type", opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, "pixels", opt.Option.AUTHOR, opt.Option.TITLE]
+IMAGE_PROPS: list[str] = ["filename", "filesize", "type", opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, "pixels", opt.Option.AUTHOR, opt.Option.TITLE]
 
-UNITS = {
+UNITS: dict[str, str] = {
     "filesize": "bytes",
     opt.Option.DURATION: "time",
     opt.Option.VBITRATE: "bits/s",
@@ -78,7 +80,7 @@ UNITS = {
 }
 
 
-def __to_csv__(specs, all_props):
+def __to_csv__(specs: dict, all_props: list[str]) -> str:
     s = ""
     for prop in all_props:
         if prop not in specs:
@@ -90,7 +92,7 @@ def __to_csv__(specs, all_props):
     return s[:-1]
 
 
-def __to_std__(specs, all_props):
+def __to_std__(specs: dict, all_props: list[str]) -> str:
     s = ""
     for prop in sorted(all_props):
         if prop not in specs:
@@ -122,7 +124,7 @@ def __to_std__(specs, all_props):
     return s[:-1]
 
 
-def main():
+def main() -> None:
     util.init("file-specs")
     parser = argparse.ArgumentParser(description="Audio/Video/Image file specs extractor")
     parser.add_argument("-i", "--inputfiles", required=True, help="Input file or directory to probe")

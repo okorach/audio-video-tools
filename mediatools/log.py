@@ -23,16 +23,16 @@ import os
 import logging
 import pathlib
 
-logger = logging.getLogger("mediatools")
-formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)-7s | %(threadName)-15s | %(message)s")
+logger: logging.Logger = logging.getLogger("mediatools")
+formatter: logging.Formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)-7s | %(threadName)-15s | %(message)s")
 try:
-    fh = logging.FileHandler("mediatools.log")
+    fh: logging.FileHandler = logging.FileHandler("mediatools.log")
 except PermissionError:
     fallback_log = pathlib.Path(os.getenv("TMP", "/")) / "mediatools.log"
     fh = logging.FileHandler(fallback_log)
 
 # fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
+ch: logging.StreamHandler = logging.StreamHandler()
 # ch.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 logger.addHandler(ch)
@@ -40,7 +40,7 @@ fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 
 
-def set_logger(name):
+def set_logger(name: str) -> None:
     global logger
     logger = logging.getLogger(name)
     try:
@@ -55,7 +55,7 @@ def set_logger(name):
     new_ch.setFormatter(formatter)
 
 
-def get_logging_level(intlevel):
+def get_logging_level(intlevel: int) -> int:
     if intlevel >= 4:
         lvl = logging.DEBUG
     elif intlevel >= 3:

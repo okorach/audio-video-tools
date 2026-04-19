@@ -31,35 +31,35 @@ if platform.system() == "Windows":
 
 
 class FileType:
-    AUDIO_FILE = "audio"
-    VIDEO_FILE = "video"
-    IMAGE_FILE = "image"
-    UNKNOWN_FILE = "unknown"
-    FILE_EXTENSIONS = {
+    AUDIO_FILE: str = "audio"
+    VIDEO_FILE: str = "video"
+    IMAGE_FILE: str = "image"
+    UNKNOWN_FILE: str = "unknown"
+    FILE_EXTENSIONS: dict[str, tuple[str, ...]] = {
         AUDIO_FILE: ("mp3", "ogg", "aac", "ac3", "m4a", "ape", "flac", "opus"),
         VIDEO_FILE: ("avi", "wmv", "mp4", "3gp", "mpg", "mpeg", "mkv", "ts", "mts", "m2ts", "mov"),
         IMAGE_FILE: ("jpg", "jpeg", "png", "gif", "svg", "raw"),
     }
 
 
-MEDIA_FILE_EXTENSIONS = (
+MEDIA_FILE_EXTENSIONS: tuple[str, ...] = (
     FileType.FILE_EXTENSIONS[FileType.AUDIO_FILE] + FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
 )
 
-IMAGE_AND_VIDEO_EXTENSIONS = FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
+IMAGE_AND_VIDEO_EXTENSIONS: tuple[str, ...] = FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
 
 
 class File:
     """File abstraction"""
 
     def __init__(self, filename: str) -> None:
-        self.filename = os.path.abspath(filename)
-        self._size = None
-        self.created = None
-        self.modified = None
-        self._stat = None
-        self._hash = None
-        self.algo = None
+        self.filename: str = os.path.abspath(filename)
+        self._size: int | None = None
+        self.created: time.struct_time | None = None
+        self.modified: time.struct_time | None = None
+        self._stat: os.stat_result | None = None
+        self._hash: str | None = None
+        self.algo: str | None = None
 
     def stat(self, force: bool = False) -> bool:
         if self._stat is not None and not force:
@@ -73,12 +73,12 @@ class File:
         except FileNotFoundError:
             return False
 
-    def modification_date(self, force: bool = False):
+    def modification_date(self, force: bool = False) -> time.struct_time | None:
         if self.modified is None or force:
             self.stat()
         return self.modified
 
-    def creation_date(self, force: bool = False):
+    def creation_date(self, force: bool = False) -> time.struct_time | None:
         if self.created is None or force:
             self.stat()
         return self.created
@@ -88,19 +88,19 @@ class File:
             self.stat()
         return self._size
 
-    def is_shortcut(self):
+    def is_shortcut(self) -> bool:
         if platform.system() != "Windows":
             return False
         f = self.filename.lower()
         return f.endswith(".lnk") or f.endswith(".url")
 
-    def is_link(self):
+    def is_link(self) -> bool:
         if platform.system() == "Windows":
             return self.filename.lower().endswith(".lnk")
         else:
             return os.path.islink(self.filename)
 
-    def read_link(self):
+    def read_link(self) -> str | None:
         if not is_link(self.filename):
             return None
         log.logger.info("Checking symlink %s", self.filename)
@@ -139,10 +139,10 @@ class File:
     def dirname(self) -> str:
         return os.sep.join(os.path.abspath(self.filename).split(os.sep)[0:-1])
 
-    def strip_extension(self):
+    def strip_extension(self) -> str:
         return self.basename(strip_dir=False, strip_ext=True)
 
-    def hash(self, algo="md5", force=False):
+    def hash(self, algo: str = "md5", force: bool = False) -> str | None:
         if self._hash is not None and self.algo is not None and self.algo == algo and not force:
             return self._hash
         BLOCK_SIZE = 65536  # The size of each read from the file
@@ -174,7 +174,7 @@ class File:
         os.rename(self.filename, new_name)
         return new_name
 
-    def add_postfix(self, postfix: str):
+    def add_postfix(self, postfix: str) -> str:
         """Adds a postfix to a file before the file extension"""
         return f"{self.strip_extension()}.{postfix}.{self.extension()}"
 
@@ -194,7 +194,7 @@ def basename(f: str, strip_dir: bool = True, strip_ext: bool = True) -> str:
     return File(f).basename(strip_dir=strip_dir, strip_ext=strip_ext)
 
 
-def strip_extension(f: str):
+def strip_extension(f: str) -> str:
     return File(f).strip_extension()
 
 
@@ -202,20 +202,20 @@ def dirname(f: str) -> str:
     return File(f).dirname()
 
 
-def add_postfix(file: str, postfix: str):
+def add_postfix(file: str, postfix: str) -> str:
     """Adds a postfix to a file before the file extension"""
     return File(file).add_postfix(postfix)
 
 
-def is_link(f) -> bool:
+def is_link(f: str) -> bool:
     return File(f).is_link()
 
 
-def is_shortcut(f) -> bool:
+def is_shortcut(f: str) -> bool:
     return File(f).is_shortcut()
 
 
-def read_link(f):
+def read_link(f: str) -> str | None:
     return File(f).read_link()
 
 
@@ -223,9 +223,9 @@ def create_link(f: str, link: str) -> str:
     return File(f).create_link(link)
 
 
-def get_hash_list(filelist, algo: str = "md5") -> dict[str, list[str]]:
+def get_hash_list(filelist: list[str], algo: str = "md5") -> dict[str, list[str]]:
     log.logger.info("Getting hashes of %d files", len(filelist))
-    hashes = {}
+    hashes: dict[str, list[str]] = {}
     i = 0
     for f in filelist:
         h = File(f).hash(algo)
@@ -246,16 +246,16 @@ def strip_file_extension(filename: str) -> str:
     return ".".join(filename.split(".")[:-1])
 
 
-def __match_extension(file: str, extension_list: list[str]) -> bool:
+def __match_extension(file: str, extension_list: tuple[str, ...] | list[str]) -> bool:
     """Returns boolean, whether the file has a extension that is in the list"""
     return extension(file).lower() in extension_list
 
 
-def dir_list(root_dir: str, recurse: bool = False, file_type: str = None):
+def dir_list(root_dir: str, recurse: bool = False, file_type: str | None = None) -> list[str]:
     """Returns and array of all files under a given root directory
     going down into sub directories"""
     log.logger.info("Searching files in %s (recurse=%s)", root_dir, str(recurse))
-    files = []
+    files: list[str] = []
     # 3 params are r=root, _=directories, f = files
     for r, _, f in os.walk(root_dir):
         for file in f:
@@ -267,9 +267,9 @@ def dir_list(root_dir: str, recurse: bool = False, file_type: str = None):
     return files
 
 
-def file_list(*args, file_type: str = None, recurse: bool = False):
+def file_list(*args: str, file_type: str | None = None, recurse: bool = False) -> list[str]:
     log.logger.debug("Searching files in %s", str(args))
-    files = []
+    files: list[str] = []
     for arg in args:
         log.logger.debug("Check file %s", str(arg))
         if os.path.isdir(arg):
@@ -279,7 +279,7 @@ def file_list(*args, file_type: str = None, recurse: bool = False):
     return files
 
 
-def __is_type_file(file, type_of_media: str) -> bool:
+def __is_type_file(file: str, type_of_media: str | None) -> bool:
     return type_of_media is None or (
         (os.path.isfile(file) or file[0:2] == "\\\\") and __match_extension(file, FileType.FILE_EXTENSIONS[type_of_media])
     )
@@ -315,6 +315,6 @@ def get_type(file: str) -> str:
     return t
 
 
-def random_name(original_file: str, pattern: str, file_ext: str = None) -> str:
+def random_name(original_file: str, pattern: str, file_ext: str | None = None) -> str:
     file_ext = "" if file_ext is None else f".{file_ext}"
     return f"{strip_extension(original_file)}.{pattern}.{os.getpid()}{file_ext}"
