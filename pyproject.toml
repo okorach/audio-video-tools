@@ -83,14 +83,23 @@ encode           = "cli.encode:main"
 audio-split      = "mediatools.audiosplit:main"
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "twine"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.setuptools.packages.find]
-where = ["."]
-
-[tool.setuptools.package-data]
-mediatools = ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]
+[tool.poetry]
+packages = [
+    {include = "mediatools"},
+    {include = "cli"},
+    {include = "filters"},
+    {include = "utilities"},
+]
+include = [
+    {path = "mediatools/LICENSE"},
+    {path = "mediatools/media-tools.properties"},
+    {path = "mediatools/black.jpg"},
+    {path = "mediatools/white.jpg"},
+    {path = "mediatools/video-720p.mp4"},
+]
 
 [dependency-groups]
 test = [
@@ -104,9 +113,14 @@ lint = [
     "bandit (>=1.7)",
     "black (>=24.0)",
 ]
+build = [
+    "poetry (>=2.0)",
+    "twine (>=5.0)",
+]
 dev = [
     {include-group = "test"},
     {include-group = "lint"},
+    {include-group = "build"},
 ]
 
 [tool.pyright]
