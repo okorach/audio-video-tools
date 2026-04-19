@@ -21,7 +21,14 @@
 
 black --line-length=150 .
 rm -rf build dist
-python3 setup.py bdist_wheel
+
+if [ "$1" = "offline" ]; then
+    # Offline build: uses setup.py directly, no internet access required
+    python3 setup.py bdist_wheel
+else
+    # Standard build: uses pyproject.toml via the build frontend
+    python3 -m build
+fi
 
 # Deploy locally for tests
 python3 -m pip install --no-deps --force-reinstall dist/*-py3-*.whl

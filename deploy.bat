@@ -19,12 +19,17 @@
 ::
 del /F /Q build\*.* dist\*.*
 
-python setup.py sdist bdist_wheel
+if "%1"=="offline" (
+    :: Offline build: uses setup.py directly, no internet access required
+    python setup.py sdist bdist_wheel
+) else (
+    :: Standard build: uses pyproject.toml via the build frontend
+    python -m build
+)
 
 :: Deploy locally for tests
 for %%a in (dist\*.whl) do (
-    :: --upgrade
-    python -m pip install --no-deps --force-reinstall  %%a
+    python -m pip install --no-deps --force-reinstall %%a
 )
 
 :: Deploy on pypi.org once released

@@ -1,3 +1,119 @@
+[project]
+name = "audio-video-tools"
+version = "0.5"
+description = "A collection of utility scripts to manipulate media files (audio, video, image)"
+authors = [
+    {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
+]
+maintainers = [
+    {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
+]
+
+license = "LGPL-3.0-only"
+license-files = ["LICEN[CS]E*"]
+
+keywords = ["ffmpeg", "video", "audio", "image", "media", "transcode", "stabilize", "tools"]
+
+readme = "README.md"
+requires-python = ">= 3.6"
+
+dependencies = [
+    "argparse",
+    "datetime",
+    "mp3_tagger",
+    "ffmpeg-python",
+    "ExifRead",
+    "pyexiftool",
+    "jprops",
+    "librosa",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/okorach/audio-video-tools"
+Repository = "https://github.com/okorach/audio-video-tools.git"
+Issues = "https://github.com/okorach/audio-video-tools/issues"
+Documentation = "https://github.com/okorach/audio-video-tools/README.md"
+
+[project.scripts]
+video-encode     = "mediatools.encode:main"
+media-specs      = "mediatools.filespecs:main"
+video-speed      = "mediatools.speed:main"
+image-poster     = "mediatools.poster:main"
+image-blinds     = "mediatools.blindify:main"
+image-shake      = "mediatools.shake:main"
+image-scale      = "mediatools.rescale:main"
+image-stack      = "mediatools.stack:main"
+video-mux        = "mediatools.mux:main"
+video-concat     = "mediatools.concat:main"
+media-crop       = "mediatools.crop:main"
+media-volume     = "mediatools.volume:main"
+media-cut        = "mediatools.cut:main"
+video-stabilize  = "mediatools.stabilize:main"
+video-deshake    = "mediatools.deshake:main"
+audio-album-art  = "mediatools.album_art:main"
+image-to-video   = "mediatools.image2video:main"
+video-slideshow  = "mediatools.slideshow:main"
+video-reverse    = "mediatools.reverse:main"
+video-metadata   = "mediatools.metadata:main"
+audio-lib        = "mediatools.audio_lib:main"
+audio-list       = "mediatools.audio_list:main"
+linker           = "mediatools.linker:main"
+renamer          = "mediatools.renamer:main"
+datefixer        = "mediatools.datefixer:main"
+shuffle          = "cli.shuffle:main"
+encodeauto       = "mediatools.encodeauto:main"
+encode           = "cli.encode:main"
+audio-split      = "mediatools.audiosplit:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "twine"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+mediatools = ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]
+
+[dependency-groups]
+test = [
+    "pytest (>=8.0)",
+    "coverage (>=7.0)",
+]
+lint = [
+    "ruff (>=0.5.0)",
+    "pylint (>=3.0)",
+    "flake8 (>=7.0)",
+    "bandit (>=1.7)",
+    "black (>=24.0)",
+]
+dev = [
+    {include-group = "test"},
+    {include-group = "lint"},
+]
+
+[tool.pyright]
+pythonVersion = "3.9"
+extraPaths = ["."]
+reportMissingModuleSource = false
+
 [tool.ruff]
 line-length = 150
 target-version = "py310"
