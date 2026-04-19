@@ -23,8 +23,9 @@
 This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 """
 
+from __future__ import annotations
+
 import sys
-from typing import Optional
 import argparse
 import re
 import concurrent.futures
@@ -36,14 +37,14 @@ import mediatools.log as log
 import utilities.file as fil
 from mediatools import videofile
 
-DATETIME_FORMATS = (
+DATETIME_FORMATS: tuple[str, ...] = (
     r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})",
     r"(\d{4})(\d{2})(\d{2})[_- ](\d{2})(\d{2})(\d{2})",
     r"(\d{4})-(\d{2})-(\d{2}) (\d{2})h(\d{2})m(\d{2})s",
 )
 
 
-def guess_date(string: str) -> Optional[datetime]:
+def guess_date(string: str) -> datetime | None:
     """Sets a file date from date or datetime that should be in the filename"""
     (year, mon, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
     log.logger.info("Searching a date in %s", string)
@@ -67,7 +68,7 @@ def guess_date(string: str) -> Optional[datetime]:
     return datetime(year, mon, day, hour, min, sec)
 
 
-def guess_offset(string: str) -> Optional[relativedelta]:
+def guess_offset(string: str) -> relativedelta | None:
     sign = int(f"{string[0]}1")
     rest = string[1:]
     (year, month, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
@@ -108,7 +109,7 @@ def change_file_date(file: str, change_mode: str = "filename", offset: str = "")
     return file, success
 
 
-def change_files_date(change_mode: str, offset: str, *file_list) -> int:
+def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
     nb_success = 0
     nb_files = len(file_list)
     seq = 1

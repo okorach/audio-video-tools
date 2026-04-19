@@ -19,16 +19,17 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import os
 import sys
 import csv
-from typing import Optional
 import concurrent.futures
 from mediatools import utilities as util, log, audiofile as audio
 from utilities import file as fil
 
 
-def get_csv_values(file) -> Optional[list[str]]:
+def get_csv_values(file: str) -> list[str] | None:
     if not fil.is_audio_file(file):
         return None
     log.logger.info("Getting file '%s' metadata", file)
@@ -38,7 +39,7 @@ def get_csv_values(file) -> Optional[list[str]]:
     return f.csv_values()
 
 
-def main():
+def main() -> None:
     util.init("audio-list")
     me = sys.argv.pop(0)
     directory = None

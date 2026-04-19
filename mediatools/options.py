@@ -28,11 +28,11 @@ used in several places
 in mediatools library
 """
 
-OPT_FMT = '-{} "{}"'
+OPT_FMT: str = '-{} "{}"'
 
-CODECS = {"h264": "libx264", "x264": "libx264", "h265": "libx265", "x265": "libx265", "aac": "aac", "mp3": "libmp3lame", "copy": "copy"}
+CODECS: dict[str, str] = {"h264": "libx264", "x264": "libx264", "h265": "libx265", "x265": "libx265", "aac": "aac", "mp3": "libmp3lame", "copy": "copy"}
 
-HW_ACCEL_CODECS = {
+HW_ACCEL_CODECS: dict[str, str] = {
     "h264": "h264_nvenc",
     "h265": "hevc_nvenc",
     "x264": "h264_nvenc",
@@ -46,61 +46,61 @@ HW_ACCEL_CODECS = {
 class OptionFfmpeg:
     """Documents supported ffmpeg options"""
 
-    FORMAT = "f"
-    RESOLUTION = "s"
-    VCODEC = "vcodec"
-    VCODEC2 = "c:v"
-    VCODEC3 = "codec:v"
-    ACODEC = "acodec"
-    ACODEC2 = "c:a"
-    ACODEC3 = "codec:a"
-    VBITRATE = "b:v"
-    ABITRATE = "b:a"
-    FPS = "r"
-    ASPECT = "aspect"
-    DEINTERLACE = "deinterlace"
-    ACHANNEL = "ac"
-    VFILTER = "vf"
-    START = "ss"
-    STOP = "to"
-    MUTE = "an"
-    VMUTE = "vn"
-    SAMPLERATE = "ar"
+    FORMAT: str = "f"
+    RESOLUTION: str = "s"
+    VCODEC: str = "vcodec"
+    VCODEC2: str = "c:v"
+    VCODEC3: str = "codec:v"
+    ACODEC: str = "acodec"
+    ACODEC2: str = "c:a"
+    ACODEC3: str = "codec:a"
+    VBITRATE: str = "b:v"
+    ABITRATE: str = "b:a"
+    FPS: str = "r"
+    ASPECT: str = "aspect"
+    DEINTERLACE: str = "deinterlace"
+    ACHANNEL: str = "ac"
+    VFILTER: str = "vf"
+    START: str = "ss"
+    STOP: str = "to"
+    MUTE: str = "an"
+    VMUTE: str = "vn"
+    SAMPLERATE: str = "ar"
 
 
 class Option:
     """Documents supported audio-video-tools encoding options"""
 
-    FORMAT = "format"
-    RESOLUTION = "resolution"
-    VCODEC = "vcodec"
-    ACODEC = "acodec"
-    VBITRATE = "vbitrate"
-    ABITRATE = "abitrate"
-    WIDTH = "width"
-    HEIGHT = "height"
-    FPS = "fps"
-    ASPECT = "aspect"
-    DEINTERLACE = "deinterlace"
-    ACHANNEL = "achannels"
-    VFILTER = "vfilter"
-    START = "start"
-    STOP = "stop"
-    ASAMPLING = "asamplerate"
-    AUTHOR = "author"
-    TITLE = "title"
-    ALBUM = "album"
-    YEAR = "year"
-    TRACK = "track"
-    GENRE = "genre"
-    DURATION = "duration"
-    LANGUAGE = "language"
-    MUTE = "mute"
-    VMUTE = "vmute"
-    SAMPLERATE = "samplerate"
+    FORMAT: str = "format"
+    RESOLUTION: str = "resolution"
+    VCODEC: str = "vcodec"
+    ACODEC: str = "acodec"
+    VBITRATE: str = "vbitrate"
+    ABITRATE: str = "abitrate"
+    WIDTH: str = "width"
+    HEIGHT: str = "height"
+    FPS: str = "fps"
+    ASPECT: str = "aspect"
+    DEINTERLACE: str = "deinterlace"
+    ACHANNEL: str = "achannels"
+    VFILTER: str = "vfilter"
+    START: str = "start"
+    STOP: str = "stop"
+    ASAMPLING: str = "asamplerate"
+    AUTHOR: str = "author"
+    TITLE: str = "title"
+    ALBUM: str = "album"
+    YEAR: str = "year"
+    TRACK: str = "track"
+    GENRE: str = "genre"
+    DURATION: str = "duration"
+    LANGUAGE: str = "language"
+    MUTE: str = "mute"
+    VMUTE: str = "vmute"
+    SAMPLERATE: str = "samplerate"
 
 
-M2F_MAPPING = {
+M2F_MAPPING: dict[str, str] = {
     Option.FORMAT: OptionFfmpeg.FORMAT,
     Option.VCODEC: OptionFfmpeg.VCODEC,
     Option.VBITRATE: OptionFfmpeg.VBITRATE,
@@ -118,7 +118,7 @@ M2F_MAPPING = {
     Option.VMUTE: OptionFfmpeg.VMUTE,
 }
 
-F2M_MAPPING = {}
+F2M_MAPPING: dict[str, str] = {}
 for k, v in M2F_MAPPING.items():
     F2M_MAPPING[v] = k
 F2M_MAPPING[OptionFfmpeg.ACODEC2] = Option.ACODEC
@@ -127,7 +127,7 @@ F2M_MAPPING[OptionFfmpeg.VCODEC2] = Option.VCODEC
 F2M_MAPPING[OptionFfmpeg.VCODEC3] = Option.VCODEC
 
 
-def media2ffmpeg(options):
+def media2ffmpeg(options: dict | None) -> dict:
     # Returns ffmpeg cmd options dict from media options dict
     import mediatools.utilities as util
 
@@ -140,7 +140,7 @@ def media2ffmpeg(options):
     return util.remove_nones(ffopts)
 
 
-def ffmpeg2media(options):
+def ffmpeg2media(options: dict | None) -> dict:
     # Returns ffmpeg cmd options dict from media options dict
     import mediatools.utilities as util
 

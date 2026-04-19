@@ -19,14 +19,17 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import mediatools.exceptions as ex
 import utilities.file as fil
 import mediatools.audiofile as audio
 import mediatools.videofile as video
 import mediatools.imagefile as image
+import mediatools.mediafile as media
 
 
-def file(filename):
+def file(filename: str) -> media.MediaFile:
     if fil.is_audio_file(filename):
         return audio.AudioFile(filename)
     elif fil.is_video_file(filename):

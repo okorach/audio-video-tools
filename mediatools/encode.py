@@ -24,6 +24,8 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
+from __future__ import annotations
+
 import os
 from mediatools import log
 import utilities.file as fil
@@ -34,21 +36,12 @@ import mediatools.options as opt
 import utilities.file as fileutil
 
 
-def encode_file(file, file_type, **kwargs):
+def encode_file(file: str, file_type: str, **kwargs) -> str:
     """Encodes a single file"""
     if file_type == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
     else:
         file_object = video.VideoFile(file)
-        # if kwargs.get('width', None) is not None:
-        #     specs = file_object.get_properties()
-        #     w, h = int(specs[opt.Option.WIDTH]), int(specs[opt.Option.HEIGHT])
-        #     new_w = int(kwargs['width'])
-        #     if kwargs.get('vheight', None) is not None:
-        #         new_h = int(kwargs.get('vheight', 0))
-        #     else:
-        #         new_h = (int(h * new_w / w) // 8) * 8
-        #     kwargs[opt.Option.RESOLUTION] = f"{new_w}x{new_h}"
 
     if kwargs.get("timeranges", None) is None:
         outfile = file_object.encode(kwargs.get("outputfile", None), **kwargs)
@@ -57,7 +50,7 @@ def encode_file(file, file_type, **kwargs):
 
     ext = util.get_profile_extension(kwargs.get("profile"))
     count = 0
-    filelist = []
+    filelist: list[str] = []
     timeranges = kwargs.get("timeranges", None).split(",")
     creation_date = video.get_creation_date(file)
     for t_r in timeranges:
@@ -83,7 +76,7 @@ def encode_file(file, file_type, **kwargs):
     return target_file
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-encode", "Audio and Video file (re)encoder")
     parser = video.add_video_args(parser)
 
