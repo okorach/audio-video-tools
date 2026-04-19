@@ -206,11 +206,19 @@ class OverlayCuda(Overlay):
 class Deshake(Simple):
 
     def __init__(self, rx: int = 32, ry: int = 32, **kwargs):
-        self.params = {"x": -1, "y": -1, "w": -1, "h": -1}
+        self.params = {"x": -1, "y": -1, "w": -1, "h": -1, "rx": rx, "ry": ry}
         self.params.update(kwargs.copy())
 
     def __str__(self) -> str:
         return "deshake=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
+
+
+def deshake(rx: int = 32, ry: int = 32, **kwargs) -> "Deshake":
+    return Deshake(rx=rx, ry=ry, **kwargs)
+
+
+def crop(x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> "Crop":
+    return Crop(x=x, y=y, x_formula=x_formula, y_formula=y_formula)
 
 
 class Transpose(Simple):

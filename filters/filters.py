@@ -181,6 +181,14 @@ def deshake(x: int = -1, y: int = -1, w: int = -1, h: int = -1, rx: int = 64, ry
     return f"deshake=x={x}:y={y}:w={w}:h={h}:rx={rx}:ry={ry}"
 
 
+def vidstabdetect(shakiness: int = 8, accuracy: int = 15, trf_file: str = "transforms.trf") -> str:
+    return f"vidstabdetect=shakiness={shakiness}:accuracy={accuracy}:result='{trf_file}'"
+
+
+def vidstabtransform(smoothing: int = 30, optzoom: int = 1, zoom: int = 0, trf_file: str = "transforms.trf") -> str:
+    return f"vidstabtransform=smoothing={smoothing}:optzoom={optzoom}:zoom={zoom}:input='{trf_file}'"
+
+
 def reverse():
     return "reverse"
 
