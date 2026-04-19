@@ -42,3 +42,4 @@ it/img*.*.jpg
 it/*.*.json
 it/*.*.mp3
 .sonar/
+.claude/settings.local.json
