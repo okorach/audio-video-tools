@@ -15,7 +15,7 @@ license-files = ["LICEN[CS]E*"]
 keywords = ["ffmpeg", "video", "audio", "image", "media", "transcode", "stabilize", "tools"]
 
 readme = "README.md"
-requires-python = ">= 3.6"
+requires-python = ">= 3.10"
 
 dependencies = [
     "argparse",
@@ -34,13 +34,10 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
     "Topic :: Multimedia :: Video :: Conversion",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Operating System :: OS Independent",
 ]
@@ -110,7 +107,7 @@ dev = [
 ]
 
 [tool.pyright]
-pythonVersion = "3.9"
+pythonVersion = "3.10"
 extraPaths = ["."]
 reportMissingModuleSource = false
 
