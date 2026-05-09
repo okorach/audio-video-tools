@@ -19,29 +19,26 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import os
 import sys
-import re
 
-from random import randrange
-from pathlib import Path
 from mediatools import log
 from mediatools import videofile as vf
 import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.audiofile as audio
 
 
-def set_and_parse_cli_args() -> dict[str, str]:
+def set_and_parse_cli_args() -> dict:
     util.init("encode")
     parser = util.get_common_args("encode", "ffmpeg front-end encoder")
     parser = vf.add_video_args(parser)
-    # parser.add_argument('-I', '--inputfiles', metavar='N', type=str, nargs='+', help='List of files to encode')
     return util.parse_media_args(parser)
 
 
 def get_expanded_file_list(file_list: list[str]) -> list[str]:
-    expanded_list = []
+    expanded_list: list[str] = []
     for file in file_list:
         if os.path.isdir(file):
             expanded_list += fil.dir_list(file, recurse=False)
@@ -62,7 +59,7 @@ def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
     return f"{base}.{postfix}.{seq}.{ext}"
 
 
-def main():
+def main() -> None:
     kwargs = set_and_parse_cli_args()
     files_to_encode = get_expanded_file_list(kwargs.pop("inputfiles"))
     files_to_encode = [f for f in files_to_encode if fil.is_media_file(f)]

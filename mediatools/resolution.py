@@ -24,7 +24,7 @@ import mediatools.options as opt
 import mediatools.exceptions as ex
 
 
-def canonical(res):
+def canonical(res: str) -> str:
     if res == "720p":
         res = Resolution.RES_720P
     elif res == "540p":
@@ -43,28 +43,28 @@ def canonical(res):
 
 
 class Resolution:
-    RES_8K = "7680x4320"
-    RES_4K = "3840x2160"
-    RES_1080P = "1920x1080"
-    RES_720P = "1280x720"
-    RES_HD = RES_1080P
-    RES_540P = "960x540"
-    RES_400P = "720x400"
-    RES_360P = "640x360"
-    RES_VGA = "640x480"
-    RES_XGA = "1024x768"
+    RES_8K: str = "7680x4320"
+    RES_4K: str = "3840x2160"
+    RES_1080P: str = "1920x1080"
+    RES_720P: str = "1280x720"
+    RES_HD: str = RES_1080P
+    RES_540P: str = "960x540"
+    RES_400P: str = "720x400"
+    RES_360P: str = "640x360"
+    RES_VGA: str = "640x480"
+    RES_XGA: str = "1024x768"
 
-    DEFAULT_VIDEO = RES_4K
+    DEFAULT_VIDEO: str = RES_4K
 
-    RATIO_16_9 = 16 / 9
-    RATIO_15_10 = 15 / 10
-    RATIO_4_3 = 4 / 3
+    RATIO_16_9: float = 16 / 9
+    RATIO_15_10: float = 15 / 10
+    RATIO_4_3: float = 4 / 3
 
-    def __init__(self, **kwargs):
-        self.width = 0
-        self.height = 0
-        self.pixels = 0
-        self.ratio = None
+    def __init__(self, **kwargs) -> None:
+        self.width: int = 0
+        self.height: int = 0
+        self.pixels: int = 0
+        self.ratio: float | None = None
         if "width" in kwargs and "height" in kwargs:
             w = kwargs["width"]
             h = kwargs["height"]
@@ -79,19 +79,19 @@ class Resolution:
         self.ratio = self.width / self.height
         self.pixels = self.width * self.height
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}x{}".format(self.width, self.height)
 
-    def __mul__(self, factor):
+    def __mul__(self, factor: float) -> "Resolution":
         return Resolution(width=self.width * factor, height=self.height * factor)
 
     # def __str__(self):
     #     return str(vars(self))
 
-    def is_ratio(self, ratio):
+    def is_ratio(self, ratio: float) -> bool:
         return abs(ratio - self.ratio) < 0.02
 
-    def calc_resolution(self, width, height, orientation="landscape"):
+    def calc_resolution(self, width: int | str, height: int | str, orientation: str = "landscape") -> tuple[int, int]:
         iw, ih = self.width, self.height
         if orientation == "portrait":
             width, height = height, width
@@ -102,15 +102,15 @@ class Resolution:
         h = int(height) if len(a) == 1 else int(ih * int(a[0]) / 100)
         return (w, h)
 
-    def as_string(self, separator="x"):
+    def as_string(self, separator: str = "x") -> str:
         return "{}{}{}".format(self.width, separator, self.height)
 
-    def as_list(self):
+    def as_list(self) -> list[int]:
         return [self.width, self.height]
 
-    def as_tuple(self):
+    def as_tuple(self) -> tuple[int, int]:
         return (self.width, self.height)
 
 
-RES_VIDEO_DEFAULT = Resolution(resolution=Resolution.DEFAULT_VIDEO)
-RES_VIDEO_4K = Resolution(resolution=Resolution.RES_4K)
+RES_VIDEO_DEFAULT: Resolution = Resolution(resolution=Resolution.DEFAULT_VIDEO)
+RES_VIDEO_4K: Resolution = Resolution(resolution=Resolution.RES_4K)

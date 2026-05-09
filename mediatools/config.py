@@ -17,17 +17,20 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
+from __future__ import annotations
+
 import os
 import json
 import pathlib
 import jprops
 from mediatools import log
 
-_CONFIG_SETTINGS = None
+_CONFIG_SETTINGS: dict | None = None
 
 
-def _load_properties_file(file):
-    settings = {}
+def _load_properties_file(file: str | pathlib.Path) -> dict:
+    settings: dict = {}
     try:
         with open(file, "r", encoding="utf-8") as fp:
             log.logger.info("Loading config file %s", file)
@@ -39,7 +42,7 @@ def _load_properties_file(file):
     return settings
 
 
-def load(config_name=None, settings=None):
+def load(config_name: str | None = None, settings: dict | None = None) -> dict:
     global _CONFIG_SETTINGS
 
     if settings is None:
@@ -75,13 +78,13 @@ def load(config_name=None, settings=None):
     return _CONFIG_SETTINGS
 
 
-def get_property(name, settings=None):
+def get_property(name: str, settings: dict | None = None) -> object:
     if settings is None:
         settings = _CONFIG_SETTINGS
     return settings.get(name, "")
 
 
-def configure(seed):
+def configure(seed: str) -> None:
     template_file = pathlib.Path(__file__).parent / f"{seed}.properties"
     with open(template_file, "r", encoding="utf-8") as fh:
         text = fh.read()

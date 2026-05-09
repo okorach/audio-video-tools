@@ -17,6 +17,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import utilities.file as fil
@@ -24,7 +26,7 @@ import mediatools.audiofile as audio
 import mediatools.videofile as video
 
 
-def __patch_args(file_type, **kwargs):
+def __patch_args(file_type: str, **kwargs) -> dict:
     if file_type == fil.FileType.VIDEO_FILE and "vcodec" not in kwargs:
         kwargs["vcodec"] = "copy"
         kwargs["hw_accel"] = False
@@ -37,7 +39,8 @@ def __patch_args(file_type, **kwargs):
     return kwargs
 
 
-def cut(file, output=None, start=None, stop=None, timeranges=None, **kwargs):
+def cut(file: str, output: str | None = None, start: float | str | None = None, stop: float | str | None = None,
+        timeranges: str | None = None, **kwargs) -> str | None:
     t = fil.get_type(file)
     if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
         raise ex.FileTypeError(file, "video or audio")

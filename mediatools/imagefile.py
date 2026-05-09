@@ -19,6 +19,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import os
 import math
 import re
@@ -31,29 +33,29 @@ import utilities.file as fil
 from mediatools import resolution as res, exceptions as ex, media_config as conf, mediafile as media, utilities as util
 from filters import filters
 
-INPUT_FILE_FMT = ' -i "%s"'
-STEP_FMT = "[step%d]; "
-OVERLAY_0_FMT = "[%d][pip0]overlay=0:0" + STEP_FMT
-OVERLAY_N_FMT = "[step%d][pip%d]overlay=%d:%d"
+INPUT_FILE_FMT: str = ' -i "%s"'
+STEP_FMT: str = "[step%d]; "
+OVERLAY_0_FMT: str = "[%d][pip0]overlay=0:0" + STEP_FMT
+OVERLAY_N_FMT: str = "[step%d][pip%d]overlay=%d:%d"
 
-MAX_INT = 2000000000
-DEFAULT_PAN_SPEED = 0.02  # 2% of image width traveled per second
+MAX_INT: int = 2000000000
+DEFAULT_PAN_SPEED: float = 0.02  # 2% of image width traveled per second
 
 
 class ImageFile(media.MediaFile):
 
-    SUPPORTED_IMG_CODECS = ("mjpeg", "png", "gif")
+    SUPPORTED_IMG_CODECS: tuple[str, ...] = ("mjpeg", "png", "gif")
 
     def __init__(self, filename: str) -> None:
         if not fil.is_image_file(filename):
             raise ex.FileTypeError(file=filename, expected_type="image")
-        self.resolution = None
-        self.dar = None
-        self.width = None
-        self.height = None
-        self.pixels = None
-        self.ratio = None
-        self.orientation = "landscape"
+        self.resolution: res.Resolution | None = None
+        self.dar: str | None = None
+        self.width: int | None = None
+        self.height: int | None = None
+        self.pixels: int | None = None
+        self.ratio: float | None = None
+        self.orientation: str = "landscape"
         super().__init__(filename)
         self.probe()
 
@@ -62,7 +64,7 @@ class ImageFile(media.MediaFile):
         d["resolution"] = str(self.resolution)
         return str(d)
 
-    def get_properties(self) -> dict[str, str]:
+    def get_properties(self) -> dict:
         """Returns file media properties as a dict"""
         all_props = self.get_file_properties()
         all_props.update(self.get_image_properties())
@@ -85,21 +87,16 @@ class ImageFile(media.MediaFile):
         self.exif_read()
         log.logger.debug("Image = %s", str(vars(self)))
 
-    def exif_read(self) -> dict[str, any]:
+    def exif_read(self) -> dict:
         f = open(self.filename, "rb")
         tags = exifread.process_file(f)
-        # for tag in tags:
-        #     if not re.search("thumbnail", tag, re.IGNORECASE):
-        #         log.logger.debug('Tag "%s" = "%s"', tag, tags[tag])
         if re.search("Rotated 90", str(tags.get("Image Orientation", ""))):
-            # self.width, self.height = self.height, self.width
-            # self.resolution = res.Resolution(width=self.width, height=self.height)
             self.orientation = "portrait"
             log.logger.debug("Portrait orientation: %s", str(self.orientation))
 
         return tags
 
-    def dimensions(self, ignore_orientation=True) -> tuple[int, int]:
+    def dimensions(self, ignore_orientation: bool = True) -> tuple[int, int]:
         if not ignore_orientation and self.orientation == "portrait":
             return (self.height, self.width)
         return (self.width, self.height)
@@ -107,10 +104,10 @@ class ImageFile(media.MediaFile):
     def get_ratio(self) -> float:
         return self.width / self.height
 
-    def get_image_properties(self) -> dict[str, any]:
+    def get_image_properties(self) -> dict:
         return {"format": self.format, "width": self.width, "height": self.height, "pixels": self.pixels}
 
-    def crop(self, out_file: str = None, **kwargs) -> str:
+    def crop(self, out_file: str | None = None, **kwargs) -> str:
         w, h = kwargs.pop("width"), kwargs.pop("height")
         (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{w}x{h}-{pos}")
@@ -118,7 +115,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(f'-y -i "{self.filename}" -vf "{filters.crop(w, h, left, top)}" "{out_file}"')
         return out_file
 
-    def scale(self, w=-1, h=-1, out_file=None):
+    def scale(self, w: int = -1, h: int = -1, out_file: str | None = None) -> str:
         out_file = util.automatic_output_file_name(out_file, self.filename, f"scale-{w}x{h}")
         if w == -1 and h == -1:
             shutil.copy(self.filename, out_file)
@@ -127,7 +124,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(f'-i "{self.filename}" -vf "{filters.scale(w, h)}" "{out_file}"')
         return out_file
 
-    def slice_vertical(self, nbr_slices, round_to=16):
+    def slice_vertical(self, nbr_slices: int, round_to: int = 16) -> list[str]:
         filter_list = []
         w, h = self.dimensions()
         slice_w = max(w // nbr_slices, round_to)
@@ -136,7 +133,7 @@ class ImageFile(media.MediaFile):
             filter_list.append(filters.crop(slice_w, h, i * slice_w, 0))
         return filter_list
 
-    def slice_horizontal(self, nbr_slices, round_to=16):
+    def slice_horizontal(self, nbr_slices: int, round_to: int = 16) -> list[str]:
         filter_list = []
         w, h = self.dimensions()
         slice_h = max(h // nbr_slices, round_to)
@@ -145,13 +142,13 @@ class ImageFile(media.MediaFile):
             filter_list.append(filters.crop(w, slice_h, 0, i * slice_h))
         return filter_list
 
-    def get_crop_filters(self, nbr_slices, direction="vertical", round_to=16):
+    def get_crop_filters(self, nbr_slices: int, direction: str = "vertical", round_to: int = 16) -> list[str]:
         if direction == "horizontal":
             return self.slice_horizontal(nbr_slices, round_to)
         else:
             return self.slice_vertical(nbr_slices, round_to)
 
-    def blindify(self, out_file=None, **kwargs):
+    def blindify(self, out_file: str | None = None, **kwargs) -> str:
         nbr_slices = int(kwargs.pop("blinds", 10))
         files = [ImageFile(__get_background__(kwargs.pop("background_color", "black"))), self]
         fcomp = filters.Complex(*files)
@@ -181,7 +178,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(f'{fcomp.format_inputs()} {str(fcomp)} -map "[{ovl}]" "{out_file}"')
         return out_file
 
-    def shake_vertical(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
+    def shake_vertical(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
         w, h = self.dimensions()
         h_jitter = h * shake_pct // 100
         slice_width = max(w // nbr_slices, 16)
@@ -207,14 +204,14 @@ class ImageFile(media.MediaFile):
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
-    def rotate(self, degrees=90, **kwargs):
+    def rotate(self, degrees: int = 90, **kwargs) -> str:
         vfilters = [filters.rotate(degrees)]
         out_file = util.automatic_output_file_name(kwargs.get("out_file", None), self.filename, "rotate", extension=self.extension())
         cmd = f'-i "{self.filename}" -vf {",".join(vfilters)} "{out_file}"'
         util.run_ffmpeg(cmd)
         return out_file
 
-    def shake_horizontal(self, nbr_slices=10, shake_pct=3, background_color="black", out_file=None):
+    def shake_horizontal(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
         w, h = self.dimensions()
         w_jitter = w * shake_pct // 100
         slice_height = max(h // nbr_slices, 16)
@@ -241,13 +238,13 @@ class ImageFile(media.MediaFile):
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
-    def shake(self, nbr_slices=10, shake_pct=3, background_color="black", direction="vertical", out_file=None):
+    def shake(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", direction: str = "vertical", out_file: str | None = None) -> str:
         if direction == "horizontal":
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
         else:
             return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
-    def zoom(self, **kwargs):
+    def zoom(self, **kwargs) -> tuple[str, dict]:
         """
         Converts an image in a video with a zoom effect
         Allowed inputs:
@@ -288,7 +285,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "zoom": zstop})
 
-    def __compute_total_frame__(self, needed_width, needed_height):
+    def __compute_total_frame__(self, needed_width: int, needed_height: int) -> tuple[str, float, float]:
         if needed_width > self.resolution.width:
             if needed_height > self.resolution.height * needed_width / self.resolution.width:
                 scale_filter = filters.scale(-1, needed_height)
@@ -308,7 +305,7 @@ class ImageFile(media.MediaFile):
             scale_filter = filters.scale(total_width, total_height)
         return (scale_filter, total_width, total_height)
 
-    def __get_panorama_params__(self, **kwargs):
+    def __get_panorama_params__(self, **kwargs) -> tuple[float, float]:
         speed = util.percent_or_absolute(kwargs.get("speed", None))
         if speed is None:
             speed = DEFAULT_PAN_SPEED
@@ -319,7 +316,7 @@ class ImageFile(media.MediaFile):
             raise ex.InputError("duration must be a strictly positive number", "panorama")
         return (speed, duration)
 
-    def panorama(self, **kwargs):
+    def panorama(self, **kwargs) -> tuple[str, dict]:
         """
         Creates a panorama video of an image. Accepted inputs
         - framerate
@@ -394,7 +391,7 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(cmd)
         return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "speed": speed, "vspeed": vspeed})
 
-    def to_video(self, with_effect=True, **kwargs):
+    def to_video(self, with_effect: bool = True, **kwargs) -> tuple[str, dict]:
         """
         Converts an image to a video.
         Allowed inputs:
@@ -434,37 +431,35 @@ class ImageFile(media.MediaFile):
             return self.zoom(effect=_get_random_zoom(), **kwargs)
 
 
-def get_rectangle(color, w, h):
+def get_rectangle(color: str, w: int, h: int) -> str:
     temp_name = util.get_tmp_file() + ".jpg"
     return ImageFile(__get_background__(color)).scale(w, h, out_file=temp_name)
 
 
-def __get_background__(color):
+def __get_background__(color: str) -> str:
     bgfile = "white.jpg" if color == "white" else "black.jpg"
     return str(util.package_home() / bgfile)
 
 
-def get_widths(files):
-    # [ImageFile(file).width for file in files]
+def get_widths(files: list[str]) -> list[int]:
     return [ImageFile(file).width for file in files]
 
 
-def get_heights(files):
-    # [ImageFile(file).height for file in files]
+def get_heights(files: list[str]) -> list[int]:
     return [ImageFile(file).height for file in files]
 
 
-def avg_height(files):
+def avg_height(files: list[str]) -> int:
     values = get_heights(files)
     return sum(values) // len(values)
 
 
-def avg_width(files):
+def avg_width(files: list[str]) -> int:
     values = get_widths(files)
     return sum(values) // len(values)
 
 
-def __get_layout__(nb_files, **kwargs):
+def __get_layout__(nb_files: int, **kwargs) -> tuple[int, int]:
     if "rows" in kwargs and "columns" in kwargs:
         return (int(kwargs["rows"]), int(kwargs["columns"]))
     if "layout" in kwargs:
@@ -474,7 +469,7 @@ def __get_layout__(nb_files, **kwargs):
     return (rows, cols)
 
 
-def __downsize__(full_w, full_h, max_w, max_h, gap):
+def __downsize__(full_w: int, full_h: int, max_w: int, max_h: int, gap: int) -> tuple[int, int, int, int, int, float]:
     full_pix = (full_w * 8 + 1024) * (full_h + 128)
     log.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d", max_w, max_h, gap, full_pix)
 
@@ -493,7 +488,7 @@ def __downsize__(full_w, full_h, max_w, max_h, gap):
     return (full_w, full_h, max_w, max_h, gap, reduction_factor)
 
 
-def posterize(*file_list, out_file=None, **kwargs):
+def posterize(*file_list: str, out_file: str | None = None, **kwargs) -> str:
     """Creates a poster image. Allowed parameters:
     - columns / rows
     - layout (of images eg 4x3 4 rows 3 columns)
@@ -554,7 +549,7 @@ def posterize(*file_list, out_file=None, **kwargs):
     return out_file
 
 
-def stack(*files, out_file=None, **kwargs):
+def stack(*files: str, out_file: str | None = None, **kwargs) -> str:
     log.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
     files_to_stack = fil.file_list(*files, file_type=fil.FileType.IMAGE_FILE)
@@ -566,7 +561,7 @@ def stack(*files, out_file=None, **kwargs):
     return posterize(*files_to_stack, out_file=out_file, rows=rows, columns=cols, **kwargs)
 
 
-def zoom(file, zoom_level, **kwargs):
+def zoom(file: str, zoom_level: float, **kwargs) -> tuple[str, dict]:
     if zoom_level < 0:
         z = (-zoom_level, 1)
     else:
@@ -574,28 +569,7 @@ def zoom(file, zoom_level, **kwargs):
     return ImageFile(file).zoom(effect=z, **kwargs)
 
 
-# def __get_random_panorama():
-#     xstart = 0
-#     xstop = 0
-#     r = random.randint(0, 4)
-#     if r == 0:
-#         (ystart, ystop) = (0.1, 0.9)
-#     elif r == 1:
-#         (ystart, ystop) = (0.9, 0.1)
-#     else:
-#         (ystart, ystop) = (0.5, 0.5)
-#     r = random.randint(0, 4)
-#     if r == 0 and ystart != 0.5:
-#         (xstart, xstop) = (0.5, 0.5)
-#     elif r in (1, 2):
-#         (xstart, xstop) = (0.9, 0.1)
-#     else:
-#         (xstart, xstop) = (0.1, 0.9)
-#
-#     return (xstart, xstop, ystart, ystop)
-
-
-def _get_random_zoom(zmin=1, zmax=1.3):
+def _get_random_zoom(zmin: float = 1, zmax: float = 1.3) -> tuple[float, float]:
     rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
     rmin = round(zmin, 2)
     rmax = round(rmax, 2)

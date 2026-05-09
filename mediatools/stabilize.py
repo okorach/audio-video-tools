@@ -25,6 +25,8 @@
 # the full clip's motion trajectory before applying smoothing, whereas deshake works
 # frame-by-frame with no global look-ahead.
 
+from __future__ import annotations
+
 import os
 import platform
 import subprocess
@@ -49,7 +51,7 @@ def _has_vidstab() -> bool:
         return False
 
 
-def stabilize(filename: str, output: str = None, shakiness: int = 8, smoothing: int = 30,
+def stabilize(filename: str, output: str | None = None, shakiness: int = 8, smoothing: int = 30,
               zoom: int = 0, optzoom: int = 1, sharpen: bool = True, **kwargs) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
 
@@ -86,7 +88,7 @@ def stabilize(filename: str, output: str = None, shakiness: int = 8, smoothing: 
     return output
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-stabilize", "Stabilize shaky video footage (action cam, handheld) using two-pass libvidstab")
     parser.add_argument(
         "--shakiness",

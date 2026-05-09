@@ -24,6 +24,8 @@ This script detects tune/song changes in a long audio file (e.g. DJ mix, live co
 and splits it at those boundaries with fade-in/fade-out at each cut.
 """
 
+from __future__ import annotations
+
 import sys
 import types as _types_mod
 
@@ -55,7 +57,7 @@ import mediatools.audiofile as audio
 import filters.filters as filters
 
 
-def _checkerboard_kernel(M):
+def _checkerboard_kernel(M: int) -> object:
     """Builds a Gaussian-tapered checkerboard kernel (Foote 2000) of size 2M x 2M."""
     import numpy as np
     import scipy.signal
@@ -68,7 +70,7 @@ def _checkerboard_kernel(M):
     return G
 
 
-def _novelty_from_ssm(ssm, kernel_size=64):
+def _novelty_from_ssm(ssm: object, kernel_size: int = 64) -> object:
     """Computes a novelty curve by sliding a checkerboard kernel along the SSM diagonal."""
     import numpy as np
 
@@ -85,7 +87,7 @@ def _novelty_from_ssm(ssm, kernel_size=64):
     return novelty
 
 
-def _detect_energy_gaps(y, sr, hop_length, min_gap_sec=2.0, energy_ratio=0.25):
+def _detect_energy_gaps(y: object, sr: int, hop_length: int, min_gap_sec: float = 2.0, energy_ratio: float = 0.25) -> list[float]:
     """Detects low-energy gaps (silence, applause lulls) between songs.
 
     Uses a local energy dip approach: instead of a global threshold, it looks for
@@ -122,7 +124,7 @@ def _detect_energy_gaps(y, sr, hop_length, min_gap_sec=2.0, energy_ratio=0.25):
 
     # Keep only gaps longer than min_gap_sec
     min_gap_frames = int(min_gap_sec * sr / hop_length)
-    boundaries = []
+    boundaries: list[float] = []
     for s, e in zip(gap_starts, gap_ends):
         if e - s >= min_gap_frames:
             mid_frame = (s + e) // 2
@@ -133,7 +135,7 @@ def _detect_energy_gaps(y, sr, hop_length, min_gap_sec=2.0, energy_ratio=0.25):
     return boundaries
 
 
-def _detect_structural_boundaries(y, sr, hop_length, min_segment, sensitivity):
+def _detect_structural_boundaries(y: object, sr: int, hop_length: int, min_segment: float, sensitivity: float) -> list[float]:
     """Detects structural boundaries using Foote's checkerboard novelty on beat-synced features."""
     import librosa
     import numpy as np
@@ -193,7 +195,7 @@ def _detect_structural_boundaries(y, sr, hop_length, min_segment, sensitivity):
     )
 
     # Convert beat-frame indices to timestamps
-    boundaries = []
+    boundaries: list[float] = []
     for p in peaks:
         if p < len(beat_times):
             boundaries.append(float(beat_times[p]))
@@ -201,7 +203,7 @@ def _detect_structural_boundaries(y, sr, hop_length, min_segment, sensitivity):
     return boundaries
 
 
-def detect_tune_changes(filename, sensitivity=0.5, min_segment=30):
+def detect_tune_changes(filename: str, sensitivity: float = 0.5, min_segment: float = 30) -> list[float]:
     """Detects song boundaries in a long audio file using two complementary methods:
     1. Energy-based gap detection (silence/applause between songs)
     2. Foote's checkerboard kernel novelty on beat-synced spectral features
@@ -250,7 +252,7 @@ def detect_tune_changes(filename, sensitivity=0.5, min_segment=30):
     all_boundaries.sort()
 
     # Filter: remove boundaries too close to start/end, enforce min_segment spacing
-    filtered = []
+    filtered: list[float] = []
     for b in all_boundaries:
         if b < min_segment or b > duration - min_segment:
             continue
@@ -265,7 +267,7 @@ def detect_tune_changes(filename, sensitivity=0.5, min_segment=30):
     return filtered
 
 
-def split_audio_at_boundaries(input_file, boundaries, fade_duration=1.0):
+def split_audio_at_boundaries(input_file: str, boundaries: list[float], fade_duration: float = 1.0) -> list[str]:
     """Splits an audio file at the given boundary timestamps with fade effects.
 
     Args:
@@ -287,7 +289,7 @@ def split_audio_at_boundaries(input_file, boundaries, fade_duration=1.0):
     starts = [0.0] + boundaries
     ends = boundaries + [total_duration]
 
-    output_files = []
+    output_files: list[str] = []
     for i, (start, end) in enumerate(zip(starts, ends)):
         segment_duration = end - start
         postfix = f"split{i + 1:03d}"
@@ -317,7 +319,7 @@ def split_audio_at_boundaries(input_file, boundaries, fade_duration=1.0):
     return output_files
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     parser.add_argument("--fade-duration", required=False, type=float, default=1.0, help="Fade in/out duration in seconds (default: 1.0)")
     parser.add_argument("--min-segment", required=False, type=float, default=120.0, help="Minimum segment duration in seconds (default: 120)")

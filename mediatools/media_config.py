@@ -23,14 +23,14 @@ import shutil
 import jprops
 from mediatools import log
 
-CONFIG_SETTINGS = {}
-CONFIG_FILE = ".mediatools.properties"
-VIDEO_RESOLUTION_KEY = "default.video.resolution"
-VIDEO_FPS_KEY = "default.video.fps"
-SLIDESHOW_DURATION_KEY = "default.slideshow.duration"
+CONFIG_SETTINGS: dict = {}
+CONFIG_FILE: str = ".mediatools.properties"
+VIDEO_RESOLUTION_KEY: str = "default.video.resolution"
+VIDEO_FPS_KEY: str = "default.video.fps"
+SLIDESHOW_DURATION_KEY: str = "default.slideshow.duration"
 
 
-def load():
+def load() -> dict:
     import mediatools.utilities as util
 
     global CONFIG_SETTINGS, CONFIG_FILE
@@ -73,7 +73,7 @@ def load():
     return CONFIG_SETTINGS
 
 
-def get_property(name, settings=None):
+def get_property(name: str, settings: dict | None = None):
     if settings is None:
         global CONFIG_SETTINGS
         settings = CONFIG_SETTINGS

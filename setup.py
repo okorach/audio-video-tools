@@ -18,15 +18,20 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+import re
 import setuptools
-import mediatools.version as version
 
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+with open("mediatools/version.py", "r") as fh:
+    _version_match = re.search(r'MEDIA_TOOLS_VERSION\s*=\s*["\']([^"\']+)["\']', fh.read())
+    _version = _version_match.group(1) if _version_match else "0.0.0"
+
 setuptools.setup(
     name="audio-video-tools",
-    version=version.MEDIA_TOOLS_VERSION,
+    version=_version,
     scripts=["audio-video-tools"],
     author="Olivier Korach",
     author_email="olivier.korach@gmail.com",
@@ -80,5 +85,5 @@ setuptools.setup(
             "audio-split = mediatools.audiosplit:main",
         ]
     },
-    python_requires=">=3.6",
+    python_requires=">=3.10",
 )
