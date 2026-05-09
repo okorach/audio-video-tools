@@ -43,6 +43,8 @@ ch.setFormatter(formatter)
 def set_logger(name: str) -> None:
     global logger
     logger = logging.getLogger(name)
+    logger.handlers.clear()
+    logger.propagate = False
     try:
         new_fh = logging.FileHandler(name + ".log")
     except PermissionError:

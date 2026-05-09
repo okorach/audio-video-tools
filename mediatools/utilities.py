@@ -138,33 +138,38 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
     if total_time is not None and isinstance(total_time, str):
         total_time = to_seconds(total_time)
     try:
-        last_error_line, same_error_count = None, 0
-        current_log_level, last_log_level = logging.INFO, logging.INFO
+        last_seen_line, last_seen_level, same_line_count = None, logging.INFO, 0
+        last_error_line = None
         args = shlex.split(cmd)
         pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1)
         line = pipe.stdout.readline().rstrip()
         while line:
-            current_log_level = __get_log_level_from_ffmpeg_log__(line)
+            level = __get_log_level_from_ffmpeg_log__(line)
             line += __compute_eta__(line, total_time)
-            if last_error_line is not None and last_error_line == line:
-                same_error_count += 1
-            else:
-                if same_error_count > 1:
-                    log.logger.log(last_log_level, "Above error repeated %d times...", same_error_count)
-                log.logger.log(current_log_level, line)
-                same_error_count = 1
+            if level >= logging.ERROR:
+                log.logger.log(level, line)
                 last_error_line = line
-
+                last_seen_line = None
+                same_line_count = 0
+            elif last_seen_line is not None and last_seen_line == line:
+                same_line_count += 1
+            else:
+                if same_line_count > 1:
+                    log.logger.log(last_seen_level, "Above line repeated %d times", same_line_count)
+                log.logger.log(level, line)
+                same_line_count = 1
+                last_seen_line = line
+                last_seen_level = level
             line = pipe.stdout.readline().rstrip()
-        outs, errs = pipe.communicate()
+        pipe.communicate()
         log.logger.debug("Return code = %d", pipe.returncode)
         if pipe.returncode not in (0, 3221225477):  # TODO: Better than this ugly hack for ffmpeg
-            last_error_line = line if last_error_line is None else last_error_line
-            raise subprocess.CalledProcessError(cmd=cmd, output=last_error_line, returncode=pipe.returncode)
+            raise subprocess.CalledProcessError(cmd=cmd, output=last_error_line or last_seen_line, returncode=pipe.returncode)
         log.logger.info("Successfully completed: %s", cmd)
     except subprocess.CalledProcessError as e:
         log.logger.error("Command: %s failed with return code %d", cmd, e.returncode)
-        log.logger.error("%s", e.output)
+        if e.output:
+            log.logger.error("Last ffmpeg error: %s", e.output)
         raise e
 
 
