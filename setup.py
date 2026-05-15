@@ -84,6 +84,7 @@ setuptools.setup(
             "encode = cli.encode:main",
             "audio-split = mediatools.audiosplit:main",
             "audio-concat = mediatools.audioconcat:main",
+            "audio-speed = mediatools.audiospeed:main",
         ]
     },
     python_requires=">=3.10",

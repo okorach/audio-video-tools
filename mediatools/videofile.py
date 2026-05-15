@@ -24,6 +24,7 @@
 from __future__ import annotations, print_function
 import datetime
 import math
+import os
 from exiftool import ExifToolHelper
 import re
 from mediatools import log
@@ -394,7 +395,7 @@ class VideoFile(media.MediaFile):
         else:
             time_to_set = some_datetime
         p = ["-P", "-overwrite_original"]
-        with ExifToolHelper() as et:
+        with ExifToolHelper(executable=util.get_exiftool()) as et:
             et.set_tags([self.filename], tags={"CreateDate": time_to_set, "ModifyDate": time_to_set, "DateTimeOriginal": time_to_set}, params=p)
             et.set_tags(
                 [self.filename], tags={"EXIF:CreateDate": time_to_set, "EXIF:ModifyDate": time_to_set, "EXIF:DateTimeOriginal": time_to_set}, params=p
@@ -532,6 +533,7 @@ def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str
 
 def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> str:
     """Concatenates several video files - They must have same video+audio format and bitrate"""
+    file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
 
     files_str = filters.inputs_str(file_list)
@@ -717,11 +719,13 @@ def deshake(filename: str, output: str | None = None, **kwargs) -> str:
     return VideoFile(filename).encode(target_file=output, **kwargs)
 
 
-def set_creation_date(filename: str, new_date: datetime.datetime) -> bool:
+def set_creation_date(filename: str, new_date: datetime.datetime | None) -> bool:
+    if new_date is None:
+        return False
     exif_date = datetime.datetime.strftime(new_date, util.EXIF_DATE_FMT)
     log.logger.info("Setting creation date of %s to %s", filename, exif_date)
     p = ["-P", "-overwrite_original"]
-    with ExifToolHelper() as et:
+    with ExifToolHelper(executable=util.get_exiftool()) as et:
         et.set_tags([filename], tags={"File:FileCreateDate": exif_date, "File:FileModifyDate": exif_date}, params=p)
         if fil.is_image_file(filename):
             et.set_tags([filename], tags={"DateTimeOriginal": exif_date}, params=p)
@@ -761,15 +765,19 @@ def set_creation_date(filename: str, new_date: datetime.datetime) -> bool:
     return True
 
 
-def get_creation_date(filename: str) -> datetime.datetime:
-    with ExifToolHelper() as et:
-        for exif_data in et.get_metadata(filename):
-            creation_date = util.get_creation_date(exif_data)
-    return creation_date
+def get_creation_date(filename: str) -> datetime.datetime | None:
+    try:
+        with ExifToolHelper(executable=util.get_exiftool()) as et:
+            for exif_data in et.get_metadata(filename):
+                creation_date = util.get_creation_date(exif_data)
+        return creation_date
+    except FileNotFoundError:
+        log.logger.warning("exiftool not found, cannot read creation date of %s", filename)
+        return None
 
 
 def get_exif(filename: str) -> None:
-    with ExifToolHelper() as et:
+    with ExifToolHelper(executable=util.get_exiftool()) as et:
         for exif_data in et.get_metadata(filename):
             for k, v in exif_data.items():
                 log.logger.info("EXIF - %s = %s", k, v)

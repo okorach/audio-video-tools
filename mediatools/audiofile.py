@@ -369,6 +369,7 @@ def concat(target_file: str, file_list: list[str]) -> str:
     """Concatenates several audio files - they must share the same codec and sample rate"""
     import filters.filter as filters
 
+    file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
     count = len(file_list)
     inputs = filters.inputs_str(file_list)
