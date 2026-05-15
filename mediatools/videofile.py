@@ -536,28 +536,24 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> s
     file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
 
-    files_str = filters.inputs_str(file_list)
-    count = 0
-    cmplx = ""
-    for _ in file_list:
-        cmplx += f"[{count}:v]"
-        if with_audio:
-            cmplx += f"[{count}:a]"
-        count += 1
-
-    audio_patch = ""
-    audio_patch2 = ""
-    mapping = '-map "[outv]"'
-    if with_audio:
-        audio_patch = "a=1"
-        audio_patch2 = "[outa]"
-        mapping += f' -map "{audio_patch2}"'
-    cmplx += f"concat=n={count}:v=1:{audio_patch}[outv]{audio_patch2}"
-
     first = VideoFile(file_list[0])
-    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}" '
+    n_audio = sum(1 for s in first.specs["streams"] if s["codec_type"] == "audio") if with_audio else 0
+    n_files = len(file_list)
+
+    # Input stream references: [i:v] [i:a:0] [i:a:1] ... for each file
+    cmplx = "".join(
+        f"[{i}:v]" + "".join(f"[{i}:a:{j}]" for j in range(n_audio))
+        for i in range(n_files)
+    )
+    # Output labels: [outv] [outa0] [outa1] ...
+    audio_out_labels = "".join(f"[outa{j}]" for j in range(n_audio))
+    cmplx += f"concat=n={n_files}:v=1:a={n_audio}[outv]{audio_out_labels}"
+
+    mapping = '-map "[outv]"' + "".join(f' -map "[outa{j}]"' for j in range(n_audio))
+
+    files_str = filters.inputs_str(file_list)
+    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}"'
     cmd += f' -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
-    # cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -o "{target_file}"'
     util.run_ffmpeg(cmd.strip())
     return target_file
 
