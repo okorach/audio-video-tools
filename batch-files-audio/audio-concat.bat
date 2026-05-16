@@ -17,7 +17,10 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+:: Usage: drop two or more audio files of the same type onto this batch file.
+:: The output is saved next to the first file as <name>.concat.<ext>
+::
 
-video-concat -i %* -o "%~1.concat.mp4"
+audio-concat -i %* -o "%~dpn1.concat%~x1"
 
-Pause
+pause

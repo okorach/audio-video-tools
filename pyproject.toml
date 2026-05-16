@@ -1,6 +1,6 @@
 [project]
 name = "audio-video-tools"
-version = "0.5"
+version = "0.6"
 description = "A collection of utility scripts to manipulate media files (audio, video, image)"
 authors = [
     {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
@@ -78,6 +78,8 @@ shuffle          = "cli.shuffle:main"
 encodeauto       = "mediatools.encodeauto:main"
 encode           = "cli.encode:main"
 audio-split      = "mediatools.audiosplit:main"
+audio-concat     = "mediatools.audioconcat:main"
+audio-speed      = "mediatools.audiospeed:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]

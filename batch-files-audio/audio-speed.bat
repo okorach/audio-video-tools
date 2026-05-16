@@ -17,7 +17,18 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+:: Usage: drop one or more audio files onto this batch file.
+:: You will be prompted for the target size as %% of the original duration.
+::
 
-video-concat -i %* -o "%~1.concat.mp4"
+@echo off
+set /p SIZE=Enter target size as %% of original (e.g. 90 = 10%% faster, 110 = 10%% slower):
 
-Pause
+:loop
+if "%~1"=="" goto end
+audio-speed -i "%~1" --size %SIZE%
+shift
+goto loop
+
+:end
+pause

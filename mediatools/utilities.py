@@ -95,6 +95,10 @@ def get_ffprobe() -> str:
     return get_ffbin("binaries.ffprobe")
 
 
+def get_exiftool() -> str:
+    return get_media_properties().get("binaries.exiftool", "exiftool")
+
+
 def get_first_value(a_dict: dict | None, key_list: tuple | list):
     if a_dict is None:
         return None

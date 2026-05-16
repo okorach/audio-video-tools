@@ -363,3 +363,20 @@ def csv_headers() -> list[str]:
     for k in _CSV_KEYS:
         arr.append(k)
     return arr
+
+
+def concat(target_file: str, file_list: list[str]) -> str:
+    """Concatenates several audio files - they must share the same codec and sample rate"""
+    import filters.filter as filters
+
+    file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
+    log.logger.info("%s = %s", target_file, " + ".join(file_list))
+    count = len(file_list)
+    inputs = filters.inputs_str(file_list)
+    cmplx = "".join(f"[{i}:a]" for i in range(count))
+    cmplx += f"concat=n={count}:v=0:a=1[outa]"
+    first = AudioFile(file_list[0])
+    first.get_specs()
+    cmd = f'{inputs} -filter_complex "{cmplx}" -map "[outa]" -acodec "{first.acodec}" -b:a "{first.abitrate}" "{target_file}"'
+    util.run_ffmpeg(cmd.strip())
+    return target_file

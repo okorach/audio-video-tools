@@ -19,4 +19,21 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-MEDIA_TOOLS_VERSION: str = "0.6"
+import argparse
+import mediatools.utilities as util
+import mediatools.audiofile as audio
+
+
+def main():
+    util.init("audio-concat")
+    parser = argparse.ArgumentParser(description="Concatenates several audio files of the same type")
+    parser.add_argument("-i", "--inputfiles", nargs="+", help="List of audio files to concatenate", required=True)
+    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=True)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    kwargs = util.parse_media_args(parser)
+    output = audio.concat(kwargs["outputfile"], kwargs["inputfiles"])
+    util.generated_file(output)
+
+
+if __name__ == "__main__":
+    main()
