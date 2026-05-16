@@ -530,7 +530,7 @@ def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str
     return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
 
 
-def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> str:
+def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_accel: bool = False) -> str:
     """Concatenates several video files - They must have same video+audio format and bitrate"""
     file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
@@ -551,9 +551,17 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> s
 
     mapping = '-map "[outv]"' + "".join(f' -map "[outa{j}]"' for j in range(n_audio))
 
-    files_str = filters.inputs_str(file_list)
+    if hw_accel:
+        # Decode each input on the GPU; concat filter runs on CPU frames
+        files_str = " ".join(f'-hwaccel cuda -i "{f}"' for f in file_list)
+        out_codec = opt.HW_ACCEL_CODECS.get(first.video_codec or "", "hevc_nvenc")
+        log.logger.info("Using GPU acceleration: decode=cuda, encode=%s", out_codec)
+    else:
+        files_str = filters.inputs_str(file_list)
+        out_codec = "libx265"
+
     cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}"'
-    cmd += f' -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
+    cmd += f' -vcodec "{out_codec}" -b:v "{str(first.video_bitrate)}" "{target_file}"'
     util.run_ffmpeg(cmd.strip(), total_duration)
     return target_file
 
