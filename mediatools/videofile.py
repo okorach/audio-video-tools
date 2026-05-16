@@ -539,6 +539,7 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> s
     first = VideoFile(file_list[0])
     n_audio = sum(1 for s in first.specs["streams"] if s["codec_type"] == "audio") if with_audio else 0
     n_files = len(file_list)
+    total_duration = (first.duration or 0.0) + sum(VideoFile(f).duration or 0.0 for f in file_list[1:])
 
     # Input stream references: [i:v] [i:a:0] [i:a:1] ... for each file
     cmplx = "".join(
@@ -554,7 +555,7 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True) -> s
     files_str = filters.inputs_str(file_list)
     cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}"'
     cmd += f' -vcodec "libx265" -b:v "{str(first.video_bitrate)}" "{target_file}"'
-    util.run_ffmpeg(cmd.strip())
+    util.run_ffmpeg(cmd.strip(), total_duration)
     return target_file
 
 
