@@ -23,7 +23,6 @@
 # Accepts a single file or a directory (all video files in the directory are processed).
 
 import os
-import time
 import argparse
 from mediatools.log import logger
 import mediatools.utilities as util
@@ -98,15 +97,10 @@ def main():
     logger.info("%d file(s) to encode, total duration: %s", n, util.to_hms_str(total_dur))
 
     processed_dur = 0.0
-    wall_start = time.monotonic()
 
     for i, (f, dur) in enumerate(zip(files, durations)):
         encode_file(f, before, after, force, duration=dur)
         processed_dur += dur
-        wall_elapsed = time.monotonic() - wall_start
-        remaining_dur = total_dur - processed_dur
-        speed = processed_dur / wall_elapsed if wall_elapsed > 0 else 0.0
-        eta = util.to_hms_str(remaining_dur / speed) if speed > 0 else "unknown"
         pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0
         logger.info("Processed %d/%d - %.0f%%", i + 1, n, pct)
 
