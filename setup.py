@@ -85,6 +85,7 @@ setuptools.setup(
             "audio-split = mediatools.audiosplit:main",
             "audio-concat = mediatools.audioconcat:main",
             "audio-speed = mediatools.audiospeed:main",
+            "video-enhance = mediatools.video_enhance:main",
         ]
     },
     python_requires=">=3.10",
