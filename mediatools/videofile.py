@@ -387,7 +387,16 @@ class VideoFile(media.MediaFile):
 
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f'{str(video_filters)} {str(audio_filters)} {output_str} {mapping} "{target_file}"'
-        util.run_ffmpeg(cmd, kwargs.get("batch_remaining", self.duration))
+        eta_duration = kwargs.get("batch_remaining", self.duration)
+        speed_val = kwargs.get("speed", None)
+        if speed_val is not None:
+            try:
+                speed_factor = float(util.percent_or_absolute(str(speed_val)))
+                if speed_factor > 0:
+                    eta_duration = eta_duration / speed_factor
+            except ValueError:
+                pass
+        util.run_ffmpeg(cmd, eta_duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 
