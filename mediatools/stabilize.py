@@ -37,7 +37,7 @@ import utilities.file as fil
 from mediatools import log
 
 
-def _has_vidstab() -> bool:
+def has_vidstab() -> bool:
     """Return True if FFmpeg was compiled with libvidstab support."""
     try:
         quot = '"' if platform.system() == "Windows" else ""
@@ -51,6 +51,16 @@ def _has_vidstab() -> bool:
         return False
 
 
+def run_vidstabdetect(filename: str, shakiness: int = 8) -> str:
+    """Run pass 1 of vidstab: analyse motion and return path of the transforms file."""
+    null_out = "NUL" if platform.system() == "Windows" else "/dev/null"
+    with tempfile.NamedTemporaryFile(suffix=".trf", delete=False) as tf:
+        trf_file = tf.name
+    detect_vf = f"vidstabdetect=shakiness={shakiness}:accuracy=15:result='{trf_file}'"
+    util.run_ffmpeg(f'-i "{filename}" -vf "{detect_vf}" -f null "{null_out}"')
+    return trf_file
+
+
 def stabilize(filename: str, output: str | None = None, shakiness: int = 8, smoothing: int = 30,
               zoom: int = 0, optzoom: int = 1, sharpen: bool = True, **kwargs) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
@@ -60,7 +70,7 @@ def stabilize(filename: str, output: str | None = None, shakiness: int = 8, smoo
     """
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="stabilized")
 
-    if not _has_vidstab():
+    if not has_vidstab():
         log.logger.warning("libvidstab not found in FFmpeg — falling back to deshake filter")
         kwargs["deshake"] = "32x32"
         kwargs["hw_accel"] = False  # deshake filter is CPU-only, incompatible with hwaccel

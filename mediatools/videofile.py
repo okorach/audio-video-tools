@@ -384,7 +384,7 @@ class VideoFile(media.MediaFile):
 
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f'{str(video_filters)} {str(audio_filters)} {output_str} {mapping} "{target_file}"'
-        util.run_ffmpeg(cmd, self.duration)
+        util.run_ffmpeg(cmd, kwargs.get("batch_remaining", self.duration))
         log.logger.info("File %s encoded", target_file)
         return target_file
 
@@ -464,11 +464,19 @@ class VideoFile(media.MediaFile):
             if not kwargs.get("no_crop", False):
                 w, h = self.dimensions()
                 vfilters.append(filter.crop(w - rx, h - ry, rx // 2, ry // 2))
+        if kwargs.get("vidstab_trf", None) is not None:
+            trf = kwargs["vidstab_trf"]
+            vfilters.append(f"vidstabtransform=input='{trf}',unsharp=5:5:0.8:3:3:0.4")
         if kwargs.get("fade", False):
             vfilters.append(filter.FadeIn(duration=0.5))
             vfilters.append(filter.FadeOut(duration=0.5))
         if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
             vfilters.append(f"scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}")
+        if kwargs.get("color_eq", None) is not None:
+            if util.use_hardware_accel(**kwargs):
+                log.logger.warning("Skipping eq color filter: not compatible with GPU hw acceleration (use --software_filters to enable)")
+            else:
+                vfilters.append(kwargs["color_eq"])
         log.logger.debug("vfilters = %s", str(vfilters))
         return vfilters
 
@@ -718,6 +726,18 @@ def reverse(filename: str, output: str | None = None, mute: bool = True, **kwarg
     return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
 
 
+def color_enhance(filename: str, output: str | None = None, saturation: float = 1.3, contrast: float = 1.1,
+                  brightness: float = 0.0, gamma: float = 1.0, **kwargs) -> str:
+    """Enhances video colors using the ffmpeg eq filter (saturation, contrast, brightness, gamma)."""
+    eq = f"eq=saturation={saturation}:contrast={contrast}:brightness={brightness}:gamma={gamma}"
+    log.logger.info("Color enhancing %s: %s", filename, eq)
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="color")
+    vf = VideoFile(filename)
+    if vf.video_bitrate and "vbitrate" not in kwargs:
+        kwargs["vbitrate"] = vf.video_bitrate
+    return vf.encode(target_file=output, color_eq=eq, **kwargs)
+
+
 def deshake(filename: str, output: str | None = None, **kwargs) -> str:
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="deshake")
     return VideoFile(filename).encode(target_file=output, **kwargs)
@@ -729,42 +749,43 @@ def set_creation_date(filename: str, new_date: datetime.datetime | None) -> bool
     exif_date = datetime.datetime.strftime(new_date, util.EXIF_DATE_FMT)
     log.logger.info("Setting creation date of %s to %s", filename, exif_date)
     p = ["-P", "-overwrite_original"]
-    with ExifToolHelper(executable=util.get_exiftool()) as et:
-        et.set_tags([filename], tags={"File:FileCreateDate": exif_date, "File:FileModifyDate": exif_date}, params=p)
-        if fil.is_image_file(filename):
-            et.set_tags([filename], tags={"DateTimeOriginal": exif_date}, params=p)
-        elif fil.is_video_file(filename):
-            log.logger.info("Tagging video file")
-            et.set_tags([filename], tags={"CreateDate": exif_date, "ModifyDate": exif_date, "DateTimeOriginal": exif_date}, params=p)
-            et.set_tags(
-                [filename],
-                tags={
-                    # "CreateDate": new_date,
-                    # "ModifyDate": new_date,
-                    # "DateTimeOriginal": new_date,
-                    "EXIF:CreateDate": exif_date,
-                    "EXIF:ModifyDate": exif_date,
-                    "EXIF:DateTimeOriginal": exif_date,
-                },
-                params=p,
-            )
-            et.set_tags(
-                [filename],
-                tags={
-                    "Composite:SubSecCreateDate": exif_date,
-                    "Composite:SubSecDateTimeOriginal": exif_date,
-                    "Composite:SubSecModifyDate": exif_date,
-                    "Quicktime:CreateDate": exif_date,
-                    "Quicktime:DateTimeOriginal": exif_date,
-                    "QuickTime:MediaCreateDate": exif_date,
-                    "QuickTime:MediaModifyDate": exif_date,
-                    "QuickTime:TrackCreateDate": exif_date,
-                    "QuickTime:TrackModifyDate": exif_date,
-                    "QuickTime:CreateDate": exif_date,
-                    "QuickTime:ModifyDate": exif_date,
-                },
-                params=p,
-            )
+    try:
+        with ExifToolHelper(executable=util.get_exiftool()) as et:
+            et.set_tags([filename], tags={"File:FileCreateDate": exif_date, "File:FileModifyDate": exif_date}, params=p)
+            if fil.is_image_file(filename):
+                et.set_tags([filename], tags={"DateTimeOriginal": exif_date}, params=p)
+            elif fil.is_video_file(filename):
+                log.logger.info("Tagging video file")
+                et.set_tags([filename], tags={"CreateDate": exif_date, "ModifyDate": exif_date, "DateTimeOriginal": exif_date}, params=p)
+                et.set_tags(
+                    [filename],
+                    tags={
+                        "EXIF:CreateDate": exif_date,
+                        "EXIF:ModifyDate": exif_date,
+                        "EXIF:DateTimeOriginal": exif_date,
+                    },
+                    params=p,
+                )
+                et.set_tags(
+                    [filename],
+                    tags={
+                        "Composite:SubSecCreateDate": exif_date,
+                        "Composite:SubSecDateTimeOriginal": exif_date,
+                        "Composite:SubSecModifyDate": exif_date,
+                        "Quicktime:CreateDate": exif_date,
+                        "Quicktime:DateTimeOriginal": exif_date,
+                        "QuickTime:MediaCreateDate": exif_date,
+                        "QuickTime:MediaModifyDate": exif_date,
+                        "QuickTime:TrackCreateDate": exif_date,
+                        "QuickTime:TrackModifyDate": exif_date,
+                        "QuickTime:CreateDate": exif_date,
+                        "QuickTime:ModifyDate": exif_date,
+                    },
+                    params=p,
+                )
+    except Exception as e:
+        log.logger.warning("Could not set creation date of %s: %s", filename, e)
+        return False
     log.logger.info("File %s creation date updated", filename)
     return True
 
@@ -777,6 +798,9 @@ def get_creation_date(filename: str) -> datetime.datetime | None:
         return creation_date
     except FileNotFoundError:
         log.logger.warning("exiftool not found, cannot read creation date of %s", filename)
+        return None
+    except Exception as e:
+        log.logger.warning("Could not read creation date of %s: %s", filename, e)
         return None
 
 
