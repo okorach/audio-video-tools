@@ -23,6 +23,7 @@
 # Accepts a single file or a directory (all video files in the directory are processed).
 
 import os
+import time
 import argparse
 from mediatools.log import logger
 import mediatools.utilities as util
@@ -30,7 +31,7 @@ import mediatools.videofile as video
 import utilities.file as fileutil
 
 
-def encode_file(inputfile: str, before: str, after: str, force: bool) -> None:
+def encode_file(inputfile: str, before: str, after: str, force: bool, duration: float | None = None) -> None:
     """Encode a single video file with the given before/after ffmpeg options."""
     base, ext = os.path.splitext(inputfile)
     ext = ext.lstrip(".").lower()
@@ -54,7 +55,9 @@ def encode_file(inputfile: str, before: str, after: str, force: bool) -> None:
 
     cmd = f'{before} -i "{inputfile}" {file_after} "{outputfile}"'
     logger.info("COMMAND = ffmpeg %s", cmd)
-    util.run_ffmpeg(params=cmd, duration=video.get_duration(inputfile))
+    if duration is None:
+        duration = video.get_duration(inputfile)
+    util.run_ffmpeg(params=cmd, duration=duration)
 
     video.set_creation_date(outputfile, video.get_creation_date(inputfile))
     if ext == new_ext:
@@ -89,8 +92,30 @@ def main():
         logger.error("No video files found in %s", inputpath)
         return
 
-    for f in files:
-        encode_file(f, before, after, force)
+    n = len(files)
+    durations = [video.get_duration(f) or 0.0 for f in files]
+    total_dur = sum(durations)
+    logger.info("%d file(s) to encode, total duration: %s", n, util.to_hms_str(total_dur))
+
+    processed_dur = 0.0
+    wall_start = time.monotonic()
+
+    for i, (f, dur) in enumerate(zip(files, durations)):
+        encode_file(f, before, after, force, duration=dur)
+        processed_dur += dur
+        wall_elapsed = time.monotonic() - wall_start
+        remaining_dur = total_dur - processed_dur
+        speed = processed_dur / wall_elapsed if wall_elapsed > 0 else 0.0
+        eta = util.to_hms_str(remaining_dur / speed) if speed > 0 else "unknown"
+        logger.info(
+            "Progress: %d/%d files | %s / %s encoded (%.0f%%) | Speed: %.2fx | ETA: %s",
+            i + 1, n,
+            util.to_hms_str(processed_dur),
+            util.to_hms_str(total_dur),
+            100.0 * processed_dur / total_dur if total_dur > 0 else 100.0,
+            speed,
+            eta,
+        )
 
 
 if __name__ == "__main__":
