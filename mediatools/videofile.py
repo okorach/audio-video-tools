@@ -379,8 +379,11 @@ class VideoFile(media.MediaFile):
 
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
-        # Preserve all audio streams and subtitle/text streams from the source
-        mapping = "-map 0:v:0 -map 0:a -map 0:s? -c:s copy"
+        # Preserve all audio and subtitle streams unless audio is explicitly muted (-an)
+        if kwargs.get(opt.Option.MUTE, False):
+            mapping = "-map 0:v:0"
+        else:
+            mapping = "-map 0:v:0 -map 0:a -map 0:s? -c:s copy"
 
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f'{str(video_filters)} {str(audio_filters)} {output_str} {mapping} "{target_file}"'
