@@ -1,6 +1,6 @@
 [project]
 name = "audio-video-tools"
-version = "0.6"
+version = "0.7"
 description = "A collection of utility scripts to manipulate media files (audio, video, image)"
 authors = [
     {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
