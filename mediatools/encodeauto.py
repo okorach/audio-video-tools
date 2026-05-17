@@ -107,15 +107,8 @@ def main():
         remaining_dur = total_dur - processed_dur
         speed = processed_dur / wall_elapsed if wall_elapsed > 0 else 0.0
         eta = util.to_hms_str(remaining_dur / speed) if speed > 0 else "unknown"
-        logger.info(
-            "Progress: %d/%d files | %s / %s encoded (%.0f%%) | Speed: %.2fx | ETA: %s",
-            i + 1, n,
-            util.to_hms_str(processed_dur),
-            util.to_hms_str(total_dur),
-            100.0 * processed_dur / total_dur if total_dur > 0 else 100.0,
-            speed,
-            eta,
-        )
+        pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0
+        logger.info("Processed %d/%d - %.0f%%", i + 1, n, pct)
 
 
 if __name__ == "__main__":
