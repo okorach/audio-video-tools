@@ -198,6 +198,7 @@ class AudioFile(media.MediaFile):
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other ptional options"""
         kwargs = util.get_all_options(fil.FileType.AUDIO_FILE, **kwargs)
+        kwargs["hw_accel"] = False
         log.logger.debug("Audio encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
             target_file = media.build_target_file(self.filename, profile)
@@ -215,9 +216,12 @@ class AudioFile(media.MediaFile):
         elif ext in ("m3a", "aac") and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
             output_settings[opt.OptionFfmpeg.ACODEC] = "aac"
             log.logger.info("Patching codec for AAC audio output")
+        elif ext == "ogg" and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
+            output_settings[opt.OptionFfmpeg.ACODEC] = "libvorbis"
+            log.logger.info("Patching codec for OGG audio output")
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
-        log.logger.info("Encoding mp3 %s", target_file)
+        log.logger.info("Encoding audio %s", target_file)
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f' {str(audio_filters)} {output_str} "{target_file}"'
         util.run_ffmpeg(cmd, self.duration)

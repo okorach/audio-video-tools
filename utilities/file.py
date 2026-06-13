@@ -286,29 +286,27 @@ def __is_type_file(file: str, type_of_media: str | None) -> bool:
 
 
 def is_audio_file(file: str) -> bool:
-    return __is_type_file(file, FileType.AUDIO_FILE)
+    return __match_extension(file, FileType.FILE_EXTENSIONS[FileType.AUDIO_FILE])
 
 
 def is_video_file(file: str) -> bool:
-    return __is_type_file(file, FileType.VIDEO_FILE)
+    return __match_extension(file, FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE])
 
 
 def is_image_file(file: str) -> bool:
-    return __is_type_file(file, FileType.IMAGE_FILE)
+    return __match_extension(file, FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE])
 
 
 def is_media_file(file: str) -> bool:
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
-    return is_audio_file(file) or is_image_file(file) or is_video_file(file)
+    return __match_extension(file, MEDIA_FILE_EXTENSIONS)
 
 
 def get_type(file: str) -> str:
-    if is_audio_file(file):
-        t = FileType.AUDIO_FILE
-    elif is_video_file(file):
-        t = FileType.VIDEO_FILE
-    elif is_image_file(file):
-        t = FileType.IMAGE_FILE
+    for file_type, extensions in FileType.FILE_EXTENSIONS.items():
+        if __match_extension(file, extensions):
+            t = file_type
+            break
     else:
         t = FileType.UNKNOWN_FILE
     log.logger.debug("Filetype of %s is %s", file, t)
