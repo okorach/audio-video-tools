@@ -40,8 +40,10 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
     """Encodes a single file"""
     if file_type == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
-    else:
+    elif file_type == fil.FileType.VIDEO_FILE:
         file_object = video.VideoFile(file)
+    else:
+        raise ValueError(f"File {file} is not an audio or video file")
 
     if kwargs.get("timeranges", None) is None:
         outfile = file_object.encode(kwargs.get("outputfile", None), **kwargs)
