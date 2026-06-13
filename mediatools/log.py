@@ -20,19 +20,45 @@
 #
 
 import os
+import sys
 import logging
 import pathlib
+
+
+class _Utf8StreamHandler(logging.StreamHandler):
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            self.stream.write(msg + self.terminator)
+            self.flush()
+        except UnicodeEncodeError:
+            try:
+                msg = self.format(record) + self.terminator
+                if hasattr(self.stream, "buffer"):
+                    self.stream.buffer.write(msg.encode("utf-8", errors="replace"))
+                    self.stream.buffer.flush()
+                else:
+                    enc = getattr(self.stream, "encoding", "utf-8") or "utf-8"
+                    self.stream.write(msg.encode(enc, errors="replace").decode(enc))
+                    self.flush()
+            except Exception:
+                self.handleError(record)
+        except RecursionError:
+            raise
+        except Exception:
+            self.handleError(record)
+
 
 logger: logging.Logger = logging.getLogger("mediatools")
 formatter: logging.Formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)-7s | %(threadName)-15s | %(message)s")
 try:
-    fh: logging.FileHandler = logging.FileHandler("mediatools.log")
+    fh: logging.FileHandler = logging.FileHandler("mediatools.log", encoding="utf-8")
 except PermissionError:
     fallback_log = pathlib.Path(os.getenv("TMP", "/")) / "mediatools.log"
-    fh = logging.FileHandler(fallback_log)
+    fh = logging.FileHandler(fallback_log, encoding="utf-8")
 
 # fh.setLevel(logging.DEBUG)
-ch: logging.StreamHandler = logging.StreamHandler()
+ch: logging.StreamHandler = _Utf8StreamHandler()
 # ch.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 logger.addHandler(ch)
@@ -46,11 +72,11 @@ def set_logger(name: str) -> None:
     logger.handlers.clear()
     logger.propagate = False
     try:
-        new_fh = logging.FileHandler(name + ".log")
+        new_fh = logging.FileHandler(name + ".log", encoding="utf-8")
     except PermissionError:
         _fallback_log = pathlib.Path(os.getenv("TMP", "/")) / (name + ".log")
-        new_fh = logging.FileHandler(_fallback_log)
-    new_ch = logging.StreamHandler()
+        new_fh = logging.FileHandler(_fallback_log, encoding="utf-8")
+    new_ch = _Utf8StreamHandler()
     logger.addHandler(new_fh)
     logger.addHandler(new_ch)
     new_fh.setFormatter(formatter)

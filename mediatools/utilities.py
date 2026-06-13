@@ -145,7 +145,7 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
         last_seen_line, last_seen_level, same_line_count = None, logging.INFO, 0
         last_error_line = None
         args = shlex.split(cmd)
-        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, bufsize=1)
+        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8", errors="replace", bufsize=1)
         line = pipe.stdout.readline().rstrip()
         while line:
             level = __get_log_level_from_ffmpeg_log__(line)
