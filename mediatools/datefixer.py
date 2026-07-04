@@ -46,7 +46,7 @@ DATETIME_FORMATS: tuple[str, ...] = (
 
 def guess_date(string: str) -> datetime | None:
     """Sets a file date from date or datetime that should be in the filename"""
-    (year, mon, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
+    year, mon, day, hour, min, sec = (0, 0, 0, 0, 0, 0)
     log.logger.info("Searching a date in %s", string)
     # 2017-05-07 08.13.42
     sep = r"[-:_\. hm]"
@@ -55,13 +55,13 @@ def guess_date(string: str) -> datetime | None:
         # 20170507_123422
         m = re.search(rf"(\d\d\d\d)(\d\d)(\d\d){sep}(\d\d)(\d\d)(\d\d)", string)
     if m:
-        (year, mon, day, hour, min, sec) = [int(m.group(i + 1)) for i in range(6)]
+        year, mon, day, hour, min, sec = [int(m.group(i + 1)) for i in range(6)]
     else:
         # 2017-05-07
         m = re.search(rf"(\d\d\d\d){sep}(\d\d){sep}(\d\d)", string)
         if m:
-            (year, mon, day) = [int(m.group(i + 1)) for i in range(3)]
-            (hour, min, sec) = (0, 0, 0)
+            year, mon, day = [int(m.group(i + 1)) for i in range(3)]
+            hour, min, sec = (0, 0, 0)
     if not m:
         log.logger.warning("No date match for %s", string)
         return None
@@ -71,7 +71,7 @@ def guess_date(string: str) -> datetime | None:
 def guess_offset(string: str) -> relativedelta | None:
     sign = int(f"{string[0]}1")
     rest = string[1:]
-    (year, month, day, hour, min, sec) = (0, 0, 0, 0, 0, 0)
+    year, month, day, hour, min, sec = (0, 0, 0, 0, 0, 0)
     m = re.match(r"^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$", rest)
     if m:
         [year, month, day, hour, min, sec] = [int(m.group(i + 1)) * sign for i in range(6)]
@@ -117,7 +117,7 @@ def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
         futures = [executor.submit(change_file_date, file, change_mode, offset) for file in file_list]
         for future in concurrent.futures.as_completed(futures):
             try:
-                (file, success) = future.result(timeout=10)
+                file, success = future.result(timeout=10)
                 if success:
                     nb_success += 1  # Retrieve result or raise an exception
                 log.logger.info("Processed file %d/%d for %s", seq, nb_files, file)

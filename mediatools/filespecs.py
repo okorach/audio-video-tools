@@ -68,7 +68,17 @@ AUDIO_PROPS: list[str] = [
     opt.Option.GENRE,
 ]
 
-IMAGE_PROPS: list[str] = ["filename", "filesize", "type", opt.Option.FORMAT, opt.Option.WIDTH, opt.Option.HEIGHT, "pixels", opt.Option.AUTHOR, opt.Option.TITLE]
+IMAGE_PROPS: list[str] = [
+    "filename",
+    "filesize",
+    "type",
+    opt.Option.FORMAT,
+    opt.Option.WIDTH,
+    opt.Option.HEIGHT,
+    "pixels",
+    opt.Option.AUTHOR,
+    opt.Option.TITLE,
+]
 
 UNITS: dict[str, str] = {
     "filesize": "bytes",

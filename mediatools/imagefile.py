@@ -109,7 +109,7 @@ class ImageFile(media.MediaFile):
 
     def crop(self, out_file: str | None = None, **kwargs) -> str:
         w, h = kwargs.pop("width"), kwargs.pop("height")
-        (top, left, pos) = self.__get_top_left__(w, h, **kwargs)
+        top, left, pos = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{w}x{h}-{pos}")
 
         util.run_ffmpeg(f'-y -i "{self.filename}" -vf "{filters.crop(w, h, left, top)}" "{out_file}"')
@@ -238,7 +238,9 @@ class ImageFile(media.MediaFile):
         util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
-    def shake(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", direction: str = "vertical", out_file: str | None = None) -> str:
+    def shake(
+        self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", direction: str = "vertical", out_file: str | None = None
+    ) -> str:
         if direction == "horizontal":
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
         else:
@@ -253,7 +255,7 @@ class ImageFile(media.MediaFile):
         - All video usual parameters (resolution, fps etc...)
         """
         log.logger.debug("zoom(%s)", str(kwargs))
-        (zstart, zstop) = [max(x, 1) for x in kwargs.get("effect", _get_random_zoom(1, 1.3))]
+        zstart, zstop = [max(x, 1) for x in kwargs.get("effect", _get_random_zoom(1, 1.3))]
         fps = kwargs.get("framerate", conf.get_property(conf.VIDEO_FPS_KEY))
         log.logger.debug("DUR %s", str(kwargs.get("duration", None)))
         duration = float(kwargs.get("duration", conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
@@ -346,7 +348,7 @@ class ImageFile(media.MediaFile):
         scale_res = v_res * 2
         # Filters used for panorama are incompatible with hw acceleration
 
-        (speed, duration) = self.__get_panorama_params__(**kwargs)
+        speed, duration = self.__get_panorama_params__(**kwargs)
         ystart, ystop = 0.5, 0.5
 
         vspeed = 0
@@ -354,14 +356,14 @@ class ImageFile(media.MediaFile):
             log.logger.info("Computing ystart/ystop from duration and speed")
             vspeed = util.percent_or_absolute(kwargs.get("vspeed", 0))
         else:
-            (_, _, ystart, ystop) = [float(x) for x in kwargs["effect"]]
+            _, _, ystart, ystop = [float(x) for x in kwargs["effect"]]
             if self.resolution.ratio < 16 / 9:
                 vspeed = (ystop - ystart) / self.resolution.ratio * 16 / 9 / duration
 
         needed_width = int(scale_res.width * (1 + abs(speed) * duration))
         needed_height = int(scale_res.height * (1 + abs(vspeed) * duration))
 
-        (scale, total_width, total_height) = self.__compute_total_frame__(needed_width, needed_height)
+        scale, total_width, total_height = self.__compute_total_frame__(needed_width, needed_height)
         vfilters = [scale]
 
         log.logger.debug(
@@ -403,7 +405,7 @@ class ImageFile(media.MediaFile):
         if not with_effect:
             return self.panorama(effect=(0.5, 0.5, 0.5, 0.5), **kwargs)
 
-        (w, h) = self.dimensions()
+        w, h = self.dimensions()
         speed = DEFAULT_PAN_SPEED * random.randrange(-1, 3, 2)
         if "speed" in kwargs:
             speed = float(kwargs.pop("speed"))
@@ -517,7 +519,7 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs) -> str:
         max_w = -1
     log.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
-    (full_w, full_h, max_w, max_h, gap, red) = __downsize__(full_w, full_h, max_w, max_h, gap)
+    full_w, full_h, max_w, max_h, gap, red = __downsize__(full_w, full_h, max_w, max_h, gap)
 
     fcomplex.insert_input(0, ImageFile(__get_background__(kwargs["background_color"])))
 
@@ -574,6 +576,6 @@ def _get_random_zoom(zmin: float = 1, zmax: float = 1.3) -> tuple[float, float]:
     rmin = round(zmin, 2)
     rmax = round(rmax, 2)
     if random.randint(0, 1) == 0:
-        (rmax, rmin) = (rmin, rmax)
+        rmax, rmin = (rmin, rmax)
     log.logger.debug("Random zoom = (%s, %s)", str(rmin), str(rmax))
     return (rmin, rmax)

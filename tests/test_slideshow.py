@@ -25,7 +25,6 @@ from unittest.mock import patch
 import mediatools.videofile as video
 from mediatools import slideshow
 
-
 large_img = None
 portrait_img = None
 

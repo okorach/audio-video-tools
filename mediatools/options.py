@@ -30,7 +30,15 @@ in mediatools library
 
 OPT_FMT: str = '-{} "{}"'
 
-CODECS: dict[str, str] = {"h264": "libx264", "x264": "libx264", "h265": "libx265", "x265": "libx265", "aac": "aac", "mp3": "libmp3lame", "copy": "copy"}
+CODECS: dict[str, str] = {
+    "h264": "libx264",
+    "x264": "libx264",
+    "h265": "libx265",
+    "x265": "libx265",
+    "aac": "aac",
+    "mp3": "libmp3lame",
+    "copy": "copy",
+}
 
 HW_ACCEL_CODECS: dict[str, str] = {
     "h264": "h264_nvenc",

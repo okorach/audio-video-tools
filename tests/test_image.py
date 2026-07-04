@@ -62,7 +62,7 @@ def test_scale_1():
 def test_needed_frame_1():
     w, h = 4000, 3000
     img = get_img(w, h)
-    (_, tot_w, tot_h) = img.__compute_total_frame__(6000, 3500)
+    _, tot_w, tot_h = img.__compute_total_frame__(6000, 3500)
     assert tot_w == 6000
     assert tot_h == 4500
     del_files(img)
@@ -71,7 +71,7 @@ def test_needed_frame_1():
 def test_needed_frame_2():
     w, h = 4000, 3000
     img = get_img(w, h)
-    (_, tot_w, tot_h) = img.__compute_total_frame__(5000, 4500)
+    _, tot_w, tot_h = img.__compute_total_frame__(5000, 4500)
     assert tot_w == 6000
     assert tot_h == 4500
     del_files(img)
@@ -80,7 +80,7 @@ def test_needed_frame_2():
 def test_needed_frame_3():
     w, h = 4000, 3000
     img = get_img(w, h)
-    (_, tot_w, tot_h) = img.__compute_total_frame__(3000, 3600)
+    _, tot_w, tot_h = img.__compute_total_frame__(3000, 3600)
     assert tot_w == 4800
     assert tot_h == 3600
     del_files(img)
@@ -146,7 +146,7 @@ def test_properties():
 def test_dimensions_2():
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
-    (w, h) = img.dimensions(ignore_orientation=False)
+    w, h = img.dimensions(ignore_orientation=False)
     assert w == 3000
     assert h == 4000
     del_files(img)

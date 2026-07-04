@@ -26,7 +26,9 @@ class Filter:
 
 
 class Simple(Filter):
-    def __init__(self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None) -> None:
+    def __init__(
+        self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None
+    ) -> None:
         self.filter_type: int = filter_type
         self.stream_in: str | None = stream_in
         self.stream_out: str | None = stream_out

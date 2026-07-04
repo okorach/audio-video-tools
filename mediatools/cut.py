@@ -29,7 +29,6 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.avfile as av
 
-
 MISSING_PARAM = """--start and --stop or --timeranges options is mandatory,
 type media-cut -h for more details"""
 
@@ -61,7 +60,7 @@ def main():
         t_bounds = time_interval.split("-")
         log.logger.info("t_bounds = %s len = %d", str(t_bounds), len(t_bounds))
         if len(t_bounds) == 2:
-            (start, stop) = t_bounds
+            start, stop = t_bounds
             outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f"cut{i}")
             log.logger.info("Generating file %s", outputfile)
             av.cut(ifile, output=outputfile, start=start, stop=stop)

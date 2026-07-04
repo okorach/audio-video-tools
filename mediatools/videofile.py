@@ -255,8 +255,8 @@ class VideoFile(media.MediaFile):
         width, height = kwargs.pop("width"), kwargs.pop("height")
         media_opts = self.get_properties()
         media_opts[opt.Option.ACODEC] = "copy"
-        (width, height) = self.calc_resolution(width, height)
-        (top, left, pos) = self.__get_top_left__(width=width, height=height, **kwargs)
+        width, height = self.calc_resolution(width, height)
+        top, left, pos = self.__get_top_left__(width=width, height=height, **kwargs)
 
         # Target bitrate proportional to crop level (x 2)
         media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
@@ -561,10 +561,7 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
     total_duration = (first.duration or 0.0) + sum(VideoFile(f).duration or 0.0 for f in file_list[1:])
 
     # Input stream references: [i:v] [i:a:0] [i:a:1] ... for each file
-    cmplx = "".join(
-        f"[{i}:v]" + "".join(f"[{i}:a:{j}]" for j in range(n_audio))
-        for i in range(n_files)
-    )
+    cmplx = "".join(f"[{i}:v]" + "".join(f"[{i}:a:{j}]" for j in range(n_audio)) for i in range(n_files))
     # Output labels: [outv] [outa0] [outa1] ...
     audio_out_labels = "".join(f"[outa{j}]" for j in range(n_audio))
     cmplx += f"concat=n={n_files}:v=1:a={n_audio}[outv]{audio_out_labels}"
@@ -697,7 +694,7 @@ def slideshow(*inputs: str, resolution: str | None = None) -> tuple[str, list]:
                 slideshow_root_filename = fil.random_name(slide_file, "slideshow")
                 log.logger.info("Final slideshow file will be %s.%s", slideshow_root_filename, fmt)
             try:
-                (out_file, details) = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution)
+                out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution)
                 video_files.append(out_file)
                 operations.append(details)
             except OSError:
@@ -738,8 +735,9 @@ def reverse(filename: str, output: str | None = None, mute: bool = True, **kwarg
     return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
 
 
-def color_enhance(filename: str, output: str | None = None, saturation: float = 1.3, contrast: float = 1.1,
-                  brightness: float = 0.0, gamma: float = 1.0, **kwargs) -> str:
+def color_enhance(
+    filename: str, output: str | None = None, saturation: float = 1.3, contrast: float = 1.1, brightness: float = 0.0, gamma: float = 1.0, **kwargs
+) -> str:
     """Enhances video colors using the ffmpeg eq filter (saturation, contrast, brightness, gamma)."""
     eq = f"eq=saturation={saturation}:contrast={contrast}:brightness={brightness}:gamma={gamma}"
     log.logger.info("Color enhancing %s: %s", filename, eq)

@@ -56,7 +56,7 @@ def main():
         else:
             files.append(arg)
     if files:
-        (output, operations) = video.slideshow(*files, resolution=resolution)
+        output, operations = video.slideshow(*files, resolution=resolution)
         json_file = output + ".json"
         _dump_report_(operations, json_file)
         msg = f"File {output} generated, report is {json_file}"

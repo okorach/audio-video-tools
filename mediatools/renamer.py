@@ -228,7 +228,7 @@ def main() -> None:
     nb_other_files = len(file_list) - nb_photo_files - nb_video_files
 
     photo_seq = video_seq = other_seq = int(kwargs.get("seqstart", 1))
-    (photo_format, video_format) = get_formats(nb_photo_files, nb_video_files, **kwargs)
+    photo_format, video_format = get_formats(nb_photo_files, nb_video_files, **kwargs)
 
     files_data = get_files_data(fil.file_list(*kwargs["files"], file_type=None, recurse=False), kwargs["sortby"])
 

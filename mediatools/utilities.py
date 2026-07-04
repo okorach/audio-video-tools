@@ -145,7 +145,9 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
         last_seen_line, last_seen_level, same_line_count = None, logging.INFO, 0
         last_error_line = None
         args = shlex.split(cmd)
-        pipe = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8", errors="replace", bufsize=1)
+        pipe = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, encoding="utf-8", errors="replace", bufsize=1
+        )
         line = pipe.stdout.readline().rstrip()
         while line:
             level = __get_log_level_from_ffmpeg_log__(line)
@@ -458,7 +460,7 @@ def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args) -> 
         cmdline_args.pop("abitrate", None)
     if cmdline_args.get("vcodec", None) == "copy":
         cmdline_args.pop("vbitrate", None)
-    (cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT]) = resolve_resolution(**cmdline_args)
+    cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT] = resolve_resolution(**cmdline_args)
     log.logger.debug("get_all_options return: %s", str(cmdline_args))
     return cmdline_args
 

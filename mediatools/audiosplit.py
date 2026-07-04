@@ -34,6 +34,7 @@ import types as _types_mod
 # Inject a stub module so numba can import cleanly.
 try:
     import coverage as _coverage
+
     if not hasattr(_coverage, "types"):
         # numba/misc/coverage_support.py references coverage.types.Tracer, TTraceData,
         # TShouldTraceFn and potentially others as base classes / type annotations.

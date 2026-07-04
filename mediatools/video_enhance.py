@@ -30,10 +30,17 @@ import utilities.file as fileutil
 from mediatools import log
 
 
-def enhance_file(input_file: str, output_file: str | None,
-                 saturation: float, contrast: float, brightness: float, gamma: float,
-                 hw_accel: bool | None = None, stabilize: bool = True,
-                 batch_remaining: float | None = None) -> None:
+def enhance_file(
+    input_file: str,
+    output_file: str | None,
+    saturation: float,
+    contrast: float,
+    brightness: float,
+    gamma: float,
+    hw_accel: bool | None = None,
+    stabilize: bool = True,
+    batch_remaining: float | None = None,
+) -> None:
     """Color-enhance a single video file, preserve creation date, rename original."""
     creation_date = video.get_creation_date(input_file)
     extra = {} if hw_accel is None else {"hw_accel": hw_accel}
@@ -53,8 +60,7 @@ def enhance_file(input_file: str, output_file: str | None,
             extra["deshake"] = "32x32"
 
     try:
-        outfile = video.color_enhance(input_file, output_file, saturation=saturation,
-                                      contrast=contrast, brightness=brightness, gamma=gamma, **extra)
+        outfile = video.color_enhance(input_file, output_file, saturation=saturation, contrast=contrast, brightness=brightness, gamma=gamma, **extra)
     except Exception as e:
         log.logger.error("Failed to enhance %s: %s", input_file, e)
         return
@@ -74,18 +80,22 @@ def enhance_file(input_file: str, output_file: str | None,
 
 def main():
     parser = util.get_common_args("video-enhance", "Enhance video colors (saturation, contrast, brightness, gamma)")
-    parser.add_argument("--saturation", required=False, type=float, default=1.3,
-                        help="Color saturation multiplier (default 1.3, neutral 1.0, range 0-3)")
-    parser.add_argument("--contrast", required=False, type=float, default=1.1,
-                        help="Contrast multiplier (default 1.1, neutral 1.0, range -2 to 2)")
-    parser.add_argument("--brightness", required=False, type=float, default=0.0,
-                        help="Brightness offset (default 0.0, range -1 to 1)")
-    parser.add_argument("--gamma", required=False, type=float, default=1.0,
-                        help="Gamma correction (default 1.0, range 0.1 to 10)")
-    parser.add_argument("--gpu_filters", required=False, default=False, action="store_true",
-                        help="Use GPU hw acceleration with GPU-compatible filters only (disables eq color filter)")
-    parser.add_argument("--no_stabilize", required=False, default=False, action="store_true",
-                        help="Skip video stabilization (stabilization is applied by default)")
+    parser.add_argument(
+        "--saturation", required=False, type=float, default=1.3, help="Color saturation multiplier (default 1.3, neutral 1.0, range 0-3)"
+    )
+    parser.add_argument("--contrast", required=False, type=float, default=1.1, help="Contrast multiplier (default 1.1, neutral 1.0, range -2 to 2)")
+    parser.add_argument("--brightness", required=False, type=float, default=0.0, help="Brightness offset (default 0.0, range -1 to 1)")
+    parser.add_argument("--gamma", required=False, type=float, default=1.0, help="Gamma correction (default 1.0, range 0.1 to 10)")
+    parser.add_argument(
+        "--gpu_filters",
+        required=False,
+        default=False,
+        action="store_true",
+        help="Use GPU hw acceleration with GPU-compatible filters only (disables eq color filter)",
+    )
+    parser.add_argument(
+        "--no_stabilize", required=False, default=False, action="store_true", help="Skip video stabilization (stabilization is applied by default)"
+    )
     kwargs = util.parse_media_args(parser)
 
     output_file = kwargs.get("outputfile", None)
@@ -117,8 +127,17 @@ def main():
     wall_start = time.time()
 
     for i, (f, dur) in enumerate(zip(files, durations)):
-        enhance_file(f, output_file, saturation, contrast, brightness, gamma,
-                     hw_accel=hw_accel, stabilize=do_stabilize, batch_remaining=total_dur - processed_dur)
+        enhance_file(
+            f,
+            output_file,
+            saturation,
+            contrast,
+            brightness,
+            gamma,
+            hw_accel=hw_accel,
+            stabilize=do_stabilize,
+            batch_remaining=total_dur - processed_dur,
+        )
         processed_dur += dur
         pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0
         elapsed = time.time() - wall_start
