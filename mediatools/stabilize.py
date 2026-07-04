@@ -61,8 +61,9 @@ def run_vidstabdetect(filename: str, shakiness: int = 8) -> str:
     return trf_file
 
 
-def stabilize(filename: str, output: str | None = None, shakiness: int = 8, smoothing: int = 30,
-              zoom: int = 0, optzoom: int = 1, sharpen: bool = True, **kwargs) -> str:
+def stabilize(
+    filename: str, output: str | None = None, shakiness: int = 8, smoothing: int = 30, zoom: int = 0, optzoom: int = 1, sharpen: bool = True, **kwargs
+) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
 
     Falls back to FFmpeg's deshake filter when libvidstab is not available.

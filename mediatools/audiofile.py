@@ -38,7 +38,19 @@ import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.media_config as conf
 
-_CSV_KEYS: tuple[str, ...] = ("filename", "artist", "title", "album", "year", "duration", "acodec", "abitrate", "audio_sample_rate", "genre", "has_album_art")
+_CSV_KEYS: tuple[str, ...] = (
+    "filename",
+    "artist",
+    "title",
+    "album",
+    "year",
+    "duration",
+    "acodec",
+    "abitrate",
+    "audio_sample_rate",
+    "genre",
+    "has_album_art",
+)
 
 # Matches a trailing bitrate/codec postfix in a file name, eg " (128kbit_AAC)" or "[320kbps MP3]"
 _ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
@@ -305,7 +317,7 @@ def album_art(*file_list: str, scale: str | None = None) -> bool:
         return False
 
     if scale is not None:
-        (w, h) = [int(x) for x in re.split("x", scale)]
+        w, h = [int(x) for x in re.split("x", scale)]
         cover_file = image.ImageFile(album_cover[0]).scale(w, h)
     else:
         cover_file = album_cover[0]

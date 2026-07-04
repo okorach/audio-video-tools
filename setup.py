@@ -21,7 +21,6 @@
 import re
 import setuptools
 
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -46,7 +45,18 @@ setuptools.setup(
     },
     packages=setuptools.find_packages(),
     package_data={"mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]},
-    install_requires=["argparse", "datetime", "mp3_tagger", "ffmpeg-python", "ExifRead", "pyexiftool", "jprops", "librosa", "musicbrainzngs", "mutagen"],
+    install_requires=[
+        "argparse",
+        "datetime",
+        "mp3_tagger",
+        "ffmpeg-python",
+        "ExifRead",
+        "pyexiftool",
+        "jprops",
+        "librosa",
+        "musicbrainzngs",
+        "mutagen",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",

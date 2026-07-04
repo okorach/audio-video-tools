@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import mediatools.options as opt
 
-
 LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
 
 

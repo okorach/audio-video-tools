@@ -71,7 +71,7 @@ class Resolution:
         elif "resolution" in kwargs or opt.Option.RESOLUTION in kwargs:
             r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION, None)))
             if re.search(r"[x:]", r):
-                (w, h) = re.split(r"[x:]", r, maxsplit=2)
+                w, h = re.split(r"[x:]", r, maxsplit=2)
         if int(w) <= 0 or int(h) <= 0:
             raise ex.DimensionError("width and height must be strictly positive")
         self.width = int(w)

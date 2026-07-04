@@ -487,9 +487,11 @@ def test_main_nonexistent_directory():
 
 def test_main_empty_directory(tmp_path):
     """main() exits with code 0 for an existing empty directory."""
-    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -498,9 +500,11 @@ def test_main_empty_directory(tmp_path):
 def test_main_dry_run(tmp_path):
     """main() --dry-run exits 0 and does not write any files."""
     shutil.copy(FIXTURE_MP3, str(tmp_path / "song.mp3"))
-    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "--dry-run"]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "--dry-run"]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -513,9 +517,11 @@ def test_main_individual_files(tmp_path):
     tags = ID3(src)
     tags.delall("TDRC")
     tags.save(src)
-    with patch("sys.argv", ["fix-mp3-meta", "-f", src]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", src]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -528,9 +534,11 @@ def test_main_mixed_files_and_dirs(tmp_path):
     shutil.copy(FIXTURE_MP3, str(subdir / "01 - Crazy.mp3"))
     lone_file = str(tmp_path / "song.mp3")
     shutil.copy(FIXTURE_MP3, lone_file)
-    with patch("sys.argv", ["fix-mp3-meta", "-f", str(subdir), lone_file]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", str(subdir), lone_file]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -538,9 +546,11 @@ def test_main_mixed_files_and_dirs(tmp_path):
 
 def test_main_with_debug_flag(tmp_path):
     """main() -g flag sets debug level without crashing."""
-    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -551,9 +561,11 @@ def test_main_with_subdirectories(tmp_path):
     subdir = tmp_path / "Seal - Seal (1991)"
     subdir.mkdir()
     shutil.copy(FIXTURE_MP3, str(subdir / "01 - Crazy.mp3"))
-    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -570,10 +582,12 @@ def test_main_individual_files_mb_lookup(tmp_path):
     tags.save(src)
     mock_release = {"release-list": [{"id": "x", "date": "1991"}]}
     mock_full = {"release": {"medium-list": []}}
-    with patch("sys.argv", ["fix-mp3-meta", "-f", src]), \
-         patch("musicbrainzngs.search_releases", return_value=mock_release), \
-         patch("musicbrainzngs.get_release_by_id", return_value=mock_full), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+    with (
+        patch("sys.argv", ["fix-mp3-meta", "-f", src]),
+        patch("musicbrainzngs.search_releases", return_value=mock_release),
+        patch("musicbrainzngs.get_release_by_id", return_value=mock_full),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+    ):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
@@ -595,6 +609,7 @@ def test_main_skips_non_audio_file(tmp_path):
 # ---------------------------------------------------------------------------
 # M4A / AAC tag support
 # ---------------------------------------------------------------------------
+
 
 def test_is_m4a():
     assert fix._is_m4a("song.m4a") is True
@@ -680,9 +695,11 @@ def test_process_file_m4a(tmp_path):
     mock_audio = _make_mp4_mock(track=[(1, 0)], year="")
     mock_write = MagicMock()
     mock_write.tags = {}
-    with patch("mediatools.fix_mp3_meta.MP4", side_effect=[mock_audio, mock_write]), \
-         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
-         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}), \
-         patch("os.utime"):
+    with (
+        patch("mediatools.fix_mp3_meta.MP4", side_effect=[mock_audio, mock_write]),
+        patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
+        patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        patch("os.utime"),
+    ):
         fix._process_file(m4a_path, dir_artist="Seal", dir_album="Seal", dir_year=1991, mb_tracks=[], dry_run=False)
     mock_write.save.assert_called_once()

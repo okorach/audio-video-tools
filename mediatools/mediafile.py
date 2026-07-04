@@ -450,7 +450,7 @@ def set_exif_gps_coordinates(filename: str, latitude: float, longitude: float) -
 def reduce_aspect_ratio(aspect_ratio: int | str, height: int | None = None) -> str:
     """Reduces the Aspect ratio calculation in prime factors"""
     if height is None:
-        (w, h) = [int(x) for x in re.split("[:/x]", aspect_ratio)]
+        w, h = [int(x) for x in re.split("[:/x]", aspect_ratio)]
     else:
         w = aspect_ratio
         h = height

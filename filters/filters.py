@@ -43,7 +43,9 @@ AUDIO_TYPE: int = 1
 
 
 class Simple(object):
-    def __init__(self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None) -> None:
+    def __init__(
+        self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None
+    ) -> None:
         self.filter_type: int = filter_type
         self.stream_in: str | None = stream_in
         self.stream_out: str | None = stream_out
@@ -130,7 +132,7 @@ def setsar(ratio: str) -> str:
 
 
 def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
-    opts = ":".join([f"{k}={v}" for k, v in kwargs])
+    opts = ":".join([f"{k}={v}" for k, v in kwargs.items()])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 

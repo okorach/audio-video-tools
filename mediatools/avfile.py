@@ -39,8 +39,9 @@ def __patch_args(file_type: str, **kwargs) -> dict:
     return kwargs
 
 
-def cut(file: str, output: str | None = None, start: float | str | None = None, stop: float | str | None = None,
-        timeranges: str | None = None, **kwargs) -> str | None:
+def cut(
+    file: str, output: str | None = None, start: float | str | None = None, stop: float | str | None = None, timeranges: str | None = None, **kwargs
+) -> str | None:
     t = fil.get_type(file)
     if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
         raise ex.FileTypeError(file, "video or audio")
