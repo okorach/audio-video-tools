@@ -29,7 +29,7 @@ dependencies = [
     "pywin32",
     "musicbrainzngs",
     "mutagen",
-    "Pillow",
+    "Pillow>=10.3.0",
 ]
 
 classifiers = [

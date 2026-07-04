@@ -56,7 +56,7 @@ setuptools.setup(
         "librosa",
         "musicbrainzngs",
         "mutagen",
-        "Pillow",
+        "Pillow>=10.3.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
