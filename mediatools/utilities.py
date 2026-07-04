@@ -188,7 +188,7 @@ def run_ffmpeg(params: str, duration: float | None = None) -> None:
 def build_ffmpeg_complex_prep(input_file_list: list) -> str:
     s = ""
     for i in range(len(input_file_list) + 1):
-        s += "[{0}]scale=iw:-1:flags=lanczos[pip{0}]; ".format(i)
+        s += f"[{i}]scale=iw:-1:flags=lanczos[pip{i}]; "
     return s
 
 
@@ -215,24 +215,21 @@ def to_hms(seconds: float | str, fmt: str = "tuple") -> tuple[int, int, float] |
         minutes = s // 60 - hours * 60
         secs = round(float(seconds) - hours * 3600 - minutes * 60, 3)
         if fmt == "string":
-            return "%02d:%02d:%06.3f" % (hours, minutes, secs)
-        else:
-            return (hours, minutes, secs)
+            return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
+        return (hours, minutes, secs)
     except (TypeError, ValueError):
         if fmt == "string":
             return "00:00:00"
-        else:
-            return (0, 0, 0)
+        return (0, 0, 0)
 
 
 def to_seconds(hms: float | str) -> float:
     a = [float(x) for x in str(hms).split(":")]
     if len(a) == 3:
         return a[0] * 3600 + a[1] * 60 + a[2]
-    elif len(a) == 2:
+    if len(a) == 2:
         return a[0] * 60 + a[1]
-    else:
-        return a[0]
+    return a[0]
 
 
 def difftime(stop: float | str, start: float | str) -> float:
@@ -241,7 +238,7 @@ def difftime(stop: float | str, start: float | str) -> float:
 
 def to_hms_str(seconds: float) -> str:
     hours, minutes, secs = to_hms(seconds)
-    return "%02d:%02d:%06.3f" % (hours, minutes, secs)
+    return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 
 
 def json_fmt(json_data: object) -> str:
@@ -269,7 +266,6 @@ def delete_files(*args: str) -> None:
 
 def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
-
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
@@ -303,19 +299,19 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
-    timerange = kwargs.get("timeranges", None)
+    timerange = kwargs.get("timeranges")
     if timerange:
         timerange = timerange.split(",")[0]
     if timerange and "-" in timerange:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = timerange.split("-")
-    if kwargs.get("hw_accel", None) is None:
+    if kwargs.get("hw_accel") is None:
         kwargs["hw_accel"] = conf.get_property("default.hw_accel")
-    if kwargs.get("hw_accel", None) is None:
+    if kwargs.get("hw_accel") is None:
         kwargs["hw_accel"] = "auto"
 
-    if kwargs.get("hw_accel", None) == "on":
+    if kwargs.get("hw_accel") == "on":
         kwargs["hw_accel"] = True
-    elif kwargs.get("hw_accel", None) == "off":
+    elif kwargs.get("hw_accel") == "off":
         kwargs["hw_accel"] = False
     else:
         kwargs["hw_accel"] = use_hardware_accel(**kwargs)
@@ -389,9 +385,7 @@ def get_ffmpeg_cmdline_param(cmdline: str, param: str) -> str | None:
 
 def get_ffmpeg_cmdline_switch(cmdline: str, param: str) -> bool:
     m = re.search(rf"-{param}\s", cmdline)
-    if m:
-        return True
-    return False
+    return bool(m)
 
 
 def get_ffmpeg_cmdline_params(cmdline: str) -> dict:
@@ -449,16 +443,16 @@ def get_profile_options(profile: str) -> dict:
 
 def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args) -> dict:
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
-    if cmdline_args.get("vcodec", None) == "copy" and cmdline_args.get("acodec", None) == "copy":
+    if cmdline_args.get("vcodec") == "copy" and cmdline_args.get("acodec") == "copy":
         return cmdline_args
     # p = get_default_options(filetype)
     # if 'profile' in cmdline_args:
     #    q = get_profile_options(cmdline_args['profile'])
     #    p = {**p, **q}
     # cmdline_args = {**p, **cmdline_args}
-    if cmdline_args.get("acodec", None) == "copy":
+    if cmdline_args.get("acodec") == "copy":
         cmdline_args.pop("abitrate", None)
-    if cmdline_args.get("vcodec", None) == "copy":
+    if cmdline_args.get("vcodec") == "copy":
         cmdline_args.pop("vbitrate", None)
     cmdline_args[opt.Option.WIDTH], cmdline_args[opt.Option.HEIGHT] = resolve_resolution(**cmdline_args)
     log.logger.debug("get_all_options return: %s", str(cmdline_args))
@@ -471,13 +465,13 @@ def swap_keys_values(p: dict) -> dict:
 
 def dict2str(options: dict) -> str:
     cmd = ""
-    for k in options:
-        if options[k] is None or options[k] is False:
+    for k, v in options.items():
+        if v is None or v is False:
             continue
-        if options[k] is True:
+        if v is True:
             fmt = f" -{k}"
         else:
-            fmt = f" -{k} {options[k]}"
+            fmt = f" -{k} {v}"
         cmd += fmt
     log.logger.debug("cmd options = %s", cmd)
     return cmd
@@ -493,12 +487,11 @@ def find_key(hashlist: dict, keylist: list | tuple):
     return None
 
 
-def percent_or_absolute(x: str | float | int, reference: float | int = 1) -> float | int:
+def percent_or_absolute(x: str | float, reference: float = 1) -> float | int:
     if isinstance(x, str):
         if re.match(r"-?\d+(.\d+)?%", x):
             return float(x[:-1]) * reference / 100
-        else:
-            return float(x)
+        return float(x)
     return x
 
 
@@ -517,15 +510,13 @@ def get_tmp_file() -> str:
 
 def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:
     log.logger.info("ARgs = %s", str(kwargs))
-    if kwargs.get(opt.Option.WIDTH, None):
-        if kwargs.get(opt.Option.HEIGHT, None):
+    if kwargs.get(opt.Option.WIDTH):
+        if kwargs.get(opt.Option.HEIGHT):
             return (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT])
-        else:
-            return (kwargs[opt.Option.WIDTH], -1)
-    else:
-        if kwargs.get(opt.Option.HEIGHT, None):
-            return (-1, kwargs[opt.Option.HEIGHT])
-    if kwargs.get(opt.Option.RESOLUTION, None) is None:
+        return (kwargs[opt.Option.WIDTH], -1)
+    if kwargs.get(opt.Option.HEIGHT):
+        return (-1, kwargs[opt.Option.HEIGHT])
+    if kwargs.get(opt.Option.RESOLUTION) is None:
         return (None, None)
 
     kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
@@ -543,7 +534,7 @@ def use_hardware_accel(**kwargs) -> bool:
         HW_ACCEL = True
         log.logger.info("Hardware acceleration explicitly forced on")
         return True
-    elif (isinstance(my_hw_accel, bool) and not my_hw_accel) or my_hw_accel == "off":
+    if (isinstance(my_hw_accel, bool) and not my_hw_accel) or my_hw_accel == "off":
         HW_ACCEL = False
         log.logger.info("Hardware acceleration explicitly turned off")
         return False

@@ -29,7 +29,7 @@ from mediatools import log
 import utilities.file as fil
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import filters.filters as filters
+from filters import filters
 import mediatools.options as opt
 import mediatools.media_config as conf
 
@@ -155,14 +155,13 @@ class MediaFile(fil.File):
         return None
 
     def get_properties(self) -> dict:
-        all_props = self.get_file_properties()
-        return all_props
+        return self.get_file_properties()
 
     def __get_top_left__(self, width: int, height: int, **kwargs) -> tuple[int, int, str]:
         iw, ih = self.dimensions(ignore_orientation=True)
-        top: int | None = kwargs.get("top", None)
-        left: int | None = kwargs.get("left", None)
-        pos: str | None = kwargs.get("position", None)
+        top: int | None = kwargs.get("top")
+        left: int | None = kwargs.get("left")
+        pos: str | None = kwargs.get("position")
         if top is None:
             if pos is None:
                 pos = "center"
@@ -295,7 +294,7 @@ class MediaFile(fil.File):
 def get_audio_filters(**kwargs) -> filters.Simple:
     log.logger.debug("Afilters options = %s", str(kwargs))
     afilters = filters.Simple(filters.AUDIO_TYPE)
-    if kwargs.get("volume", None) is not None:
+    if kwargs.get("volume") is not None:
         vol = util.percent_or_absolute(kwargs["volume"])
         afilters.append(filters.volume(vol))
     if kwargs.get("audio_reverse", False) or kwargs.get("areverse", False):
@@ -328,32 +327,32 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     if file_type == fil.FileType.VIDEO_FILE:
         settings[opt.Option.VCODEC] = _get_vcodec(**kwargs)
 
-        if kwargs.get(opt.Option.RESOLUTION, None) is not None and not util.use_hardware_accel(**kwargs):
+        if kwargs.get(opt.Option.RESOLUTION) is not None and not util.use_hardware_accel(**kwargs):
             settings[opt.OptionFfmpeg.RESOLUTION] = kwargs[opt.Option.RESOLUTION]
 
-        if kwargs.get(opt.Option.VBITRATE, None) is not None:
+        if kwargs.get(opt.Option.VBITRATE) is not None:
             settings[opt.OptionFfmpeg.VBITRATE] = kwargs[opt.Option.VBITRATE]
 
         if kwargs.get(opt.Option.DEINTERLACE, False):
             settings[opt.OptionFfmpeg.DEINTERLACE] = True
 
     start: float = 0
-    if kwargs.get(opt.Option.START, None) not in ("", None):
+    if kwargs.get(opt.Option.START) not in ("", None):
         start = util.to_seconds(kwargs[opt.Option.START])
         # settings[opt.OptionFfmpeg.START] = start
-    if kwargs.get(opt.Option.STOP, None) not in ("", None):
+    if kwargs.get(opt.Option.STOP) not in ("", None):
         settings[opt.OptionFfmpeg.STOP] = util.to_seconds(kwargs[opt.Option.STOP]) - start
 
     if kwargs.get(opt.Option.MUTE, False):
         settings[opt.OptionFfmpeg.MUTE] = True
     else:
         settings[opt.Option.ACODEC] = _get_acodec(**kwargs)
-        if kwargs.get(opt.Option.ABITRATE, None) is not None:
+        if kwargs.get(opt.Option.ABITRATE) is not None:
             settings[opt.OptionFfmpeg.ABITRATE] = kwargs[opt.Option.ABITRATE]
-        if kwargs.get(opt.Option.ACODEC, None) is not None:
+        if kwargs.get(opt.Option.ACODEC) is not None:
             settings[opt.OptionFfmpeg.ACODEC] = kwargs[opt.Option.ACODEC]
 
-    if kwargs.get(opt.Option.FPS, None) not in ("", None):
+    if kwargs.get(opt.Option.FPS) not in ("", None):
         settings[opt.OptionFfmpeg.FPS] = kwargs[opt.Option.FPS]
 
     log.logger.debug("get_output_settings returns %s", str(settings))
@@ -410,12 +409,12 @@ def build_target_file(source_file: str, profile: str | None) -> str:
 
 def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str:
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
-    return '-filter:v "crop={0}:{1}:{2}:{3}"'.format(width, height, top, left)
+    return f'-filter:v "crop={width}:{height}:{top}:{left}"'
 
 
 def get_deshake_filter_options(width: int, height: int) -> str:
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
-    return "-vf deshake=x=-1:y=-1:w=-1:h=-1:rx=%d:ry=%d" % (width, height)
+    return f"-vf deshake=x=-1:y=-1:w=-1:h=-1:rx={width}:ry={height}"
 
 
 def compute_fps(rate: str) -> str:
@@ -458,7 +457,7 @@ def reduce_aspect_ratio(aspect_ratio: int | str, height: int | None = None) -> s
         while w % n == 0 and h % n == 0:
             w = w // n
             h = h // n
-    return "%d:%d" % (w, h)
+    return f"{w}:{h}"
 
 
 def concat(target_file: str, file_list: list[str]) -> None:
@@ -469,25 +468,19 @@ def concat(target_file: str, file_list: list[str]) -> None:
     cmd = filters.inputs_str(file_list)
     cmd = cmd + '-filter_complex "'
     for i in range(len(file_list)):
-        cmd = cmd + ("[%d:v] [%d:a] " % (i, i))
-    cmd = cmd + 'concat=n=%d:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" %s' % (len(file_list), target_file)
+        cmd = cmd + f"[{i}:v] [{i}:a] "
+    cmd = cmd + f'concat=n={len(file_list)}:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" {target_file}'
     util.run_ffmpeg(cmd)
 
 
 def strip_media_options(options: dict) -> dict:
-    strip: dict = {}
-    for k in options:
-        if k not in opt.M2F_MAPPING:
-            strip[k] = options[k]
+    strip = {k: v for k, v in options.items() if k not in opt.M2F_MAPPING}
     log.logger.debug("stripped media options = %s", str(strip))
     return strip
 
 
 def strip_ffmpeg_options(options: dict) -> dict:
-    strip: dict = {}
-    for k in options:
-        if k not in opt.F2M_MAPPING:
-            strip[k] = options[k]
+    strip = {k: v for k, v in options.items() if k not in opt.F2M_MAPPING}
     log.logger.debug("stripped ffmpeg options = %s", str(strip))
     return strip
 
@@ -499,8 +492,7 @@ def build_ffmpeg_options(options: dict, with_mapping: bool = False) -> str:
             if k not in opt.M2F_MAPPING:
                 log.logger.warning("Option %s can't be mapped to ffmpeg option", str(k))
                 continue
-            else:
-                k = opt.M2F_MAPPING[k]
+            k = opt.M2F_MAPPING[k]
         if v is None or not v:
             continue
         if v is True:

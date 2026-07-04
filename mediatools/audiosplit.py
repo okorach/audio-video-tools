@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script detects tune/song changes in a long audio file (e.g. DJ mix, live concert)
+"""This script detects tune/song changes in a long audio file (e.g. DJ mix, live concert)
 and splits it at those boundaries with fade-in/fade-out at each cut.
 """
 
@@ -55,10 +54,10 @@ except ImportError:
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.audiofile as audio
-import filters.filters as filters
+from filters import filters
 
 
-def _checkerboard_kernel(M: int) -> object:
+def _checkerboard_kernel(M: int) -> object:  # noqa: N803
     """Builds a Gaussian-tapered checkerboard kernel (Foote 2000) of size 2M x 2M."""
     import numpy as np
     import scipy.signal
@@ -126,7 +125,7 @@ def _detect_energy_gaps(y: object, sr: int, hop_length: int, min_gap_sec: float 
     # Keep only gaps longer than min_gap_sec
     min_gap_frames = int(min_gap_sec * sr / hop_length)
     boundaries: list[float] = []
-    for s, e in zip(gap_starts, gap_ends):
+    for s, e in zip(gap_starts, gap_ends, strict=False):
         if e - s >= min_gap_frames:
             mid_frame = (s + e) // 2
             t = librosa.frames_to_time(mid_frame, sr=sr, hop_length=hop_length)
@@ -196,10 +195,7 @@ def _detect_structural_boundaries(y: object, sr: int, hop_length: int, min_segme
     )
 
     # Convert beat-frame indices to timestamps
-    boundaries: list[float] = []
-    for p in peaks:
-        if p < len(beat_times):
-            boundaries.append(float(beat_times[p]))
+    boundaries: list[float] = [float(beat_times[p]) for p in peaks if p < len(beat_times)]
 
     return boundaries
 
@@ -216,9 +212,9 @@ def detect_tune_changes(filename: str, sensitivity: float = 0.5, min_segment: fl
 
     Returns:
         List of boundary timestamps in seconds (excluding 0 and end)
+
     """
     import librosa
-    import numpy as np
 
     log.logger.info("Loading audio file %s for analysis...", filename)
     y, sr = librosa.load(filename, sr=22050, mono=True)
@@ -278,6 +274,7 @@ def split_audio_at_boundaries(input_file: str, boundaries: list[float], fade_dur
 
     Returns:
         List of output file paths
+
     """
     af = audio.AudioFile(input_file)
     af.get_specs()
@@ -287,11 +284,11 @@ def split_audio_at_boundaries(input_file: str, boundaries: list[float], fade_dur
     bitrate_opt = f"-b:a {af.abitrate}" if af.abitrate else ""
 
     # Build segments: [0, b1], [b1, b2], ..., [bN, end]
-    starts = [0.0] + boundaries
-    ends = boundaries + [total_duration]
+    starts = [0.0, *boundaries]
+    ends = [*boundaries, total_duration]
 
     output_files: list[str] = []
-    for i, (start, end) in enumerate(zip(starts, ends)):
+    for i, (start, end) in enumerate(zip(starts, ends, strict=False)):
         segment_duration = end - start
         postfix = f"split{i + 1:03d}"
         outputfile = util.automatic_output_file_name(outfile=None, infile=input_file, postfix=postfix)

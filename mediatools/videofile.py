@@ -21,7 +21,7 @@
 
 """Video file tools"""
 
-from __future__ import annotations, print_function
+from __future__ import annotations
 import datetime
 import math
 import os
@@ -35,7 +35,7 @@ import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.options as opt
-from filters import filter
+from filters import filter  # noqa: A004
 from filters import filters
 import mediatools.media_config as conf
 
@@ -43,7 +43,7 @@ FFMPEG_CLASSIC_FMT: str = '-i "{0}" {1} "{2}"'
 
 
 class VideoFile(media.MediaFile):
-    AV_PASSTHROUGH: str = "-{0} copy -{1} copy -map 0 ".format(opt.OptionFfmpeg.VCODEC, opt.OptionFfmpeg.ACODEC)
+    AV_PASSTHROUGH: str = f"-{opt.OptionFfmpeg.VCODEC} copy -{opt.OptionFfmpeg.ACODEC} copy -map 0 "
 
     """Video file abstraction"""
 
@@ -130,11 +130,11 @@ class VideoFile(media.MediaFile):
         if self.pixel_aspect is None:
             ar = stream.get("display_aspect_ratio", None)
             if ar is None:
-                ar = "%d:%d" % (self.get_width(), self.get_height())
+                ar = f"{self.get_width()}:{self.get_height()}"
             self.aspect = media.reduce_aspect_ratio(ar)
             par = stream.get("sample_aspect_ratio", None)
             if par is None:
-                par = media.reduce_aspect_ratio("%d:%d" % (self.get_width(), self.get_height()))
+                par = media.reduce_aspect_ratio(f"{self.get_width()}:{self.get_height()}")
             self.pixel_aspect = media.reduce_aspect_ratio(par)
         return self.pixel_aspect
 
@@ -262,14 +262,13 @@ class VideoFile(media.MediaFile):
         media_opts[opt.Option.VBITRATE] = int(self.video_bitrate * width * height / self.resolution.pixels * 2)
 
         media_opts.update(util.cleanup_options(kwargs))
-        media_opts[opt.Option.RESOLUTION] = "{}x{}".format(width, height)
+        media_opts[opt.Option.RESOLUTION] = f"{width}x{height}"
         log.logger.debug("Cmd line settings = %s", str(media_opts))
-        out_file = util.automatic_output_file_name(out_file, self.filename, "crop_{0}x{1}-{2}".format(width, height, pos))
+        out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{width}x{height}-{pos}")
         aspect = __get_aspect_ratio__(width, height, **kwargs)
 
-        cmd = '-i "{}" {} -vf "{}" -aspect {} "{}"'.format(
-            self.filename, media.build_ffmpeg_options(media_opts, True), filters.crop(width, height, left, top), aspect, out_file
-        )
+        crop_filter = filters.crop(width, height, left, top)
+        cmd = f'-i "{self.filename}" {media.build_ffmpeg_options(media_opts, True)} -vf "{crop_filter}" -aspect {aspect} "{out_file}"'
         util.run_ffmpeg(cmd, self.duration)
         return out_file
 
@@ -287,7 +286,7 @@ class VideoFile(media.MediaFile):
             if key in ("author", "year"):
                 options.append(filters.metadata(key, value))
             if key == "copyright":
-                options.append(filters.metadata(key, "© {}".format(value)))
+                options.append(filters.metadata(key, f"© {value}"))
 
         nb_tracks = self.__get_number_of_audio_tracks()
         # Handle default_track
@@ -329,12 +328,12 @@ class VideoFile(media.MediaFile):
         return self.add_metadata(year=year)
 
     def add_audio_tracks(self, *audio_files: str, out_file: str | None = None) -> str:
-        inputs = '-i "{0}"'.format(self.filename)
+        inputs = f'-i "{self.filename}"'
         maps = "-map 0"
         i = 1
         for audio_file in audio_files:
-            inputs += ' -i "{0}"'.format(audio_file)
-            maps += " -map {0}".format(i)
+            inputs += f' -i "{audio_file}"'
+            maps += f" -map {i}"
             i += 1
         out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix="muxed")
         util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{out_file}"', self.duration)
@@ -386,7 +385,7 @@ class VideoFile(media.MediaFile):
             mapping = "-map 0:v:0 -map 0:a -map 0:s? -c:s copy"
 
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
-        cmd += f'{str(video_filters)} {str(audio_filters)} {output_str} {mapping} "{target_file}"'
+        cmd += f'{video_filters!s} {audio_filters!s} {output_str} {mapping} "{target_file}"'
         eta_duration = kwargs.get("batch_remaining", self.duration)
         speed_val = kwargs.get("speed", None)
         if speed_val is not None:
@@ -466,7 +465,7 @@ class VideoFile(media.MediaFile):
     def __get_video_filters(self, **kwargs) -> filter.Simple:
         log.logger.debug("Vfilters options = %s", str(kwargs))
         vfilters = filter.Simple(filters.VIDEO_TYPE)
-        if kwargs.get("speed", None) is not None:
+        if kwargs.get("speed") is not None:
             vfilters.append(filter.speed(kwargs["speed"]))
         if kwargs.get("reverse", False):
             vfilters.append(filter.Reverse())
@@ -476,15 +475,15 @@ class VideoFile(media.MediaFile):
             if not kwargs.get("no_crop", False):
                 w, h = self.dimensions()
                 vfilters.append(filter.crop(w - rx, h - ry, rx // 2, ry // 2))
-        if kwargs.get("vidstab_trf", None) is not None:
+        if kwargs.get("vidstab_trf") is not None:
             trf = kwargs["vidstab_trf"]
             vfilters.append(f"vidstabtransform=input='{trf}',unsharp=5:5:0.8:3:3:0.4")
         if kwargs.get("fade", False):
             vfilters.append(filter.FadeIn(duration=0.5))
             vfilters.append(filter.FadeOut(duration=0.5))
-        if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION) is not None:
             vfilters.append(f"scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}")
-        if kwargs.get("color_eq", None) is not None:
+        if kwargs.get("color_eq") is not None:
             if util.use_hardware_accel(**kwargs):
                 log.logger.warning("Skipping eq color filter: not compatible with GPU hw acceleration (use --software_filters to enable)")
             else:
@@ -547,7 +546,7 @@ def get_frame_rate_option(cmdline: str) -> str:
 
 def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str:
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
-    return "-filter:v crop={0}:{1}:{2}:{3}".format(width, height, top, left)
+    return f"-filter:v crop={width}:{height}:{top}:{left}"
 
 
 def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_accel: bool = False) -> str:
@@ -577,8 +576,8 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
         files_str = filters.inputs_str(file_list)
         out_codec = "libx265"
 
-    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{str(first.resolution)}"'
-    cmd += f' -vcodec "{out_codec}" -b:v "{str(first.video_bitrate)}" "{target_file}"'
+    cmd = f'{files_str} -filter_complex "{cmplx}" {mapping} -s "{first.resolution!s}"'
+    cmd += f' -vcodec "{out_codec}" -b:v "{first.video_bitrate!s}" "{target_file}"'
     util.run_ffmpeg(cmd.strip(), total_duration)
     return target_file
 
@@ -612,11 +611,11 @@ def add_video_args(parser) -> object:
 
 
 def __get_aspect_ratio__(width: int, height: int, **kwargs) -> str:
-    if kwargs.get("aspect", None) is None:
+    if kwargs.get("aspect") is None:
         aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
     else:
         aw, ah = re.split(":", kwargs["aspect"])
-    return "{0}:{1}".format(aw, ah)
+    return f"{aw}:{ah}"
 
 
 def __get_audio_channel_mapping__(**kwargs) -> str:
@@ -624,7 +623,7 @@ def __get_audio_channel_mapping__(**kwargs) -> str:
     if opt.Option.ACHANNEL not in kwargs:
         return ""
     mapping = "-map 0:v:0"
-    mapping += " ".join(list(map(lambda x: "-map 0:a:{}".format(x), str(kwargs[opt.Option.ACHANNEL]).split(","))))
+    mapping += " ".join([f"-map 0:a:{x}" for x in str(kwargs[opt.Option.ACHANNEL]).split(",")])
     return mapping
 
 
@@ -640,14 +639,12 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     total_duration = 0
     fcomp = filters.Complex(*[VideoFile(f) for f in input_files])
     outs = []
-    i = 0
-    for f in fcomp.inputs:
+    for i, f in enumerate(fcomp.inputs):
         fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
-        pts = filters.setpts("PTS-STARTPTS+{}/TB".format(total_duration))
+        pts = filters.setpts(f"PTS-STARTPTS+{total_duration}/TB")
         total_duration += f.duration - transition_duration
-        last_out = fcomp.add_filtergraph(str(i) + ":v", ",".join([pixfmt, fade_in, fade_out, pts]))
+        last_out = fcomp.add_filtergraph(str(i) + ":v", f"{pixfmt},{fade_in},{fade_out},{pts}")
         outs.append(last_out)
-        i += 1
 
     last_out = outs[0]
     for i in range(len(fcomp.inputs) - 1):
@@ -659,7 +656,7 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
     util.run_ffmpeg(
-        f"{filters.hw_accel_input(**kwargs)} {fcomp.format_inputs()} {str(fcomp)} "
+        f"{filters.hw_accel_input(**kwargs)} {fcomp.format_inputs()} {fcomp!s} "
         f'{filters.hw_accel_output(**kwargs)} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
         total_duration,
     )
@@ -711,12 +708,11 @@ def slideshow(*inputs: str, resolution: str | None = None) -> tuple[str, list]:
             )
             all_video_files.append(video_files)
             video_files = []
-    final_file = "{}.{}".format(slideshow_root_filename, fmt)
+    final_file = f"{slideshow_root_filename}.{fmt}"
     if len(all_video_files) == 0:
         return (__build_slideshow__(video_files, resolution=resolution, outfile=final_file), operations)
-    else:
-        slideshows.append(__build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}"))
-        return (concat(target_file=final_file, file_list=slideshows, with_audio=False), operations)
+    slideshows.append(__build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}"))
+    return (concat(target_file=final_file, file_list=slideshows, with_audio=False), operations)
 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:
