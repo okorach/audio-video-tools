@@ -25,8 +25,9 @@ import mediatools.audio_lib as ad
 import utilities.file as fil
 
 SONG = "it/song.mp3"
-TITLE = 'Love Is Stronger Than Pride'
-ARTIST = 'Sade'
+TITLE = "Love Is Stronger Than Pride"
+ARTIST = "Sade"
+
 
 def test_changed_drive():
     if platform.system() == "Windows":
@@ -37,6 +38,7 @@ def test_changed_drive():
         assert ad.search_on_other_drives(moved_file) is None
     else:
         assert True
+
 
 def test_fix_symlink():
     symlink = "shortcut.lnk"
@@ -51,6 +53,7 @@ def test_fix_symlink():
         assert f2.read_link() == original_file
     else:
         assert True
+
 
 def test_fix_symlink_2():
     symlink = "shortcut.lnk"

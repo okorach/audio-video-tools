@@ -31,18 +31,18 @@ import mediatools.utilities as util
 
 
 def main():
-    parser = util.get_common_args('video-crop', 'Crops a region of the input video file')
+    parser = util.get_common_args("video-crop", "Crops a region of the input video file")
     parser = video.add_video_args(parser)
-    parser.add_argument('--box', required=True, help='Video box eg 320x200')
-    parser.add_argument('--position', required=False, help='Crop video position (from top-left to bottom-right)')
-    parser.add_argument('--top', required=False, help='Video top origin')
-    parser.add_argument('--left', required=False, help='Video left origin')
+    parser.add_argument("--box", required=True, help="Video box eg 320x200")
+    parser.add_argument("--position", required=False, help="Crop video position (from top-left to bottom-right)")
+    parser.add_argument("--top", required=False, help="Video top origin")
+    parser.add_argument("--left", required=False, help="Video left origin")
     kwargs = util.parse_media_args(parser)
 
-    kwargs['width'], kwargs['height'] = kwargs['box'].split("x", maxsplit=2)
+    kwargs["width"], kwargs["height"] = kwargs["box"].split("x", maxsplit=2)
     log.logger.debug("KW=%s", str(kwargs))
-    outputfile = creator.file(kwargs['inputfiles']).crop(out_file=kwargs.get('outputfile', None), **kwargs)
-    log.logger.info('Generated %s', outputfile)
+    outputfile = creator.file(kwargs["inputfiles"]).crop(out_file=kwargs.get("outputfile", None), **kwargs)
+    log.logger.info("Generated %s", outputfile)
     print("Generated {}".format(outputfile))
 
 

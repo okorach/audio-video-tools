@@ -31,14 +31,14 @@ import mediatools.utilities as util
 
 
 def main():
-    util.init('video-mux')
-    parser = argparse.ArgumentParser(description='Multiplexes a video file with several audio tracks')
-    parser.add_argument('-i', '--inputfiles', metavar='N', type=str, nargs='+', help='List of files to mux')
-    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    util.init("video-mux")
+    parser = argparse.ArgumentParser(description="Multiplexes a video file with several audio tracks")
+    parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to mux")
+    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
-    afiles = kwargs.pop('inputfiles')
+    afiles = kwargs.pop("inputfiles")
     vfile = None
     for f in afiles.copy():
         if fil.is_video_file(f):
@@ -50,7 +50,7 @@ def main():
         sys.exit(2)
     log.logger.info("Muxing audio files %s in video file %s", str(afiles), vfile)
     videofile = video.VideoFile(vfile)
-    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.get('outputfile', None))
+    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.get("outputfile", None))
     util.generated_file(output)
 
 

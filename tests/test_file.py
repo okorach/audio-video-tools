@@ -25,43 +25,50 @@ import utilities.file as fil
 import mediatools.videofile as video
 import mediatools.version as version
 
-BASE = 'video-720p.mp4'
-FILE = 'it' + os.sep + BASE
-FILE_2 = 'it' + os.sep + 'video-1920x1080.mp4'
+BASE = "video-720p.mp4"
+FILE = "it" + os.sep + BASE
+FILE_2 = "it" + os.sep + "video-1920x1080.mp4"
 FILE_SIZE = 2001067
+
 
 def test_file_std():
     f = fil.File(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
+
 def test_file_video():
     f = video.VideoFile(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
+
 def test_file_unexisting():
-    f = fil.File('nonexist.txt')
+    f = fil.File("nonexist.txt")
     assert not f.stat()
 
+
 def test_extension():
-    assert fil.extension(FILE) == 'mp4'
+    assert fil.extension(FILE) == "mp4"
     f = fil.File(FILE)
-    assert f.extension() == 'mp4'
+    assert f.extension() == "mp4"
+
 
 def test_basename():
     assert fil.basename(FILE) == BASE
-    assert fil.basename(FILE, 'mp4') == 'video-720p'
+    assert fil.basename(FILE, "mp4") == "video-720p"
     f = fil.File(FILE)
     assert f.basename() == BASE
-    assert f.basename('mp4') == 'video-720p'
+    assert f.basename("mp4") == "video-720p"
+
 
 def test_dirname():
-    dirname = os.sep.join('/usr/local/bin'.split('/'))
-    filename = dirname + os.sep + 'python3'
+    dirname = os.sep.join("/usr/local/bin".split("/"))
+    filename = dirname + os.sep + "python3"
     assert fil.dirname(filename) == dirname
     f = fil.File(filename)
     assert f.dirname() == dirname
+
 
 def test_link():
     assert not fil.is_link(FILE)
@@ -76,7 +83,7 @@ def test_link():
     assert obj.is_link()
     if platform.system() == "Windows":
         assert obj.is_shortcut()
-        reg = r'^[A-Za-z]:' + re.escape(os.sep) + re.escape(FILE) + r'$'
+        reg = r"^[A-Za-z]:" + re.escape(os.sep) + re.escape(FILE) + r"$"
         assert re.match(reg, obj.read_link())
         assert re.match(reg, fil.read_link(lnk))
     else:
@@ -85,6 +92,7 @@ def test_link():
         assert fil.read_link(lnk) == FILE
 
     os.remove(lnk)
+
 
 def test_hash():
     f = fil.File("nonexisting")
@@ -102,5 +110,6 @@ def test_hash_list():
     assert list(hashes.keys())[1] is not None
     assert len(hashes.keys()) == 2
 
+
 def test_version():
-    assert re.match(r'^[0-9.]+$', version.MEDIA_TOOLS_VERSION)
+    assert re.match(r"^[0-9.]+$", version.MEDIA_TOOLS_VERSION)

@@ -34,7 +34,7 @@ def link_file(file, directory, hash_data):
     hashes = hash_data["hashes"]
     if fil.is_link(file) or not fil.is_audio_file(file):
         return None
-    h = audio.AudioFile(file).hash('audio')
+    h = audio.AudioFile(file).hash("audio")
     if h is None:
         log.logger.warning("Can't hash %s", file)
         return None
@@ -47,6 +47,7 @@ def link_file(file, directory, hash_data):
     base = "{}{}{} - {}".format(directory, os.sep, srcfile.title, srcfile.artist)
     srcfile.create_link(base)
     return directory + os.sep + base
+
 
 def copy_file(file, directory, hash_data):
     if not fil.is_link(file):
@@ -62,18 +63,21 @@ def copy_file(file, directory, hash_data):
     shutil.copyfile(srcfile.filename, targetfile)
     return targetfile
 
+
 def main():
-    util.init('audio-linker')
+    util.init("audio-linker")
     directory = None
     master_dir = None
-    parser = argparse.ArgumentParser(description='Manages audio collections')
-    parser.add_argument('-m', '--master', help='master audio directory', required=True)
-    parser.add_argument('-d', '--directory', help='directory with collection', required=True)
-    parser.add_argument('-u', '--updateHash', action="store_true", default=False, help='ask to update hash of master directory', required=False)
-    parser.add_argument('-l', '--linkFiles', action="store_true", default=False, help='ask to link files of collection directory', required=False)
-    parser.add_argument('-c', '--copyFiles', action="store_true", default=False, help='ask to copy files linked from master directory', required=False)
-    parser.add_argument('-a', '--all', action="store_true", default=False, help='Do everything', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    parser = argparse.ArgumentParser(description="Manages audio collections")
+    parser.add_argument("-m", "--master", help="master audio directory", required=True)
+    parser.add_argument("-d", "--directory", help="directory with collection", required=True)
+    parser.add_argument("-u", "--updateHash", action="store_true", default=False, help="ask to update hash of master directory", required=False)
+    parser.add_argument("-l", "--linkFiles", action="store_true", default=False, help="ask to link files of collection directory", required=False)
+    parser.add_argument(
+        "-c", "--copyFiles", action="store_true", default=False, help="ask to copy files linked from master directory", required=False
+    )
+    parser.add_argument("-a", "--all", action="store_true", default=False, help="Do everything", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
 
     master_dir = kwargs["master"]

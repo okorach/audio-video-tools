@@ -26,29 +26,27 @@ from mediatools import concat
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = 'video-concat'
-VIDEO1 = 'it' + os.sep + 'video-720p.mp4'
-VIDEO2 = 'it' + os.sep + 'video-720p.mp4'
-TMP1 = util.get_tmp_file() + '.mp4'
-TMP2 = util.get_tmp_file() + '.mp4'
-TMP3 = util.get_tmp_file() + '.mp4'
+CMD = "video-concat"
+VIDEO1 = "it" + os.sep + "video-720p.mp4"
+VIDEO2 = "it" + os.sep + "video-720p.mp4"
+TMP1 = util.get_tmp_file() + ".mp4"
+TMP2 = util.get_tmp_file() + ".mp4"
+TMP3 = util.get_tmp_file() + ".mp4"
 
 
 def test_main_with_output():
     util.HW_ACCEL = False
-    with patch.object(sys, 'argv', [CMD, '-g', '3', '-i', VIDEO1, VIDEO2, '-o', TMP3]):
+    with patch.object(sys, "argv", [CMD, "-g", "3", "-i", VIDEO1, VIDEO2, "-o", TMP3]):
         try:
             concat.main()
-            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -
-                       video.VideoFile(TMP3).duration) < 0.06
+            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration - video.VideoFile(TMP3).duration) < 0.06
         except SystemExit as e:
             assert int(str(e)) == 0
-            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration -
-                       video.VideoFile(TMP3).duration) < 0.06
+            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration - video.VideoFile(TMP3).duration) < 0.06
 
 
 def test_main_help():
-    with patch.object(sys, 'argv', [CMD, '-h']):
+    with patch.object(sys, "argv", [CMD, "-h"]):
         try:
             concat.main()
             assert False
@@ -57,7 +55,7 @@ def test_main_help():
 
 
 def test_main_bad_option():
-    with patch.object(sys, 'argv', [CMD, '-i', VIDEO1, '--badoption', 'yes']):
+    with patch.object(sys, "argv", [CMD, "-i", VIDEO1, "--badoption", "yes"]):
         try:
             concat.main()
             assert False
@@ -66,7 +64,7 @@ def test_main_bad_option():
 
 
 def test_main_no_file():
-    with patch.object(sys, 'argv', [CMD, '-o', TMP1]):
+    with patch.object(sys, "argv", [CMD, "-o", TMP1]):
         try:
             concat.main()
             assert False

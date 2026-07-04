@@ -18,7 +18,7 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
+:: setlocal enabledelayedexpansion
 
 set vcodec=h265
 set vbitrate=12000k

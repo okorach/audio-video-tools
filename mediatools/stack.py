@@ -34,21 +34,25 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 
 def main():
     files = []
-    util.init('image-stack')
-    parser = argparse.ArgumentParser(description='Stacks images vertically or horizontally')
-    parser.add_argument('-i', '--inputfiles', nargs='+', help='List of files to stack', required=True)
-    parser.add_argument('-o', '--outputfile', help='Output file to generate', required=False)
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
-    parser.add_argument('-d', '--direction', required=False, choices=['vertical', 'horizontal'],
-        default='vertical', help='How to stack images')
-    parser.add_argument('-b', '--background_color', required=False, choices=['black', 'white'],
-        default='black', help='Background color of frame')
-    parser.add_argument('-m', '--margin', required=False, default=0, help='Width of frame')
-    parser.add_argument('--stretch', required=False, dest='stretch', action='store_true',
-        default=False, help='Stretch images so that they have the same width or height')
+    util.init("image-stack")
+    parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
+    parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to stack", required=True)
+    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    parser.add_argument("-d", "--direction", required=False, choices=["vertical", "horizontal"], default="vertical", help="How to stack images")
+    parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], default="black", help="Background color of frame")
+    parser.add_argument("-m", "--margin", required=False, default=0, help="Width of frame")
+    parser.add_argument(
+        "--stretch",
+        required=False,
+        dest="stretch",
+        action="store_true",
+        default=False,
+        help="Stretch images so that they have the same width or height",
+    )
     kwargs = util.parse_media_args(parser)
-    files = kwargs['inputfiles']
-    output = image.stack(*files, out_file=kwargs.get('outputfile', None), **kwargs)
+    files = kwargs["inputfiles"]
+    output = image.stack(*files, out_file=kwargs.get("outputfile", None), **kwargs)
     util.generated_file(output)
     sys.exit(0)
 

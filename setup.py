@@ -18,16 +18,21 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+import re
 import setuptools
-import mediatools.version as version
 
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+with open("mediatools/version.py", "r") as fh:
+    _version_match = re.search(r'MEDIA_TOOLS_VERSION\s*=\s*["\']([^"\']+)["\']', fh.read())
+    _version = _version_match.group(1) if _version_match else "0.0.0"
+
 setuptools.setup(
-    name='audio-video-tools',
-    version=version.MEDIA_TOOLS_VERSION,
-    scripts=['audio-video-tools'],
+    name="audio-video-tools",
+    version=_version,
+    scripts=["audio-video-tools"],
     author="Olivier Korach",
     author_email="olivier.korach@gmail.com",
     description="A collection of utility scripts to manipulate media files (audio, video, image)",
@@ -40,53 +45,48 @@ setuptools.setup(
         "Source Code": "https://github.com/okorach/audio-video-tools",
     },
     packages=setuptools.find_packages(),
-    package_data={
-        "mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]
-    },
-    install_requires=[
-        'argparse',
-        'datetime',
-        'mp3_tagger',
-        'ffmpeg-python',
-        'ExifRead',
-        'pyexiftool',
-        'jprops'
-    ],
+    package_data={"mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]},
+    install_requires=["argparse", "datetime", "mp3_tagger", "ffmpeg-python", "ExifRead", "pyexiftool", "jprops", "librosa"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Operating System :: OS Independent",
     ],
     entry_points={
-        'console_scripts': [
-            'video-encode = mediatools.encode:main',
-            'media-specs = mediatools.filespecs:main',
-            'video-speed = mediatools.speed:main',
-            'image-poster = mediatools.poster:main',
-            'image-blinds = mediatools.blindify:main',
-            'image-shake = mediatools.shake:main',
-            'image-scale = mediatools.rescale:main',
-            'image-stack = mediatools.stack:main',
-            'video-mux = mediatools.mux:main',
-            'video-concat = mediatools.concat:main',
-            'media-crop = mediatools.crop:main',
-            'media-volume = mediatools.volume:main',
-            'media-cut = mediatools.cut:main',
-            'video-stabilize = mediatools.deshake:main',
-            'audio-album-art = mediatools.album_art:main',
-            'image-to-video = mediatools.image2video:main',
-            'video-slideshow = mediatools.slideshow:main',
-            'video-reverse = mediatools.reverse:main',
-            'video-metadata = mediatools.metadata:main',
-            'audio-lib = mediatools.audio_lib:main',
-            'audio-list = mediatools.audio_list:main',
-            'linker = mediatools.linker:main',
-            'renamer = mediatools.renamer:main',
-            'datefixer = mediatools.datefixer:main',
-            'shuffle = cli.shuffle:main',
-            'encodeauto = mediatools.encodeauto:main',
-            'encode = cli.encode:main'
+        "console_scripts": [
+            "video-encode = mediatools.encode:main",
+            "media-specs = mediatools.filespecs:main",
+            "video-speed = mediatools.speed:main",
+            "image-poster = mediatools.poster:main",
+            "image-blinds = mediatools.blindify:main",
+            "image-shake = mediatools.shake:main",
+            "image-scale = mediatools.rescale:main",
+            "image-stack = mediatools.stack:main",
+            "video-mux = mediatools.mux:main",
+            "video-concat = mediatools.concat:main",
+            "media-crop = mediatools.crop:main",
+            "media-volume = mediatools.volume:main",
+            "media-cut = mediatools.cut:main",
+            "video-stabilize = mediatools.stabilize:main",
+            "video-deshake = mediatools.deshake:main",
+            "audio-album-art = mediatools.album_art:main",
+            "image-to-video = mediatools.image2video:main",
+            "video-slideshow = mediatools.slideshow:main",
+            "video-reverse = mediatools.reverse:main",
+            "video-metadata = mediatools.metadata:main",
+            "audio-lib = mediatools.audio_lib:main",
+            "audio-list = mediatools.audio_list:main",
+            "linker = mediatools.linker:main",
+            "renamer = mediatools.renamer:main",
+            "datefixer = mediatools.datefixer:main",
+            "shuffle = cli.shuffle:main",
+            "encodeauto = mediatools.encodeauto:main",
+            "encode = cli.encode:main",
+            "audio-split = mediatools.audiosplit:main",
+            "audio-concat = mediatools.audioconcat:main",
+            "audio-speed = mediatools.audiospeed:main",
+            "video-enhance = mediatools.video_enhance:main",
         ]
     },
-    python_requires='>=3.6',
+    python_requires=">=3.10",
 )

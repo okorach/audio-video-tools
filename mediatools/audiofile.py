@@ -19,9 +19,12 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import re
 import os
 import shutil
+import unicodedata
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
@@ -33,85 +36,117 @@ import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
+import mediatools.media_config as conf
 
-_CSV_KEYS = ('filename', 'artist', 'title', 'album', 'year', 'duration', 'acodec', 'abitrate', 'audio_sample_rate', 'genre', 'has_album_art')
+_CSV_KEYS: tuple[str, ...] = ("filename", "artist", "title", "album", "year", "duration", "acodec", "abitrate", "audio_sample_rate", "genre", "has_album_art")
+
+# Matches a trailing bitrate/codec postfix in a file name, eg " (128kbit_AAC)" or "[320kbps MP3]"
+_ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
+
+
+def _strip_encoding_postfix(base_name: str) -> str:
+    """Removes a trailing bitrate/codec postfix (eg " (128kbit_AAC)") from a file base name"""
+    return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
+
+
+def _strip_exotic_chars(base_name: str) -> str:
+    """Removes exotic unicode characters from a file base name, keeping plain ASCII"""
+    return unicodedata.normalize("NFKD", base_name).encode("ascii", "ignore").decode("ascii").strip()
+
+
+def clean_file_name(filename: str) -> str:
+    """Cleans up a file name (without extension) before re-encoding: removes bitrate/codec
+    postfixes and exotic unicode characters from the file base name"""
+    directory, base = os.path.split(fil.strip_extension(filename))
+    base = _strip_exotic_chars(_strip_encoding_postfix(base))
+    return os.path.join(directory, base) if directory else base
+
+
+def build_target_file(source_file: str, profile: str | None) -> str:
+    """Builds the target file name for audio (re)encoding: the source file name is cleaned up
+    and, when the target audio format differs from the source one, the old extension is
+    replaced by the new one instead of being appended (eg audio.m4a -> audio.mp3, not audio.m4a.mp3)"""
+    extension = util.get_profile_extension(profile)
+    if extension is None:
+        extension = conf.get_property("default.audio.format")
+    if extension is None:
+        extension = fil.extension(source_file)
+    cleaned_base = clean_file_name(source_file)
+    if extension.lower() != fil.extension(source_file).lower():
+        return f"{cleaned_base}.{extension}"
+    return f"{cleaned_base}.{profile}.{extension}"
+
 
 class AudioFile(media.MediaFile):
     # This class is the abstraction of an audio file (eg MP3)
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         if not fil.is_audio_file(filename):
-            raise ex.FileTypeError(file=filename, expected_type='audio')
-        self.abitrate = None
-        self.duration = None
-        self.acodec = None
-        self.audio_sample_rate = None
+            raise ex.FileTypeError(file=filename, expected_type="audio")
+        self.abitrate: int | None = None
+        self.duration: float | None = None
+        self.acodec: str | None = None
+        self.audio_sample_rate: int | None = None
 
-        self.has_album_art = False
-        self.album_art_size = None
+        self.has_album_art: bool = False
+        self.album_art_size: str | None = None
 
-        self.artist = None
-        self.title = None
-        self.author = None
-        self.album = None
-        self.year = None
-        self.track = None
-        self.genre = None
-        self.comment = None
-        self._hash = None
+        self.artist: str | None = None
+        self.title: str | None = None
+        self.author: str | None = None
+        self.album: str | None = None
+        self.year: int | None = None
+        self.track: str | None = None
+        self.genre: str | None = None
+        self.comment: str | None = None
+        self._hash: str | None = None
 
         super().__init__(filename)
         # self.get_specs()
 
-    def csv_values(self):
+    def csv_values(self) -> list[str]:
+        self.get_specs()
         d = vars(self)
-        log.logger.debug("FIle = %s", json.dumps(d, separators=(',', ': '), indent=3))
-        arr = []
-        for k in _CSV_KEYS:
-            v = ''
-            if k in d and d[k] is not None:
-                v = str(d[k])
-            arr.append(v)
-        return arr
+        log.logger.debug("File = %s", json.dumps(d, separators=(",", ": "), indent=3))
+        return [str(d.get(k, "") if d.get(k, "") is not None else "") for k in _CSV_KEYS]
 
-    def get_specs(self):
+    def get_specs(self) -> dict:
         if self.specs is None:
             self.probe()
-        for stream in self.specs['streams']:
-            if stream['codec_type'] == 'audio':
+        for stream in self.specs["streams"]:
+            if stream["codec_type"] == "audio":
                 try:
-                    self.abitrate = stream['bit_rate']
-                    self.duration = float(stream['duration'])
-                    self.acodec = stream['codec_name']
-                    self.audio_sample_rate = stream['sample_rate']
+                    self.abitrate = stream["bit_rate"]
+                    self.duration = float(stream["duration"])
+                    self.acodec = stream["codec_name"]
+                    self.audio_sample_rate = stream["sample_rate"]
                 except KeyError as e:
                     log.logger.error("Stream %s has no key %s\n%s", str(stream), e.args[0], str(stream))
-            elif stream['codec_name'] in ('mjpeg', 'png') and 'coded_width' in stream and 'coded_height' in stream:
+            elif stream["codec_name"] in ("mjpeg", "png") and "coded_width" in stream and "coded_height" in stream:
                 self.has_album_art = True
                 self.album_art_size = f"{stream['coded_width']}x{stream['coded_height']}"
         self.get_tags()
         return self.specs
 
-    def hash(self, algo='audio', force=False):
-        if algo != 'audio':
+    def hash(self, algo: str = "audio", force: bool = False) -> str | None:
+        if algo != "audio":
             return super().hash(algo=algo, force=force)
         if self._hash is None or force:
             self.get_specs()
             self.get_tags()
-            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album,
-                self.year, self.track, self.duration, self.acodec)
+            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
             log.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
         return self._hash
 
-    def get_tags_by_version(self, version=None):
+    def get_tags_by_version(self, version: int | None = None) -> dict:
         """Returns all file MP3 tags"""
-        if self.extension().lower() != 'mp3':
-            raise ex.FileTypeError(self.filename, expected_type='mp3')
+        if self.extension().lower() != "mp3":
+            raise ex.FileTypeError(self.filename, expected_type="mp3")
             # Create MP3File instance.
         if self.title is None:
             mp3 = MP3File(self.filename)
             tags = mp3.get_tags()
-            tags_v1 = tags['ID3TagV1']
-            tags_v2 = tags['ID3TagV2']
+            tags_v1 = tags["ID3TagV1"]
+            tags_v2 = tags["ID3TagV2"]
             if version is None or version not in (1, 2):
                 tags = {**tags_v1, **tags_v2}
             elif version == 1:
@@ -120,143 +155,149 @@ class AudioFile(media.MediaFile):
                 tags = tags_v2
             for k in tags.keys():
                 if isinstance(tags[k], str):
-                    tags[k] = tags[k].rstrip('\u0000')
-            self.artist = tags.get('artist', None)
-            self.title = tags.get('song', None)
-            self.album = tags.get('album', None)
-            self.year = tags.get('year', None)
-            self.track = tags.get('track', None)
-            self.genre = tags.get('genre', None)
-            self.comment = tags.get('comment', None)
+                    tags[k] = tags[k].rstrip("\u0000")
+            self.artist = tags.get("artist", None)
+            self.title = tags.get("song", None)
+            self.album = tags.get("album", None)
+            self.year = tags.get("year", None)
+            self.track = tags.get("track", None)
+            self.genre = tags.get("genre", None)
+            self.comment = tags.get("comment", None)
         return vars(self)
 
-    def get_tags(self, version=None):
+    def get_tags(self, version: int | None = None) -> dict | None:
         log.logger.debug("Getting tags of %s", self.filename)
         self.probe()
         try:
-            tags = self.specs['format']['tags']
+            tags = self.specs["format"]["tags"]
         except KeyError:
             log.logger.warning("Can't get tags for %s", self.filename)
             return None
         log.logger.debug("Tags = %s", util.json_fmt(tags))
-        self.title = tags.get('title', None)
-        self.artist = tags.get('artist', None)
-        self.year = tags.get('date', None)
+        self.title = tags.get("title", None)
+        self.artist = tags.get("artist", None)
+        self.year = tags.get("date", None)
         if self.year is not None:
-            self.year = int(self.year.split('-')[0])
-        self.track = tags.get('track', None)
-        self.album = tags.get('album', None)
-        self.genre = tags.get('genre', None)
+            self.year = int(self.year.split("-")[0])
+        self.track = tags.get("track", None)
+        self.album = tags.get("album", None)
+        self.genre = tags.get("genre", None)
         # self.comment = tags.get('comment', None)
         log.logger.debug("self.title = %s", str(self.title))
         return tags
 
-    def get_title(self):
+    def get_title(self) -> str | None:
         log.logger.debug("get_title(%s)", str(self.title))
         if self.title is None:
             self.get_tags()
         return self.title
 
-    def get_album(self):
+    def get_album(self) -> str | None:
         if self.album is None:
             self.get_tags()
         return self.album
 
-    def get_author(self):
+    def get_author(self) -> str | None:
         return self.get_artist()
 
-    def get_artist(self):
+    def get_artist(self) -> str | None:
         if self.artist is None:
             self.get_tags()
         return self.artist
 
-    def get_track(self):
+    def get_track(self) -> str | None:
         if self.track is None:
             self.get_tags()
         return self.track
 
-    def get_year(self):
+    def get_year(self) -> int | None:
         if self.year is None:
             self.get_tags()
         return self.year
 
-    def get_genre(self):
+    def get_genre(self) -> str | None:
         if self.genre is None:
             self.get_tags()
         return self.genre
 
-    def get_audio_properties(self):
+    def get_audio_properties(self) -> dict:
         if self.acodec is None:
             self.get_specs()
-        return {opt.Option.ABITRATE: self.abitrate, opt.Option.ACODEC: self.acodec,
-                'audio_sample_rate': self.audio_sample_rate}
+        return {opt.Option.ABITRATE: self.abitrate, opt.Option.ACODEC: self.acodec, "audio_sample_rate": self.audio_sample_rate}
 
-    def get_properties(self):
+    def get_properties(self) -> dict:
         all_props = self.get_file_properties()
         all_props.update(self.get_audio_properties())
         return all_props
 
-    def encode(self, target_file=None, profile=None, **kwargs):
-        '''Encodes a file
+    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:
+        """Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
-        - **kwargs accepts at large panel of other ptional options'''
+        - **kwargs accepts at large panel of other ptional options"""
         kwargs = util.get_all_options(fil.FileType.AUDIO_FILE, **kwargs)
+        kwargs["hw_accel"] = False
         log.logger.debug("Audio encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile)
+            target_file = build_target_file(self.filename, profile)
 
         input_settings = media.get_input_settings(**kwargs)
         prefilter_settings = media.get_prefilter_settings(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         raw_settings = util.get_profile_params(profile)
         output_settings = media.get_output_settings(fil.FileType.AUDIO_FILE, **kwargs)
-        ext = target_file.split('.')[-1].lower()
+        ext = target_file.split(".")[-1].lower()
         log.logger.debug("Output file extension = %s", ext)
-        if ext == 'mp3' and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
-            output_settings[opt.OptionFfmpeg.ACODEC] = 'libmp3lame'
+        if ext == "mp3" and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
+            output_settings[opt.OptionFfmpeg.ACODEC] = "libmp3lame"
             log.logger.info("Patching codec for MP3 audio output")
-        elif ext in ('m3a', 'aac') and output_settings[opt.OptionFfmpeg.ACODEC] != 'copy':
-            output_settings[opt.OptionFfmpeg.ACODEC] = 'aac'
+        elif ext in ("m3a", "aac") and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
+            output_settings[opt.OptionFfmpeg.ACODEC] = "aac"
             log.logger.info("Patching codec for AAC audio output")
+        elif ext == "ogg" and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
+            output_settings[opt.OptionFfmpeg.ACODEC] = "libvorbis"
+            log.logger.info("Patching codec for OGG audio output")
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
-        log.logger.info("Encoding mp3 %s", target_file)
+        log.logger.info("Encoding audio %s", target_file)
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f' {str(audio_filters)} {output_str} "{target_file}"'
         util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
 
-    def encode_album_art(self, album_art_file):
+    def encode_album_art(self, album_art_file: str) -> None:
         """Encodes album art image in an audio file after optionally resizing"""
         album_art_std_settings = '-metadata:s:v title="Album cover" -metadata:s:v comment="Cover (Front)"'
-        target_file = util.add_postfix(self.filename, 'album_art')
+        target_file = util.add_postfix(self.filename, "album_art")
 
         # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
         # -metadata:s:v comment="Cover (Front)" %1.mp3
-        util.run_ffmpeg('-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
-            self.filename, album_art_file, album_art_std_settings, target_file))
+        util.run_ffmpeg(
+            '-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
+                self.filename, album_art_file, album_art_std_settings, target_file
+            )
+        )
         shutil.copy(target_file, self.filename)
         os.remove(target_file)
 
-    def set_tag(self, tag, value):
+    def set_tag(self, tag: str, value: object) -> None:
         f = music_tag.load_file(self.filename)
         # dict access returns a MetadataItem
         log.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
         f[tag] = value
         f.save()
 
-    def get_a_tag(self, tag):
+    def get_a_tag(self, tag: str) -> object:
         try:
             f = music_tag.load_file(self.filename)
         except:
-            return ''
+            return ""
         # dict access returns a MetadataItem
-        return f.get(tag, '')
+        return f.get(tag, "")
 
 
-def album_art(*file_list, scale=None):
+def album_art(*file_list: str, scale: str | None = None) -> bool:
     log.logger.debug("Album art(%s)", str(file_list))
     album_cover = fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
     if len(album_cover) != 1:
@@ -277,11 +318,11 @@ def album_art(*file_list, scale=None):
     return True
 
 
-def get_hash_list(filelist, algo='audio', old_hash=None):
+def get_hash_list(filelist: list[str], algo: str = "audio", old_hash: dict | None = None) -> dict:
     log.logger.info("Getting audio hashes of %d files", len(filelist))
-    hashes = {}
+    hashes: dict = {}
     i = 0
-    if algo != 'audio':
+    if algo != "audio":
         return fil.get_hash_list(filelist, algo)
     for f in filelist:
         try:
@@ -299,7 +340,8 @@ def get_hash_list(filelist, algo='audio', old_hash=None):
             log.logger.info("%d audio hashes computed", i)
     return hashes
 
-def update_hash_list(master_dir, hash_file_name=None):
+
+def update_hash_list(master_dir: str, hash_file_name: str | None = None) -> dict:
     log.logger.info("Updating file hash")
     filelist = fil.dir_list(master_dir, recurse=True)
     if hash_file_name is None:
@@ -311,7 +353,7 @@ def update_hash_list(master_dir, hash_file_name=None):
     files = _hash.get("files", {})
     log.logger.info("Already %d files in hash", len(files))
     i, j, k = 0, 0, 0
-    _hash['datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _hash["datetime"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     for f in filelist:
         try:
             file_o = AudioFile(f)
@@ -319,7 +361,7 @@ def update_hash_list(master_dir, hash_file_name=None):
                 log.logger.debug("File %s already in hash", f)
                 file_o.probe()
                 file_o.get_specs()
-                h = file_o.hash('audio')
+                h = file_o.hash("audio")
                 files[f] = h
                 if h in hashes:
                     hashes[h].append(f)
@@ -335,29 +377,48 @@ def update_hash_list(master_dir, hash_file_name=None):
         if (i % 100) == 0:
             log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
     log.logger.info("%d files / %d audio hashes computed / %d updated", i, j, k)
-    _hash['root_directory'] = master_dir
-    _hash['hashes'] = hashes
-    _hash['files'] = files
-    with open(hash_file_name, 'w', encoding='utf-8') as fh:
-        print(json.dumps(_hash, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
+    _hash["root_directory"] = master_dir
+    _hash["hashes"] = hashes
+    _hash["files"] = files
+    with open(hash_file_name, "w", encoding="utf-8") as fh:
+        print(json.dumps(_hash, indent=2, sort_keys=False, separators=(",", ": ")), file=fh)
     return hashes
 
-def save_hash_list(h_file, hash_data):
-    """Saves hash data in a file"""
-    with open(h_file, 'w', encoding='utf-8') as fh:
-        print(json.dumps(hash_data, indent=2, sort_keys=False, separators=(',', ': ')), file=fh)
 
-def read_hash_list(file):
+def save_hash_list(h_file: str, hash_data: dict) -> None:
+    """Saves hash data in a file"""
+    with open(h_file, "w", encoding="utf-8") as fh:
+        print(json.dumps(hash_data, indent=2, sort_keys=False, separators=(",", ": ")), file=fh)
+
+
+def read_hash_list(file: str) -> dict:
     try:
-        with open(file, 'r', encoding='utf-8') as fh:
+        with open(file, "r", encoding="utf-8") as fh:
             data = json.loads(fh.read())
     except FileNotFoundError:
         data = {"datetime": "1970-01-01 00:00:00", "hashes": {}, "files": {}, "root_directory": ""}
     return data
 
 
-def csv_headers():
+def csv_headers() -> list[str]:
     arr = []
     for k in _CSV_KEYS:
         arr.append(k)
     return arr
+
+
+def concat(target_file: str, file_list: list[str]) -> str:
+    """Concatenates several audio files - they must share the same codec and sample rate"""
+    import filters.filter as filters
+
+    file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
+    log.logger.info("%s = %s", target_file, " + ".join(file_list))
+    count = len(file_list)
+    inputs = filters.inputs_str(file_list)
+    cmplx = "".join(f"[{i}:a]" for i in range(count))
+    cmplx += f"concat=n={count}:v=0:a=1[outa]"
+    first = AudioFile(file_list[0])
+    first.get_specs()
+    cmd = f'{inputs} -filter_complex "{cmplx}" -map "[outa]" -acodec "{first.acodec}" -b:a "{first.abitrate}" "{target_file}"'
+    util.run_ffmpeg(cmd.strip())
+    return target_file

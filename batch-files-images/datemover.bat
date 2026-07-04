@@ -1,7 +1,7 @@
 :: setlocal enabledelayedexpansion
 
-:: set /p year=Proper year ?
+set /p year=Proper year ?
 :: datefixer --year="%year%" --files %*
-datefixer --year=2024 --files %*
+datefixer --mode year --year=%year% --files %*
 
 :: pause

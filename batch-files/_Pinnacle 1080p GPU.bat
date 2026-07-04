@@ -18,6 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
+:: setlocal enabledelayedexpansion
 
 encode -i %* --hw_accel on --vcodec x264 --width 1920 --vbitrate 20000k --acodec aac --abitrate 128k

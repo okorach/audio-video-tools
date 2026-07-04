@@ -21,16 +21,20 @@
 import filters.filters as fil
 import mediatools.exceptions as ex
 
-ROTATE = 'rotate: '
+ROTATE = "rotate: "
+
 
 def test_rotate_1():
-    assert fil.rotate(90) == 'transpose=1'
+    assert fil.rotate(90) == "transpose=1"
+
 
 def test_rotate_2():
-    assert fil.rotate(-90) == 'transpose=2'
+    assert fil.rotate(-90) == "transpose=2"
+
 
 def test_rotate_3():
-    assert fil.rotate(1) == 'transpose=1'
+    assert fil.rotate(1) == "transpose=1"
+
 
 def test_rotate_err_1():
     try:
@@ -38,11 +42,13 @@ def test_rotate_err_1():
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_2
 
+
 def test_rotate_err_2():
     try:
-        _ = fil.rotate('counterclockwise')
+        _ = fil.rotate("counterclockwise")
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_1
+
 
 def test_rotate_err_3():
     try:
@@ -50,15 +56,17 @@ def test_rotate_err_3():
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
+
 def test_rotate_err_4():
     try:
         _ = fil.rotate([2])
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
+
 def test_str():
     testf = fil.Simple()
-    assert str(testf) == ''
+    assert str(testf) == ""
     f = fil.rotate(90)
     testf = fil.Simple(filters=f)
     assert str(testf) == '-vf "{}"'.format(f)
@@ -66,7 +74,7 @@ def test_str():
     assert str(testf) == '-vf "{0},{0}"'.format(f)
     o = fil.overlay()
     testf.insert(1, o)
-    assert str(testf) == '-vf "{0},{1},{0}"'.format(f,o)
+    assert str(testf) == '-vf "{0},{1},{0}"'.format(f, o)
 
-    testf = fil.Simple(filters=[f,f])
+    testf = fil.Simple(filters=[f, f])
     assert str(testf) == '-vf "{0},{0}"'.format(f)

@@ -33,10 +33,10 @@ import mediatools.audiofile as audio
 
 
 def main():
-    util.init('audio-shuffle')
-    parser = argparse.ArgumentParser(description='Shuffle audio files with random numeric prefix')
-    parser.add_argument('-i', '--inputfiles', metavar='N', type=str, nargs='+', help='List of files to shuffle')
-    parser.add_argument('-g', '--debug', required=False, type=int, help='Debug level')
+    util.init("audio-shuffle")
+    parser = argparse.ArgumentParser(description="Shuffle audio files with random numeric prefix")
+    parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to shuffle")
+    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
     files_to_shuffle = []
     for file in kwargs["inputfiles"]:
@@ -56,7 +56,7 @@ def main():
         basename = fil.basename(file)
         ext = fil.extension(basename)
         prefix = fil.strip_extension(basename)
-        pieces = prefix.split('.')
+        pieces = prefix.split(".")
         i = 0
         for p in pieces:
             if not re.match(r"^[ 0-9]+$", p):

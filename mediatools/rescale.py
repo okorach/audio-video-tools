@@ -19,11 +19,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-'''
+"""
 This script rescale an image to different dimension
 It can also rescale all the images of a given directory
 Pass rescale dimensions as -s WxH
-'''
+"""
 
 import mediatools.imagefile as image
 import mediatools.utilities as util
@@ -37,12 +37,13 @@ def __int_or_empty(x):
 
 
 def main():
-    parser = util.get_common_args('image-scale', 'Rescale image dimensions of a file or directory')
+    parser = util.get_common_args("image-scale", "Rescale image dimensions of a file or directory")
     kwargs = util.parse_media_args(parser)
-    outputfile = image.ImageFile(kwargs['inputfiles'][0]).scale(
-        kwargs.get('width', -1), kwargs.get('height', -1), out_file=kwargs.get('outputfile', None))
+    outputfile = image.ImageFile(kwargs["inputfiles"][0]).scale(
+        kwargs.get("width", -1), kwargs.get("height", -1), out_file=kwargs.get("outputfile", None)
+    )
 
-    print('Generated', outputfile)
+    print("Generated", outputfile)
 
 
 if __name__ == "__main__":
