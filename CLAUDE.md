@@ -95,3 +95,4 @@ Requires `ffmpeg` and `ffprobe` on PATH (or configured via properties). Image me
 - **Formatter:** `black --line-length=150`
 - All Python files carry the LGPL v3 license header
 - Python 3.6+ required
+- All new code should be systematically covered by tests
