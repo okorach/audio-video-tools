@@ -368,8 +368,7 @@ def test_read_existing_tags_m4a_no_tags():
 def test_write_tags_mp3(tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    with patch("mediatools.audio_normalize.os.utime"):
-        norm._write_tags(dest, "Seal", "Crazy", "Seal", 1, 1994, "Rock", None)
+    norm._write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock"))
     tags = ID3(dest)
     assert str(tags["TPE1"]) == "Seal"
     assert str(tags["TIT2"]) == "Crazy"
@@ -379,7 +378,7 @@ def test_write_tags_mp3(tmp_path):
 def test_write_tags_mp3_with_cover(tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    norm._write_tags(dest, "Seal", "Crazy", "Seal", 1, 1994, "Rock", b"\xff\xd8\xff")
+    norm._write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock", cover_bytes=b"\xff\xd8\xff"))
     tags = ID3(dest)
     assert any(k.startswith("APIC") for k in tags)
 
@@ -388,7 +387,7 @@ def test_write_tags_m4a():
     mock_mp4 = MagicMock()
     mock_mp4.tags = {}
     with patch("mediatools.audio_normalize.MP4", return_value=mock_mp4):
-        norm._write_tags("song.m4a", "Artist", "Title", "Album", 1, 2000, "Rock", None)
+        norm._write_tags("song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Rock"))
     assert mock_mp4.save.called
 
 
@@ -396,7 +395,7 @@ def test_write_tags_m4a_with_cover():
     mock_mp4 = MagicMock()
     mock_mp4.tags = {}
     with patch("mediatools.audio_normalize.MP4", return_value=mock_mp4):
-        norm._write_tags("song.m4a", "Artist", "Title", "Album", 1, 2000, "Pop", b"\xff\xd8\xff")
+        norm._write_tags("song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Pop", cover_bytes=b"\xff\xd8\xff"))
     assert "covr" in mock_mp4.tags
 
 
@@ -405,17 +404,17 @@ def test_write_tags_vorbis_ogg():
     mock_audio.tags = {}
     mock_audio.__class__ = MagicMock  # not FLAC
     with patch("mediatools.audio_normalize.mutagen.File", return_value=mock_audio):
-        norm._write_tags("song.ogg", "Artist", "Title", "Album", 2, 2005, "Folk", None)
+        norm._write_tags("song.ogg", norm.AudioTags(artist="Artist", title="Title", album="Album", track=2, year=2005, genre="Folk"))
     assert mock_audio.save.called
 
 
 def test_write_tags_vorbis_none_file():
     with patch("mediatools.audio_normalize.mutagen.File", return_value=None):
-        norm._write_tags("song.ogg", "Artist", "Title", "Album", 1, 2000, None, None)
+        norm._write_tags("song.ogg", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
 def test_write_tags_exception(tmp_path):
-    norm._write_tags("/nonexistent/song.mp3", "Artist", "Title", "Album", 1, 2000, None, None)
+    norm._write_tags("/nonexistent/song.mp3", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
 # ---------------------------------------------------------------------------
