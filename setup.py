@@ -56,6 +56,7 @@ setuptools.setup(
         "librosa",
         "musicbrainzngs",
         "mutagen",
+        "Pillow",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -97,6 +98,7 @@ setuptools.setup(
             "audio-speed = mediatools.audiospeed:main",
             "video-enhance = mediatools.video_enhance:main",
             "fix-mp3-meta = mediatools.fix_mp3_meta:main",
+            "audio-normalize = mediatools.audio_normalize:main",
         ]
     },
     python_requires=">=3.10",

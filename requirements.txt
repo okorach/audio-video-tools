@@ -19,3 +19,4 @@ exifread
 librosa
 musicbrainzngs
 mutagen
+Pillow

@@ -29,6 +29,7 @@ dependencies = [
     "pywin32",
     "musicbrainzngs",
     "mutagen",
+    "Pillow",
 ]
 
 classifiers = [
@@ -84,6 +85,7 @@ audio-concat     = "mediatools.audioconcat:main"
 audio-speed      = "mediatools.audiospeed:main"
 video-enhance    = "mediatools.video_enhance:main"
 fix-mp3-meta     = "mediatools.fix_mp3_meta:main"
+audio-normalize  = "mediatools.audio_normalize:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]
