@@ -54,6 +54,7 @@ from mutagen.flac import FLAC, Picture as FlacPicture
 
 try:
     from PIL import Image as PilImage
+
     _PIL_AVAILABLE = True
 except ImportError:
     _PIL_AVAILABLE = False
@@ -72,50 +73,168 @@ musicbrainzngs.set_useragent("audio-video-tools", "0.7", "olivier.korach@gmail.c
 # ---------------------------------------------------------------------------
 _ID3V1_GENRES: list[str] = [
     # 0–9
-    "Blues", "Classic Rock", "Country", "Dance", "Disco",
-    "Funk", "Grunge", "Hip-Hop", "Jazz", "Metal",
+    "Blues",
+    "Classic Rock",
+    "Country",
+    "Dance",
+    "Disco",
+    "Funk",
+    "Grunge",
+    "Hip-Hop",
+    "Jazz",
+    "Metal",
     # 10–19
-    "New Age", "Oldies", "Other", "Pop", "Rhythm and Blues",
-    "Rap", "Reggae", "Rock", "Techno", "Industrial",
+    "New Age",
+    "Oldies",
+    "Other",
+    "Pop",
+    "Rhythm and Blues",
+    "Rap",
+    "Reggae",
+    "Rock",
+    "Techno",
+    "Industrial",
     # 20–29
-    "Alternative", "Ska", "Death Metal", "Pranks", "Soundtrack",
-    "Euro-Techno", "Ambient", "Trip-Hop", "Vocal", "Jazz & Funk",
+    "Alternative",
+    "Ska",
+    "Death Metal",
+    "Pranks",
+    "Soundtrack",
+    "Euro-Techno",
+    "Ambient",
+    "Trip-Hop",
+    "Vocal",
+    "Jazz & Funk",
     # 30–39
-    "Fusion", "Trance", "Classical", "Instrumental", "Acid",
-    "House", "Game", "Sound Clip", "Gospel", "Noise",
+    "Fusion",
+    "Trance",
+    "Classical",
+    "Instrumental",
+    "Acid",
+    "House",
+    "Game",
+    "Sound Clip",
+    "Gospel",
+    "Noise",
     # 40–49
-    "Alternative Rock", "Bass", "Soul", "Punk", "Space",
-    "Meditative", "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic",
+    "Alternative Rock",
+    "Bass",
+    "Soul",
+    "Punk",
+    "Space",
+    "Meditative",
+    "Instrumental Pop",
+    "Instrumental Rock",
+    "Ethnic",
+    "Gothic",
     # 50–59
-    "Darkwave", "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance",
-    "Dream", "Southern Rock", "Comedy", "Cult", "Gangsta",
+    "Darkwave",
+    "Techno-Industrial",
+    "Electronic",
+    "Pop-Folk",
+    "Eurodance",
+    "Dream",
+    "Southern Rock",
+    "Comedy",
+    "Cult",
+    "Gangsta",
     # 60–69
-    "Top 40", "Christian Rap", "Pop/Funk", "Jungle", "Native US",
-    "Cabaret", "New Wave", "Psychedelic", "Rave", "Showtunes",
+    "Top 40",
+    "Christian Rap",
+    "Pop/Funk",
+    "Jungle",
+    "Native US",
+    "Cabaret",
+    "New Wave",
+    "Psychedelic",
+    "Rave",
+    "Showtunes",
     # 70–79
-    "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
-    "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock",
+    "Trailer",
+    "Lo-Fi",
+    "Tribal",
+    "Acid Punk",
+    "Acid Jazz",
+    "Polka",
+    "Retro",
+    "Musical",
+    "Rock & Roll",
+    "Hard Rock",
     # 80–89 (Winamp)
-    "Folk", "Folk-Rock", "National Folk", "Swing", "Fast Fusion",
-    "Bebop", "Latin", "Revival", "Celtic", "Bluegrass",
+    "Folk",
+    "Folk-Rock",
+    "National Folk",
+    "Swing",
+    "Fast Fusion",
+    "Bebop",
+    "Latin",
+    "Revival",
+    "Celtic",
+    "Bluegrass",
     # 90–99
-    "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", "Symphonic Rock",
-    "Slow Rock", "Big Band", "Chorus", "Easy Listening", "Acoustic",
+    "Avantgarde",
+    "Gothic Rock",
+    "Progressive Rock",
+    "Psychedelic Rock",
+    "Symphonic Rock",
+    "Slow Rock",
+    "Big Band",
+    "Chorus",
+    "Easy Listening",
+    "Acoustic",
     # 100–109
-    "Humour", "Speech", "Chanson", "Opera", "Chamber Music",
-    "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove",
+    "Humour",
+    "Speech",
+    "Chanson",
+    "Opera",
+    "Chamber Music",
+    "Sonata",
+    "Symphony",
+    "Booty Bass",
+    "Primus",
+    "Porn Groove",
     # 110–119
-    "Satire", "Slow Jam", "Club", "Tango", "Samba",
-    "Folklore", "Ballad", "Power Ballad", "Rhythmic Soul", "Freestyle",
+    "Satire",
+    "Slow Jam",
+    "Club",
+    "Tango",
+    "Samba",
+    "Folklore",
+    "Ballad",
+    "Power Ballad",
+    "Rhythmic Soul",
+    "Freestyle",
     # 120–129
-    "Duet", "Punk Rock", "Drum Solo", "A Cappella", "Euro-House",
-    "Dance Hall", "Goa", "Drum & Bass", "Club-House", "Hardcore Techno",
+    "Duet",
+    "Punk Rock",
+    "Drum Solo",
+    "A Cappella",
+    "Euro-House",
+    "Dance Hall",
+    "Goa",
+    "Drum & Bass",
+    "Club-House",
+    "Hardcore Techno",
     # 130–139
-    "Terror", "Indie", "BritPop", "Negerpunk", "Polsk Punk",
-    "Beat", "Christian Gangsta Rap", "Heavy Metal", "Black Metal", "Crossover",
+    "Terror",
+    "Indie",
+    "BritPop",
+    "Negerpunk",
+    "Polsk Punk",
+    "Beat",
+    "Christian Gangsta Rap",
+    "Heavy Metal",
+    "Black Metal",
+    "Crossover",
     # 140–147
-    "Contemporary Christian", "Christian Rock", "Merengue", "Salsa",
-    "Thrash Metal", "Anime", "JPop", "Synthpop",
+    "Contemporary Christian",
+    "Christian Rock",
+    "Merengue",
+    "Salsa",
+    "Thrash Metal",
+    "Anime",
+    "JPop",
+    "Synthpop",
 ]
 _GENRE_LOWER: dict[str, int] = {g.lower(): i for i, g in enumerate(_ID3V1_GENRES)}
 
@@ -218,7 +337,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
     tm = _TRACK_PREFIX_RE.match(base_name)
     if tm:
         track = int(tm.group(1))
-        rest = base_name[tm.end():].strip()
+        rest = base_name[tm.end() :].strip()
     else:
         rest = base_name.strip()
 
@@ -489,7 +608,9 @@ def _write_tags(
             _write_tags_vorbis(filepath, artist, title, album, track, year, genre, cover_bytes)
         else:
             _write_tags_mp3(filepath, artist, title, album, track, year, genre, cover_bytes)
-        log.logger.info("Tags written: %s | artist=%s title=%s album=%s track=%s year=%s genre=%s", filepath, artist, title, album, track, year, genre)
+        log.logger.info(
+            "Tags written: %s | artist=%s title=%s album=%s track=%s year=%s genre=%s", filepath, artist, title, album, track, year, genre
+        )
     except Exception as e:
         log.logger.error("Failed to write tags for %s: %s", filepath, str(e))
 
@@ -698,7 +819,14 @@ def _process_file(
 
     log.logger.info(
         "File: %s  artist=%s  title=%s  album=%s  track=%s  year=%s  genre=%s  date=%s",
-        base, artist, title, album, track, year, genre, release_date,
+        base,
+        artist,
+        title,
+        album,
+        track,
+        year,
+        genre,
+        release_date,
     )
 
     if dry_run:
