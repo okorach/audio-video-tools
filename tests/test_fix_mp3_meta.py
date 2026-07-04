@@ -534,3 +534,155 @@ def test_main_mixed_files_and_dirs(tmp_path):
         with pytest.raises(SystemExit) as exc:
             fix.main()
     assert exc.value.code == 0
+
+
+def test_main_with_debug_flag(tmp_path):
+    """main() -g flag sets debug level without crashing."""
+    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]), \
+         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
+
+
+def test_main_with_subdirectories(tmp_path):
+    """main() processes subdirectories when root dir contains them."""
+    subdir = tmp_path / "Seal - Seal (1991)"
+    subdir.mkdir()
+    shutil.copy(FIXTURE_MP3, str(subdir / "01 - Crazy.mp3"))
+    with patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]), \
+         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
+
+
+def test_main_individual_files_mb_lookup(tmp_path):
+    """When individual files are in an Artist-Album dir, MB lookup fires for the album."""
+    parent = tmp_path / "Seal - Seal"
+    parent.mkdir()
+    src = str(parent / "01.mp3")
+    shutil.copy(FIXTURE_MP3, src)
+    tags = ID3(src)
+    tags.delall("TDRC")
+    tags.save(src)
+    mock_release = {"release-list": [{"id": "x", "date": "1991"}]}
+    mock_full = {"release": {"medium-list": []}}
+    with patch("sys.argv", ["fix-mp3-meta", "-f", src]), \
+         patch("musicbrainzngs.search_releases", return_value=mock_release), \
+         patch("musicbrainzngs.get_release_by_id", return_value=mock_full), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
+    dt = datetime.datetime.fromtimestamp(os.path.getmtime(src))
+    assert dt.year == 1991
+
+
+def test_main_skips_non_audio_file(tmp_path):
+    """main() logs a warning and skips entries that are not audio files or directories."""
+    txt_file = str(tmp_path / "readme.txt")
+    with open(txt_file, "w") as f:
+        f.write("not audio")
+    with patch("sys.argv", ["fix-mp3-meta", "-f", txt_file]):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
+
+
+# ---------------------------------------------------------------------------
+# M4A / AAC tag support
+# ---------------------------------------------------------------------------
+
+def test_is_m4a():
+    assert fix._is_m4a("song.m4a") is True
+    assert fix._is_m4a("song.aac") is True
+    assert fix._is_m4a("song.mp3") is False
+    assert fix._is_m4a("song.ogg") is False
+
+
+def _make_mp4_mock(artist="Seal", title="Crazy", album="Seal", track=[(3, 0)], year="1991"):
+    """Build a MagicMock that behaves like a mutagen MP4 object."""
+    tags = {
+        "©ART": [artist],
+        "©nam": [title],
+        "©alb": [album],
+        "trkn": track,
+        "©day": [year],
+    }
+    mock_audio = MagicMock()
+    mock_audio.tags = tags
+    return mock_audio
+
+
+def test_read_existing_tags_m4a_full():
+    """_read_existing_tags reads all fields from an M4A file."""
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=_make_mp4_mock()):
+        artist, title, album, track, year = fix._read_existing_tags("song.m4a")
+    assert artist == "Seal"
+    assert title == "Crazy"
+    assert album == "Seal"
+    assert track == 3
+    assert year == 1991
+
+
+def test_read_existing_tags_m4a_no_tags():
+    """_read_existing_tags handles an M4A with no tags gracefully."""
+    mock_audio = MagicMock()
+    mock_audio.tags = None
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=mock_audio):
+        artist, title, album, track, year = fix._read_existing_tags("song.m4a")
+    assert artist is None and title is None and album is None
+    assert track is None and year is None
+
+
+def test_read_existing_tags_m4a_invalid_track():
+    """Non-numeric trkn in M4A is skipped without crash."""
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=_make_mp4_mock(track=[("bad", 0)])):
+        _, _, _, track, _ = fix._read_existing_tags("song.m4a")
+    assert track is None
+
+
+def test_read_existing_tags_m4a_invalid_year():
+    """Non-numeric year in M4A is skipped without crash."""
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=_make_mp4_mock(year="unknown")):
+        _, _, _, _, year = fix._read_existing_tags("song.m4a")
+    assert year is None
+
+
+def test_write_tags_m4a():
+    """_write_tags writes iTunes atoms to an M4A file."""
+    mock_audio = _make_mp4_mock()
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=mock_audio):
+        fix._write_tags("song.m4a", artist="Seal", title="Crazy", album="Seal", track=3, year=1991)
+    mock_audio.save.assert_called_once()
+    assert mock_audio.tags["©ART"] == ["Seal"]
+    assert mock_audio.tags["©nam"] == ["Crazy"]
+    assert mock_audio.tags["©alb"] == ["Seal"]
+    assert mock_audio.tags["trkn"] == [(3, 0)]
+    assert mock_audio.tags["©day"] == ["1991"]
+
+
+def test_write_tags_m4a_no_existing_tags():
+    """_write_tags calls add_tags() when M4A has no tag container."""
+    mock_audio = MagicMock()
+    mock_audio.tags = None
+    with patch("mediatools.fix_mp3_meta.MP4", return_value=mock_audio):
+        fix._write_tags("song.m4a", artist="A", title="T", album="Al", track=1, year=2000)
+    mock_audio.add_tags.assert_called_once()
+
+
+def test_process_file_m4a(tmp_path):
+    """_process_file correctly handles an M4A file end-to-end."""
+    m4a_path = str(tmp_path / "01 - Crazy.m4a")
+    mock_audio = _make_mp4_mock(track=[(1, 0)], year="")
+    mock_write = MagicMock()
+    mock_write.tags = {}
+    with patch("mediatools.fix_mp3_meta.MP4", side_effect=[mock_audio, mock_write]), \
+         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}), \
+         patch("os.utime"):
+        fix._process_file(m4a_path, dir_artist="Seal", dir_album="Seal", dir_year=1991, mb_tracks=[], dry_run=False)
+    mock_write.save.assert_called_once()
