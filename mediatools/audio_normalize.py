@@ -37,11 +37,11 @@ from __future__ import annotations
 
 import base64
 import datetime
+from dataclasses import dataclass, field as dc_field
 import io
 import os
 import re
 import sys
-import time
 import unicodedata
 import argparse
 
@@ -62,6 +62,25 @@ except ImportError:
 from mediatools import log
 import mediatools.utilities as util
 import utilities.file as fil
+
+
+# ---------------------------------------------------------------------------
+# Tag data container
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AudioTags:
+    """Bundles all writable audio metadata for a single file."""
+
+    artist: str | None = None
+    title: str | None = None
+    album: str | None = None
+    track: int | None = None
+    year: int | None = None
+    genre: str | None = None
+    cover_bytes: bytes | None = dc_field(default=None, repr=False)
+
 
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
@@ -370,6 +389,28 @@ def _parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
         return None, None
 
 
+def _extract_genre_from_release(release: dict) -> str | None:
+    """Return the first recognisable genre from a MusicBrainz release dict."""
+    for g in release.get("genre-list", []):
+        candidate = _find_genre(g.get("name", ""))
+        if candidate:
+            return candidate
+    for t in release.get("tag-list", []):
+        candidate = _find_genre(t.get("name", ""))
+        if candidate:
+            return candidate
+    return None
+
+
+def _extract_tracks_from_release(release: dict) -> list[str]:
+    """Return a flat list of recording titles from a MusicBrainz release dict."""
+    tracks: list[str] = []
+    for medium in release.get("medium-list", []):
+        for track in medium.get("track-list", []):
+            tracks.append(track.get("recording", {}).get("title", ""))
+    return tracks
+
+
 def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.date | None, str | None, list[str], str | None]:
     """Returns (year, exact_date, genre, track_titles, release_id) for the best MusicBrainz match."""
     if not artist or not album:
@@ -382,36 +423,13 @@ def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.da
         rel = releases[0]
         release_id = rel["id"]
         year, exact_date = _parse_mb_date(rel.get("date", ""))
-
-        # Fetch full release with recordings and genres
         full = musicbrainzngs.get_release_by_id(release_id, includes=["recordings", "genres", "tags"])
         release = full.get("release", {})
-
-        # Refresh date from full record
         full_date_str = release.get("date", "")
         if full_date_str:
             year, exact_date = _parse_mb_date(full_date_str)
-
-        # Genre from release
-        genre: str | None = None
-        for g in release.get("genre-list", []):
-            candidate = _find_genre(g.get("name", ""))
-            if candidate:
-                genre = candidate
-                break
-        if not genre:
-            for t in release.get("tag-list", []):
-                candidate = _find_genre(t.get("name", ""))
-                if candidate:
-                    genre = candidate
-                    break
-
-        # Track titles
-        tracks: list[str] = []
-        for medium in release.get("medium-list", []):
-            for track in medium.get("track-list", []):
-                tracks.append(track.get("recording", {}).get("title", ""))
-
+        genre = _extract_genre_from_release(release)
+        tracks = _extract_tracks_from_release(release)
         return year, exact_date, genre, tracks, release_id
     except Exception as e:
         log.logger.warning("MusicBrainz lookup failed for '%s' / '%s': %s", artist, album, str(e))
@@ -519,71 +537,92 @@ def _is_vorbis(filepath: str) -> bool:
 _M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "©day", "track": "trkn", "genre": "©gen"}
 
 
-def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
-    """Returns (artist, title, album, track, year, genre) from existing file tags."""
+def _read_tags_mp3(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
+    """Read ID3 tags from an MP3 file."""
     artist = title = album = genre = None
     track = year = None
+    audio = MP3(filepath)
+    if audio.tags:
+        artist = str(audio.tags.get("TPE1", "")).strip() or None
+        title = str(audio.tags.get("TIT2", "")).strip() or None
+        album = str(audio.tags.get("TALB", "")).strip() or None
+        genre_tag = audio.tags.get("TCON")
+        genre = str(genre_tag).strip() or None if genre_tag else None
+        trk_raw = str(audio.tags.get("TRCK", "")).strip()
+        if trk_raw:
+            try:
+                track = int(trk_raw.split("/")[0])
+            except ValueError:
+                pass
+        yr_raw = str(audio.tags.get("TDRC", "")).strip()
+        if yr_raw:
+            try:
+                year = int(yr_raw[:4])
+            except ValueError:
+                pass
+    return artist, title, album, track, year, genre
+
+
+def _read_tags_m4a(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
+    """Read iTunes atoms from an M4A/AAC file."""
+    tags = MP4(filepath).tags or {}
+    artist = (tags.get(_M4A_TAG_MAP["artist"], [None])[0] or "").strip() or None
+    title = (tags.get(_M4A_TAG_MAP["title"], [None])[0] or "").strip() or None
+    album = (tags.get(_M4A_TAG_MAP["album"], [None])[0] or "").strip() or None
+    genre = (tags.get(_M4A_TAG_MAP["genre"], [None])[0] or "").strip() or None
+    track: int | None = None
+    year: int | None = None
+    trkn = tags.get(_M4A_TAG_MAP["track"])
+    if trkn:
+        try:
+            track = int(trkn[0][0])
+        except (ValueError, IndexError, TypeError):
+            pass
+    day = (tags.get(_M4A_TAG_MAP["year"], [None])[0] or "").strip()
+    if day:
+        try:
+            year = int(day[:4])
+        except ValueError:
+            pass
+    return artist, title, album, track, year, genre
+
+
+def _read_tags_vorbis(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
+    """Read Vorbis comments from OGG/OPUS/FLAC files."""
+    artist = title = album = genre = None
+    track = year = None
+    audio = mutagen.File(filepath)
+    if audio and audio.tags:
+        artist = (audio.tags.get("artist", [None])[0] or "").strip() or None
+        title = (audio.tags.get("title", [None])[0] or "").strip() or None
+        album = (audio.tags.get("album", [None])[0] or "").strip() or None
+        genre = (audio.tags.get("genre", [None])[0] or "").strip() or None
+        trk_raw = (audio.tags.get("tracknumber", [None])[0] or "").strip()
+        if trk_raw:
+            try:
+                track = int(trk_raw.split("/")[0])
+            except ValueError:
+                pass
+        yr_raw = (audio.tags.get("date", [None])[0] or "").strip()
+        if yr_raw:
+            try:
+                year = int(yr_raw[:4])
+            except ValueError:
+                pass
+    return artist, title, album, track, year, genre
+
+
+def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
+    """Returns (artist, title, album, track, year, genre) from existing file tags."""
     try:
         if _is_m4a(filepath):
-            tags = MP4(filepath).tags or {}
-            artist = (tags.get(_M4A_TAG_MAP["artist"], [None])[0] or "").strip() or None
-            title = (tags.get(_M4A_TAG_MAP["title"], [None])[0] or "").strip() or None
-            album = (tags.get(_M4A_TAG_MAP["album"], [None])[0] or "").strip() or None
-            genre = (tags.get(_M4A_TAG_MAP["genre"], [None])[0] or "").strip() or None
-            trkn = tags.get(_M4A_TAG_MAP["track"])
-            if trkn:
-                try:
-                    track = int(trkn[0][0])
-                except (ValueError, IndexError, TypeError):
-                    pass
-            day = (tags.get(_M4A_TAG_MAP["year"], [None])[0] or "").strip()
-            if day:
-                try:
-                    year = int(day[:4])
-                except ValueError:
-                    pass
-        elif _is_vorbis(filepath):
-            audio = mutagen.File(filepath)
-            if audio and audio.tags:
-                artist = (audio.tags.get("artist", [None])[0] or "").strip() or None
-                title = (audio.tags.get("title", [None])[0] or "").strip() or None
-                album = (audio.tags.get("album", [None])[0] or "").strip() or None
-                genre = (audio.tags.get("genre", [None])[0] or "").strip() or None
-                trk_raw = (audio.tags.get("tracknumber", [None])[0] or "").strip()
-                if trk_raw:
-                    try:
-                        track = int(trk_raw.split("/")[0])
-                    except ValueError:
-                        pass
-                yr_raw = (audio.tags.get("date", [None])[0] or "").strip()
-                if yr_raw:
-                    try:
-                        year = int(yr_raw[:4])
-                    except ValueError:
-                        pass
-        else:
-            audio = MP3(filepath)
-            if audio.tags:
-                artist = str(audio.tags.get("TPE1", "")).strip() or None
-                title = str(audio.tags.get("TIT2", "")).strip() or None
-                album = str(audio.tags.get("TALB", "")).strip() or None
-                genre_tag = audio.tags.get("TCON")
-                genre = str(genre_tag).strip() or None if genre_tag else None
-                trk_raw = str(audio.tags.get("TRCK", "")).strip()
-                if trk_raw:
-                    try:
-                        track = int(trk_raw.split("/")[0])
-                    except ValueError:
-                        pass
-                yr_raw = str(audio.tags.get("TDRC", "")).strip()
-                if yr_raw:
-                    try:
-                        year = int(yr_raw[:4])
-                    except ValueError:
-                        pass
+            return _read_tags_m4a(filepath)
+        if _is_vorbis(filepath):
+            return _read_tags_vorbis(filepath)
+        return _read_tags_mp3(filepath)
     except Exception as e:
         log.logger.warning("Could not read tags from %s: %s", filepath, str(e))
-    return artist, title, album, track, year, genre
+        return None, None, None, None, None, None
 
 
 # ---------------------------------------------------------------------------
@@ -591,127 +630,92 @@ def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | No
 # ---------------------------------------------------------------------------
 
 
-def _write_tags(
-    filepath: str,
-    artist: str | None,
-    title: str | None,
-    album: str | None,
-    track: int | None,
-    year: int | None,
-    genre: str | None,
-    cover_bytes: bytes | None,
-) -> None:
+def _write_tags(filepath: str, audio_tags: AudioTags) -> None:
     """Write tags to an audio file across all supported formats."""
     try:
         if _is_m4a(filepath):
-            _write_tags_m4a(filepath, artist, title, album, track, year, genre, cover_bytes)
+            _write_tags_m4a(filepath, audio_tags)
         elif _is_vorbis(filepath):
-            _write_tags_vorbis(filepath, artist, title, album, track, year, genre, cover_bytes)
+            _write_tags_vorbis(filepath, audio_tags)
         else:
-            _write_tags_mp3(filepath, artist, title, album, track, year, genre, cover_bytes)
+            _write_tags_mp3(filepath, audio_tags)
         log.logger.info(
-            "Tags written: %s | artist=%s title=%s album=%s track=%s year=%s genre=%s", filepath, artist, title, album, track, year, genre
+            "Tags written: %s | artist=%s title=%s album=%s track=%s year=%s genre=%s",
+            filepath, audio_tags.artist, audio_tags.title, audio_tags.album,
+            audio_tags.track, audio_tags.year, audio_tags.genre,
         )
     except Exception as e:
         log.logger.error("Failed to write tags for %s: %s", filepath, str(e))
 
 
-def _write_tags_mp3(
-    filepath: str,
-    artist: str | None,
-    title: str | None,
-    album: str | None,
-    track: int | None,
-    year: int | None,
-    genre: str | None,
-    cover_bytes: bytes | None,
-) -> None:
+def _write_tags_mp3(filepath: str, audio_tags: AudioTags) -> None:
     try:
-        tags = ID3(filepath)
+        id3 = ID3(filepath)
     except ID3NoHeaderError:
-        tags = ID3()
-    if artist:
-        tags["TPE1"] = TPE1(encoding=3, text=artist)
-    if title:
-        tags["TIT2"] = TIT2(encoding=3, text=title)
-    if album:
-        tags["TALB"] = TALB(encoding=3, text=album)
-    if track is not None:
-        tags["TRCK"] = TRCK(encoding=3, text=str(track))
-    if year is not None:
-        tags["TDRC"] = TDRC(encoding=3, text=str(year))
-    if genre:
-        tags["TCON"] = TCON(encoding=3, text=genre)
-    if cover_bytes:
-        tags["APIC"] = APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=cover_bytes)
-    tags.save(filepath, v1=2, v2_version=3)
+        id3 = ID3()
+    if audio_tags.artist:
+        id3["TPE1"] = TPE1(encoding=3, text=audio_tags.artist)
+    if audio_tags.title:
+        id3["TIT2"] = TIT2(encoding=3, text=audio_tags.title)
+    if audio_tags.album:
+        id3["TALB"] = TALB(encoding=3, text=audio_tags.album)
+    if audio_tags.track is not None:
+        id3["TRCK"] = TRCK(encoding=3, text=str(audio_tags.track))
+    if audio_tags.year is not None:
+        id3["TDRC"] = TDRC(encoding=3, text=str(audio_tags.year))
+    if audio_tags.genre:
+        id3["TCON"] = TCON(encoding=3, text=audio_tags.genre)
+    if audio_tags.cover_bytes:
+        id3["APIC"] = APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=audio_tags.cover_bytes)
+    id3.save(filepath, v1=2, v2_version=3)
 
 
-def _write_tags_m4a(
-    filepath: str,
-    artist: str | None,
-    title: str | None,
-    album: str | None,
-    track: int | None,
-    year: int | None,
-    genre: str | None,
-    cover_bytes: bytes | None,
-) -> None:
+def _write_tags_m4a(filepath: str, audio_tags: AudioTags) -> None:
     audio = MP4(filepath)
     if audio.tags is None:
         audio.add_tags()
-    if artist:
-        audio.tags[_M4A_TAG_MAP["artist"]] = [artist]
-    if title:
-        audio.tags[_M4A_TAG_MAP["title"]] = [title]
-    if album:
-        audio.tags[_M4A_TAG_MAP["album"]] = [album]
-    if track is not None:
-        audio.tags[_M4A_TAG_MAP["track"]] = [(track, 0)]
-    if year is not None:
-        audio.tags[_M4A_TAG_MAP["year"]] = [str(year)]
-    if genre:
-        audio.tags[_M4A_TAG_MAP["genre"]] = [genre]
-    if cover_bytes:
-        audio.tags["covr"] = [MP4Cover(cover_bytes, imageformat=MP4Cover.FORMAT_JPEG)]
+    if audio_tags.artist:
+        audio.tags[_M4A_TAG_MAP["artist"]] = [audio_tags.artist]
+    if audio_tags.title:
+        audio.tags[_M4A_TAG_MAP["title"]] = [audio_tags.title]
+    if audio_tags.album:
+        audio.tags[_M4A_TAG_MAP["album"]] = [audio_tags.album]
+    if audio_tags.track is not None:
+        audio.tags[_M4A_TAG_MAP["track"]] = [(audio_tags.track, 0)]
+    if audio_tags.year is not None:
+        audio.tags[_M4A_TAG_MAP["year"]] = [str(audio_tags.year)]
+    if audio_tags.genre:
+        audio.tags[_M4A_TAG_MAP["genre"]] = [audio_tags.genre]
+    if audio_tags.cover_bytes:
+        audio.tags["covr"] = [MP4Cover(audio_tags.cover_bytes, imageformat=MP4Cover.FORMAT_JPEG)]
     audio.save()
 
 
-def _write_tags_vorbis(
-    filepath: str,
-    artist: str | None,
-    title: str | None,
-    album: str | None,
-    track: int | None,
-    year: int | None,
-    genre: str | None,
-    cover_bytes: bytes | None,
-) -> None:
+def _write_tags_vorbis(filepath: str, audio_tags: AudioTags) -> None:
     audio = mutagen.File(filepath)
     if audio is None:
         log.logger.error("mutagen.File() returned None for %s", filepath)
         return
     if audio.tags is None:
         audio.add_tags()
-    if artist:
-        audio.tags["ARTIST"] = [artist]
-    if title:
-        audio.tags["TITLE"] = [title]
-    if album:
-        audio.tags["ALBUM"] = [album]
-    if track is not None:
-        audio.tags["TRACKNUMBER"] = [str(track)]
-    if year is not None:
-        audio.tags["DATE"] = [str(year)]
-    if genre:
-        audio.tags["GENRE"] = [genre]
-    if cover_bytes:
-        # FLAC has a native Picture block; OGG/OPUS use METADATA_BLOCK_PICTURE
+    if audio_tags.artist:
+        audio.tags["ARTIST"] = [audio_tags.artist]
+    if audio_tags.title:
+        audio.tags["TITLE"] = [audio_tags.title]
+    if audio_tags.album:
+        audio.tags["ALBUM"] = [audio_tags.album]
+    if audio_tags.track is not None:
+        audio.tags["TRACKNUMBER"] = [str(audio_tags.track)]
+    if audio_tags.year is not None:
+        audio.tags["DATE"] = [str(audio_tags.year)]
+    if audio_tags.genre:
+        audio.tags["GENRE"] = [audio_tags.genre]
+    if audio_tags.cover_bytes:
         if isinstance(audio, FLAC):
             audio.clear_pictures()
-            audio.add_picture(_make_flac_picture(cover_bytes))
+            audio.add_picture(_make_flac_picture(audio_tags.cover_bytes))
         else:
-            pic = _make_flac_picture(cover_bytes)
+            pic = _make_flac_picture(audio_tags.cover_bytes)
             encoded = base64.b64encode(pic.write()).decode("ascii")
             audio.tags["METADATA_BLOCK_PICTURE"] = [encoded]
     audio.save()
@@ -838,7 +842,7 @@ def _process_file(
         filepath = _rename_file(filepath, clean_base)
 
     # 10. Write tags
-    _write_tags(filepath, artist, title, album, track, year, genre, cover_bytes)
+    _write_tags(filepath, AudioTags(artist=artist, title=title, album=album, track=track, year=year, genre=genre, cover_bytes=cover_bytes))
 
     # 11. Set file timestamp
     if release_date:

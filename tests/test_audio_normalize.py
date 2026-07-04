@@ -206,6 +206,40 @@ def _mb_full_release(date="1994-10-03", genre="Rock"):
     }
 
 
+def test_extract_genre_from_genre_list():
+    release = {"genre-list": [{"name": "Rock"}, {"name": "Pop"}], "tag-list": []}
+    assert norm._extract_genre_from_release(release) == "Rock"
+
+
+def test_extract_genre_from_tag_list_fallback():
+    release = {"genre-list": [], "tag-list": [{"name": "Jazz"}, {"name": "Other"}]}
+    assert norm._extract_genre_from_release(release) == "Jazz"
+
+
+def test_extract_genre_none_when_unknown():
+    release = {"genre-list": [{"name": "NotAGenre12345"}], "tag-list": [{"name": "AlsoNotAGenre"}]}
+    assert norm._extract_genre_from_release(release) is None
+
+
+def test_extract_genre_empty_release():
+    assert norm._extract_genre_from_release({}) is None
+
+
+def test_extract_tracks_from_release():
+    release = {
+        "medium-list": [
+            {"track-list": [{"recording": {"title": "Song A"}}, {"recording": {"title": "Song B"}}]},
+            {"track-list": [{"recording": {"title": "Song C"}}]},
+        ]
+    }
+    tracks = norm._extract_tracks_from_release(release)
+    assert tracks == ["Song A", "Song B", "Song C"]
+
+
+def test_extract_tracks_empty():
+    assert norm._extract_tracks_from_release({}) == []
+
+
 @patch("mediatools.audio_normalize.musicbrainzngs.get_release_by_id")
 @patch("mediatools.audio_normalize.musicbrainzngs.search_releases")
 def test_mb_lookup_release_success(mock_search, mock_get):
@@ -365,11 +399,47 @@ def test_read_existing_tags_m4a_no_tags():
     assert artist is None
 
 
+def test_read_existing_tags_vorbis():
+    mock_audio = MagicMock()
+    mock_audio.tags = {
+        "artist": ["Seal"],
+        "title": ["Crazy"],
+        "album": ["Seal"],
+        "tracknumber": ["01"],
+        "date": ["1994"],
+        "genre": ["Rock"],
+    }
+    with patch("mediatools.audio_normalize.mutagen.File", return_value=mock_audio):
+        artist, title, album, track, year, genre = norm._read_existing_tags("song.ogg")
+    assert artist == "Seal"
+    assert title == "Crazy"
+    assert track == 1
+    assert year == 1994
+    assert genre == "Rock"
+
+
+def test_read_existing_tags_vorbis_no_tags():
+    mock_audio = MagicMock()
+    mock_audio.tags = None
+    with patch("mediatools.audio_normalize.mutagen.File", return_value=mock_audio):
+        artist, title, album, track, year, genre = norm._read_existing_tags("song.flac")
+    assert artist is None
+    assert title is None
+
+
+def test_read_existing_tags_vorbis_tracknumber_with_total():
+    mock_audio = MagicMock()
+    mock_audio.tags = {"tracknumber": ["3/12"], "date": ["2005-06"]}
+    with patch("mediatools.audio_normalize.mutagen.File", return_value=mock_audio):
+        artist, title, album, track, year, genre = norm._read_existing_tags("song.opus")
+    assert track == 3
+    assert year == 2005
+
+
 def test_write_tags_mp3(tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    with patch("mediatools.audio_normalize.os.utime"):
-        norm._write_tags(dest, "Seal", "Crazy", "Seal", 1, 1994, "Rock", None)
+    norm._write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock"))
     tags = ID3(dest)
     assert str(tags["TPE1"]) == "Seal"
     assert str(tags["TIT2"]) == "Crazy"
@@ -379,7 +449,7 @@ def test_write_tags_mp3(tmp_path):
 def test_write_tags_mp3_with_cover(tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    norm._write_tags(dest, "Seal", "Crazy", "Seal", 1, 1994, "Rock", b"\xff\xd8\xff")
+    norm._write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock", cover_bytes=b"\xff\xd8\xff"))
     tags = ID3(dest)
     assert any(k.startswith("APIC") for k in tags)
 
@@ -388,7 +458,7 @@ def test_write_tags_m4a():
     mock_mp4 = MagicMock()
     mock_mp4.tags = {}
     with patch("mediatools.audio_normalize.MP4", return_value=mock_mp4):
-        norm._write_tags("song.m4a", "Artist", "Title", "Album", 1, 2000, "Rock", None)
+        norm._write_tags("song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Rock"))
     assert mock_mp4.save.called
 
 
@@ -396,7 +466,7 @@ def test_write_tags_m4a_with_cover():
     mock_mp4 = MagicMock()
     mock_mp4.tags = {}
     with patch("mediatools.audio_normalize.MP4", return_value=mock_mp4):
-        norm._write_tags("song.m4a", "Artist", "Title", "Album", 1, 2000, "Pop", b"\xff\xd8\xff")
+        norm._write_tags("song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Pop", cover_bytes=b"\xff\xd8\xff"))
     assert "covr" in mock_mp4.tags
 
 
@@ -405,17 +475,17 @@ def test_write_tags_vorbis_ogg():
     mock_audio.tags = {}
     mock_audio.__class__ = MagicMock  # not FLAC
     with patch("mediatools.audio_normalize.mutagen.File", return_value=mock_audio):
-        norm._write_tags("song.ogg", "Artist", "Title", "Album", 2, 2005, "Folk", None)
+        norm._write_tags("song.ogg", norm.AudioTags(artist="Artist", title="Title", album="Album", track=2, year=2005, genre="Folk"))
     assert mock_audio.save.called
 
 
 def test_write_tags_vorbis_none_file():
     with patch("mediatools.audio_normalize.mutagen.File", return_value=None):
-        norm._write_tags("song.ogg", "Artist", "Title", "Album", 1, 2000, None, None)
+        norm._write_tags("song.ogg", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
 def test_write_tags_exception(tmp_path):
-    norm._write_tags("/nonexistent/song.mp3", "Artist", "Title", "Album", 1, 2000, None, None)
+    norm._write_tags("/nonexistent/song.mp3", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
 # ---------------------------------------------------------------------------
