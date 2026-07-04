@@ -15,3 +15,5 @@ music_tag
 PyExifTool
 exifread
 librosa
+musicbrainzngs
+mutagen
