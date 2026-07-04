@@ -1,0 +1,182 @@
+[project]
+name = "audio-video-tools"
+version = "0.7"
+description = "A collection of utility scripts to manipulate media files (audio, video, image)"
+authors = [
+    {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
+]
+maintainers = [
+    {name = "Olivier Korach", email = "olivier.korach@gmail.com"},
+]
+
+license = "LGPL-3.0-only"
+license-files = ["LICEN[CS]E*"]
+
+keywords = ["ffmpeg", "video", "audio", "image", "media", "transcode", "stabilize", "tools"]
+
+readme = "README.md"
+requires-python = ">= 3.10"
+
+dependencies = [
+    "argparse",
+    "datetime",
+    "mp3_tagger",
+    "ffmpeg-python",
+    "ExifRead",
+    "pyexiftool",
+    "jprops",
+    "librosa",
+    "pywin32",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/okorach/audio-video-tools"
+Repository = "https://github.com/okorach/audio-video-tools.git"
+Issues = "https://github.com/okorach/audio-video-tools/issues"
+Documentation = "https://github.com/okorach/audio-video-tools/README.md"
+
+[project.scripts]
+video-encode     = "mediatools.encode:main"
+media-specs      = "mediatools.filespecs:main"
+video-speed      = "mediatools.speed:main"
+image-poster     = "mediatools.poster:main"
+image-blinds     = "mediatools.blindify:main"
+image-shake      = "mediatools.shake:main"
+image-scale      = "mediatools.rescale:main"
+image-stack      = "mediatools.stack:main"
+video-mux        = "mediatools.mux:main"
+video-concat     = "mediatools.concat:main"
+media-crop       = "mediatools.crop:main"
+media-volume     = "mediatools.volume:main"
+media-cut        = "mediatools.cut:main"
+video-stabilize  = "mediatools.stabilize:main"
+video-deshake    = "mediatools.deshake:main"
+audio-album-art  = "mediatools.album_art:main"
+image-to-video   = "mediatools.image2video:main"
+video-slideshow  = "mediatools.slideshow:main"
+video-reverse    = "mediatools.reverse:main"
+video-metadata   = "mediatools.metadata:main"
+audio-lib        = "mediatools.audio_lib:main"
+audio-list       = "mediatools.audio_list:main"
+linker           = "mediatools.linker:main"
+renamer          = "mediatools.renamer:main"
+datefixer        = "mediatools.datefixer:main"
+shuffle          = "cli.shuffle:main"
+encodeauto       = "mediatools.encodeauto:main"
+encode           = "cli.encode:main"
+audio-split      = "mediatools.audiosplit:main"
+audio-concat     = "mediatools.audioconcat:main"
+audio-speed      = "mediatools.audiospeed:main"
+video-enhance    = "mediatools.video_enhance:main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    {include = "mediatools"},
+    {include = "cli"},
+    {include = "filters"},
+    {include = "utilities"},
+]
+include = [
+    {path = "mediatools/LICENSE"},
+    {path = "mediatools/media-tools.properties"},
+    {path = "mediatools/black.jpg"},
+    {path = "mediatools/white.jpg"},
+    {path = "mediatools/video-720p.mp4"},
+]
+
+[dependency-groups]
+test = [
+    "pytest (>=8.0)",
+    "coverage (>=7.0)",
+]
+lint = [
+    "ruff (>=0.5.0)",
+    "pylint (>=3.0)",
+    "flake8 (>=7.0)",
+    "bandit (>=1.7)",
+    "black (>=24.0)",
+]
+build = [
+    "poetry (>=2.0)",
+    "twine (>=5.0)",
+]
+dev = [
+    {include-group = "test"},
+    {include-group = "lint"},
+    {include-group = "build"},
+]
+
+[tool.pyright]
+pythonVersion = "3.10"
+extraPaths = ["."]
+reportMissingModuleSource = false
+
+[tool.ruff]
+line-length = 150
+target-version = "py310"
+indent-width = 4
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+select = ["ALL"]
+extend-ignore = [
+    "D403",
+    "D415",
+    "D400",
+    "FBT002",
+    "FBT001",
+    "PTH123",  # `open()` should be replaced by `Path.open()`
+    "ISC001",
+    "COM812",  # Missing trailing comma
+    "D211",
+    "D213",
+    "D203",
+    "D401",
+    "ERA001",
+    "S101",
+    "I001",
+    "TRY003",
+    "EM102",
+    "C901",    # Complexity rule, better covered by SonarQube
+    "ANN401",  # Disallow Any type annotation
+    "TD001",   # Disallow TODO/FIXME comments
+    "EM101",   # Don't use string literals in exceptions raise
+    "UP004",   # Useless inheritance to object
+    "D209",    # Multiline docstrings quotes on separate line
+    "D205",    # 1 blank line between docstring title and body
+]
+
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "build",
+    "dist",
+]

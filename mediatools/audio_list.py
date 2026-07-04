@@ -19,17 +19,28 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+from __future__ import annotations
+
 import os
 import sys
 import csv
-import mediatools.utilities as util
-from mediatools import log
-import mediatools.file as fil
-import mediatools.audiofile as audio
+import concurrent.futures
+from mediatools import utilities as util, log, audiofile as audio
+from utilities import file as fil
 
 
-def main():
-    util.init('audio-list')
+def get_csv_values(file: str) -> list[str] | None:
+    if not fil.is_audio_file(file):
+        return None
+    log.logger.info("Getting file '%s' metadata", file)
+    f = audio.AudioFile(file)
+    if str(f.get_a_tag("album")).lower() == "Album":
+        f.set_tag("album", "")
+    return f.csv_values()
+
+
+def main() -> None:
+    util.init("audio-list")
     me = sys.argv.pop(0)
     directory = None
     while sys.argv:
@@ -39,19 +50,26 @@ def main():
         elif os.path.isdir(arg):
             directory = arg
     if directory is None:
-        print(f'Usage: {fil.basename(me)} [-g <debug_level>] <directory>')
+        print(f"Usage: {fil.basename(me)} [-g <debug_level>] <directory>")
         sys.exit(1)
-    with open('music.csv', 'w', newline='', encoding='utf-8') as fh:
-        csv_writer = csv.writer(fh, dialect='excel', quoting=csv.QUOTE_MINIMAL)
+    filelist = fil.dir_list(directory, recurse=True)
+    nb_files = len(filelist)
+    cur_file = 0
+    with open("music.csv", "w", newline="", encoding="utf-8") as fh:
+        csv_writer = csv.writer(fh, dialect="excel", quoting=csv.QUOTE_MINIMAL)
         print(audio.csv_headers())
-        for file in fil.dir_list(directory, recurse=True):
-            if not fil.is_audio_file(file):
-                continue
-            log.logger.info("Outputting file: %s", file)
-            f = audio.AudioFile(file)
-            if str(f.get_a_tag('album')).lower() == 'Album':
-                f.set_tag('album', '')
-            csv_writer.writerow(f.csv_values())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="GetMetadata") as executor:
+            futures = [executor.submit(get_csv_values, file) for file in fil.dir_list(directory, recurse=True)]
+            for future in concurrent.futures.as_completed(futures):
+                data = future.result(timeout=10)
+                log.logger.debug("Got data %s", data)
+                if data is not None:
+                    csv_writer.writerow(data)
+                cur_file += 1
+                log.logger.info(
+                    "Processed %d of %d files (%d%%) - File %s", cur_file, nb_files, (cur_file * 100) // nb_files, data[0] if data else "-"
+                )
+
     sys.exit(0)
 
 

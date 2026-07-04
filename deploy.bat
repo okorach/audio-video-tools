@@ -17,17 +17,39 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
+:: Usage:
+::   deploy.bat            - Standard build via pyproject.toml (python -m build)
+::   deploy.bat offline    - Offline build via setup.py (no internet required)
+::   deploy.bat poetry     - Build via Poetry
+::   deploy.bat pypi       - Standard build then publish to PyPI via twine
+::   deploy.bat poetry pypi - Poetry build then publish to PyPI via poetry publish
+
 del /F /Q build\*.* dist\*.*
 
-python setup.py sdist bdist_wheel
+if "%1"=="offline" (
+    :: Offline build: uses setup.py directly, no internet access required
+    python setup.py sdist bdist_wheel
+) else if "%1"=="poetry" (
+    :: Poetry build: uses pyproject.toml via the Poetry build frontend
+    poetry build
+) else (
+    :: Standard build: uses pyproject.toml via the build frontend
+    python -m build
+)
 
 :: Deploy locally for tests
-python -m pip uninstall audio-video-tools
 for %%a in (dist\*.whl) do (
-    echo "y" | python -m pip install %%a
+    python -m pip install --no-deps --force-reinstall %%a
 )
 
 :: Deploy on pypi.org once released
 if "%1"=="pypi" (
     python -m twine upload dist/*
+)
+if "%2"=="pypi" (
+    if "%1"=="poetry" (
+        poetry publish
+    ) else (
+        python -m twine upload dist/*
+    )
 )

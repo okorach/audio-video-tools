@@ -22,30 +22,34 @@
 import mediatools.audiofile as audio
 
 SONG = "it/song.mp3"
-TITLE = 'Love Is Stronger Than Pride'
-ARTIST = 'Sade'
+TITLE = "Love Is Stronger Than Pride"
+ARTIST = "Sade"
+
 
 def test_tags_all():
     aud = audio.AudioFile(SONG)
     aud.get_specs()
     tags = aud.get_tags()
-    assert tags['title'] == TITLE
-    assert tags['artist'] == ARTIST
+    assert tags["title"] == TITLE
+    assert tags["artist"] == ARTIST
+
 
 def test_tags_v1():
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(1)
-    assert tags['title'] == TITLE
-    assert tags['artist'] == ARTIST
+    assert tags["title"] == TITLE
+    assert tags["artist"] == ARTIST
+
 
 def test_tags_v2():
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(2)
-    assert tags['title'] == TITLE
-    assert tags['artist'] == ARTIST
+    assert tags["title"] == TITLE
+    assert tags["artist"] == ARTIST
+
 
 def test_tags_vall():
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version()
-    assert tags['title'] == TITLE
-    assert tags['artist'] == ARTIST
+    assert tags["title"] == TITLE
+    assert tags["artist"] == ARTIST

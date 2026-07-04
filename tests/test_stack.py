@@ -26,14 +26,14 @@ import mediatools.utilities as util
 import mediatools.imagefile as img
 from mediatools import stack
 
-CMD = 'image-stack'
-IMG1 = 'it' + os.sep + 'img-640x480.jpg'
-IMG2 = 'it' + os.sep + 'img-1770x1291.jpg'
-TMP1 = util.get_tmp_file() + '.jpg'
+CMD = "image-stack"
+IMG1 = "it" + os.sep + "img-640x480.jpg"
+IMG2 = "it" + os.sep + "img-1770x1291.jpg"
+TMP1 = util.get_tmp_file() + ".jpg"
+
 
 def test_main():
-    with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10', '--stretch',
-                      '-d', 'vertical', '-i', IMG1, IMG2]):
+    with patch.object(sys, "argv", [CMD, "-g", "4", "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2]):
         try:
             stack.main()
             assert False
@@ -42,8 +42,7 @@ def test_main():
 
 
 def test_main_help():
-    with patch.object(sys, 'argv', [CMD, '-b', 'black', '-m', '10', '--stretch',
-                      '-d', 'vertical', '-i', IMG1, IMG2, '-h']):
+    with patch.object(sys, "argv", [CMD, "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2, "-h"]):
         try:
             stack.main()
             assert False
@@ -52,7 +51,7 @@ def test_main_help():
 
 
 def test_main_bad_option():
-    with patch.object(sys, 'argv', [CMD, '-b', 'black', '-m', '10', '--badoption', 'foo', '-i', IMG1, IMG2]):
+    with patch.object(sys, "argv", [CMD, "-b", "black", "-m", "10", "--badoption", "foo", "-i", IMG1, IMG2]):
         try:
             stack.main()
             assert False
@@ -61,7 +60,7 @@ def test_main_bad_option():
 
 
 def test_main_no_file():
-    with patch.object(sys, 'argv', [CMD, '-g', '4', '-b', 'black', '-m', '10']):
+    with patch.object(sys, "argv", [CMD, "-g", "4", "-b", "black", "-m", "10"]):
         try:
             stack.main()
             assert False
@@ -70,7 +69,7 @@ def test_main_no_file():
 
 
 def test_main_other_options():
-    with patch.object(sys, 'argv', [CMD, '-b', 'white', '-m', '50', '-d', 'horizontal', '-i', IMG1, IMG2]):
+    with patch.object(sys, "argv", [CMD, "-b", "white", "-m", "50", "-d", "horizontal", "-i", IMG1, IMG2]):
         try:
             stack.main()
             assert False
@@ -79,7 +78,7 @@ def test_main_other_options():
 
 
 def test_main_with_output():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-o', TMP1]):
+    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", IMG1, IMG2, "-o", TMP1]):
         try:
             stack.main()
             assert False
@@ -88,9 +87,9 @@ def test_main_with_output():
             assert img.ImageFile(TMP1).width > 0
             os.remove(TMP1)
 
+
 def test_main_with_output2():
-    with patch.object(sys, 'argv', [CMD, '-g', '2', '-i', IMG1, IMG2, '-b', 'white', '-m', '50',
-                      '-d', 'horizontal', '-o', TMP1]):
+    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-d", "horizontal", "-o", TMP1]):
         try:
             stack.main()
             assert False

@@ -19,55 +19,96 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-# This script applies the ffmpeg deshake filter on a video file
-# to improve image stabilization
+# This script applies a configurable before/after ffmpeg command to one or more video files.
+# Accepts a single file or a directory (all video files in the directory are processed).
 
 import os
+import time
 import argparse
 from mediatools.log import logger
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fileutil
 
-def main():
-    parser = argparse.ArgumentParser(description="Simple encoder")
-    parser.add_argument('-i', '--inputfile', type=str, required=True)
-    parser.add_argument('-g', '--debug', required=False)
-    parser.add_argument('--nooverwrite', required=False, default=False, action='store_true')
-    parser.add_argument('--keepName', required=False, default=False, action='store_true')
-    parser.add_argument('--before', nargs='*', required=True)
-    parser.add_argument('--after', nargs='*', required=True)
-    # parser.add_argument('args', nargs=argparse.REMAINDER)
-    kwargs = vars(parser.parse_args())
-    util.set_debug_level(kwargs.get('debug', 3))
-    inputfile = kwargs.pop("inputfile")
-    filesplit = inputfile.split('.')
-    before = " ".join(kwargs.pop("before"))
-    after = " ".join(kwargs.pop("after"))
-    force = not kwargs.pop("nooverwrite")
 
-    is_original = filesplit[-2] == "original"
+def encode_file(inputfile: str, before: str, after: str, force: bool, duration: float | None = None) -> None:
+    """Encode a single video file with the given before/after ffmpeg options."""
+    base, ext = os.path.splitext(inputfile)
+    ext = ext.lstrip(".").lower()
+
+    is_original = base.endswith(".original")
     if is_original:
-        del filesplit[-2]
-    base = '.'.join(filesplit[0:-1])
-    ext = filesplit[-1]
+        base = base[: -len(".original")]
+
+    file_after = after
+    new_ext = ext
+    if ext in ("mts", "avi", "mkv"):
+        file_after = f"-vf yadif_cuda=deint=all {after}"
+        new_ext = "mp4"
+
+    logger.info("Encoding %s (ext=%s)", inputfile, ext)
     seq = 0
     if not force:
-        while os.path.isfile(f'{base}.encode.{seq:02}.{ext}'):
+        while os.path.isfile(f"{base}.encode.{seq:02}.{new_ext}"):
             seq += 1
-    outputfile = f'{base}.encode.{seq:02}.{ext}'
+    outputfile = f"{base}.encode.{seq:02}.{new_ext}"
 
-    cmd = f'{before} -i "{inputfile}" {after} "{outputfile}"'
-    logger.info("COMMAND = %s %s", "ffmpeg", cmd)
-    util.run_ffmpeg(params=cmd, duration=video.get_duration(inputfile))
+    cmd = f'{before} -i "{inputfile}" {file_after} "{outputfile}"'
+    logger.info("COMMAND = ffmpeg %s", cmd)
+    if duration is None:
+        duration = video.get_duration(inputfile)
+    util.run_ffmpeg(params=cmd, duration=duration)
 
     video.set_creation_date(outputfile, video.get_creation_date(inputfile))
-    if not is_original:
-        renamed = f'{base}.original.{ext}'
-        fileutil.rename(inputfile, renamed, force)
-        fileutil.rename(outputfile, inputfile, force)
+    if ext == new_ext:
+        if not is_original:
+            renamed = f"{base}.original.{ext}"
+            fileutil.rename(inputfile, renamed, force)
+            fileutil.rename(outputfile, inputfile, force)
+        else:
+            os.rename(outputfile, f"{base}.{ext}")
     else:
-        os.rename(outputfile, '.'.join(filesplit))
+        fileutil.rename(outputfile, f"{base}.{new_ext}", force)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
+    parser.add_argument("-i", "--inputfiles", type=str, required=True)
+    parser.add_argument("-g", "--debug", required=False)
+    parser.add_argument("--nooverwrite", required=False, default=False, action="store_true")
+    parser.add_argument("--keepName", required=False, default=False, action="store_true")
+    parser.add_argument("--before", nargs="*", required=True)
+    parser.add_argument("--after", nargs="*", required=True)
+    kwargs = vars(parser.parse_args())
+    util.set_debug_level(kwargs.get("debug", 3))
+
+    inputpath = kwargs["inputfiles"]
+    before = " ".join(kwargs["before"])
+    after = " ".join(kwargs["after"])
+    force = not kwargs["nooverwrite"]
+
+    files = fileutil.file_list(inputpath, file_type=fileutil.FileType.VIDEO_FILE)
+    if not files:
+        logger.error("No video files found in %s", inputpath)
+        return
+
+    n = len(files)
+    durations = [video.get_duration(f) or 0.0 for f in files]
+    total_dur = sum(durations)
+    logger.info("%d file(s) to encode, total duration: %s", n, util.to_hms_str(total_dur))
+
+    processed_dur = 0.0
+    wall_start = time.time()
+
+    for i, (f, dur) in enumerate(zip(files, durations)):
+        encode_file(f, before, after, force, duration=total_dur - processed_dur)
+        processed_dur += dur
+        pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0
+        elapsed = time.time() - wall_start
+        speed = processed_dur / elapsed if elapsed > 0 else 0
+        eta = (total_dur - processed_dur) / speed if speed > 0 else 0
+        logger.info("Processed %d/%d - %.0f%% - ETA %s", i + 1, n, pct, util.to_hms_str(eta))
+
 
 if __name__ == "__main__":
     main()

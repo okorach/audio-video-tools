@@ -18,9 +18,8 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
+:: setlocal enabledelayedexpansion
 
-for %%F in (%*) do (
-    video-encode -i "%%~F" -p 1080p --hw_accel off --vcodec x264 --width 3840 --aspect 16:9 --vbitrate 30000k --fps 60 -o "%%~F.4K.mp4"
-)
+encode -i %* --hw_accel on --vcodec x265 --width 3840 --vbitrate 20000k --acodec aac --abitrate 128k
+
 pause
