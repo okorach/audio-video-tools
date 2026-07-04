@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This file encapsulates
+"""This file encapsulates
 - various constants
 - data structures and
 - translation functions
@@ -126,9 +125,7 @@ M2F_MAPPING: dict[str, str] = {
     Option.VMUTE: OptionFfmpeg.VMUTE,
 }
 
-F2M_MAPPING: dict[str, str] = {}
-for k, v in M2F_MAPPING.items():
-    F2M_MAPPING[v] = k
+F2M_MAPPING: dict[str, str] = {v: k for k, v in M2F_MAPPING.items()}
 F2M_MAPPING[OptionFfmpeg.ACODEC2] = Option.ACODEC
 F2M_MAPPING[OptionFfmpeg.ACODEC3] = Option.ACODEC
 F2M_MAPPING[OptionFfmpeg.VCODEC2] = Option.VCODEC
@@ -142,9 +139,9 @@ def media2ffmpeg(options: dict | None) -> dict:
     if options is None:
         return {}
     ffopts = {}
-    for key in M2F_MAPPING:
+    for key, ffkey in M2F_MAPPING.items():
         if key in options and options[key] is not None:
-            ffopts[M2F_MAPPING[key]] = options[key]
+            ffopts[ffkey] = options[key]
     return util.remove_nones(ffopts)
 
 
@@ -155,7 +152,7 @@ def ffmpeg2media(options: dict | None) -> dict:
     if options is None:
         return {}
     mopts = {}
-    for key in M2F_MAPPING:
+    for key, mkey in M2F_MAPPING.items():
         if key in options and options[key] is not None:
-            mopts[M2F_MAPPING[key]] = options[key]
+            mopts[mkey] = options[key]
     return util.remove_nones(mopts)

@@ -145,7 +145,7 @@ class AudioFile(media.MediaFile):
         if self._hash is None or force:
             self.get_specs()
             self.get_tags()
-            self._hash = "{}-{}-{}-{}-{}-{}-{}".format(self.artist, self.title, self.album, self.year, self.track, self.duration, self.acodec)
+            self._hash = f"{self.artist}-{self.title}-{self.album}-{self.year}-{self.track}-{self.duration}-{self.acodec}"
             log.logger.debug("Audio Hash(%s) = %s", self.filename, self._hash)
         return self._hash
 
@@ -165,7 +165,7 @@ class AudioFile(media.MediaFile):
                 tags = tags_v1
             elif version == 2:
                 tags = tags_v2
-            for k in tags.keys():
+            for k in tags:
                 if isinstance(tags[k], str):
                     tags[k] = tags[k].rstrip("\u0000")
             self.artist = tags.get("artist", None)
@@ -273,7 +273,7 @@ class AudioFile(media.MediaFile):
 
         log.logger.info("Encoding audio %s", target_file)
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
-        cmd += f' {str(audio_filters)} {output_str} "{target_file}"'
+        cmd += f' {audio_filters!s} {output_str} "{target_file}"'
         util.run_ffmpeg(cmd, self.duration)
         log.logger.info("File %s encoded", target_file)
         return target_file
@@ -286,9 +286,7 @@ class AudioFile(media.MediaFile):
         # ffmpeg -i %1 -i %2 -map 0:0 -map 1:0 -c copy -id3v2_version 3 -metadata:s:v title="Album cover"
         # -metadata:s:v comment="Cover (Front)" %1.mp3
         util.run_ffmpeg(
-            '-i "{}" -i "{}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {} "{}"'.format(
-                self.filename, album_art_file, album_art_std_settings, target_file
-            )
+            f'-i "{self.filename}" -i "{album_art_file}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {album_art_std_settings} "{target_file}"'
         )
         shutil.copy(target_file, self.filename)
         os.remove(target_file)
@@ -303,7 +301,7 @@ class AudioFile(media.MediaFile):
     def get_a_tag(self, tag: str) -> object:
         try:
             f = music_tag.load_file(self.filename)
-        except:
+        except Exception:
             return ""
         # dict access returns a MetadataItem
         return f.get(tag, "")
@@ -405,7 +403,7 @@ def save_hash_list(h_file: str, hash_data: dict) -> None:
 
 def read_hash_list(file: str) -> dict:
     try:
-        with open(file, "r", encoding="utf-8") as fh:
+        with open(file, encoding="utf-8") as fh:
             data = json.loads(fh.read())
     except FileNotFoundError:
         data = {"datetime": "1970-01-01 00:00:00", "hashes": {}, "files": {}, "root_directory": ""}
@@ -413,10 +411,7 @@ def read_hash_list(file: str) -> dict:
 
 
 def csv_headers() -> list[str]:
-    arr = []
-    for k in _CSV_KEYS:
-        arr.append(k)
-    return arr
+    return list(_CSV_KEYS)
 
 
 def concat(target_file: str, file_list: list[str]) -> str:
