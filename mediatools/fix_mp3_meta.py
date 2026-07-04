@@ -44,6 +44,9 @@ import musicbrainzngs
 import mutagen
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, TDRC, ID3NoHeaderError
 from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
+
+_M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "©day", "track": "trkn"}
 
 from mediatools import log
 import mediatools.utilities as util
@@ -181,31 +184,94 @@ def _mb_lookup_track(artist: str, title: str) -> int | None:
 
 
 # ---------------------------------------------------------------------------
-# ID3 tag writing
+# Tag reading / writing (MP3 via ID3, M4A via MP4 atoms)
 # ---------------------------------------------------------------------------
 
 
-def _write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
-    """Writes ID3v1 and ID3v2 tags to an MP3 file using mutagen."""
+def _is_m4a(filepath: str) -> bool:
+    return fil.extension(filepath).lower() in ("m4a", "aac")
+
+
+def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
+    """Returns (artist, title, album, track, year) from existing file tags."""
+    artist = title = album = None
+    track = year = None
     try:
-        try:
-            tags = ID3(filepath)
-        except ID3NoHeaderError:
-            tags = ID3()
+        if _is_m4a(filepath):
+            tags = MP4(filepath).tags or {}
+            artist = (tags.get(_M4A_TAG_MAP["artist"], [None])[0] or "").strip() or None
+            title = (tags.get(_M4A_TAG_MAP["title"], [None])[0] or "").strip() or None
+            album = (tags.get(_M4A_TAG_MAP["album"], [None])[0] or "").strip() or None
+            trkn = tags.get(_M4A_TAG_MAP["track"], None)
+            if trkn:
+                try:
+                    track = int(trkn[0][0])
+                except (ValueError, IndexError, TypeError):
+                    pass
+            day = (tags.get(_M4A_TAG_MAP["year"], [None])[0] or "").strip()
+            if day:
+                try:
+                    year = int(day[:4])
+                except ValueError:
+                    pass
+        else:
+            audio = MP3(filepath)
+            if audio.tags:
+                artist = str(audio.tags.get("TPE1", "")).strip() or None
+                title = str(audio.tags.get("TIT2", "")).strip() or None
+                album = str(audio.tags.get("TALB", "")).strip() or None
+                trk_raw = str(audio.tags.get("TRCK", "")).strip()
+                if trk_raw:
+                    try:
+                        track = int(trk_raw.split("/")[0])
+                    except ValueError:
+                        pass
+                yr_raw = str(audio.tags.get("TDRC", "")).strip()
+                if yr_raw:
+                    try:
+                        year = int(yr_raw[:4])
+                    except ValueError:
+                        pass
+    except Exception as e:
+        log.logger.warning("Could not read tags from %s: %s", filepath, str(e))
+    return artist, title, album, track, year
 
-        if artist:
-            tags["TPE1"] = TPE1(encoding=3, text=artist)
-        if title:
-            tags["TIT2"] = TIT2(encoding=3, text=title)
-        if album:
-            tags["TALB"] = TALB(encoding=3, text=album)
-        if track is not None:
-            tags["TRCK"] = TRCK(encoding=3, text=str(track))
-        if year is not None:
-            tags["TDRC"] = TDRC(encoding=3, text=str(year))
 
-        # Save ID3v2.3 (most compatible) + ID3v1 header
-        tags.save(filepath, v1=2, v2_version=3)
+def _write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
+    """Writes tags to an audio file — ID3v1+v2 for MP3, iTunes atoms for M4A."""
+    try:
+        if _is_m4a(filepath):
+            audio = MP4(filepath)
+            if audio.tags is None:
+                audio.add_tags()
+            if artist:
+                audio.tags[_M4A_TAG_MAP["artist"]] = [artist]
+            if title:
+                audio.tags[_M4A_TAG_MAP["title"]] = [title]
+            if album:
+                audio.tags[_M4A_TAG_MAP["album"]] = [album]
+            if track is not None:
+                audio.tags[_M4A_TAG_MAP["track"]] = [(track, 0)]
+            if year is not None:
+                audio.tags[_M4A_TAG_MAP["year"]] = [str(year)]
+            audio.save()
+        else:
+            try:
+                tags = ID3(filepath)
+            except ID3NoHeaderError:
+                tags = ID3()
+            if artist:
+                tags["TPE1"] = TPE1(encoding=3, text=artist)
+            if title:
+                tags["TIT2"] = TIT2(encoding=3, text=title)
+            if album:
+                tags["TALB"] = TALB(encoding=3, text=album)
+            if track is not None:
+                tags["TRCK"] = TRCK(encoding=3, text=str(track))
+            if year is not None:
+                tags["TDRC"] = TDRC(encoding=3, text=str(year))
+            # Save ID3v2.3 (most compatible) + ID3v1 header
+            tags.save(filepath, v1=2, v2_version=3)
         log.logger.info("Tags written: %s | artist=%s title=%s album=%s track=%s year=%s", filepath, artist, title, album, track, year)
     except Exception as e:
         log.logger.error("Failed to write tags for %s: %s", filepath, str(e))
@@ -239,28 +305,8 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
     # 1. Parse filename for track#, artist, title
     fn_track, fn_artist, fn_title = _parse_file_name(base)
 
-    # 2. Read existing tags via mutagen
-    existing_artist, existing_title, existing_album, existing_track, existing_year = None, None, None, None, None
-    try:
-        audio = MP3(filepath)
-        if audio.tags:
-            existing_artist = str(audio.tags.get("TPE1", "")).strip() or None
-            existing_title = str(audio.tags.get("TIT2", "")).strip() or None
-            existing_album = str(audio.tags.get("TALB", "")).strip() or None
-            existing_track_raw = str(audio.tags.get("TRCK", "")).strip()
-            if existing_track_raw:
-                try:
-                    existing_track = int(existing_track_raw.split("/")[0])
-                except ValueError:
-                    pass
-            existing_year_raw = str(audio.tags.get("TDRC", "")).strip()
-            if existing_year_raw:
-                try:
-                    existing_year = int(existing_year_raw[:4])
-                except ValueError:
-                    pass
-    except Exception as e:
-        log.logger.warning("Could not read tags from %s: %s", filepath, str(e))
+    # 2. Read existing tags via mutagen (handles both MP3 and M4A)
+    existing_artist, existing_title, existing_album, existing_track, existing_year = _read_existing_tags(filepath)
 
     # 3. Resolve final values: prefer existing tag, fall back to filename parse, then directory info
     artist = existing_artist or fn_artist or dir_artist
