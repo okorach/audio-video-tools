@@ -24,6 +24,7 @@ from __future__ import annotations
 import re
 import os
 import shutil
+import unicodedata
 from datetime import datetime
 import json
 from mp3_tagger import MP3File
@@ -35,8 +36,45 @@ import mediatools.mediafile as media
 import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
+import mediatools.media_config as conf
 
 _CSV_KEYS: tuple[str, ...] = ("filename", "artist", "title", "album", "year", "duration", "acodec", "abitrate", "audio_sample_rate", "genre", "has_album_art")
+
+# Matches a trailing bitrate/codec postfix in a file name, eg " (128kbit_AAC)" or "[320kbps MP3]"
+_ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
+
+
+def _strip_encoding_postfix(base_name: str) -> str:
+    """Removes a trailing bitrate/codec postfix (eg " (128kbit_AAC)") from a file base name"""
+    return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
+
+
+def _strip_exotic_chars(base_name: str) -> str:
+    """Removes exotic unicode characters from a file base name, keeping plain ASCII"""
+    return unicodedata.normalize("NFKD", base_name).encode("ascii", "ignore").decode("ascii").strip()
+
+
+def clean_file_name(filename: str) -> str:
+    """Cleans up a file name (without extension) before re-encoding: removes bitrate/codec
+    postfixes and exotic unicode characters from the file base name"""
+    directory, base = os.path.split(fil.strip_extension(filename))
+    base = _strip_exotic_chars(_strip_encoding_postfix(base))
+    return os.path.join(directory, base) if directory else base
+
+
+def build_target_file(source_file: str, profile: str | None) -> str:
+    """Builds the target file name for audio (re)encoding: the source file name is cleaned up
+    and, when the target audio format differs from the source one, the old extension is
+    replaced by the new one instead of being appended (eg audio.m4a -> audio.mp3, not audio.m4a.mp3)"""
+    extension = util.get_profile_extension(profile)
+    if extension is None:
+        extension = conf.get_property("default.audio.format")
+    if extension is None:
+        extension = fil.extension(source_file)
+    cleaned_base = clean_file_name(source_file)
+    if extension.lower() != fil.extension(source_file).lower():
+        return f"{cleaned_base}.{extension}"
+    return f"{cleaned_base}.{profile}.{extension}"
 
 
 class AudioFile(media.MediaFile):
@@ -201,7 +239,7 @@ class AudioFile(media.MediaFile):
         kwargs["hw_accel"] = False
         log.logger.debug("Audio encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile)
+            target_file = build_target_file(self.filename, profile)
 
         input_settings = media.get_input_settings(**kwargs)
         prefilter_settings = media.get_prefilter_settings(**kwargs)
