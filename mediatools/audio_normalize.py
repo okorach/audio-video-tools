@@ -459,7 +459,8 @@ def _resize_image(image_bytes: bytes, max_size: int = _MAX_COVER_SIZE) -> bytes:
     try:
         img = PilImage.open(io.BytesIO(image_bytes))
         if img.width > max_size or img.height > max_size:
-            img.thumbnail((max_size, max_size), PilImage.LANCZOS)
+            resample = getattr(PilImage, "Resampling", PilImage).LANCZOS
+            img.thumbnail((max_size, max_size), resample)
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=90)
         return buf.getvalue()
