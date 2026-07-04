@@ -19,3 +19,4 @@ exifread
 librosa
 musicbrainzngs
 mutagen
+Pillow>=10.3.0 # not directly required, pinned to avoid known CVEs
