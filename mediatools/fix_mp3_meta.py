@@ -69,6 +69,7 @@ _ARTIST_TITLE_RE = re.compile(r"^(.+?)\s+-\s+(.+)$")
 # Capitalisation helpers
 # ---------------------------------------------------------------------------
 
+
 def _title_case(text: str) -> str:
     """Every word's first letter uppercase (artist style)."""
     if not text:
@@ -86,6 +87,7 @@ def _sentence_case(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Filename / directory parsing
 # ---------------------------------------------------------------------------
+
 
 def _parse_dir_name(dir_name: str) -> tuple[str | None, str | None, int | None]:
     """Returns (artist, album, year) extracted from a directory base name."""
@@ -108,7 +110,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
     tm = _TRACK_PREFIX_RE.match(base_name)
     if tm:
         track = int(tm.group(1))
-        rest = base_name[tm.end():].strip()
+        rest = base_name[tm.end() :].strip()
     else:
         rest = base_name.strip()
 
@@ -126,6 +128,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
 # ---------------------------------------------------------------------------
 # MusicBrainz lookup
 # ---------------------------------------------------------------------------
+
 
 def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, list[str]]:
     """Returns (year, [track_title, ...]) from MusicBrainz for the best-matching release."""
@@ -181,6 +184,7 @@ def _mb_lookup_track(artist: str, title: str) -> int | None:
 # ID3 tag writing
 # ---------------------------------------------------------------------------
 
+
 def _write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
     """Writes ID3v1 and ID3v2 tags to an MP3 file using mutagen."""
     try:
@@ -211,6 +215,7 @@ def _write_tags(filepath: str, artist: str | None, title: str | None, album: str
 # File timestamp setting
 # ---------------------------------------------------------------------------
 
+
 def _set_file_date(filepath: str, year: int) -> None:
     """Sets file creation and modification timestamps to YYYY-01-01 12:00:00."""
     try:
@@ -225,6 +230,7 @@ def _set_file_date(filepath: str, year: int) -> None:
 # ---------------------------------------------------------------------------
 # Per-file processing
 # ---------------------------------------------------------------------------
+
 
 def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, dir_year: int | None, mb_tracks: list[str], dry_run: bool) -> None:
     """Processes a single audio file: reads tags, fills in gaps, writes tags."""
@@ -297,6 +303,7 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
 # Per-directory processing
 # ---------------------------------------------------------------------------
 
+
 def _process_directory(dirpath: str, dry_run: bool) -> None:
     """Processes all audio files in a single directory."""
     dir_name = os.path.basename(dirpath)
@@ -324,10 +331,11 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     util.init("fix-mp3-meta")
     parser = argparse.ArgumentParser(description="Fix MP3 metadata tags for a music library")
-    parser.add_argument("-d", "--directory", default=r"E:\Musique", help="Root music directory (default: E:\\Musique)")
+    parser.add_argument("-f", "--files", nargs="+", help="Files and/or directories to process (default: E:\\Musique)")
     parser.add_argument("--dry-run", action="store_true", help="Parse and log actions without writing tags or changing timestamps")
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     args = parser.parse_args()
@@ -335,31 +343,58 @@ def main() -> None:
     if args.debug:
         util.set_debug_level(args.debug)
 
-    root = args.directory
-    if not os.path.isdir(root):
-        log.logger.error("Directory not found: %s", root)
-        sys.exit(1)
-
+    inputs = args.files if args.files else [r"E:\Musique"]
     dry_run = args.dry_run
     if dry_run:
         log.logger.info("DRY RUN mode — no files will be modified")
 
-    # Process each immediate subdirectory
-    subdirs = sorted([os.path.join(root, d) for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
-    log.logger.info("Processing %d subdirectories under %s", len(subdirs), root)
+    # Collect directories to process and loose audio files grouped by their parent directory
+    dirs_to_process: list[str] = []
+    files_by_dir: dict[str, list[str]] = {}
 
-    for subdir in subdirs:
-        log.logger.info("=== Processing directory: %s ===", subdir)
-        try:
-            _process_directory(subdir, dry_run)
-        except Exception as e:
-            log.logger.error("Error processing %s: %s", subdir, str(e))
+    for entry in inputs:
+        entry = os.path.abspath(entry)
+        if os.path.isdir(entry):
+            dirs_to_process.append(entry)
+        elif fil.is_audio_file(entry):
+            parent = os.path.dirname(entry)
+            files_by_dir.setdefault(parent, []).append(entry)
+        else:
+            log.logger.warning("Skipping %s: not a directory or audio file", entry)
 
-    # Also process audio files directly in the root (if any)
-    root_audio = [os.path.join(root, f) for f in os.listdir(root) if fil.is_audio_file(f)]
-    if root_audio:
-        log.logger.info("Processing %d audio file(s) directly in root", len(root_audio))
-        _process_directory(root, dry_run)
+    # For directories: process each immediate subdirectory, then any audio files at the root level
+    for root in sorted(dirs_to_process):
+        if not os.path.isdir(root):
+            log.logger.error("Directory not found: %s", root)
+            continue
+        subdirs = sorted([os.path.join(root, d) for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
+        root_audio = [os.path.join(root, f) for f in os.listdir(root) if fil.is_audio_file(f)]
+        if subdirs:
+            log.logger.info("Processing %d subdirectories under %s", len(subdirs), root)
+            for subdir in subdirs:
+                log.logger.info("=== Processing directory: %s ===", subdir)
+                try:
+                    _process_directory(subdir, dry_run)
+                except Exception as e:
+                    log.logger.error("Error processing %s: %s", subdir, str(e))
+        if root_audio:
+            log.logger.info("Processing %d audio file(s) directly in %s", len(root_audio), root)
+            _process_directory(root, dry_run)
+
+    # For individual files: process them with the context of their parent directory
+    for parent, file_list in sorted(files_by_dir.items()):
+        dir_artist, dir_album, dir_year = _parse_dir_name(os.path.basename(parent))
+        mb_tracks: list[str] = []
+        if dir_artist and dir_album and dir_year is None:
+            mb_year, mb_tracks = _mb_lookup_release(dir_artist, dir_album)
+            if mb_year:
+                dir_year = mb_year
+        log.logger.info("Processing %d file(s) from %s", len(file_list), parent)
+        for filepath in sorted(file_list):
+            try:
+                _process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
+            except Exception as e:
+                log.logger.error("Error processing %s: %s", filepath, str(e))
 
     log.logger.info("Done.")
     sys.exit(0)
