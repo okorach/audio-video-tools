@@ -30,7 +30,7 @@ ruffReport="$buildDir/ruff-report.json"
 
 echo "Running ruff"
 rm -f $ruffReport
-ruff check --output-format=concise . | tee "$buildDir/ruff-report.txt" | ./ruff2sonar.py >"$ruffReport"
+ruff check --output-format=concise . | tee "$buildDir/ruff-report.txt" | python3 ruff2sonar.py >"$ruffReport"
 re=$?
 if [ "$re" == "32" ]; then
     >&2 echo "ERROR: ruff execution failed, errcode $re, aborting..."
