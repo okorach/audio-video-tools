@@ -77,10 +77,10 @@ def _title_case(text: str) -> str:
 
 
 def _sentence_case(text: str) -> str:
-    """Only the very first letter uppercase (track title style)."""
+    """Only the very first letter uppercase, rest lowercase (track title style)."""
     if not text:
         return text
-    return text[0].upper() + text[1:]
+    return text[0].upper() + text[1:].lower()
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
         artist = _title_case(am.group(1).strip())
         title = _sentence_case(am.group(2).strip())
     else:
-        title = _sentence_case(rest)
+        title = _sentence_case(rest) or None
 
     return track, artist, title
 
@@ -264,7 +264,7 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
     year = existing_year or dir_year
 
     # 4. Try to match title against MusicBrainz track list (if album was looked up)
-    if title is None and track is not None and mb_tracks and (track - 1) < len(mb_tracks):
+    if not title and track is not None and mb_tracks and (track - 1) < len(mb_tracks):
         title = _sentence_case(mb_tracks[track - 1])
 
     # 5. MusicBrainz lookup for year if still missing
