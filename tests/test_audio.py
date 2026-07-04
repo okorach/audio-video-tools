@@ -136,3 +136,31 @@ def test_hash_list_2():
     new_hash = audio.read_hash_list(h_file)
     os.remove(h_file)
     assert new_hash == f_hash
+
+
+def test_clean_file_name_strips_bitrate_codec_postfix():
+    assert os.path.basename(audio.clean_file_name("Song Title (128kbit_AAC).m4a")) == "Song Title"
+    assert os.path.basename(audio.clean_file_name("Song Title [320kbps MP3].mp3")) == "Song Title"
+    assert os.path.basename(audio.clean_file_name("Song Title (64kb).mp3")) == "Song Title"
+
+
+def test_clean_file_name_strips_exotic_unicode_chars():
+    assert os.path.basename(audio.clean_file_name("Sébastien Ïtem.mp3")) == "Sebastien Item"
+
+
+def test_clean_file_name_combines_both_cleanups():
+    assert os.path.basename(audio.clean_file_name("Sébastien Ïtem (128kbit_AAC).m4a")) == "Sebastien Item"
+
+
+def test_clean_file_name_leaves_plain_name_untouched():
+    assert os.path.basename(audio.clean_file_name("Song Title.mp3")) == "Song Title"
+
+
+def test_build_target_file_replaces_extension_when_format_differs():
+    target = audio.build_target_file("Song Title (128kbit_AAC).m4a", "mp3_128k")
+    assert os.path.basename(target) == "Song Title.mp3"
+
+
+def test_build_target_file_keeps_profile_postfix_when_format_unchanged():
+    target = audio.build_target_file("Song Title.mp3", "mp3_128k")
+    assert os.path.basename(target) == "Song Title.mp3_128k.mp3"
