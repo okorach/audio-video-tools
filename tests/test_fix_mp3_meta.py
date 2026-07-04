@@ -282,3 +282,186 @@ def test_process_directory(tmp_path):
         assert str(tags["TALB"]) == "Seal"
         dt = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, fname)))
         assert dt.year == 1991
+
+
+# ---------------------------------------------------------------------------
+# Guard clauses (empty inputs)
+# ---------------------------------------------------------------------------
+
+def test_mb_lookup_release_no_artist():
+    year, tracks = fix._mb_lookup_release("", "Album")
+    assert year is None
+    assert tracks == []
+
+
+def test_mb_lookup_release_no_album():
+    year, tracks = fix._mb_lookup_release("Artist", "")
+    assert year is None
+    assert tracks == []
+
+
+def test_mb_lookup_track_no_artist():
+    assert fix._mb_lookup_track("", "Track") is None
+
+
+def test_mb_lookup_track_no_title():
+    assert fix._mb_lookup_track("Artist", "") is None
+
+
+# ---------------------------------------------------------------------------
+# ValueError branches in MusicBrainz date parsing
+# ---------------------------------------------------------------------------
+
+def test_mb_lookup_release_invalid_date():
+    """Non-numeric date string in release should be handled gracefully."""
+    mock_result = {"release-list": [{"id": "abc", "date": "unknown"}]}
+    mock_full = {"release": {"medium-list": []}}
+    with patch("musicbrainzngs.search_releases", return_value=mock_result), \
+         patch("musicbrainzngs.get_release_by_id", return_value=mock_full):
+        year, tracks = fix._mb_lookup_release("Artist", "Album")
+    assert year is None
+    assert tracks == []
+
+
+def test_mb_lookup_track_invalid_date():
+    """Non-numeric date in recording release should be skipped without crash."""
+    mock_result = {"recording-list": [{"release-list": [{"date": "bad-date"}]}]}
+    with patch("musicbrainzngs.search_recordings", return_value=mock_result):
+        year = fix._mb_lookup_track("Artist", "Track")
+    assert year is None
+
+
+# ---------------------------------------------------------------------------
+# Exception handler in _write_tags (ID3NoHeaderError and general exception)
+# ---------------------------------------------------------------------------
+
+def test_write_tags_no_existing_id3_header(tmp_path):
+    """Writing tags to a file that has no ID3 header should not raise."""
+    bare = str(tmp_path / "bare.mp3")
+    shutil.copy(FIXTURE_MP3, bare)
+    from mutagen.id3 import ID3NoHeaderError
+    with patch("mediatools.fix_mp3_meta.ID3", side_effect=[ID3NoHeaderError, ID3()]):
+        fix._write_tags(bare, artist="A", title="T", album="Al", track=1, year=2000)
+
+
+def test_write_tags_exception_is_swallowed(tmp_path):
+    """An exception during tag save should be logged, not propagated."""
+    bad_path = str(tmp_path / "no_such.mp3")
+    fix._write_tags(bad_path, artist="A", title="T", album="Al", track=1, year=2000)
+
+
+# ---------------------------------------------------------------------------
+# Exception handler in _set_file_date
+# ---------------------------------------------------------------------------
+
+def test_set_file_date_exception_is_swallowed(tmp_mp3):
+    with patch("os.utime", side_effect=OSError("permission denied")):
+        fix._set_file_date(tmp_mp3, 2000)  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# ValueError branches in _process_file tag reading
+# ---------------------------------------------------------------------------
+
+def test_process_file_non_numeric_track_tag(tmp_path):
+    """A non-numeric TRCK tag must not crash _process_file."""
+    from mutagen.id3 import TRCK, TDRC
+    dest = str(tmp_path / "track.mp3")
+    shutil.copy(FIXTURE_MP3, dest)
+    tags = ID3(dest)
+    tags["TRCK"] = TRCK(encoding=3, text="not-a-number")
+    tags["TDRC"] = TDRC(encoding=3, text="not-a-year")
+    tags.save(dest)
+    with patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        fix._process_file(dest, dir_artist="Artist", dir_album="Album", dir_year=2001, mb_tracks=[], dry_run=False)
+
+
+# ---------------------------------------------------------------------------
+# MusicBrainz year lookup triggered from _process_file when year is unknown
+# ---------------------------------------------------------------------------
+
+def test_process_file_mb_year_lookup_from_album(tmp_path):
+    """When dir_year is None and existing year tag is absent, year is fetched via MB album lookup."""
+    dest = str(tmp_path / "song.mp3")
+    shutil.copy(FIXTURE_MP3, dest)
+    tags = ID3(dest)
+    tags.delall("TDRC")
+    tags.save(dest)
+    mock_release = {"release-list": [{"id": "x", "date": "1991"}]}
+    mock_full = {"release": {"medium-list": []}}
+    with patch("musicbrainzngs.search_releases", return_value=mock_release), \
+         patch("musicbrainzngs.get_release_by_id", return_value=mock_full), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        fix._process_file(dest, dir_artist="Seal", dir_album="Seal", dir_year=None, mb_tracks=[], dry_run=False)
+    dt = datetime.datetime.fromtimestamp(os.path.getmtime(dest))
+    assert dt.year == 1991
+
+
+def test_process_file_mb_year_lookup_from_track(tmp_path):
+    """When album MB lookup yields no year, per-track recording lookup is used."""
+    dest = str(tmp_path / "song.mp3")
+    shutil.copy(FIXTURE_MP3, dest)
+    tags = ID3(dest)
+    tags.delall("TDRC")
+    tags.save(dest)
+    with patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": [{"release-list": [{"date": "1991"}]}]}):
+        fix._process_file(dest, dir_artist="Seal", dir_album="Seal", dir_year=None, mb_tracks=[], dry_run=False)
+    dt = datetime.datetime.fromtimestamp(os.path.getmtime(dest))
+    assert dt.year == 1991
+
+
+# ---------------------------------------------------------------------------
+# MusicBrainz album lookup triggered from _process_directory when year unknown
+# ---------------------------------------------------------------------------
+
+def test_process_directory_mb_album_lookup(tmp_path):
+    """_process_directory fires MB lookup when directory name has no year."""
+    dest = str(tmp_path / "Seal - Seal")  # no year in dir name
+    os.makedirs(dest)
+    shutil.copy(FIXTURE_MP3, os.path.join(dest, "01 - Crazy.mp3"))
+    tags = ID3(os.path.join(dest, "01 - Crazy.mp3"))
+    tags.delall("TDRC")
+    tags.save(os.path.join(dest, "01 - Crazy.mp3"))
+    mock_release = {"release-list": [{"id": "x", "date": "1991"}]}
+    mock_full = {"release": {"medium-list": []}}
+    with patch("musicbrainzngs.search_releases", return_value=mock_release), \
+         patch("musicbrainzngs.get_release_by_id", return_value=mock_full), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        fix._process_directory(dest, dry_run=False)
+    dt = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, "01 - Crazy.mp3")))
+    assert dt.year == 1991
+
+
+# ---------------------------------------------------------------------------
+# main() entry point
+# ---------------------------------------------------------------------------
+
+def test_main_nonexistent_directory():
+    """main() exits with code 1 when the directory does not exist."""
+    with patch("sys.argv", ["fix-mp3-meta", "-d", "/nonexistent_path_xyz"]):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 1
+
+
+def test_main_empty_directory(tmp_path):
+    """main() exits with code 0 for an existing empty directory."""
+    with patch("sys.argv", ["fix-mp3-meta", "-d", str(tmp_path)]), \
+         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
+
+
+def test_main_dry_run(tmp_path):
+    """main() --dry-run exits 0 and does not write any files."""
+    shutil.copy(FIXTURE_MP3, str(tmp_path / "song.mp3"))
+    with patch("sys.argv", ["fix-mp3-meta", "-d", str(tmp_path), "--dry-run"]), \
+         patch("musicbrainzngs.search_releases", return_value={"release-list": []}), \
+         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
+        with pytest.raises(SystemExit) as exc:
+            fix.main()
+    assert exc.value.code == 0
