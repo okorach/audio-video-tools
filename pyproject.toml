@@ -27,6 +27,8 @@ dependencies = [
     "jprops",
     "librosa",
     "pywin32",
+    "musicbrainzngs",
+    "mutagen",
 ]
 
 classifiers = [
@@ -81,6 +83,7 @@ audio-split      = "mediatools.audiosplit:main"
 audio-concat     = "mediatools.audioconcat:main"
 audio-speed      = "mediatools.audiospeed:main"
 video-enhance    = "mediatools.video_enhance:main"
+fix-mp3-meta     = "mediatools.fix_mp3_meta:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]
