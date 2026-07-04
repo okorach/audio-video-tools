@@ -132,7 +132,7 @@ def setsar(ratio: str) -> str:
 
 
 def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
-    opts = ":".join([f"{k}={v}" for k, v in kwargs])
+    opts = ":".join([f"{k}={v}" for k, v in kwargs.items()])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
