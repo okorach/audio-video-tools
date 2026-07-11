@@ -53,9 +53,9 @@ def main():
     while len(files_to_shuffle) > 0:
         file = files_to_shuffle.pop(randrange(len(files_to_shuffle)))
         dirname = fil.dirname(file)
-        basename = fil.basename(file)
+        basename = fil.basename(file, strip_ext=False)
         ext = fil.extension(basename)
-        prefix = fil.strip_extension(basename)
+        prefix = fil.strip_file_extension(basename)
         pieces = prefix.split(".")
         i = 0
         for p in pieces:
