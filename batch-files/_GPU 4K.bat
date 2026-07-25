@@ -18,8 +18,10 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-:: setlocal enabledelayedexpansion
+setlocal enabledelayedexpansion
 
-encode -i %* --hw_accel on --vcodec x264 --width 2560 --vbitrate 30000k --acodec aac --abitrate 128k --keepName
+:: ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i "%%~F" -vcodec hevc_nvenc -acodec aac -b:a 128k "%%~F.auto.mp4"
+for %%F in (%*) do (
+    encode -i "%%~F" --hw_accel on --vcodec x265 --vbitrate 20000k --acodec aac --abitrate 128k --keepName
+)
 
-pause

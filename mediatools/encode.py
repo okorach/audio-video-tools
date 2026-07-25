@@ -93,7 +93,7 @@ def main() -> None:
             splits = file_list[i].split(".")
             ext = splits.pop()
             base = ".".join(splits)
-            fileutil.rename(file_list[i], f"{base}.before_encode.{ext}", False)
+            fileutil.rename(file_list[i], f"{base}.original.{ext}", False)
             fileutil.rename(ofile, file_list[i])
 
 
