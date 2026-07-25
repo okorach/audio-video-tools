@@ -20,4 +20,4 @@
 
 :: setlocal enabledelayedexpansion
 
-encode -i %* --hw_accel off --vcodec x264 --width 1920 --vbitrate 20000k --acodec aac --abitrate 128k
+encode -i %* --hw_accel off --vcodec x264 --width 1920 --vbitrate 20000k --acodec aac --abitrate 128k --keepName
