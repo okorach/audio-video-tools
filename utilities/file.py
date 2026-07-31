@@ -24,6 +24,7 @@ import time
 import stat
 import platform
 import hashlib
+from typing import ClassVar
 from mediatools import log
 
 if platform.system() == "Windows":
@@ -35,7 +36,7 @@ class FileType:
     VIDEO_FILE: str = "video"
     IMAGE_FILE: str = "image"
     UNKNOWN_FILE: str = "unknown"
-    FILE_EXTENSIONS: dict[str, tuple[str, ...]] = {
+    FILE_EXTENSIONS: ClassVar[dict[str, tuple[str, ...]]] = {
         AUDIO_FILE: ("mp3", "ogg", "aac", "ac3", "m4a", "ape", "flac", "opus"),
         VIDEO_FILE: ("avi", "wmv", "mp4", "3gp", "mpg", "mpeg", "mkv", "ts", "mts", "m2ts", "mov"),
         IMAGE_FILE: ("jpg", "jpeg", "png", "gif", "svg", "raw"),
@@ -92,13 +93,12 @@ class File:
         if platform.system() != "Windows":
             return False
         f = self.filename.lower()
-        return f.endswith(".lnk") or f.endswith(".url")
+        return f.endswith((".lnk", ".url"))
 
     def is_link(self) -> bool:
         if platform.system() == "Windows":
             return self.filename.lower().endswith(".lnk")
-        else:
-            return os.path.islink(self.filename)
+        return os.path.islink(self.filename)
 
     def read_link(self) -> str | None:
         if not is_link(self.filename):
@@ -107,10 +107,9 @@ class File:
         if platform.system() == "Windows":
             shell = win32com.client.Dispatch("WScript.Shell")
             return shell.CreateShortCut(self.filename).Targetpath
-        else:
-            return os.readlink(self.filename)
+        return os.readlink(self.filename)
 
-    def create_link(self, link: str, dir: str = None, icon: str = None) -> str:
+    def create_link(self, link: str, directory: str | None = None, icon: str | None = None) -> str:
         if platform.system() == "Windows":
             shell = win32com.client.Dispatch("WScript.Shell")
             if not link.endswith(".lnk"):
@@ -118,16 +117,15 @@ class File:
             log.logger.debug("Create shortcut: %s --> %s", link, self.filename)
             shortcut = shell.CreateShortCut(link)
             shortcut.Targetpath = self.filename
-            if dir is not None:
-                shortcut.WorkingDirectory = dir
+            if directory is not None:
+                shortcut.WorkingDirectory = directory
             if icon is not None:
                 shortcut.IconLocation = icon
             shortcut.save()
             return link
-        else:
-            log.logger.debug("Create symlink: %s --> %s", link, self.filename)
-            os.symlink(self.filename, link)
-            return link
+        log.logger.debug("Create symlink: %s --> %s", link, self.filename)
+        os.symlink(self.filename, link)
+        return link
 
     def extension(self) -> str:
         return self.filename.split(".")[-1]

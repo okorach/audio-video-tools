@@ -88,8 +88,8 @@ class ImageFile(media.MediaFile):
         log.logger.debug("Image = %s", str(vars(self)))
 
     def exif_read(self) -> dict:
-        f = open(self.filename, "rb")
-        tags = exifread.process_file(f)
+        with open(self.filename, "rb") as f:
+            tags = exifread.process_file(f)
         if re.search("Rotated 90", str(tags.get("Image Orientation", ""))):
             self.orientation = "portrait"
             log.logger.debug("Portrait orientation: %s", str(self.orientation))
@@ -125,28 +125,21 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def slice_vertical(self, nbr_slices: int, round_to: int = 16) -> list[str]:
-        filter_list = []
         w, h = self.dimensions()
         slice_w = max(w // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (w // slice_w) + 1)
-        for i in range(nbr_slices):
-            filter_list.append(filters.crop(slice_w, h, i * slice_w, 0))
-        return filter_list
+        return [filters.crop(slice_w, h, i * slice_w, 0) for i in range(nbr_slices)]
 
     def slice_horizontal(self, nbr_slices: int, round_to: int = 16) -> list[str]:
-        filter_list = []
         w, h = self.dimensions()
         slice_h = max(h // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (h // slice_h) + 1)
-        for i in range(nbr_slices):
-            filter_list.append(filters.crop(w, slice_h, 0, i * slice_h))
-        return filter_list
+        return [filters.crop(w, slice_h, 0, i * slice_h) for i in range(nbr_slices)]
 
     def get_crop_filters(self, nbr_slices: int, direction: str = "vertical", round_to: int = 16) -> list[str]:
         if direction == "horizontal":
             return self.slice_horizontal(nbr_slices, round_to)
-        else:
-            return self.slice_vertical(nbr_slices, round_to)
+        return self.slice_vertical(nbr_slices, round_to)
 
     def blindify(self, out_file: str | None = None, **kwargs) -> str:
         nbr_slices = int(kwargs.pop("blinds", 10))
@@ -163,9 +156,7 @@ class ImageFile(media.MediaFile):
             scale_f = filters.scale((w // nbr_slices * nbr_slices) + w_gap * (nbr_slices - 1), h)
         ovl = fcomp.add_filtergraph([0], scale_f)
         crop_filters = self.get_crop_filters(nbr_slices, direction)
-        out_slices = []
-        for f in crop_filters:
-            out_slices.append(fcomp.add_filtergraph(1, f))
+        out_slices = [fcomp.add_filtergraph(1, f) for f in crop_filters]
 
         for i in range(len(crop_filters)):
             if direction == "horizontal":
@@ -175,7 +166,7 @@ class ImageFile(media.MediaFile):
             ovl = fcomp.add_filtergraph([ovl, out_slices[i]], overlay_filter)
 
         out_file = util.automatic_output_file_name(out_file, self.filename, "blind")
-        util.run_ffmpeg(f'{fcomp.format_inputs()} {str(fcomp)} -map "[{ovl}]" "{out_file}"')
+        util.run_ffmpeg(f'{fcomp.format_inputs()} {fcomp!s} -map "[{ovl}]" "{out_file}"')
         return out_file
 
     def shake_vertical(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
@@ -206,7 +197,7 @@ class ImageFile(media.MediaFile):
 
     def rotate(self, degrees: int = 90, **kwargs) -> str:
         vfilters = [filters.rotate(degrees)]
-        out_file = util.automatic_output_file_name(kwargs.get("out_file", None), self.filename, "rotate", extension=self.extension())
+        out_file = util.automatic_output_file_name(kwargs.get("out_file"), self.filename, "rotate", extension=self.extension())
         cmd = f'-i "{self.filename}" -vf {",".join(vfilters)} "{out_file}"'
         util.run_ffmpeg(cmd)
         return out_file
@@ -243,12 +234,10 @@ class ImageFile(media.MediaFile):
     ) -> str:
         if direction == "horizontal":
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
-        else:
-            return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
+        return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
 
     def zoom(self, **kwargs) -> tuple[str, dict]:
-        """
-        Converts an image in a video with a zoom effect
+        """Converts an image in a video with a zoom effect
         Allowed inputs:
         - zstart, zstop: Start/stop for the zoom (as percentage or float), proportion of original image
         - duration in seconds
@@ -257,11 +246,11 @@ class ImageFile(media.MediaFile):
         log.logger.debug("zoom(%s)", str(kwargs))
         zstart, zstop = [max(x, 1) for x in kwargs.get("effect", _get_random_zoom(1, 1.3))]
         fps = kwargs.get("framerate", conf.get_property(conf.VIDEO_FPS_KEY))
-        log.logger.debug("DUR %s", str(kwargs.get("duration", None)))
+        log.logger.debug("DUR %s", str(kwargs.get("duration")))
         duration = float(kwargs.get("duration", conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
         resolution = res.Resolution(resolution=kwargs.get("resolution", conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 2
-        out_file = kwargs.get("out_file", None)
+        out_file = kwargs.get("out_file")
         log.logger.debug("zoom video of image %s", self.filename)
         out_file = util.automatic_output_file_name(
             out_file, self.filename, f"zoom-{zstart}-{zstop}", extension=conf.get_property("default.video.format")
@@ -308,7 +297,7 @@ class ImageFile(media.MediaFile):
         return (scale_filter, total_width, total_height)
 
     def __get_panorama_params__(self, **kwargs) -> tuple[float, float]:
-        speed = util.percent_or_absolute(kwargs.get("speed", None))
+        speed = util.percent_or_absolute(kwargs.get("speed"))
         if speed is None:
             speed = DEFAULT_PAN_SPEED
             if random.randint(0, 1) == 1:
@@ -319,8 +308,7 @@ class ImageFile(media.MediaFile):
         return (speed, duration)
 
     def panorama(self, **kwargs) -> tuple[str, dict]:
-        """
-        Creates a panorama video of an image. Accepted inputs
+        """Creates a panorama video of an image. Accepted inputs
         - framerate
         - effect: Defines bounds of the panorama as a 4-tuple
         - Duration in seconds
@@ -331,7 +319,7 @@ class ImageFile(media.MediaFile):
             kwargs["effect"] = (0, 1, 0.45, 0.55)
 
         out_file = util.automatic_output_file_name(
-            kwargs.get("out_file", None), self.filename, "pan", extension=conf.get_property("default.video.format")
+            kwargs.get("out_file"), self.filename, "pan", extension=conf.get_property("default.video.format")
         )
 
         if self.orientation == "portrait":
@@ -352,7 +340,7 @@ class ImageFile(media.MediaFile):
         ystart, ystop = 0.5, 0.5
 
         vspeed = 0
-        if kwargs.get("effect", None) is None:
+        if kwargs.get("effect") is None:
             log.logger.info("Computing ystart/ystop from duration and speed")
             vspeed = util.percent_or_absolute(kwargs.get("vspeed", 0))
         else:
@@ -389,13 +377,13 @@ class ImageFile(media.MediaFile):
 
         vfilters.append(filters.crop(scale_res.width, scale_res.height, x_formula, y_formula))
 
-        cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{",".join(vfilters)}" -t {duration} -s {str(v_res)} "{out_file}"'
+        vf_str = ",".join(vfilters)
+        cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd)
         return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "speed": speed, "vspeed": vspeed})
 
     def to_video(self, with_effect: bool = True, **kwargs) -> tuple[str, dict]:
-        """
-        Converts an image to a video.
+        """Converts an image to a video.
         Allowed inputs:
         - with_effect: Slight panorama or zoom effect will be generated
         - All typical video parameters (resolution, hw_accel, fps, ...)
@@ -417,7 +405,7 @@ class ImageFile(media.MediaFile):
 
         if self.resolution.ratio <= (3 / 4 + 0.00001):
             return self.panorama(duration=duration, speed=speed, effect=(0.5 + drift, 0.5 - drift, 0.2, 0.8), **kwargs)
-        elif self.resolution.ratio >= (16 / 9 + 0.00001):
+        if self.resolution.ratio >= (16 / 9 + 0.00001):
             r = random.randint(0, 10)
             # Allow up to 20% crop if image ratio < 9 / 16
             offset = 0.2 if w / h <= (9 / 16 + 0.00001) else 0
@@ -426,11 +414,10 @@ class ImageFile(media.MediaFile):
             x = random.randint(0, 1)
             drift = random.randint(0, 10) / 200 * random.randrange(-1, 3, 2)
             return self.panorama(duration=duration, effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
-        elif random.randint(0, 1) == 0:
+        if random.randint(0, 1) == 0:
             x = random.randint(0, 1)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
-        else:
-            return self.zoom(effect=_get_random_zoom(), **kwargs)
+        return self.zoom(effect=_get_random_zoom(), **kwargs)
 
 
 def get_rectangle(color: str, w: int, h: int) -> str:
@@ -523,7 +510,7 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs) -> str:
 
     fcomplex.insert_input(0, ImageFile(__get_background__(kwargs["background_color"])))
 
-    img_outs = [i for i in range(len(fcomplex.inputs))]
+    img_outs = list(range(len(fcomplex.inputs)))
     img_outs[0] = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
     if kwargs.get("stretch", True):
         for i in range(1, len(fcomplex.inputs)):
@@ -547,7 +534,7 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs) -> str:
             y += gap + max_h
 
     out_file = util.automatic_output_file_name(out_file, files[0].filename, "poster")
-    util.run_ffmpeg(f'{fcomplex.format_inputs()} {str(fcomplex)} -map "[{out_stream}]" "{out_file}"')
+    util.run_ffmpeg(f'{fcomplex.format_inputs()} {fcomplex!s} -map "[{out_stream}]" "{out_file}"')
     return out_file
 
 

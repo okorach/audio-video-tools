@@ -40,9 +40,9 @@ def test_hash():
 
 
 def test_hash_list():
-    l = [AUDIO_FILE, AUDIO_FILE_2, AUDIO_FILE]
-    hashes = audio.get_hash_list(l)
-    assert list(hashes.keys())[0] == H1
+    file_list = [AUDIO_FILE, AUDIO_FILE_2, AUDIO_FILE]
+    hashes = audio.get_hash_list(file_list)
+    assert next(iter(hashes.keys())) == H1
     assert len(hashes[H1]) == 2
     assert list(hashes.keys())[1] == H2
     assert len(hashes.keys()) == 2

@@ -26,7 +26,7 @@ from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.creator as creator
+from mediatools import creator
 import mediatools.options as opt
 
 STD_FMT: str = "%-20s : %s"
@@ -110,10 +110,10 @@ def __to_std__(specs: dict, all_props: list[str]) -> str:
         u = ""
         v = specs[prop]
         if v is None:
-            s += "{}: - {}\n".format("%-20s" % prop, u)
+            s += f"{prop:<20}: - {u}\n"
             continue
         if prop not in UNITS:
-            s += "{}: {} {}\n".format("%-20s" % prop, v, u)
+            s += f"{prop:<20}: {v} {u}\n"
             continue
         if UNITS[prop] in ("bytes", "bits", "pix", "bytes/s", "bits/s"):
             v = float(v)
@@ -130,7 +130,7 @@ def __to_std__(specs: dict, all_props: list[str]) -> str:
                 u = UNITS[prop]
         elif UNITS[prop] == "time":
             v = util.to_hms(specs[prop], fmt="string")
-        s += "{}: {} {}\n".format("%-20s" % prop, v, u)
+        s += f"{prop:<20}: {v} {u}\n"
     return s[:-1]
 
 
@@ -152,10 +152,10 @@ def main() -> None:
     if fmt == "csv":
         print("# ")
         for prop in all_props:
-            print("%s," % prop, end="")
+            print(f"{prop},", end="")
             if prop == "duration":
-                print("%s," % "Duration HH:MM:SS.x", end="")
-        print("")
+                print("{},".format("Duration HH:MM:SS.x"), end="")
+        print()
 
     for file in filelist:
         try:

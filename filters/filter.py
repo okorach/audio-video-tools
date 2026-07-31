@@ -216,11 +216,11 @@ class Deshake(Simple):
         return "deshake=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
 
 
-def deshake(rx: int = 32, ry: int = 32, **kwargs) -> "Deshake":
+def deshake(rx: int = 32, ry: int = 32, **kwargs) -> Deshake:
     return Deshake(rx=rx, ry=ry, **kwargs)
 
 
-def crop(x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> "Crop":
+def crop(x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> Crop:
     return Crop(x=x, y=y, x_formula=x_formula, y_formula=y_formula)
 
 
@@ -268,8 +268,7 @@ def speed(target_speed: str | float) -> str:
     s = float(util.percent_or_absolute(target_speed))
     if s > 1:
         return select(f"not(mod(n,{s}))") + "," + setpts("N/FRAME_RATE/TB")
-    else:
-        return setpts(f"{1 / float(s)}*PTS")
+    return setpts(f"{1 / float(s)}*PTS")
 
 
 def setpts(pts_formula: str) -> str:
@@ -298,7 +297,7 @@ def __str_streams(streams: list | tuple | str) -> str:
     elif isinstance(streams, str):
         s = f"{streams}"
     else:
-        raise FilterError(f"Unexpected streams type {str(type(streams))}")
+        raise FilterError(f"Unexpected streams type {type(streams)!s}")
     return f"[{s}]"
 
 
@@ -321,7 +320,7 @@ def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
-def format(pix_fmts: list[str] | str) -> str:
+def format(pix_fmts: list[str] | str) -> str:  # noqa: A001
     if isinstance(pix_fmts, list):
         s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
@@ -362,10 +361,9 @@ def format_options(opts: list[str] | None) -> str:
 def metadata(key: str, value: str, track: int | None = None, track_type: str | None = None) -> str:
     if track is None:
         return f'-metadata {key}="{value}"'
-    else:
-        if track_type is None:
-            track_type = "s:a"
-        return f'-metadata:{track_type}:{track} {key}="{value}"'
+    if track_type is None:
+        track_type = "s:a"
+    return f'-metadata:{track_type}:{track} {key}="{value}"'
 
 
 def vcodec(codec: str) -> str:

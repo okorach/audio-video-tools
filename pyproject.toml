@@ -171,6 +171,70 @@ extend-ignore = [
     "UP004",   # Useless inheritance to object
     "D209",    # Multiline docstrings quotes on separate line
     "D205",    # 1 blank line between docstring title and body
+    # Docstrings — large pre-existing debt, to be addressed incrementally
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    "D200", "D202", "D404", "D413",
+    # Type annotations — large pre-existing debt, to be addressed incrementally
+    "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204",
+    # Magic values — pervasive in FFmpeg parameter code
+    "PLR2004",
+    # Private member access — intentional pattern in this codebase
+    "SLF001",
+    # print() — intentional in CLI tools
+    "T201",
+    # Unused loop variables — intentional (_) patterns
+    "RUF059",
+    # pathlib migration — large refactor, separate concern
+    "PTH100", "PTH103", "PTH104", "PTH107", "PTH108", "PTH109", "PTH110",
+    "PTH111", "PTH112", "PTH113", "PTH114", "PTH115", "PTH116", "PTH118",
+    "PTH119", "PTH120", "PTH122", "PTH123", "PTH204", "PTH206", "PTH208",
+    "PTH211",
+    # pytest assertion style — tests excluded from SonarCloud
+    "PT015", "PT017", "PT018", "PT006",
+    # assert False in tests — tests excluded from SonarCloud
+    "B011",
+    # Broad exception catching — intentional defensive code
+    "BLE001",
+    # Unused arguments — interface/abstract method signatures
+    "ARG001", "ARG002",
+    # Unicode chars in comments/docstrings — intentional (French, special chars)
+    "RUF001", "RUF002", "RUF003",
+    # try/return placement — style preference
+    "TRY300", "TRY301", "TRY201",
+    # Complexity metrics — covered by SonarQube
+    "PLR0912", "PLR0913", "PLR0915",
+    # global variable usage — intentional
+    "PLW0603", "PLW0602",
+    # contextlib.suppress — style preference
+    "SIM105",
+    # Conditional imports not at module top — intentional
+    "PLC0415", "E402",
+    # Implicit namespace package — by design
+    "INP001",
+    # try/except in loop — sometimes necessary
+    "PERF203",
+    # TODO comment metadata requirements
+    "TD002", "TD003", "TD004", "FIX002", "FIX004",
+    # Timezone-naive datetime — pre-existing pattern, separate concern
+    "DTZ001", "DTZ005", "DTZ006", "DTZ007",
+    # Loop variable overwrite in comprehension — intentional patterns
+    "PLW2901",
+    # Pseudo-random for non-cryptographic media use (file shuffling, effects)
+    "S311",
+    # Intentional __func__ naming pattern for module-level private functions
+    "N807",
+    # Uppercase constants defined inside functions
+    "N806",
+    # Boolean positional values in function calls — common in this codebase
+    "FBT003",
+    # subprocess call checking — FFmpeg invocation with known commands
+    "S603", "PLW1510",
+    # md5 used for file identity checking, not cryptography
+    "S324",
+    # Temp dir usage — intentional in tests
+    "S108",
+    # Ternary operators — complex conditions can be more readable as if/else
+    "SIM108",
 ]
 
 exclude = [
