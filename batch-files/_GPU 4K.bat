@@ -22,6 +22,6 @@ setlocal enabledelayedexpansion
 
 :: ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i "%%~F" -vcodec hevc_nvenc -acodec aac -b:a 128k "%%~F.auto.mp4"
 for %%F in (%*) do (
-    encode -i "%%~F" --hw_accel on --vcodec x265 --vbitrate 20000k --acodec aac --abitrate 128k --keepName
+    encode -i "%%~F" --hw_accel on --vcodec x265 --vbitrate 40000k --acodec aac --abitrate 128k --keepName
 )
 
