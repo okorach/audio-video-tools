@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import sys
 import os
+import uuid
 import argparse
 import concurrent.futures
 from exiftool import ExifToolHelper
@@ -186,26 +187,73 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
     return fmt
 
 
-def rename(filename: str, new_filename: str, nbr_copies: int = 10) -> bool:
-    if os.path.abspath(filename) == os.path.abspath(new_filename):
-        log.logger.info("File %s needs no renaming", filename)
+def __same_path(path1: str, path2: str) -> bool:
+    return os.path.normcase(os.path.abspath(path1)) == os.path.normcase(os.path.abspath(path2))
+
+
+def __resolve_targets(renames: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Makes sure all targets are unique and do not overwrite files that are not part of the renaming.
+    A target that is the current name of another file of the batch is fine, since that file is moved away first"""
+    sources = {os.path.normcase(os.path.abspath(src)) for src, _ in renames}
+    taken: set[str] = set()
+    resolved = []
+    for src, target in renames:
+        base, ext = fil.strip_extension(target), fil.extension(target)
+        candidate, n = target, 1
+        while True:
+            key = os.path.normcase(os.path.abspath(candidate))
+            if key not in taken and (key in sources or not os.path.exists(candidate)):
+                break
+            n += 1
+            candidate = f"{base} {n}.{ext}"
+        taken.add(key)
+        resolved.append((src, candidate))
+    return resolved
+
+
+def rename_files(renames: list[tuple[str, str]]) -> bool:
+    """Renames a set of files (source, target) so that a target name colliding with the name of another file
+    of the set is not a problem. Files are first renamed to unique temporary names, then to their final names.
+    If anything fails, all files are restored to their original names and False is returned"""
+    renames = [(src, target) for src, target in renames if not __same_path(src, target)]
+    if not renames:
         return True
-    log.logger.info("Renaming %s into %s", filename, new_filename)
-    ext = fil.extension(new_filename)
-    base = fil.strip_extension(filename)
-    possible_files = [new_filename] + [f"{base} {v}.{ext}" for v in range(2, nbr_copies)]
-    success = False
-    for f in possible_files:
-        try:
-            os.rename(filename, f)
-            success = True
-            break
-        except OSError as e:
-            log.logger.info("Rename error: %s", str(e))
-    if not success:
-        log.logger.warning("Unable to rename")
+    renames = __resolve_targets(renames)
+    run_id = uuid.uuid4().hex
+    temps = [os.path.join(fil.dirname(src), f"{run_id}-{i}.{fil.extension(src)}") for i, (src, _) in enumerate(renames)]
+    current = [src for src, _ in renames]
+    try:
+        for i, temp in enumerate(temps):
+            log.logger.info("Renaming %s into temporary %s", current[i], temp)
+            os.rename(current[i], temp)
+            current[i] = temp
+        for i, (_, target) in enumerate(renames):
+            log.logger.info("Renaming %s into %s", renames[i][0], target)
+            os.rename(temps[i], target)
+            current[i] = target
+    except OSError as e:
+        log.logger.error("Rename error: %s, restoring original file names", str(e))
+        __restore(renames, temps, current)
         return False
     return True
+
+
+def __restore(renames: list[tuple[str, str]], temps: list[str], current: list[str]) -> None:
+    """Best effort restoration of original names. Goes back through temporary names first, since a final name
+    can be the original name of another file"""
+    for i in reversed(range(len(renames))):
+        if current[i] != renames[i][0] and current[i] != temps[i]:
+            try:
+                os.rename(current[i], temps[i])
+                current[i] = temps[i]
+            except OSError as e:
+                log.logger.critical("Could not restore %s, file is now named %s: %s", renames[i][0], current[i], str(e))
+    for i in reversed(range(len(renames))):
+        if current[i] == temps[i]:
+            try:
+                os.rename(temps[i], renames[i][0])
+            except OSError as e:
+                log.logger.critical("Could not restore %s, file is now named %s: %s", renames[i][0], temps[i], str(e))
 
 
 def main() -> None:
@@ -233,6 +281,7 @@ def main() -> None:
     files_data = get_files_data(fil.file_list(*kwargs["files"], file_type=None, recurse=False), kwargs["sortby"])
 
     log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
+    renames: list[tuple[str, str]] = []
     for key in sorted(files_data.keys()):
         filename = files_data[key]["file"]
         ext = fil.extension(filename).lower()
@@ -269,14 +318,18 @@ def main() -> None:
         file_fmt = file_fmt.replace("#SEQ4#", f"{seq:04}")
         file_fmt = file_fmt.replace("#SEQ5#", f"{seq:05}")
         new_filename = fil.dirname(filename) + os.sep + creation_date.strftime(file_fmt) + "." + ext
+        renames.append((filename, new_filename))
         file_type = fil.get_type(filename)
-        if rename(filename, new_filename):
-            if file_type == fil.FileType.IMAGE_FILE:
-                photo_seq += 1
-            elif file_type == fil.FileType.VIDEO_FILE:
-                video_seq += 1
-            else:
-                other_seq += 1
+        if file_type == fil.FileType.IMAGE_FILE:
+            photo_seq += 1
+        elif file_type == fil.FileType.VIDEO_FILE:
+            video_seq += 1
+        else:
+            other_seq += 1
+
+    if not rename_files(renames):
+        log.logger.error("Renaming failed, original file names restored")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
