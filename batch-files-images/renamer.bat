@@ -6,7 +6,7 @@
 :: )
 
 :: renamer -r "%root%" -f %* -g 5
-set /p prefix=Prefix ?
+set /p prefix=Format (#SEQ# #SIZE# #DEVICE# #TIMESTAMP# #FPS# #BITRATE#)?
 set /p seqstart=Sequence Start ?
 renamer --seqstart %seqstart% --prefix "%prefix%" --photo_format "%prefix%" --video_format "%prefix%" --files %*
 
