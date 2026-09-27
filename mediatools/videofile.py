@@ -329,7 +329,7 @@ class VideoFile(media.MediaFile):
         return self.add_metadata(year=year)
 
     def add_audio_tracks(self, *audio_files: str, out_file: str | None = None) -> str:
-        maps = " ".join(["-map {i}" for i in range(len(audio_files) + 1)])
+        maps = " ".join([f"-map {i}" for i in range(len(audio_files) + 1)])
         inputs = " ".join([f'-i "{file}"' for file in [self.filename] + list(audio_files)])
         out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix="muxed")
         util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{out_file}"', self.duration)
