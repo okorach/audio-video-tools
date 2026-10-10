@@ -100,6 +100,7 @@ setuptools.setup(
             "fix-mp3-meta = mediatools.fix_mp3_meta:main",
             "audio-normalize = mediatools.audio_normalize:main",
             "pdf-split = mediatools.pdf_split:main",
+            "pdf-compress = mediatools.pdf_compress:main",
         ]
     },
     python_requires=">=3.10",
