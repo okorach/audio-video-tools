@@ -29,7 +29,9 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
+from mediatools import log
 from mediatools.pdf_split import find_ghostscript, GS_BINARIES
 
 DEFAULT_OUTPUT = "merged.pdf"
@@ -40,7 +42,7 @@ def default_output(pdf_files: list) -> str:
     return str(Path(pdf_files[0]).parent / DEFAULT_OUTPUT)
 
 
-def merge(pdf_files: list, out_file: str = None) -> str:
+def merge(pdf_files: list, out_file: Optional[str] = None) -> str:
     """Merges PDF files, in lexicographic order, into out_file. Returns the output file name"""
     if len(pdf_files) < 1:
         raise ValueError("At least 1 input file is required")
@@ -56,11 +58,12 @@ def merge(pdf_files: list, out_file: str = None) -> str:
     if gs is None:
         raise RuntimeError("Ghostscript not found on PATH (looked for " + ", ".join(GS_BINARIES) + ")")
     cmd = [gs, "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", "-dQUIET", f"-sOutputFile={out_file}", *pdf_files]
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True)  # noqa: S603
     return out_file
 
 
 def main() -> None:
+    """Entry point of the pdf-merge command"""
     parser = argparse.ArgumentParser(description="Merges several PDF files into 1 PDF file (requires Ghostscript)")
     parser.add_argument("-i", "--inputfiles", required=True, nargs="+", help="Input PDF files (merged in lexicographic order)")
     parser.add_argument("-o", "--outputfile", required=False, default=None, help=f"Output PDF file (default: {DEFAULT_OUTPUT})")
@@ -68,9 +71,9 @@ def main() -> None:
     try:
         out = merge(args.inputfiles, args.outputfile)
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as e:
-        print(f"ERROR: {e}")
+        log.logger.error("%s", e)
         sys.exit(1)
-    print(f"Merged {len(args.inputfiles)} files into {out}")
+    log.logger.info("Merged %d files into %s", len(args.inputfiles), out)
 
 
 if __name__ == "__main__":
