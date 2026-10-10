@@ -80,7 +80,7 @@ def test_compress_mocked(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"original")
 
-    def fake_gs(cmd: list, check: bool) -> None:  # noqa: ARG001, FBT001
+    def fake_gs(cmd: list, check: bool) -> None:  # noqa: ARG001
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"small")
 
@@ -168,7 +168,7 @@ def test_compress_failure_removes_temporary_file(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"original")
 
-    def failing_gs(cmd: list, check: bool) -> None:  # noqa: ARG001, FBT001
+    def failing_gs(cmd: list, check: bool) -> None:  # noqa: ARG001
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"partial")
         raise subprocess.CalledProcessError(1, "gs")

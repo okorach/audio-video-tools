@@ -22,27 +22,28 @@
 
 The input files are merged in lexicographic order of their names, whatever the order in which they are given:
 pdf-merge -i b.pdf a.pdf -o merged.pdf puts the pages of a.pdf first
-If no output file is specified, the merged file is <dir of first input>/merged.pdf
+If no output file is specified, the merged file is named after the first input file with a "_merged" postfix:
+foo1.pdf foo2.pdf foo3.pdf are merged into foo1_merged.pdf
 """
 
 import argparse
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from mediatools import log
 from mediatools.pdf_split import find_ghostscript, GS_BINARIES
 
-DEFAULT_OUTPUT = "merged.pdf"
+MERGED_POSTFIX = "_merged"
 
 
 def default_output(pdf_files: list) -> str:
-    """Returns the default output file: merged.pdf in the directory of the first input file"""
-    return str(Path(pdf_files[0]).parent / DEFAULT_OUTPUT)
+    """Returns the default output file: the first input file with a _merged postfix (foo1.pdf -> foo1_merged.pdf)"""
+    first = Path(pdf_files[0])
+    return str(first.with_name(f"{first.stem}{MERGED_POSTFIX}{first.suffix}"))
 
 
-def merge(pdf_files: list, out_file: Optional[str] = None) -> str:
+def merge(pdf_files: list, out_file: str | None = None) -> str:
     """Merges PDF files, in lexicographic order, into out_file. Returns the output file name"""
     if len(pdf_files) < 1:
         raise ValueError("At least 1 input file is required")
@@ -66,7 +67,7 @@ def main() -> None:
     """Entry point of the pdf-merge command"""
     parser = argparse.ArgumentParser(description="Merges several PDF files into 1 PDF file (requires Ghostscript)")
     parser.add_argument("-i", "--inputfiles", required=True, nargs="+", help="Input PDF files (merged in lexicographic order)")
-    parser.add_argument("-o", "--outputfile", required=False, default=None, help=f"Output PDF file (default: {DEFAULT_OUTPUT})")
+    parser.add_argument("-o", "--outputfile", required=False, default=None, help="Output PDF file (default: first input file with a _merged postfix)")
     args = parser.parse_args()
     try:
         out = merge(args.inputfiles, args.outputfile)

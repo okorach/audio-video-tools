@@ -46,8 +46,9 @@ def _touch(path: Path) -> str:
 
 
 def test_default_output() -> None:
-    """The default output is merged.pdf in the folder of the first input"""
-    assert pdf_merge.default_output([str(Path("a") / "x.pdf"), "y.pdf"]) == str(Path("a") / "merged.pdf")
+    """The default output is the first input file with a _merged postfix"""
+    assert pdf_merge.default_output([str(Path("a") / "foo1.pdf"), "foo2.pdf", "foo3.pdf"]) == str(Path("a") / "foo1_merged.pdf")
+    assert pdf_merge.default_output(["my.doc.pdf"]) == "my.doc_merged.pdf"
 
 
 def test_no_input() -> None:
@@ -81,7 +82,7 @@ def test_merge_command(tmp_path: Path) -> None:
     a, b = _touch(tmp_path / "a.pdf"), _touch(tmp_path / "b.pdf")
     with mock.patch("mediatools.pdf_merge.find_ghostscript", return_value="gs"), mock.patch("subprocess.run") as run:
         out = pdf_merge.merge([a, b])
-    assert out == str(tmp_path / "merged.pdf")
+    assert out == str(tmp_path / "a_merged.pdf")
     cmd = run.call_args[0][0]
     assert cmd[0] == "gs"
     assert f"-sOutputFile={out}" in cmd
