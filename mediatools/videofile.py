@@ -40,6 +40,21 @@ from filters import filters
 import mediatools.media_config as conf
 
 DEFAULT_CROP_BOX: str = "1920x1080"
+# Names accepted by --box (case insensitive) as aliases of a WxH size
+CROP_BOX_ALIASES: dict[str, str] = {"4k": "3840x2160", "fhd": "1920x1080", "1k": "1920x1080", "hd": "1280x720"}
+
+
+def parse_crop_box(box: str | None) -> tuple[str, str]:
+    """Parses a crop box given as WxH or as an alias (4k, fhd, 1k, hd, case insensitive).
+    Returns (width, height) as strings. Raises ValueError if the box is malformed"""
+    value = str(box or DEFAULT_CROP_BOX).strip().lower()
+    value = CROP_BOX_ALIASES.get(value, value)
+    parts = value.split("x")
+    if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):  # noqa: PLR2004
+        raise ValueError(f"Invalid crop box '{box}', expected <width>x<height> or one of {', '.join(CROP_BOX_ALIASES)}")
+    return parts[0].strip(), parts[1].strip()
+
+
 FFMPEG_CLASSIC_FMT: str = '-i "{0}" {1} "{2}"'
 
 
@@ -260,7 +275,7 @@ class VideoFile(media.MediaFile):
         Raises ValueError if the crop region is bigger than the source video"""
         width, height = kwargs.get("width"), kwargs.get("height")
         if width is None or height is None:
-            width, height = str(kwargs.get("box") or DEFAULT_CROP_BOX).lower().split("x", maxsplit=1)
+            width, height = parse_crop_box(kwargs.get("box"))
         width, height = self.calc_resolution(width, height)
         src_w, src_h = self.dimensions()
         if width > src_w or height > src_h:

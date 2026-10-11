@@ -20,7 +20,7 @@
 #
 
 # This scripts crops a region of a video file
-# --box <width>x<height> : The size of the region to crop (default 1920x1080)
+# --box <width>x<height> or 4k, fhd, 1k, hd : The size of the region to crop (default 1920x1080)
 # --top, --center, --bottom, --left, --right: Where in the source video the region is taken (default centered)
 
 import re
@@ -36,7 +36,12 @@ POSITIONS = ("top", "center", "bottom", "left", "right")
 
 def main():
     parser = util.get_common_args("media-crop", "Crops a region of the input video file")
-    parser.add_argument("--box", required=False, default=video.DEFAULT_CROP_BOX, help="Size of the cropped region eg 1280x720 (default 1920x1080)")
+    parser.add_argument(
+        "--box",
+        required=False,
+        default=video.DEFAULT_CROP_BOX,
+        help="Size of the cropped region: <width>x<height> eg 1280x720, or 4k (3840x2160), fhd or 1k (1920x1080), hd (1280x720). Default 1920x1080",
+    )
     parser.add_argument("--top", required=False, default=False, action="store_true", help="Crop region is aligned with the top of the source")
     parser.add_argument("--center", required=False, default=False, action="store_true", help="Crop region is centered in the source")
     parser.add_argument("--bottom", required=False, default=False, action="store_true", help="Crop region is aligned with the bottom of the source")
@@ -52,9 +57,9 @@ def main():
     # --top, --left, etc... are position hints, not ffmpeg options
     kwargs["position"] = position or "center"
     try:
-        kwargs["width"], kwargs["height"] = kwargs.pop("box").lower().split("x", maxsplit=1)
-    except ValueError:
-        log.logger.error("Invalid --box value, expected <width>x<height>")
+        kwargs["width"], kwargs["height"] = video.parse_crop_box(kwargs.pop("box"))
+    except ValueError as e:
+        log.logger.error("Invalid --box value: %s", str(e))
         sys.exit(2)
     log.logger.debug("KW=%s", str(kwargs))
     try:

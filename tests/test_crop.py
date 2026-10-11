@@ -61,7 +61,27 @@ def test_bottom_center() -> None:
     assert (kwargs["width"], kwargs["height"]) == ("720", "1280")
 
 
-@pytest.mark.parametrize("args", [["--top", "--bottom"], ["--left", "--right"], ["--box", "1280"]])
+@pytest.mark.parametrize(
+    ("box", "expected"),
+    [
+        ("4k", ("3840", "2160")),
+        ("4K", ("3840", "2160")),
+        ("fhd", ("1920", "1080")),
+        ("FHD", ("1920", "1080")),
+        ("1k", ("1920", "1080")),
+        ("1K", ("1920", "1080")),
+        ("hd", ("1280", "720")),
+        ("HD", ("1280", "720")),
+        ("1280X720", ("1280", "720")),
+    ],
+)
+def test_box_aliases(box: str, expected: tuple) -> None:
+    """--box accepts size aliases, case insensitive"""
+    kwargs = _run("--box", box).call_args.kwargs
+    assert (kwargs["width"], kwargs["height"]) == expected
+
+
+@pytest.mark.parametrize("args", [["--top", "--bottom"], ["--left", "--right"], ["--box", "1280"], ["--box", "8k"], ["--box", "axb"]])
 def test_invalid_options(args: list) -> None:
     """Incompatible positions and malformed box exit with code 2"""
     with pytest.raises(SystemExit) as e:

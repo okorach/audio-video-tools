@@ -6,14 +6,14 @@ proportional to the cropped area, and audio tracks (and other streams) copied un
 ## Usage
 
 ```
-media-crop -i <input> [-o <output>] [--box <W>x<H>] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-g <level>]
+media-crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-g <level>]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-i`, `--inputfiles` | Video to crop |
 | `-o`, `--outputfile` | Output file. Default: `<input>.crop_<W>x<H>-<position>.<ext>` |
-| `--box <W>x<H>` | Size of the cropped region. Default `1920x1080` |
+| `--box <W>x<H>` | Size of the cropped region. Default `1920x1080`. Aliases (case insensitive): `4k` = 3840x2160, `fhd` or `1k` = 1920x1080, `hd` = 1280x720 |
 | `--top`, `--center`, `--bottom` | Vertical alignment of the region in the source |
 | `--left`, `--right` | Horizontal alignment of the region in the source |
 | `--hw_accel` | Nvidia hardware acceleration: `auto` (default), `on`, `off` |
@@ -41,6 +41,9 @@ media-crop -i foo.mp4 --box 1280x720 --top --left
 
 # Crop a 1920x1080 region at the center of the source video
 media-crop -i foo.mp4 --box 1920x1080 --center
+
+# Crop a 4K region at the top left of an 8K source
+media-crop -i foo.mp4 --box 4k --top --left
 
 # Crop a portrait 720x1280 region at the bottom center of the source video
 media-crop -i foo.mp4 --box 720x1280 --bottom --center
