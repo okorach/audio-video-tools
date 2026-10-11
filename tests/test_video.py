@@ -142,6 +142,14 @@ def test_crop_command():
     assert "-hwaccel" not in cmd
 
 
+def test_crop_default_output_name():
+    """Without an output file the output is <name>.crop.<ext>"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg"):
+        out = v.crop(box="160x120", position="top left", hw_accel="off")
+    assert out == v.filename.rsplit(".", 1)[0] + ".crop.mp4"
+
+
 def test_crop_hw_accel_codec():
     """With HW acceleration the NVENC encoder matching the source codec is used"""
     v = video.VideoFile(FILE)

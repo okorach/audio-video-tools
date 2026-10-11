@@ -298,7 +298,7 @@ class VideoFile(media.MediaFile):
             log.logger.warning("Can't find video bitrate of %s, using encoder default", self.filename)
 
         ext = fil.extension(self.filename)
-        out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{width}x{height}-{pos.replace(' ', '-')}", ext)
+        out_file = util.automatic_output_file_name(out_file, self.filename, "crop", ext)
         # Decode on GPU but keep frames in system memory since the crop filter is a CPU one
         hw_prefix = "-hwaccel cuda " if hw_accel else ""
         cmd = f'{hw_prefix}-i "{self.filename}" -vf "{filters.crop(width, height, left, top)}" {" ".join(options)} "{out_file}"'

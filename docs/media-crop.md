@@ -12,7 +12,7 @@ media-crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center
 | Option | Description |
 |--------|-------------|
 | `-i`, `--inputfiles` | Video to crop |
-| `-o`, `--outputfile` | Output file. Default: `<input>.crop_<W>x<H>-<position>.<ext>` |
+| `-o`, `--outputfile` | Output file. Default: `<input>.crop.<ext>` (`foo.mp4` gives `foo.crop.mp4`) |
 | `--box <W>x<H>` | Size of the cropped region. Default `1920x1080`. Aliases (case insensitive): `4k` = 3840x2160, `fhd` or `1k` = 1920x1080, `hd` = 1280x720 |
 | `--top`, `--center`, `--bottom` | Vertical alignment of the region in the source |
 | `--left`, `--right` | Horizontal alignment of the region in the source |
