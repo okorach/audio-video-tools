@@ -326,3 +326,35 @@ def test_metadata():
     assert v.get_audio_codec() == "aac"
     assert (v.get_video_duration() - 10.0) < 0.01
     assert (v.get_audio_bitrate() - 96966) < 10
+
+
+@pytest.mark.parametrize(
+    ("hw_accel", "options", "expected"),
+    [
+        (True, {"width": 640}, '-vf "scale_cuda=640:-2"'),
+        (True, {"height": 360}, '-vf "scale_cuda=-2:360"'),
+        (True, {"width": 640, "height": 360}, '-vf "scale_cuda=640:360"'),
+        (True, {"resolution": "640x360"}, '-vf "scale_cuda=640:360"'),
+        (False, {"width": 640}, '-vf "scale=640:-2"'),
+        (False, {"height": 360}, '-vf "scale=-2:360"'),
+        (False, {"width": 640, "height": 360}, '-vf "scale=640:360"'),
+        (False, {"resolution": "640x360"}, '-s "640x360"'),
+    ],
+)
+def test_encode_resize_options(hw_accel, options, expected):
+    """--width, --height and --resolution are all honored, with or without HW acceleration"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.encode(target_file=TMP1, hw_accel=hw_accel, vcodec="x265", **options)
+    assert expected in run.call_args[0][0]
+
+
+@pytest.mark.parametrize("hw_accel", [True, False])
+def test_encode_no_resize(hw_accel):
+    """Without --width, --height or --resolution the video is not scaled"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.encode(target_file=TMP1, hw_accel=hw_accel, vcodec="x265")
+    cmd = run.call_args[0][0]
+    assert "scale" not in cmd
+    assert " -s " not in cmd

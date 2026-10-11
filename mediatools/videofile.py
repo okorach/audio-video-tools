@@ -526,6 +526,21 @@ class VideoFile(media.MediaFile):
                 n += 1
         return n
 
+    def __get_scale_filter(self, **kwargs) -> str | None:
+        """Returns the scale filter for the requested --width, --height or --resolution, None if the video is not resized.
+        The unspecified dimension is computed to keep the aspect ratio (-2 keeps it even, as required by most encoders)"""
+        width, height = kwargs.get(opt.Option.WIDTH), kwargs.get(opt.Option.HEIGHT)
+        if not width and not height:
+            return None
+        width = width if width and width > 0 else -2
+        height = height if height and height > 0 else -2
+        if util.use_hardware_accel(**kwargs):
+            return f"scale_cuda={width}:{height}"
+        if kwargs.get(opt.Option.RESOLUTION, None) is not None:
+            # Software resize with a --resolution is done by the -s output option
+            return None
+        return f"scale={width}:{height}"
+
     def __get_video_filters(self, **kwargs) -> filter.Simple:
         log.logger.debug("Vfilters options = %s", str(kwargs))
         vfilters = filter.Simple(filters.VIDEO_TYPE)
@@ -545,8 +560,9 @@ class VideoFile(media.MediaFile):
         if kwargs.get("fade", False):
             vfilters.append(filter.FadeIn(duration=0.5))
             vfilters.append(filter.FadeOut(duration=0.5))
-        if util.use_hardware_accel(**kwargs) and kwargs.get(opt.Option.RESOLUTION, None) is not None:
-            vfilters.append(f"scale_cuda={kwargs[opt.Option.WIDTH]}:{kwargs[opt.Option.HEIGHT]}")
+        scale = self.__get_scale_filter(**kwargs)
+        if scale:
+            vfilters.append(scale)
         if kwargs.get("color_eq", None) is not None:
             if util.use_hardware_accel(**kwargs):
                 log.logger.warning("Skipping eq color filter: not compatible with GPU hw acceleration (use --software_filters to enable)")
