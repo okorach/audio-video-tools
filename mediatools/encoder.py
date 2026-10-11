@@ -21,6 +21,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import mediatools.options as opt
 
 LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
@@ -29,7 +31,7 @@ LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
 class Encoder:
     """Encoder abstraction"""
 
-    SETTINGS: list[str] = [
+    SETTINGS: ClassVar[list[str]] = [
         "format",
         "vcodec",
         "vbitrate",
@@ -64,10 +66,7 @@ class Encoder:
         self.others: dict = {}
 
     def add_settings(self, **kwargs) -> None:
-        kwsettings = {}
-        for k in kwargs:
-            if k in Encoder.SETTINGS and kwargs[k] is not None:
-                kwsettings[k] = kwargs[k]
+        kwsettings = {k: v for k, v in kwargs.items() if k in Encoder.SETTINGS and v is not None}
         if "vcodec" in kwsettings:
             self.vcodec = kwsettings[opt.Option.VCODEC]
         if "vbitrate" in kwsettings:
@@ -96,15 +95,15 @@ class Encoder:
     def get_vfilters_string(self) -> str:
         cmd = ""
         for f in self.vfilters:
-            cmd = cmd + '-filter:v "%s" ' % f
+            cmd = cmd + f'-filter:v "{f}" '
         return cmd.strip()
 
     def add_crop_filter(self, width: int, height: int, top: int, left: int) -> None:
-        self.add_vfilter("crop={0}:{1}:{2}:{3}".format(width, height, top, left))
+        self.add_vfilter(f"crop={width}:{height}:{top}:{left}")
 
     def add_deshake_filter(self, width: int, height: int) -> None:
         # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
-        self.add_vfilter("deshake=x=-1:y=-1:w=-1:h=-1:rx={0}:ry={1}".format(width, height))
+        self.add_vfilter(f"deshake=x=-1:y=-1:w=-1:h=-1:rx={width}:ry={height}")
 
     def add_fade_filter(self, fade_d: float, start: float | None = None, stop: float | None = None) -> None:
         if start is None:
@@ -121,8 +120,8 @@ class Encoder:
         """Builds string corresponding to ffmpeg conventions"""
         options = vars(self)
         cmd = ""
-        for option in options.keys():
+        for option in options:
             if options[option] is not None and not isinstance(options[option], list):
-                cmd = cmd + " -{0} {1}".format(opt.M2F_MAPPING[option], options[option])
+                cmd = cmd + f" -{opt.M2F_MAPPING[option]} {options[option]}"
         cmd = cmd + " " + self.get_vfilters_string()
         return cmd.strip()

@@ -136,7 +136,7 @@ def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
-def format(pix_fmts: list[str] | str) -> str:
+def format(pix_fmts: list[str] | str) -> str:  # noqa: A001
     if isinstance(pix_fmts, list):
         s = "|".join(pix_fmts)
     elif isinstance(pix_fmts, str):
@@ -226,8 +226,7 @@ def speed(target_speed: str | float) -> str:
     if s > 1:
         expr = f"not(mod(n,{s})),{setpts('N/FRAME_RATE/TB')}"
         return f"select='{expr}'"
-    else:
-        return setpts(f"{1 / float(s)}*PTS")
+    return setpts(f"{1 / float(s)}*PTS")
 
 
 def filtercomplex(filter_list: list[str] | None) -> str:
@@ -260,11 +259,10 @@ def format_options(opts: list[str] | None) -> str:
 
 def metadata(key: str, value: str, track: int | None = None, track_type: str | None = None) -> str:
     if track is None:
-        return '-metadata {}="{}"'.format(key, value)
-    else:
-        if track_type is None:
-            track_type = "s:a"
-        return '-metadata:{}:{} {}="{}"'.format(track_type, track, key, value)
+        return f'-metadata {key}="{value}"'
+    if track_type is None:
+        track_type = "s:a"
+    return f'-metadata:{track_type}:{track} {key}="{value}"'
 
 
 def vcodec(codec: str) -> str:

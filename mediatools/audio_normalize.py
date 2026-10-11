@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-audio-normalize: Comprehensive audio metadata normalizer.
+"""audio-normalize: Comprehensive audio metadata normalizer.
 
 For each audio file:
   - Determines artist, title, album, track from tags or filename/directory name
@@ -406,8 +405,7 @@ def _extract_tracks_from_release(release: dict) -> list[str]:
     """Return a flat list of recording titles from a MusicBrainz release dict."""
     tracks: list[str] = []
     for medium in release.get("medium-list", []):
-        for track in medium.get("track-list", []):
-            tracks.append(track.get("recording", {}).get("title", ""))
+        tracks.extend(track.get("recording", {}).get("title", "") for track in medium.get("track-list", []))
     return tracks
 
 
@@ -918,7 +916,7 @@ def main() -> None:
     if args.debug:
         util.set_debug_level(args.debug)
 
-    inputs = args.files if args.files else [r"E:\Musique"]
+    inputs = args.files or [r"E:\Musique"]
     dry_run = args.dry_run
     if dry_run:
         log.logger.info("DRY RUN mode — no files will be modified")

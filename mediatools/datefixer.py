@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script renames files with format YYYY-MM-DD_HHMMSS_<root>
+"""This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 """
 
 from __future__ import annotations
@@ -31,9 +30,8 @@ import re
 import concurrent.futures
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from exiftool import ExifToolHelper
 import mediatools.utilities as util
-import mediatools.log as log
+from mediatools import log
 import utilities.file as fil
 from mediatools import videofile
 
@@ -46,7 +44,7 @@ DATETIME_FORMATS: tuple[str, ...] = (
 
 def guess_date(string: str) -> datetime | None:
     """Sets a file date from date or datetime that should be in the filename"""
-    year, mon, day, hour, min, sec = (0, 0, 0, 0, 0, 0)
+    year, mon, day, hour, minute, sec = (0, 0, 0, 0, 0, 0)
     log.logger.info("Searching a date in %s", string)
     # 2017-05-07 08.13.42
     sep = r"[-:_\. hm]"
@@ -55,26 +53,26 @@ def guess_date(string: str) -> datetime | None:
         # 20170507_123422
         m = re.search(rf"(\d\d\d\d)(\d\d)(\d\d){sep}(\d\d)(\d\d)(\d\d)", string)
     if m:
-        year, mon, day, hour, min, sec = [int(m.group(i + 1)) for i in range(6)]
+        year, mon, day, hour, minute, sec = [int(m.group(i + 1)) for i in range(6)]
     else:
         # 2017-05-07
         m = re.search(rf"(\d\d\d\d){sep}(\d\d){sep}(\d\d)", string)
         if m:
             year, mon, day = [int(m.group(i + 1)) for i in range(3)]
-            hour, min, sec = (0, 0, 0)
+            hour, minute, sec = (0, 0, 0)
     if not m:
         log.logger.warning("No date match for %s", string)
         return None
-    return datetime(year, mon, day, hour, min, sec)
+    return datetime(year, mon, day, hour, minute, sec)
 
 
 def guess_offset(string: str) -> relativedelta | None:
     sign = int(f"{string[0]}1")
     rest = string[1:]
-    year, month, day, hour, min, sec = (0, 0, 0, 0, 0, 0)
+    year, month, day, hour, minute, sec = (0, 0, 0, 0, 0, 0)
     m = re.match(r"^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$", rest)
     if m:
-        [year, month, day, hour, min, sec] = [int(m.group(i + 1)) * sign for i in range(6)]
+        [year, month, day, hour, minute, sec] = [int(m.group(i + 1)) * sign for i in range(6)]
     else:
         m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", rest)
         if m:
@@ -82,10 +80,10 @@ def guess_offset(string: str) -> relativedelta | None:
         else:
             m = re.match(r"^(\d{2}):(\d{2}):(\d{2})$", rest)
             if m:
-                [hour, min, sec] = [int(m.group(i + 1)) * sign for i in range(3)]
+                [hour, minute, sec] = [int(m.group(i + 1)) * sign for i in range(3)]
     if not m:
         return None
-    return relativedelta(years=year, months=month, days=day, hours=hour, minutes=min, seconds=sec)
+    return relativedelta(years=year, months=month, days=day, hours=hour, minutes=minute, seconds=sec)
 
 
 def change_file_date(file: str, change_mode: str = "filename", offset: str = "") -> tuple[str, bool]:

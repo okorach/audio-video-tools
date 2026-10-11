@@ -26,7 +26,6 @@
 
 from __future__ import annotations
 
-import os
 from mediatools import log
 import utilities.file as fil
 import mediatools.videofile as video
@@ -45,19 +44,18 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
     else:
         raise ValueError(f"File {file} is not an audio or video file")
 
-    if kwargs.get("timeranges", None) is None:
-        outfile = file_object.encode(kwargs.get("outputfile", None), **kwargs)
+    if kwargs.get("timeranges") is None:
+        outfile = file_object.encode(kwargs.get("outputfile"), **kwargs)
         video.set_creation_date(outfile, video.get_creation_date(file))
         return outfile
 
     ext = util.get_profile_extension(kwargs.get("profile"))
     count = 0
     filelist: list[str] = []
-    timeranges = kwargs.get("timeranges", None).split(",")
+    timeranges = kwargs.get("timeranges").split(",")
     creation_date = video.get_creation_date(file)
-    for t_r in timeranges:
+    for count, t_r in enumerate(timeranges, start=1):
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = t_r.split("-")
-        count += 1
         target_file = util.automatic_output_file_name(None, file, str(count), ext)
         filelist.append(target_file)
         outputfile = file_object.encode(target_file, **kwargs)
@@ -68,7 +66,7 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
 
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
-        target_file = kwargs.get("outputfile", None)
+        target_file = kwargs.get("outputfile")
         if target_file is None:
             target_file = util.automatic_output_file_name(target_file, file, "combined", ext)
         video.concat(target_file, filelist)

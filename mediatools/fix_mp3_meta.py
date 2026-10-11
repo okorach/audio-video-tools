@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-fix-mp3-meta: Batch fix MP3 metadata for a music library.
+"""fix-mp3-meta: Batch fix MP3 metadata for a music library.
 
 For each subdirectory of the root music directory, processes all audio files:
   - Determines artist and title from tags or filename
@@ -36,12 +35,10 @@ from __future__ import annotations
 import os
 import sys
 import re
-import time
 import argparse
 import datetime
 
 import musicbrainzngs
-import mutagen
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, TDRC, ID3NoHeaderError
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
@@ -155,8 +152,7 @@ def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, list[str]]:
         full = musicbrainzngs.get_release_by_id(release_id, includes=["recordings"])
         tracks: list[str] = []
         for medium in full.get("release", {}).get("medium-list", []):
-            for track in medium.get("track-list", []):
-                tracks.append(track.get("recording", {}).get("title", ""))
+            tracks.extend(track.get("recording", {}).get("title", "") for track in medium.get("track-list", []))
         return year, tracks
     except Exception as e:
         log.logger.warning("MusicBrainz lookup failed for '%s' / '%s': %s", artist, album, str(e))
@@ -389,7 +385,7 @@ def main() -> None:
     if args.debug:
         util.set_debug_level(args.debug)
 
-    inputs = args.files if args.files else [r"E:\Musique"]
+    inputs = args.files or [r"E:\Musique"]
     dry_run = args.dry_run
     if dry_run:
         log.logger.info("DRY RUN mode — no files will be modified")

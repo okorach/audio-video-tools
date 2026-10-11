@@ -24,11 +24,10 @@
 import datetime
 import os
 import shutil
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, TDRC
+from mutagen.id3 import ID3
 
 import mediatools.audio_normalize as norm
 
@@ -362,7 +361,7 @@ def test_read_existing_tags_mp3(tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     artist, title, album, track, year, genre = norm._read_existing_tags(dest)
-    assert artist is not None or True  # just check it doesn't crash
+    assert True  # just check it doesn't crash
 
 
 def test_read_existing_tags_missing_file():
@@ -466,7 +465,9 @@ def test_write_tags_m4a_with_cover():
     mock_mp4 = MagicMock()
     mock_mp4.tags = {}
     with patch("mediatools.audio_normalize.MP4", return_value=mock_mp4):
-        norm._write_tags("song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Pop", cover_bytes=b"\xff\xd8\xff"))
+        norm._write_tags(
+            "song.m4a", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000, genre="Pop", cover_bytes=b"\xff\xd8\xff")
+        )
     assert "covr" in mock_mp4.tags
 
 
@@ -640,19 +641,19 @@ def test_process_directory_skip_cover_if_exists(mock_pf, mock_mb, mock_save, moc
 
 @patch("mediatools.audio_normalize._process_directory")
 def test_main_default_dir(mock_pd):
-    with patch("sys.argv", ["audio-normalize"]):
-        with patch("os.path.isdir", return_value=True):
-            with patch("os.listdir", return_value=[]):
-                with pytest.raises(SystemExit):
-                    norm.main()
+    with (
+        patch("sys.argv", ["audio-normalize"]),
+        patch("os.path.isdir", return_value=True),
+        patch("os.listdir", return_value=[]),
+        pytest.raises(SystemExit),
+    ):
+        norm.main()
 
 
 @patch("mediatools.audio_normalize._process_directory")
 def test_main_dry_run(mock_pd, tmp_path):
-    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "--dry-run"]):
-        with patch("os.listdir", return_value=[]):
-            with pytest.raises(SystemExit):
-                norm.main()
+    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "--dry-run"]), patch("os.listdir", return_value=[]), pytest.raises(SystemExit):
+        norm.main()
 
 
 @patch("mediatools.audio_normalize._process_file")
@@ -661,22 +662,18 @@ def test_main_dry_run(mock_pd, tmp_path):
 def test_main_with_mp3_file(mock_cover, mock_mb, mock_pf, tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    with patch("sys.argv", ["audio-normalize", "-f", dest]):
-        with pytest.raises(SystemExit):
-            norm.main()
+    with patch("sys.argv", ["audio-normalize", "-f", dest]), pytest.raises(SystemExit):
+        norm.main()
     mock_pf.assert_called()
 
 
 def test_main_non_audio_file(tmp_path):
     f = str(tmp_path / "notes.txt")
     open(f, "w").close()
-    with patch("sys.argv", ["audio-normalize", "-f", f]):
-        with pytest.raises(SystemExit):
-            norm.main()
+    with patch("sys.argv", ["audio-normalize", "-f", f]), pytest.raises(SystemExit):
+        norm.main()
 
 
 def test_main_debug_flag(tmp_path):
-    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "-g", "2"]):
-        with patch("os.listdir", return_value=[]):
-            with pytest.raises(SystemExit):
-                norm.main()
+    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "-g", "2"]), patch("os.listdir", return_value=[]), pytest.raises(SystemExit):
+        norm.main()

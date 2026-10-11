@@ -44,7 +44,7 @@ def load() -> dict:
         log.logger.info("User configuration file %s created", target_file)
     try:
         log.logger.info("Trying to load media config %s", target_file)
-        fp = open(target_file)
+        fp = open(target_file)  # noqa: SIM115
     except FileNotFoundError as e:
         log.logger.critical("Default configuration file %s is missing, aborting...", target_file)
         raise FileNotFoundError from e
