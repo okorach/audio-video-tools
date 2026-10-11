@@ -99,6 +99,7 @@ setuptools.setup(
             "video-enhance = mediatools.video_enhance:main",
             "fix-mp3-meta = mediatools.fix_mp3_meta:main",
             "audio-normalize = mediatools.audio_normalize:main",
+            "audio-denoise = mediatools.audio_denoise:main",
             "pdf-split = mediatools.pdf_split:main",
             "pdf-compress = mediatools.pdf_compress:main",
             "pdf-merge = mediatools.pdf_merge:main",
