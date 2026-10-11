@@ -2,4 +2,3 @@
 :: Pages are in the lexicographic order of the file names
 
 pdf-merge -i %*
-pause

@@ -20,6 +20,14 @@
 
 :: setlocal enabledelayedexpansion
 
-encode -i %* --hw_accel on --vcodec x265 --width 3840 --vbitrate 20000k --acodec aac --abitrate 128k --keepName
+setlocal enabledelayedexpansion
+set width=1920
+set /p width=Width (default 1920) ?
+set bitrate=20000k
+set /p bitrate=Bitrate (default 20000k) ?
+for %%F in (%*) do (
+    encode -i "%%~F" --hw_accel on --vcodec x265 --width !width! --vbitrate !bitrate! --acodec aac --abitrate 128k
+)
+pause
 
 pause
