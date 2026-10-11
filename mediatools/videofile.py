@@ -211,6 +211,33 @@ class VideoFile(media.MediaFile):
         log.logger.debug("Resolution = %s", str(self.resolution))
         return (self.resolution.width, self.resolution.height)
 
+    def __main_video_stream_position__(self) -> int:
+        """Returns the position of the main video stream among the video streams (ffmpeg v:<n> specifier)"""
+        main = self.__get_first_video_stream__()
+        position = 0
+        for stream in self.specs["streams"]:
+            if stream is main:
+                break
+            if stream["codec_type"] == "video":
+                position += 1
+        return position
+
+    def get_rotation(self) -> int:
+        """Returns the rotation (degrees, 0 if none) that players and ffmpeg apply to the first video stream when displaying it"""
+        stream = self.__get_first_video_stream__() or {}
+        for side_data in stream.get("side_data_list", []):
+            if "rotation" in side_data:
+                return int(float(side_data["rotation"]))
+        try:
+            return int(float(stream.get("tags", {}).get("rotate", 0)))
+        except (TypeError, ValueError):
+            return 0
+
+    def displayed_dimensions(self) -> tuple[int, int]:
+        """Returns the dimensions of the video once rotation is applied (width and height swapped for a 90 or 270 degrees rotation)"""
+        w, h = self.dimensions()
+        return (h, w) if abs(self.get_rotation()) % 180 == 90 else (w, h)  # noqa: PLR2004
+
     def get_height(self) -> int:
         if self.resolution is None:
             _, _ = self.dimensions()
@@ -277,12 +304,13 @@ class VideoFile(media.MediaFile):
         if width is None or height is None:
             width, height = parse_crop_box(kwargs.get("box"))
         width, height = self.calc_resolution(width, height)
-        src_w, src_h = self.dimensions()
+        # ffmpeg applies the rotation of the video before filtering, so the crop is relative to the displayed size
+        src_w, src_h = self.displayed_dimensions()
         if width > src_w or height > src_h:
             msg = f"Crop box {width}x{height} is bigger than source video {src_w}x{src_h}"
             log.logger.error(msg)
             raise ValueError(msg)
-        top, left, pos = self.__get_top_left__(width=width, height=height, position=kwargs.get("position"))
+        top, left, pos = self.__get_top_left__(width=width, height=height, position=kwargs.get("position"), dimensions=(src_w, src_h))
 
         self.get_specs()
         codec = self.get_video_codec()
@@ -290,10 +318,14 @@ class VideoFile(media.MediaFile):
         if hw_accel:
             # ffprobe reports hevc, the option mapping knows it as h265
             codec = opt.HW_ACCEL_CODECS.get("h265" if codec == "hevc" else codec, codec)
-        options = [f'-map 0 -c copy -c:v "{codec}"']
+        # Only the main video stream is filtered and re-encoded (v:<n>), the other video streams (eg thumbnails),
+        # the audio and subtitle streams are copied. Data streams (eg camera telemetry) are dropped, because the
+        # container can't always hold them (ffmpeg fails with "codec none not supported in container")
+        n = self.__main_video_stream_position__()
+        options = [f'-map 0:v? -map 0:a? -map 0:s? -c copy -c:v:{n} "{codec}"']
         if self.video_bitrate:
             # Target bitrate proportional to the proportion of the source video that is kept
-            options.append(f"-b:v {int(self.video_bitrate * width * height / (src_w * src_h))}")
+            options.append(f"-b:v:{n} {int(self.video_bitrate * width * height / (src_w * src_h))}")
         else:
             log.logger.warning("Can't find video bitrate of %s, using encoder default", self.filename)
 
@@ -301,7 +333,7 @@ class VideoFile(media.MediaFile):
         out_file = util.automatic_output_file_name(out_file, self.filename, "crop", ext)
         # Decode on GPU but keep frames in system memory since the crop filter is a CPU one
         hw_prefix = "-hwaccel cuda " if hw_accel else ""
-        cmd = f'{hw_prefix}-i "{self.filename}" -vf "{filters.crop(width, height, left, top)}" {" ".join(options)} "{out_file}"'
+        cmd = f'{hw_prefix}-i "{self.filename}" -filter:v:{n} "{filters.crop(width, height, left, top)}" {" ".join(options)} "{out_file}"'
         creation_date = get_creation_date(self.filename)
         util.run_ffmpeg(cmd, self.duration)
         # The cropped video keeps the creation date of the source

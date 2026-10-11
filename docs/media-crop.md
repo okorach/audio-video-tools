@@ -29,6 +29,13 @@ is centered (eg `--top` crops at the top center).
 The output video bitrate is the source bitrate multiplied by the ratio of the cropped area to the source
 area. Cropping 1280x720 out of a 1920x1080 30 Mbit/s video (44%) gives a ~13.3 Mbit/s output.
 
+## Rotated videos and streams
+
+- Videos recorded with a rotation flag (eg a 3840x2880 video with a 90 degrees rotation, displayed as 2880x3840)
+  are cropped relative to the displayed frame: the box and the position apply to the video as you see it in a player.
+- Only the main video stream is re-encoded. Other video streams (eg embedded thumbnails), audio and subtitle streams are copied.
+  Data streams (eg camera telemetry) are dropped because the container can't always hold them.
+
 ## Creation date
 
 Once encoded, the creation date metadata of the output file is set to the creation date of the source video.
