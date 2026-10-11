@@ -10,7 +10,5 @@ set level=medium
 set /p level=Level [light, medium, strong] (default medium) ? 
 set options=--method !method! --level !level! --keepName
 if /i "!method!"=="arnndn" set options=!options! --model "D:\Tools\ffmpeg\bin\std.rnnn"
-for %%F in (%*) do (
-    audio-denoise -i "%%~F" !options!
-)
+audio-denoise -i %* !options!
 pause
