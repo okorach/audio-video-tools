@@ -1,9 +1,15 @@
+:: Reduces the noise (focus on wind noise) of the audio of the files passed as argument, using audio-denoise
+:: Methods: wind (default), afftdn, arnndn (neural network, uses the model D:\Tools\ffmpeg\bin\std.rnnn)
+:: Levels (wind method only): light, medium (default), strong
+
 setlocal enabledelayedexpansion
-
+set method=wind
+set /p method=Method [wind, afftdn, arnndn] (default wind) ? 
+set level=medium
+set /p level=Level [light, medium, strong] (default medium) ? 
+set options=--method !method! --level !level!
+if /i "!method!"=="arnndn" set options=!options! --model "D:\Tools\ffmpeg\bin\std.rnnn"
 for %%F in (%*) do (
-    encodeauto -g 5 -i "%%~F" --nooverwrite --before " " --after "-af arnndn=model='\\tools\\ffmpeg\\bin\\std.rnnn:mix=0.8' -c:a aac -b:a 128k -c:v copy"
+    audio-denoise -i "%%~F" !options!
 )
-
-"D:\Tools\ffmpeg\bin\ffmpeg" -y   -i "D:\\2003 - Julie à la maternité.mp4" -af arnndn=model='\\tools\\ffmpeg\\bin\\std.rnnn:mix=0.8' -c:a aac -b:a 128k -c:v copy "D:\\2003 - Julie à la maternité.encode.00.mp4"
-
 pause
