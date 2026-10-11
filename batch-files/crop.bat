@@ -1,6 +1,7 @@
+
 ::
 :: media-tools
-:: Copyright (C) 2019-2021 Olivier Korach
+:: Copyright (C) 2026 Olivier Korach
 :: mailto:olivier.korach AT gmail DOT com
 ::
 :: This program is free software; you can redistribute it and/or
@@ -18,20 +19,12 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-set /p box=Box ?:
-set /p top=Top ?:
-set /p left=Left ?:
-set /p range=Range ?:
-if %range% == "" (
-    media-crop -i "%~1" --box %box% --top %left% --left %top%
-) else (
-    media-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
+setlocal enabledelayedexpansion
+set box=1920x1080
+set /p box=Box to crop (default 1920x1080) ?
+set corner=middle
+set /p corner=Corner to crop [topleft, top, topright, left, center, right, bottomleft, bottom, bottomright](default middle) ?
+for %%F in (%*) do (
+    media-crop -i "%%~F" --box !box! --center
 )
-
-::set /p range=Range ?:
-@REM if %range% == "" (
-@REM     media-crop -i "%~1" --box %box% --top %left% --left %top%
-@REM ) else (
-@REM     media-crop -i "%~1" --timerange %range% --box %box% --top %left% --left %top%
-@REM )
 pause
