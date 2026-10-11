@@ -52,7 +52,7 @@ import utilities.file as fil
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
-musicbrainzngs.set_useragent("audio-video-tools", "0.7", "olivier.korach@gmail.com")
+musicbrainzngs.set_useragent("audio-video-tools", "0.9", "olivier.korach@gmail.com")
 
 # ---------------------------------------------------------------------------
 # Regex patterns for directory and filename parsing
