@@ -62,6 +62,24 @@ def test_bottom_center() -> None:
 
 
 @pytest.mark.parametrize(
+    ("option", "position"),
+    [("--topleft", "top left"), ("--topright", "top right"), ("--bottomleft", "bottom left"), ("--bottomright", "bottom right")],
+)
+def test_corner_shortcuts(option: str, position: str) -> None:
+    """--topleft etc. are equivalent to the 2 options they combine"""
+    assert _run(option).call_args.kwargs["position"] == position
+    vertical, horizontal = position.split()
+    assert _run(f"--{vertical}", f"--{horizontal}").call_args.kwargs["position"] == position
+
+
+def test_corner_conflict() -> None:
+    """A corner shortcut conflicting with another position exits with code 2"""
+    with pytest.raises(SystemExit) as e:
+        _run("--topleft", "--bottom")
+    assert e.value.code == 2  # noqa: PLR2004
+
+
+@pytest.mark.parametrize(
     ("box", "expected"),
     [
         ("4k", ("3840", "2160")),

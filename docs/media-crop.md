@@ -16,6 +16,7 @@ media-crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center
 | `--box <W>x<H>` | Size of the cropped region. Default `1920x1080`. Aliases (case insensitive): `4k` = 3840x2160, `fhd` or `1k` = 1920x1080, `hd` = 1280x720 |
 | `--top`, `--center`, `--bottom` | Vertical alignment of the region in the source |
 | `--left`, `--right` | Horizontal alignment of the region in the source |
+| `--topleft`, `--topright`, `--bottomleft`, `--bottomright` | Shortcuts for `--top --left`, `--top --right`, `--bottom --left` and `--bottom --right` |
 | `--hw_accel` | Nvidia hardware acceleration: `auto` (default), `on`, `off` |
 | `-g` | Debug level |
 
@@ -38,6 +39,8 @@ Conflicting positions (eg `--top --bottom`) or a malformed `--box` exit with cod
 ```
 # Crop the 1280x720 top left corner of the source video
 media-crop -i foo.mp4 --box 1280x720 --top --left
+# Same, with the corner shortcut
+media-crop -i foo.mp4 --box 1280x720 --topleft
 
 # Crop a 1920x1080 region at the center of the source video
 media-crop -i foo.mp4 --box 1920x1080 --center
