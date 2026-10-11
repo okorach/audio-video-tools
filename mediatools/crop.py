@@ -20,28 +20,63 @@
 #
 
 # This scripts crops a region of a video file
-# You have to pass:
-# --box <width>x<height> : The size of the video to crop
-# --top <y>/ --left <x>: Coordinates of the top left corner of the video crop
+# --box <width>x<height> or 4k, fhd, 1k, hd : The size of the region to crop (default 1920x1080)
+# --top, --center, --bottom, --left, --right: Where in the source video the region is taken (default centered)
+# --topleft, --topright, --bottomleft, --bottomright: Shortcuts for --top --left, --top --right, --bottom --left, --bottom --right
 
+import re
+import sys
+import subprocess
 from mediatools import log
 from mediatools import creator
 import mediatools.videofile as video
 import mediatools.utilities as util
 
+POSITIONS = ("top", "center", "bottom", "left", "right")
+# Corner shortcuts, each is the equivalent of the 2 options it is made of (eg --topleft is --top --left)
+CORNERS = {"topleft": ("top", "left"), "topright": ("top", "right"), "bottomleft": ("bottom", "left"), "bottomright": ("bottom", "right")}
 
-def main():
-    parser = util.get_common_args("video-crop", "Crops a region of the input video file")
-    parser = video.add_video_args(parser)
-    parser.add_argument("--box", required=True, help="Video box eg 320x200")
-    parser.add_argument("--position", required=False, help="Crop video position (from top-left to bottom-right)")
-    parser.add_argument("--top", required=False, help="Video top origin")
-    parser.add_argument("--left", required=False, help="Video left origin")
+
+def main() -> None:
+    """Entry point of the media-crop command"""
+    parser = util.get_common_args("media-crop", "Crops a region of the input video file")
+    parser.add_argument(
+        "--box",
+        required=False,
+        default=video.DEFAULT_CROP_BOX,
+        help="Size of the cropped region: <width>x<height> eg 1280x720, or 4k (3840x2160), fhd or 1k (1920x1080), hd (1280x720). Default 1920x1080",
+    )
+    parser.add_argument("--top", required=False, default=False, action="store_true", help="Crop region is aligned with the top of the source")
+    parser.add_argument("--center", required=False, default=False, action="store_true", help="Crop region is centered in the source")
+    parser.add_argument("--bottom", required=False, default=False, action="store_true", help="Crop region is aligned with the bottom of the source")
+    parser.add_argument("--left", required=False, default=False, action="store_true", help="Crop region is aligned with the left of the source")
+    parser.add_argument("--right", required=False, default=False, action="store_true", help="Crop region is aligned with the right of the source")
+    for corner, (vertical, horizontal) in CORNERS.items():
+        parser.add_argument(f"--{corner}", required=False, default=False, action="store_true", help=f"Same as --{vertical} --{horizontal}")
+    parser.add_argument("--hw_accel", required=False, choices=["auto", "off", "on"], help="Use Nvidia HW acceleration")
     kwargs = util.parse_media_args(parser)
 
-    kwargs["width"], kwargs["height"] = kwargs["box"].split("x", maxsplit=2)
+    selected = {p for p in POSITIONS if kwargs.pop(p, False)}
+    for corner, parts in CORNERS.items():
+        if kwargs.pop(corner, False):
+            selected.update(parts)
+    position = " ".join(p for p in POSITIONS if p in selected)
+    if re.search(r"top.*bottom|left.*right", position):
+        log.logger.error("Incompatible crop positions: %s", position)
+        sys.exit(2)
+    # --top, --left, etc... are position hints, not ffmpeg options
+    kwargs["position"] = position or "center"
+    try:
+        kwargs["width"], kwargs["height"] = video.parse_crop_box(kwargs.pop("box"))
+    except ValueError as e:
+        log.logger.error("Invalid --box value: %s", str(e))
+        sys.exit(2)
     log.logger.debug("KW=%s", str(kwargs))
-    outputfile = creator.file(kwargs["inputfiles"]).crop(out_file=kwargs.get("outputfile", None), **kwargs)
+    try:
+        outputfile = creator.file(kwargs.pop("inputfiles")[0]).crop(out_file=kwargs.pop("outputfile", None), **kwargs)
+    except (ValueError, subprocess.CalledProcessError) as e:
+        log.logger.error("Crop failed: %s", str(e))
+        sys.exit(1)
     log.logger.info("Generated %s", outputfile)
     print("Generated {}".format(outputfile))
 

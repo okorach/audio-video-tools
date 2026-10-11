@@ -81,6 +81,12 @@ def main() -> None:
         ofile = build_file_name(ifile, postfix)
         vf.VideoFile(ifile).encode(target_file=ofile, profile=None, **kwargs)
         vf.set_creation_date(ofile, vf.get_creation_date(ifile))
+        if kwargs.get("keepName", False):
+            splits = ifile.split(".")
+            ext = splits.pop()
+            base = ".".join(splits)
+            fil.rename(ifile, f"{base}.original.{ext}", False)
+            fil.rename(ofile, ifile)
     sys.exit(0)
 
 

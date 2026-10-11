@@ -33,6 +33,6 @@ set /p "vcodec=Video codec [%vcodec%] ? "
 set /p "hwaccel=Hardware acceleration [%hwaccel%] ? "
 set /p "fps=FPS ? "
 
-encode -i %* --hw_accel "%hwaccel%" --width "%width%" --vbitrate "%vbitrate%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%"
+encode -i %* --hw_accel "%hwaccel%" --width "%width%" --vbitrate "%vbitrate%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
 
 pause

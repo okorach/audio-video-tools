@@ -158,10 +158,11 @@ class MediaFile(fil.File):
         return self.get_file_properties()
 
     def __get_top_left__(self, width: int, height: int, **kwargs) -> tuple[int, int, str]:
-        iw, ih = self.dimensions(ignore_orientation=True)
-        top: int | None = kwargs.get("top")
-        left: int | None = kwargs.get("left")
-        pos: str | None = kwargs.get("position")
+        # The caller may give the dimensions of the frame (eg the displayed size of a rotated video)
+        iw, ih = kwargs.get("dimensions") or self.dimensions(ignore_orientation=True)
+        top: int | None = kwargs.get("top", None)
+        left: int | None = kwargs.get("left", None)
+        pos: str | None = kwargs.get("position", None)
         if top is None:
             if pos is None:
                 pos = "center"

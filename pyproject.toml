@@ -86,6 +86,9 @@ audio-speed      = "mediatools.audiospeed:main"
 video-enhance    = "mediatools.video_enhance:main"
 fix-mp3-meta     = "mediatools.fix_mp3_meta:main"
 audio-normalize  = "mediatools.audio_normalize:main"
+pdf-split        = "mediatools.pdf_split:main"
+pdf-compress     = "mediatools.pdf_compress:main"
+pdf-merge        = "mediatools.pdf_merge:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0", "wheel", "twine"]
