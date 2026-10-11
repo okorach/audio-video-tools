@@ -137,9 +137,13 @@ def test_time_placeholder(tmp_path):
     assert renames == [(str(src), str(tmp_path / "01 - 14h05m07s - Cam.mp4"))]
 
 
-def test_time_placeholder_not_a_timestamp():
-    """A format with only #TIME# still gets a sequence number prefix, to avoid name conflicts across days"""
-    assert renamer.get_fmt("a.mp4", "x", "#TIME#", "x") == "#SEQ# - #TIME#"
+def test_time_placeholder_has_no_sequence_prefix():
+    """A format containing #TIME# is used as is: no sequence prefix is added"""
+    assert renamer.get_fmt("a.mp4", "x", "DJI_#TIME#", "x") == "DJI_#TIME#"
+    assert renamer.get_fmt("a.jpg", "DJI_#TIME#", "x", "x") == "DJI_#TIME#"
+    assert renamer.get_fmt("a.txt", "x", "x", "DJI_#TIME#") == "DJI_#TIME#"
+    # Formats without date, time or sequence still get the sequence prefix
+    assert renamer.get_fmt("a.mp4", "x", "DJI", "x") == "#SEQ# - DJI"
 
 
 def _file_data(path, creation_date: datetime.datetime) -> dict:
@@ -182,7 +186,7 @@ def test_time_placeholder_each_file_uses_its_own_time(tmp_path):
 def test_time_placeholder_photos_and_prefix(tmp_path):
     """#TIME# works in photo formats and in the format built from --prefix"""
     renames = _run_main(tmp_path, ["a.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#TIME# - #SIZE#")
-    assert os.path.basename(renames[0][1]) == "01 - 01h02m03s - 10x20.jpg"
+    assert os.path.basename(renames[0][1]) == "01h02m03s - 10x20.jpg"
     renames = _run_main(tmp_path, ["b.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--prefix", "Trip #TIME#")
     assert "Trip 01h02m03s" in os.path.basename(renames[0][1])
 
@@ -191,3 +195,9 @@ def test_time_placeholder_with_timestamp(tmp_path):
     """#TIME# and #TIMESTAMP# can be used together"""
     renames = _run_main(tmp_path, ["a.mp4"], [datetime.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "#TIMESTAMP# (#TIME#)")
     assert os.path.basename(renames[0][1]) == "2024-03-09 14h05m07s (14h05m07s).mp4"
+
+
+def test_time_placeholder_no_prefix_in_file_name(tmp_path):
+    """DJI_#TIME# gives DJI_14h05m07s, without sequence prefix"""
+    renames = _run_main(tmp_path, ["a.mp4"], [datetime.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "DJI_#TIME#")
+    assert os.path.basename(renames[0][1]) == "DJI_14h05m07s.mp4"

@@ -190,7 +190,7 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
         fmt = photo_format
     elif fil.is_video_file(filename):
         fmt = video_format
-    if TIMESTAMP not in fmt and SEQ[:3] not in fmt:
+    if TIMESTAMP not in fmt and TIME not in fmt and SEQ[:3] not in fmt:
         fmt = f"{SEQ} - {fmt}"
     return fmt
 
