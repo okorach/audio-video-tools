@@ -84,7 +84,7 @@ class AudioTags:
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
-musicbrainzngs.set_useragent("audio-video-tools", "0.7", "olivier.korach@gmail.com")
+musicbrainzngs.set_useragent("audio-video-tools", "0.9", "olivier.korach@gmail.com")
 
 # ---------------------------------------------------------------------------
 # ID3v1 genres 0–79 (standard) + Winamp extensions 80–147
