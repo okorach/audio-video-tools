@@ -34,7 +34,8 @@ import mediatools.utilities as util
 POSITIONS = ("top", "center", "bottom", "left", "right")
 
 
-def main():
+def main() -> None:
+    """Entry point of the media-crop command"""
     parser = util.get_common_args("media-crop", "Crops a region of the input video file")
     parser.add_argument(
         "--box",
