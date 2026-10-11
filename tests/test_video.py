@@ -19,12 +19,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import datetime
+import pytest
 import os
 import shutil
+from unittest import mock
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.avfile as av
 import mediatools.videofile as video
+import mediatools.resolution as res
 
 FILE = "it" + os.sep + "video-720p.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
@@ -105,6 +109,142 @@ def test_crop():
     cropv.probe()
     assert cropv.aspect == "1:1"
     util.delete_files(cropv.filename)
+
+
+def test_crop_box_position():
+    v = video.VideoFile(FILE)
+    cropv = video.VideoFile(v.crop(out_file=TMP1, box="160x120", position="top left"))
+    cropv.probe()
+    assert cropv.dimensions() == (160, 120)
+    util.delete_files(cropv.filename)
+
+
+def test_crop_too_big():
+    v = video.VideoFile(FILE)
+    w, h = v.dimensions()
+    with pytest.raises(ValueError):
+        v.crop(out_file=TMP1, box=f"{w + 2}x{h}")
+    with pytest.raises(ValueError):
+        v.crop(out_file=TMP1, box=f"{w}x{h + 2}")
+
+
+def test_crop_command():
+    """Crop keeps codec, copies other streams and sets a bitrate proportional to the cropped surface"""
+    v = video.VideoFile(FILE)
+    src_w, src_h = v.dimensions()
+    w, h = src_w // 2, src_h // 2
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.crop(out_file=TMP1, box=f"{w}x{h}", position="bottom right", hw_accel="off")
+    cmd = run.call_args[0][0]
+    assert "-map 0:v? -map 0:a? -map 0:s? -c copy" in cmd
+    assert '-c:v:0 "h264"' in cmd
+    assert v.video_bitrate
+    assert f"-b:v:0 {int(v.video_bitrate * w * h / (src_w * src_h))}" in cmd
+    assert f"crop={w}:{h}:{src_w - w}:{src_h - h}" in cmd
+    assert "-hwaccel" not in cmd
+
+
+def _rotated_video(rotation: int, streams: list | None = None) -> video.VideoFile:
+    """A video whose first video stream is 1280x720 with the given rotation"""
+    v = video.VideoFile(FILE)
+    v.probe()
+    main = {"codec_type": "video", "codec_name": "h264", "width": 1280, "height": 720, "side_data_list": [{"rotation": rotation}]}
+    v.specs = {"streams": streams or [main]}
+    v.resolution = res.Resolution(width=1280, height=720)
+    v.get_specs = mock.Mock()
+    v.video_codec = "h264"
+    v.video_bitrate = 1_000_000
+    return v
+
+
+@pytest.mark.parametrize(("rotation", "expected"), [(0, (1280, 720)), (90, (720, 1280)), (-90, (720, 1280)), (180, (1280, 720)), (270, (720, 1280))])
+def test_displayed_dimensions(rotation, expected):
+    """The displayed dimensions take the rotation of the video into account"""
+    assert _rotated_video(rotation).displayed_dimensions() == expected
+
+
+def test_crop_rotated_video_too_big():
+    """A crop is validated against the displayed size: 720 wide for a 1280x720 video rotated by 90 degrees"""
+    v = _rotated_video(90)
+    with pytest.raises(ValueError, match="bigger than source video 720x1280"):
+        v.crop(out_file=TMP1, box="1280x720", hw_accel="off")
+
+
+def test_crop_rotated_video_position():
+    """The crop position is computed on the displayed frame"""
+    v = _rotated_video(90)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run, mock.patch("mediatools.videofile.get_creation_date", return_value=None):
+        v.crop(out_file=TMP1, box="720x720", position="bottom", hw_accel="off")
+    assert "crop=720:720:0:560" in run.call_args[0][0]
+
+
+def test_crop_only_filters_main_video_stream():
+    """With a thumbnail video stream after the main video, only the main video is filtered and re-encoded"""
+    streams = [
+        {"codec_type": "video", "codec_name": "h264", "width": 1280, "height": 720},
+        {"codec_type": "audio", "codec_name": "aac"},
+        {"codec_type": "video", "codec_name": "mjpeg", "width": 960, "height": 720},
+    ]
+    v = _rotated_video(0, streams)
+    assert v.__main_video_stream_position__() == 0
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run, mock.patch("mediatools.videofile.get_creation_date", return_value=None):
+        v.crop(out_file=TMP1, box="640x360", hw_accel="off")
+    cmd = run.call_args[0][0]
+    assert "-filter:v:0 " in cmd
+    assert "-c copy -c:v:0" in cmd
+    assert "-b:v:0 " in cmd
+
+
+def test_main_video_stream_position():
+    """The position is the rank of the main video stream among the video streams"""
+    streams = [
+        {"codec_type": "audio", "codec_name": "aac"},
+        {"codec_type": "video", "codec_name": "gif"},
+        {"codec_type": "video", "codec_name": "h264"},
+    ]
+    assert _rotated_video(0, streams).__main_video_stream_position__() == 1
+
+
+def test_crop_default_output_name():
+    """Without an output file the output is <name>.crop.<ext>"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg"):
+        out = v.crop(box="160x120", position="top left", hw_accel="off")
+    assert out == v.filename.rsplit(".", 1)[0] + ".crop.mp4"
+
+
+def test_crop_keeps_creation_date():
+    """The cropped file gets the creation date of the source, set after encoding"""
+    v = video.VideoFile(FILE)
+    date = datetime.datetime(2020, 5, 17, 10, 30, 0)
+    calls = []
+
+    def fake_encode(*args, **kwargs):
+        shutil.copy(FILE, TMP1)
+        calls.append("encode")
+
+    with (
+        mock.patch("mediatools.videofile.get_creation_date", return_value=date) as get_date,
+        mock.patch("mediatools.videofile.set_creation_date") as set_date,
+        mock.patch("mediatools.utilities.run_ffmpeg", side_effect=fake_encode),
+    ):
+        set_date.side_effect = lambda *args, **kwargs: calls.append("set_date")
+        v.crop(out_file=TMP1, box="160x120", hw_accel="off")
+    get_date.assert_called_once_with(v.filename)
+    set_date.assert_called_once_with(TMP1, date)
+    assert calls == ["encode", "set_date"]
+    util.delete_files(TMP1)
+
+
+def test_crop_hw_accel_codec():
+    """With HW acceleration the NVENC encoder matching the source codec is used"""
+    v = video.VideoFile(FILE)
+    v.get_specs()
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.crop(out_file=TMP1, box="160x120", hw_accel="on")
+    cmd = run.call_args[0][0]
+    assert '-c:v:0 "h264_nvenc"' in cmd
+    assert "-hwaccel cuda" in cmd
 
 
 def test_add_metadata():
