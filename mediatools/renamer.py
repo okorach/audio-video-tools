@@ -21,10 +21,6 @@
 
 """
 This script renames files with format YYYY-MM-DD_HHMMSS_<root>
-
-The format may contain the placeholders:
-#SEQ# (#SEQ1# ... #SEQ5#) sequence number, #SIZE# WxH, #DEVICE#, #FPS#, #BITRATE#,
-#TIMESTAMP# date and time (YYYY-MM-DD HHhMMmSSs) and #TIME# time only (HHhMMmSSs)
 """
 
 from __future__ import annotations
@@ -43,12 +39,8 @@ SEQ: str = "#SEQ#"
 SIZE: str = "#SIZE#"
 DEVICE: str = "#DEVICE#"
 TIMESTAMP: str = "#TIMESTAMP#"
-TIME: str = "#TIME#"
 FPS: str = "#FPS#"
 BITRATE: str = "#BITRATE#"
-
-# strftime format of the time of day, substituted to #TIME#
-TIME_FMT: str = "%Hh%Mm%Ss"
 
 DEFAULT_FORMAT: str = f"{util.FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT: str = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
@@ -190,7 +182,7 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
         fmt = photo_format
     elif fil.is_video_file(filename):
         fmt = video_format
-    if TIMESTAMP not in fmt and TIME not in fmt and SEQ[:3] not in fmt:
+    if TIMESTAMP not in fmt and SEQ[:3] not in fmt:
         fmt = f"{SEQ} - {fmt}"
     return fmt
 
@@ -270,12 +262,7 @@ def main() -> None:
     parser.add_argument("-f", "--files", nargs="+", help="List of files to rename", required=True)
     parser.add_argument("--prefix", help="Prefix for files", required=False)
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
-    parser.add_argument(
-        "--format",
-        help="Format for files. Placeholders: #SEQ# #SIZE# #DEVICE# #FPS# #BITRATE# #TIMESTAMP# (date and time) #TIME# (time only, HHhMMmSSs)",
-        required=False,
-        default=DEFAULT_FORMAT,
-    )
+    parser.add_argument("--format", help="Format for files", required=False, default=DEFAULT_FORMAT)
     parser.add_argument("--photo_format", help="Format for the renamed photo files", required=False)
     parser.add_argument("--seqstart", help="Sequence number start for the renamed files", required=False, default=1)
     parser.add_argument("-r", "--root", help="Root name", required=False)
@@ -303,7 +290,6 @@ def main() -> None:
         fmt = get_fmt(filename, photo_format, video_format, kwargs["format"])
         file_fmt = fmt.replace(DEVICE, device)
         file_fmt = file_fmt.replace(TIMESTAMP, util.FILE_DATE_FMT)
-        file_fmt = file_fmt.replace(TIME, TIME_FMT)
         file_fmt = file_fmt.replace(BITRATE, str(files_data[key]["bitrate"]))
         file_fmt = file_fmt.replace(FPS, str(files_data[key]["fps"]))
         file_fmt = file_fmt.replace(SIZE, files_data[key]["size"])
