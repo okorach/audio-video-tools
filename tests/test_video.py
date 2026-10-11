@@ -19,8 +19,10 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import pytest
 import os
 import shutil
+from unittest import mock
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.avfile as av
@@ -105,6 +107,50 @@ def test_crop():
     cropv.probe()
     assert cropv.aspect == "1:1"
     util.delete_files(cropv.filename)
+
+
+def test_crop_box_position():
+    v = video.VideoFile(FILE)
+    cropv = video.VideoFile(v.crop(out_file=TMP1, box="160x120", position="top left"))
+    cropv.probe()
+    assert cropv.dimensions() == (160, 120)
+    util.delete_files(cropv.filename)
+
+
+def test_crop_too_big():
+    v = video.VideoFile(FILE)
+    w, h = v.dimensions()
+    with pytest.raises(ValueError):
+        v.crop(out_file=TMP1, box=f"{w + 2}x{h}")
+    with pytest.raises(ValueError):
+        v.crop(out_file=TMP1, box=f"{w}x{h + 2}")
+
+
+def test_crop_command():
+    """Crop keeps codec, copies other streams and sets a bitrate proportional to the cropped surface"""
+    v = video.VideoFile(FILE)
+    src_w, src_h = v.dimensions()
+    w, h = src_w // 2, src_h // 2
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.crop(out_file=TMP1, box=f"{w}x{h}", position="bottom right", hw_accel="off")
+    cmd = run.call_args[0][0]
+    assert "-map 0 -c copy" in cmd
+    assert '-c:v "h264"' in cmd
+    assert v.video_bitrate
+    assert f"-b:v {int(v.video_bitrate * w * h / (src_w * src_h))}" in cmd
+    assert f"crop={w}:{h}:{src_w - w}:{src_h - h}" in cmd
+    assert "-hwaccel" not in cmd
+
+
+def test_crop_hw_accel_codec():
+    """With HW acceleration the NVENC encoder matching the source codec is used"""
+    v = video.VideoFile(FILE)
+    v.get_specs()
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.crop(out_file=TMP1, box="160x120", hw_accel="on")
+    cmd = run.call_args[0][0]
+    assert '-c:v "h264_nvenc"' in cmd
+    assert "-hwaccel cuda" in cmd
 
 
 def test_add_metadata():
