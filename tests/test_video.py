@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import datetime
 import pytest
 import os
 import shutil
@@ -148,6 +149,29 @@ def test_crop_default_output_name():
     with mock.patch("mediatools.utilities.run_ffmpeg"):
         out = v.crop(box="160x120", position="top left", hw_accel="off")
     assert out == v.filename.rsplit(".", 1)[0] + ".crop.mp4"
+
+
+def test_crop_keeps_creation_date():
+    """The cropped file gets the creation date of the source, set after encoding"""
+    v = video.VideoFile(FILE)
+    date = datetime.datetime(2020, 5, 17, 10, 30, 0)
+    calls = []
+
+    def fake_encode(*args, **kwargs):
+        shutil.copy(FILE, TMP1)
+        calls.append("encode")
+
+    with (
+        mock.patch("mediatools.videofile.get_creation_date", return_value=date) as get_date,
+        mock.patch("mediatools.videofile.set_creation_date") as set_date,
+        mock.patch("mediatools.utilities.run_ffmpeg", side_effect=fake_encode),
+    ):
+        set_date.side_effect = lambda *args, **kwargs: calls.append("set_date")
+        v.crop(out_file=TMP1, box="160x120", hw_accel="off")
+    get_date.assert_called_once_with(v.filename)
+    set_date.assert_called_once_with(TMP1, date)
+    assert calls == ["encode", "set_date"]
+    util.delete_files(TMP1)
 
 
 def test_crop_hw_accel_codec():

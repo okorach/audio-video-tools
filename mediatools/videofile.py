@@ -302,7 +302,11 @@ class VideoFile(media.MediaFile):
         # Decode on GPU but keep frames in system memory since the crop filter is a CPU one
         hw_prefix = "-hwaccel cuda " if hw_accel else ""
         cmd = f'{hw_prefix}-i "{self.filename}" -vf "{filters.crop(width, height, left, top)}" {" ".join(options)} "{out_file}"'
+        creation_date = get_creation_date(self.filename)
         util.run_ffmpeg(cmd, self.duration)
+        # The cropped video keeps the creation date of the source
+        if os.path.isfile(out_file):
+            set_creation_date(out_file, creation_date)
         return out_file
 
     def add_metadata(self, **metadatas) -> str:

@@ -29,6 +29,10 @@ is centered (eg `--top` crops at the top center).
 The output video bitrate is the source bitrate multiplied by the ratio of the cropped area to the source
 area. Cropping 1280x720 out of a 1920x1080 30 Mbit/s video (44%) gives a ~13.3 Mbit/s output.
 
+## Creation date
+
+Once encoded, the creation date metadata of the output file is set to the creation date of the source video.
+
 ## Errors
 
 If the box is wider or taller than the source video, the command logs an error and exits with code 1.
