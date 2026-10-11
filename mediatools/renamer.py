@@ -24,7 +24,7 @@ This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 
 The format may contain the placeholders:
 #SEQ# (#SEQ1# ... #SEQ5#) sequence number, #SIZE# WxH, #DEVICE#, #FPS#, #BITRATE#,
-#TIMESTAMP# date and time (YYYY-MM-DD HHhMMmSSs) and #TIME# time only (HH-MM-SS)
+#TIMESTAMP# date and time (YYYY-MM-DD HHhMMmSSs) and #TIME# time only (HHhMMmSSs)
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ FPS: str = "#FPS#"
 BITRATE: str = "#BITRATE#"
 
 # strftime format of the time of day, substituted to #TIME#
-TIME_FMT: str = "%H-%M-%S"
+TIME_FMT: str = "%Hh%Mm%Ss"
 
 DEFAULT_FORMAT: str = f"{util.FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT: str = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
@@ -272,7 +272,7 @@ def main() -> None:
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
     parser.add_argument(
         "--format",
-        help="Format for files. Placeholders: #SEQ# #SIZE# #DEVICE# #FPS# #BITRATE# #TIMESTAMP# (date and time) #TIME# (time only, HH-MM-SS)",
+        help="Format for files. Placeholders: #SEQ# #SIZE# #DEVICE# #FPS# #BITRATE# #TIMESTAMP# (date and time) #TIME# (time only, HHhMMmSSs)",
         required=False,
         default=DEFAULT_FORMAT,
     )

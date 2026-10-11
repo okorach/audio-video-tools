@@ -112,7 +112,7 @@ def test_failure_in_first_phase_restores_original_names(tmp_path):
 
 
 def test_time_placeholder(tmp_path):
-    """#TIME# is replaced by the time of day only, as HH-MM-SS"""
+    """#TIME# is replaced by the time of day only, as HHhMMmSSs"""
     src = tmp_path / "a.mp4"
     src.write_text("a")
     data = {
@@ -134,7 +134,7 @@ def test_time_placeholder(tmp_path):
     ):
         renamer.main()
     renames = rename.call_args[0][0]
-    assert renames == [(str(src), str(tmp_path / "01 - 14-05-07 - Cam.mp4"))]
+    assert renames == [(str(src), str(tmp_path / "01 - 14h05m07s - Cam.mp4"))]
 
 
 def test_time_placeholder_not_a_timestamp():
@@ -176,18 +176,18 @@ def test_time_placeholder_each_file_uses_its_own_time(tmp_path):
     """Each file gets the time of its own creation date"""
     dates = [datetime.datetime(2024, 3, 9, 8, 0, 1), datetime.datetime(2024, 3, 9, 23, 59, 59)]
     renames = _run_main(tmp_path, ["a.mp4", "b.mp4"], dates, "--video_format", "#SEQ2# #TIME#")
-    assert [os.path.basename(new) for _, new in renames] == ["01 08-00-01.mp4", "02 23-59-59.mp4"]
+    assert [os.path.basename(new) for _, new in renames] == ["01 08h00m01s.mp4", "02 23h59m59s.mp4"]
 
 
 def test_time_placeholder_photos_and_prefix(tmp_path):
     """#TIME# works in photo formats and in the format built from --prefix"""
     renames = _run_main(tmp_path, ["a.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#TIME# - #SIZE#")
-    assert os.path.basename(renames[0][1]) == "01 - 01-02-03 - 10x20.jpg"
+    assert os.path.basename(renames[0][1]) == "01 - 01h02m03s - 10x20.jpg"
     renames = _run_main(tmp_path, ["b.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--prefix", "Trip #TIME#")
-    assert "Trip 01-02-03" in os.path.basename(renames[0][1])
+    assert "Trip 01h02m03s" in os.path.basename(renames[0][1])
 
 
 def test_time_placeholder_with_timestamp(tmp_path):
     """#TIME# and #TIMESTAMP# can be used together"""
     renames = _run_main(tmp_path, ["a.mp4"], [datetime.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "#TIMESTAMP# (#TIME#)")
-    assert os.path.basename(renames[0][1]) == "2024-03-09 14h05m07s (14-05-07).mp4"
+    assert os.path.basename(renames[0][1]) == "2024-03-09 14h05m07s (14h05m07s).mp4"
