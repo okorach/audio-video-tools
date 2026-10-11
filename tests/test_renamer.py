@@ -21,7 +21,9 @@
 
 """Tests of the renamer file renaming logic"""
 
+import datetime
 import os
+import sys
 from unittest import mock
 
 from mediatools import renamer
@@ -107,3 +109,34 @@ def test_failure_in_first_phase_restores_original_names(tmp_path):
     with mock.patch("mediatools.renamer.os.rename", side_effect=flaky):
         assert not renamer.rename_files([(p["a"], p["b"]), (p["b"], p["a"])])
     assert _content(tmp_path) == {"a.txt": "A", "b.txt": "B"}
+
+
+def test_time_placeholder(tmp_path):
+    """#TIME# is replaced by the time of day only, as HH-MM-SS"""
+    src = tmp_path / "a.mp4"
+    src.write_text("a")
+    data = {
+        "x": {
+            "file": str(src),
+            "filename": "a.mp4",
+            "device": "Cam",
+            "size": "10x20",
+            "fps": 25,
+            "bitrate": 5,
+            "creation_date": datetime.datetime(2024, 3, 9, 14, 5, 7),
+        }
+    }
+    argv = ["renamer", "-f", str(src), "--video_format", "#SEQ2# - #TIME# - #DEVICE#"]
+    with (
+        mock.patch.object(sys, "argv", argv),
+        mock.patch("mediatools.renamer.get_files_data", return_value=data),
+        mock.patch("mediatools.renamer.rename_files", return_value=True) as rename,
+    ):
+        renamer.main()
+    renames = rename.call_args[0][0]
+    assert renames == [(str(src), str(tmp_path / "01 - 14-05-07 - Cam.mp4"))]
+
+
+def test_time_placeholder_not_a_timestamp():
+    """A format with only #TIME# still gets a sequence number prefix, to avoid name conflicts across days"""
+    assert renamer.get_fmt("a.mp4", "x", "#TIME#", "x") == "#SEQ# - #TIME#"
