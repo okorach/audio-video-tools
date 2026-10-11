@@ -7,10 +7,15 @@ video stream is copied unchanged and only the audio is re-encoded.
 
 ```
 audio-denoise -i <file> [<file> ...] [-o <output>] [--method wind|afftdn|arnndn] [--level light|medium|strong]
-              [--cutoff <Hz>] [--reduction <dB>] [--noise-floor <dB>] [--model <file>] [--mix <-1..1>]
+              [--cutoff <Hz>] [--reduction <dB>] [--noise-floor <dB>] [--model <file>] [--mix <-1..1>] [--keepName]
 ```
 
 The output is `<input>.denoised.<ext>` unless `-o` is given (single input file only).
+
+With `--keepName` the denoised file takes the name of the input file, and the original is kept with a
+`.before-denoise` postfix: `foo.mp4` is denoised into `foo.mp4` and the original becomes `foo.before-denoise.mp4`.
+The original is only renamed once the denoised file is generated, and an existing `.before-denoise` file is never
+overwritten (the file is then skipped with an error). `--keepName` can't be combined with `-o`.
 
 ## Methods
 
@@ -55,6 +60,9 @@ audio-denoise -i DJI_0031_D.MP4
 
 # Heavy wind
 audio-denoise -i DJI_0031_D.MP4 --level strong
+
+# Replace the file, keeping the original as DJI_0031_D.before-denoise.MP4
+audio-denoise -i DJI_0031_D.MP4 --keepName
 
 # Custom: cut everything below 150 Hz and reduce by 15 dB
 audio-denoise -i interview.mp4 --cutoff 150 --reduction 15 -o interview.clean.mp4

@@ -42,6 +42,8 @@ from mediatools import log
 
 METHODS = ("wind", "afftdn", "arnndn")
 DEFAULT_METHOD = "wind"
+# Postfix of the original file name when --keepName is used
+BACKUP_POSTFIX = ".before-denoise"
 # Wind reduction levels: (high-pass cutoff in Hz, noise reduction in dB)
 LEVELS: dict[str, tuple[float, float]] = {"light": (80.0, 6.0), "medium": (120.0, 12.0), "strong": (200.0, 20.0)}
 DEFAULT_LEVEL = "medium"
@@ -102,11 +104,22 @@ def build_filter(
     raise ValueError(f"Unknown method {method}, expected one of {', '.join(METHODS)}")
 
 
-def denoise(input_file: str, output_file: str | None = None, **kwargs) -> str:
+def backup_file(input_file: str) -> str:
+    """Returns the name under which the original file is kept with --keepName: foo.mp4 -> foo.before-denoise.mp4"""
+    root, ext = os.path.splitext(input_file)
+    return f"{root}{BACKUP_POSTFIX}{ext}"
+
+
+def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs) -> str:  # noqa: FBT001, FBT002
     """Reduces the noise of the audio of a file. Returns the output file name.
+    With keep_name the output file takes the name of the input file, which is renamed with a .before-denoise postfix.
     Options: method, level, cutoff, reduction, noise_floor, model, mix (see build_filter())"""
     if not (fil.is_audio_file(input_file) or fil.is_video_file(input_file)):
         raise ValueError(f"{input_file} is not an audio or video file")
+    if keep_name and output_file:
+        raise ValueError("An output file can't be given with --keepName")
+    if keep_name and os.path.exists(backup_file(input_file)):
+        raise ValueError(f"{backup_file(input_file)} already exists, not overwriting it")
     audio_filter = build_filter(**kwargs)
     media = creator.file(input_file)
     media.get_specs()
@@ -119,6 +132,13 @@ def denoise(input_file: str, output_file: str | None = None, **kwargs) -> str:
         options.append(f'-b:a "{bitrate}"')
     log.logger.info("Reducing noise of %s with %s", input_file, audio_filter)
     util.run_ffmpeg(f'-i "{input_file}" {" ".join(options)} "{output_file}"', getattr(media, "duration", None))
+    if keep_name:
+        # Only once the denoised file is generated: the original is kept under the backup name, the denoised file takes its name
+        backup = backup_file(input_file)
+        os.replace(input_file, backup)
+        os.replace(output_file, input_file)
+        log.logger.info("Original file kept as %s", backup)
+        return input_file
     return output_file
 
 
@@ -143,6 +163,10 @@ def main() -> None:
     if len(inputs) > 1 and kwargs.get("outputfile"):
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
+    keep_name = kwargs.get("keepName", False)
+    if keep_name and kwargs.get("outputfile"):
+        log.logger.error("-o can't be used with --keepName")
+        sys.exit(2)
     options = {
         "method": kwargs["method"],
         "level": kwargs["level"],
@@ -160,7 +184,7 @@ def main() -> None:
     failed = 0
     for input_file in inputs:
         try:
-            util.generated_file(denoise(input_file, kwargs.get("outputfile"), **options))
+            util.generated_file(denoise(input_file, kwargs.get("outputfile"), keep_name=keep_name, **options))
         except Exception as e:  # noqa: BLE001
             log.logger.error("Could not denoise %s: %s", input_file, e)
             failed += 1

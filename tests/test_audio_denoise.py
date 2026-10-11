@@ -166,3 +166,81 @@ def test_main_failure() -> None:
     ):
         dn.main()
     assert e.value.code == 1
+
+
+def _fake_ffmpeg(cmd: str, _duration: float | None = None) -> None:
+    """Creates the output file of the ffmpeg command (its last quoted argument)"""
+    Path(cmd.rsplit('"', 2)[1]).write_bytes(b"denoised")
+
+
+def _media() -> mock.Mock:
+    return mock.Mock(duration=1, abitrate=None)
+
+
+def test_backup_file() -> None:
+    """The original is kept with a .before-denoise postfix"""
+    assert dn.backup_file("foo.mp4") == "foo.before-denoise.mp4"
+    assert dn.backup_file(os.path.join("a.b", "foo.bar.mp3")) == os.path.join("a.b", "foo.bar.before-denoise.mp3")
+
+
+def test_keep_name(tmp_path: Path) -> None:
+    """With keep_name the denoised file takes the name of the input, which is kept with the postfix"""
+    src = tmp_path / "foo.mp3"
+    src.write_bytes(b"original")
+    with mock.patch("mediatools.utilities.run_ffmpeg", side_effect=_fake_ffmpeg), mock.patch.object(dn.creator, "file", return_value=_media()):
+        assert dn.denoise(str(src), keep_name=True, method="afftdn") == str(src)
+    assert src.read_bytes() == b"denoised"
+    assert (tmp_path / "foo.before-denoise.mp3").read_bytes() == b"original"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["foo.before-denoise.mp3", "foo.mp3"]
+
+
+def test_keep_name_does_not_overwrite_backup(tmp_path: Path) -> None:
+    """An existing .before-denoise file is never overwritten"""
+    src = tmp_path / "foo.mp3"
+    src.write_bytes(b"original")
+    backup = tmp_path / "foo.before-denoise.mp3"
+    backup.write_bytes(b"precious")
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run, pytest.raises(ValueError, match="already exists"):
+        dn.denoise(str(src), keep_name=True)
+    run.assert_not_called()
+    assert backup.read_bytes() == b"precious"
+    assert src.read_bytes() == b"original"
+
+
+def test_keep_name_failure_keeps_original(tmp_path: Path) -> None:
+    """If ffmpeg fails the original is untouched"""
+    src = tmp_path / "foo.mp3"
+    src.write_bytes(b"original")
+    with (
+        mock.patch("mediatools.utilities.run_ffmpeg", side_effect=RuntimeError("boom")),
+        mock.patch.object(dn.creator, "file", return_value=_media()),
+        pytest.raises(RuntimeError),
+    ):
+        dn.denoise(str(src), keep_name=True)
+    assert [p.name for p in tmp_path.iterdir()] == ["foo.mp3"]
+    assert src.read_bytes() == b"original"
+
+
+def test_keep_name_with_output_file() -> None:
+    """keep_name and an output file are incompatible"""
+    with pytest.raises(ValueError, match="keepName"):
+        dn.denoise(AUDIO, "out.mp3", keep_name=True)
+
+
+def test_main_keep_name() -> None:
+    """--keepName is passed on to denoise()"""
+    with (
+        mock.patch.object(sys, "argv", ["audio-denoise", "-i", AUDIO, "--keepName"]),
+        mock.patch("mediatools.audio_denoise.denoise", return_value=AUDIO) as denoise,
+        pytest.raises(SystemExit) as e,
+    ):
+        dn.main()
+    assert e.value.code == 0
+    assert denoise.call_args.kwargs["keep_name"] is True
+
+
+def test_main_keep_name_with_output_file() -> None:
+    """-o and --keepName are refused together"""
+    with mock.patch.object(sys, "argv", ["audio-denoise", "-i", AUDIO, "--keepName", "-o", "x.mp3"]), pytest.raises(SystemExit) as e:
+        dn.main()
+    assert e.value.code == 2  # noqa: PLR2004
