@@ -22,7 +22,7 @@
 
 setlocal enabledelayedexpansion
 set width=1920
-set /p box=Width (default 1920) ?
+set /p width=Width (default 1920) ?
 set bitrate=20000k
 set /p bitrate=Bitrate (default 20000k) ?
 for %%F in (%*) do (
