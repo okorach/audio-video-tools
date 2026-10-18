@@ -828,7 +828,10 @@ def slideshow(*inputs: str, resolution: str | None = None, hw_accel: bool | str 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:
     """Changes the speed of a video. The size is unchanged and the video bitrate is the one of the source, unless a profile or a bitrate is given"""
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix=str(target_speed))
+    speed_str = str(target_speed)
+    if not speed_str.endswith(("x", "%")):
+        speed_str += "x"
+    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix=speed_str)
     vf = VideoFile(filename)
     if vf.video_bitrate and kwargs.get("vbitrate") is None and kwargs.get("profile") is None:
         kwargs["vbitrate"] = vf.video_bitrate

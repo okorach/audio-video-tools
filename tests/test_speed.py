@@ -143,4 +143,13 @@ def test_speed_default_output_name(monkeypatch):
     monkeypatch.setattr(video.VideoFile, "encode", encode)
     monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", None))
     video.speed("dir" + os.sep + "foo.mp4", "2.5")
-    assert os.path.basename(encode.call_args.kwargs["target_file"]) == "foo.2.5.mp4"
+    assert os.path.basename(encode.call_args.kwargs["target_file"]) == "foo.2.5x.mp4"
+
+
+@pytest.mark.parametrize(("target_speed", "expected"), [("4x", "foo.4x.mp4"), ("200%", "foo.200%.mp4"), (3, "foo.3x.mp4")])
+def test_speed_default_output_name_suffix(monkeypatch, target_speed, expected):
+    encode = MagicMock(return_value="out.mp4")
+    monkeypatch.setattr(video.VideoFile, "encode", encode)
+    monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", None))
+    video.speed("foo.mp4", target_speed)
+    assert os.path.basename(encode.call_args.kwargs["target_file"]) == expected
