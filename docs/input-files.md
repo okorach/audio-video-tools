@@ -23,7 +23,7 @@ media-volume -i file1.mp4 file2.mp4 dir1 --volume 200%
 ## Tools processing each file
 
 `media-crop`, `media-cut`, `media-volume`, `media-specs`, `video-reverse`, `video-speed`, `video-metadata`, `video-deshake`,
-`video-stabilize`, `video-enhance`, `video-encode`, `encode`, `encodeauto`, `image-scale`, `image-blinds`, `image-shake`,
+`video-stabilize`, `video-enhance`, `video-snap`, `video-encode`, `encode`, `encodeauto`, `image-scale`, `image-blinds`, `image-shake`,
 `image-to-video`, `audio-speed`, `audio-split`, `audio-denoise`, `pdf-split`, `pdf-compress`:
 each file is processed independently, and the output file name is derived from the input file name.
 

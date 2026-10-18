@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Python batch tools for transcoding and manipulating audio, video, and image files, built as a high-level wrapper around FFmpeg. The package name is `audio-video-tools` (importable as `mediatools`). It provides both a Python library and 28 CLI tools installed as console entry points.
+Python batch tools for transcoding and manipulating audio, video, and image files, built as a high-level wrapper around FFmpeg. The package name is `audio-video-tools` (importable as `mediatools`). It provides both a Python library and 29 CLI tools installed as console entry points.
 
 ## Build and Development Commands
 
