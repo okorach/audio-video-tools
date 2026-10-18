@@ -6,7 +6,7 @@ rm -r tmp 2>/dev/null
 
 for cmd in it*.sh
 do
-    if [ "$cmd" != "$(basename $0)" -a "$cmd" != "it-01-image-crop.sh" -a "$cmd" != 'it-02-video-crop.sh' ]; then
+    if [[ "$cmd" != "$(basename $0)" && "$cmd" != "it-01-image-crop.sh" && "$cmd" != 'it-02-video-crop.sh' ]]; then
         run_cmd "$cmd"
         echo "----------------------------------------"
         echo "SUCCESS: $cmd"

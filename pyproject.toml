@@ -15,7 +15,7 @@ license-files = ["LICEN[CS]E*"]
 keywords = ["ffmpeg", "video", "audio", "image", "media", "transcode", "stabilize", "tools"]
 
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">=3.10,<4.0"
 
 dependencies = [
     "argparse",

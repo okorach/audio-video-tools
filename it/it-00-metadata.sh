@@ -6,7 +6,7 @@ for file in ./*.mp4
 do
     video-metadata -i "$file" -o "tmp/$file.meta.1.mp4" --copyright "Olivier Korach 2020" --author "O.Korach"
     code=$?
-    if [ $code -ne 0 ]; then
+    if [[ $code -ne 0 ]]; then
         1>&2 echo "========================================"
         1>&2 echo "FAILED: video-metadata -i \"$file\" -o \"tmp/$file.meta.1.mp4\" --copyright \"Olivier Korach 2020\" --author \"O.Korach\""
         1>&2 echo "========================================"

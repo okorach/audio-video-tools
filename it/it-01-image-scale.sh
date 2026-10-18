@@ -8,7 +8,7 @@ do
     do
         for h in "" 64 258 512 800 1024 2000 3000 10000
         do
-            if [ "$f" = "./img-superwide.jpg" ] && [ "$h" = "10000" ]; then
+            if [[ "$f" == "./img-superwide.jpg" && "$h" == "10000" ]]; then
                 # Generates a too wide image, skip
                 continue
             fi

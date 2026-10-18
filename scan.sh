@@ -23,7 +23,7 @@ dolint=true
 tests=pytest
 skiptests=0
 
-while [ $# -ne 0 ]
+while [[ $# -ne 0 ]]
 do
   case "$1" in
     -nolint)
@@ -45,16 +45,16 @@ done
 buildDir="build"
 owaspDependencyReport="$buildDir/dependency-check-report.json"
 
-[ ! -d $buildDir ] && mkdir $buildDir
+[[ ! -d "$buildDir" ]] && mkdir "$buildDir"
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
-if [ $skiptests -eq 0 ]; then
+if [[ $skiptests -eq 0 ]]; then
   ./run_tests.sh
 else
   echo "Skipping tests"
 fi
 
-if [ "$dolint" != "false" ]; then
+if [[ "$dolint" != "false" ]]; then
   ./run_linters.sh
 fi
 
@@ -66,7 +66,7 @@ pr_branch=""
 for o in $scanOpts
 do
   key="$(echo $o | cut -d '=' -f 1)"
-  if [ "$key" = "-Dsonar.pullrequest.key" ]; then
+  if [[ "$key" == "-Dsonar.pullrequest.key" ]]; then
     pr_branch="-Dsonar.pullrequest.branch=foo"
   fi
 done
