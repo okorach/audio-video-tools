@@ -20,6 +20,6 @@
 
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-stabilize -i "%%~F" --shakiness 8 --smoothing 30
+    videotool stabilize -i "%%~F" --shakiness 8 --smoothing 30
 )
 pause

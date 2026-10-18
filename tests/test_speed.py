@@ -23,11 +23,10 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 import pytest
-from mediatools import speed
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = "video-speed"
 VIDEO = "it" + os.sep + "video-360p-1.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
 
@@ -40,30 +39,30 @@ def assert_duration(speed_factor):
 
 
 def test_main():
-    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "--speed", "2"]):
-        speed.main()
+    with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "--speed", "2"]):
+        tools.videotool()
         assert True
 
 
 def test_main_with_output():
-    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "200%"]):
-        speed.main()
+    with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "200%"]):
+        tools.videotool()
         assert_duration(2)
         assert video.VideoFile(TMP1).audio_codec is None
         os.remove(TMP1)
 
 
 def test_slowmo():
-    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "50%"]):
-        speed.main()
+    with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "50%"]):
+        tools.videotool()
         assert_duration(0.5)
         assert video.VideoFile(TMP1).audio_codec is None
         os.remove(TMP1)
 
 
 def test_keep_audio():
-    with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "-k", "--speed", "4"]):
-        speed.main()
+    with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "-k", "--speed", "4"]):
+        tools.videotool()
         # TODO - Truncate audio when video is shorter, and adjust tests
         assert_duration(4)
         assert video.VideoFile(TMP1).audio_codec == "aac"
@@ -71,36 +70,36 @@ def test_keep_audio():
 
 
 def test_main_help():
-    with patch.object(sys, "argv", [CMD, "-h"]):
+    with patch.object(sys, "argv", ["videotool", "speed", "-h"]):
         try:
-            speed.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, "argv", [CMD, "-i", VIDEO, "--badoption", "yes"]):
+    with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--badoption", "yes"]):
         try:
-            speed.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_no_file():
-    with patch.object(sys, "argv", [CMD, "-o", TMP1]):
+    with patch.object(sys, "argv", ["videotool", "speed", "-o", TMP1]):
         try:
-            speed.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_bad_speed():
-    with patch.object(sys, "argv", [CMD, "-i", VIDEO, "--speed", "212%"]):
+    with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--speed", "212%"]):
         try:
-            speed.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 1

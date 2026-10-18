@@ -22,11 +22,10 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import concat
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = "video-concat"
 VIDEO1 = "it" + os.sep + "video-720p.mp4"
 VIDEO2 = "it" + os.sep + "video-720p.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
@@ -37,36 +36,36 @@ TMP3 = util.get_tmp_file() + ".mp4"
 def test_main_with_output(short_video, tmp_path):
     util.HW_ACCEL = False
     output = str(tmp_path / "concat.mp4")
-    with patch.object(sys, "argv", [CMD, "-g", "3", "-i", short_video, short_video, "-o", output]):
+    with patch.object(sys, "argv", ["videotool", "concat", "-g", "3", "-i", short_video, short_video, "-o", output]):
         try:
-            concat.main()
+            tools.videotool()
         except SystemExit as e:
             assert int(str(e)) == 0
     assert abs(2 * video.VideoFile(short_video).duration - video.VideoFile(output).duration) < 0.1
 
 
 def test_main_help():
-    with patch.object(sys, "argv", [CMD, "-h"]):
+    with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
         try:
-            concat.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, "argv", [CMD, "-i", VIDEO1, "--badoption", "yes"]):
+    with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
         try:
-            concat.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_no_file():
-    with patch.object(sys, "argv", [CMD, "-o", TMP1]):
+    with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
         try:
-            concat.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2

@@ -27,9 +27,9 @@ set /p nbr=Number of photos per video (leave empty to snap a photo every N secon
 if "%nbr%"=="" set /p every=Snap a photo every how many seconds ?
 
 if "%nbr%"=="" (
-    video-snap -i %* --every %every%
+    videotool snap -i %* --every %every%
 ) else (
-    video-snap -i %* --nbr_photos %nbr%
+    videotool snap -i %* --nbr_photos %nbr%
 )
 
 pause

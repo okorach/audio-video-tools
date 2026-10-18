@@ -15,8 +15,8 @@ The default can be changed with the `default.hw_accel` property of `~/.mediatool
 
 - The availability of the hardware acceleration is checked once per run, by encoding a few frames of a test video with
   NVENC. If it's not available (no Nvidia GPU, missing driver), the CPU is used and nothing is retried.
-- When it's available, every ffmpeg command that decodes and encodes video uses it: `video-encode`, `encode`, `media-crop`
-  and `video-concat` (also the concatenation of the parts of a long `video-slideshow`).
+- When it's available, every ffmpeg command that decodes and encodes video uses it: `videotool profile-encode`, `encode`, `crop`
+  and `concat` (also the concatenation of the parts of a long `slideshow`).
 - If such a command fails (a source format the GPU can't decode, a resolution or a filter the encoder doesn't support...),
   a warning is logged and the whole operation is run again on the CPU, so that the result is the same as with `--hw_accel off`.
   The operation is only run again if a hardware accelerated command was run, so a failure that has nothing to do with the GPU
@@ -25,12 +25,12 @@ The default can be changed with the `default.hw_accel` property of `~/.mediatool
 
 ## Tools
 
-`video-slideshow` builds its filter graph on the CPU unless `--hw_accel on` is given (the graph fails with hardware accelerated
+`videotool slideshow` builds its filter graph on the CPU unless `--hw_accel on` is given (the graph fails with hardware accelerated
 frames on some systems).
 
 The operations that always use the CPU don't use the hardware acceleration whatever the option: video filters that run on the
-CPU only (`video-reverse`, `video-speed`, `video-stabilize`, `video-enhance` color filters), the copy of streams
-(`media-cut`, `video-mux`, `video-metadata`), and the image and audio tools. They accept the option so that the same command line
+CPU only (`videotool reverse`, `speed`, `stabilize` and the `enhance` color filters), the copy of streams
+(`videotool cut`, `mux` and `metadata`), and the image and audio tools. They accept the option so that the same command line
 works with all the tools.
 
 ## In the code

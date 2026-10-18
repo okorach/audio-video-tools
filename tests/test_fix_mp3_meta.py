@@ -28,6 +28,7 @@ import pytest
 from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
 
+from mediatools import tools
 import mediatools.fix_mp3_meta as fix
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
@@ -479,20 +480,20 @@ def test_process_directory_mb_album_lookup(tmp_path):
 
 def test_main_nonexistent_directory():
     """main() logs a warning and exits 0 when a non-existent path is given."""
-    with patch("sys.argv", ["fix-mp3-meta", "-f", "/nonexistent_path_xyz"]), pytest.raises(SystemExit) as exc:
-        fix.main()
+    with patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", "/nonexistent_path_xyz"]), pytest.raises(SystemExit) as exc:
+        tools.audiotool()
     assert exc.value.code == 0
 
 
 def test_main_empty_directory(tmp_path):
     """main() exits with code 0 for an existing empty directory."""
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path)]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
@@ -500,12 +501,12 @@ def test_main_dry_run(tmp_path):
     """main() --dry-run exits 0 and does not write any files."""
     shutil.copy(FIXTURE_MP3, str(tmp_path / "song.mp3"))
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "--dry-run"]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path), "--dry-run"]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
@@ -517,12 +518,12 @@ def test_main_individual_files(tmp_path):
     tags.delall("TDRC")
     tags.save(src)
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", src]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", src]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
@@ -534,24 +535,24 @@ def test_main_mixed_files_and_dirs(tmp_path):
     lone_file = str(tmp_path / "song.mp3")
     shutil.copy(FIXTURE_MP3, lone_file)
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", str(subdir), lone_file]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(subdir), lone_file]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
 def test_main_with_debug_flag(tmp_path):
     """main() -g flag sets debug level without crashing."""
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
@@ -561,12 +562,12 @@ def test_main_with_subdirectories(tmp_path):
     subdir.mkdir()
     shutil.copy(FIXTURE_MP3, str(subdir / "01 - Crazy.mp3"))
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path)]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
 
 
@@ -582,13 +583,13 @@ def test_main_individual_files_mb_lookup(tmp_path):
     mock_release = {"release-list": [{"id": "x", "date": "1991"}]}
     mock_full = {"release": {"medium-list": []}}
     with (
-        patch("sys.argv", ["fix-mp3-meta", "-f", src]),
+        patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", src]),
         patch("musicbrainzngs.search_releases", return_value=mock_release),
         patch("musicbrainzngs.get_release_by_id", return_value=mock_full),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
         pytest.raises(SystemExit) as exc,
     ):
-        fix.main()
+        tools.audiotool()
     assert exc.value.code == 0
     dt = datetime.datetime.fromtimestamp(os.path.getmtime(src))
     assert dt.year == 1991
@@ -599,8 +600,8 @@ def test_main_skips_non_audio_file(tmp_path):
     txt_file = str(tmp_path / "readme.txt")
     with open(txt_file, "w") as f:
         f.write("not audio")
-    with patch("sys.argv", ["fix-mp3-meta", "-f", txt_file]), pytest.raises(SystemExit) as exc:
-        fix.main()
+    with patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", txt_file]), pytest.raises(SystemExit) as exc:
+        tools.audiotool()
     assert exc.value.code == 0
 
 

@@ -19,7 +19,7 @@
 ::
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p aac128 --abitrate 128k
+    audiotool profile-encode -i "%%~F" -p aac128 --abitrate 128k
 )
 
 pause

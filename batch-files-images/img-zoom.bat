@@ -20,5 +20,5 @@
 
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    image-to-video --style zoom -i "%%~F"
+    imagetool to-video --style zoom -i "%%~F"
 )

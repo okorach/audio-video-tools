@@ -52,10 +52,12 @@ AUDIO_ACTIONS: dict[str, tuple[str, str]] = {
     "concat": ("mediatools.audioconcat:main", "Concatenates audio files"),
     "cut": ("mediatools.cut:main", "Cuts a time window of an audio file"),
     "denoise": ("mediatools.audio_denoise:main", "Reduces the noise"),
+    "encode": ("cli.encode:main", "ffmpeg front-end encoder"),
     "fix-mp3-meta": ("mediatools.fix_mp3_meta:main", "Fixes the metadata of mp3 files"),
     "lib": ("mediatools.audio_lib:main", "Manages an audio library"),
     "list": ("mediatools.audio_list:main", "Lists audio files"),
     "normalize": ("mediatools.audio_normalize:main", "Normalizes the audio files"),
+    "profile-encode": ("mediatools.encode:main", "Encodes with an encoding profile"),
     "specs": ("mediatools.filespecs:main", "Displays the specs of media files"),
     "speed": ("mediatools.audiospeed:main", "Changes the speed"),
     "split": ("mediatools.audiosplit:main", "Splits at the detected tune changes"),
@@ -100,6 +102,16 @@ def get_action_function(command: str, action: str) -> Callable[[], None]:
     """Returns the main function of an action of a command"""
     module_name, function_name = COMMANDS[command][action][0].split(":")
     return getattr(importlib.import_module(module_name), function_name)
+
+
+def find_action(module_name: str) -> tuple[str, str] | None:
+    """Returns the (command, action) that run the main() of a module, None if there is no such action"""
+    target = f"{module_name}:main"
+    for command, actions in COMMANDS.items():
+        for action, (action_target, _) in actions.items():
+            if action_target == target:
+                return command, action
+    return None
 
 
 def run(command: str, args: list[str] | None = None) -> None:

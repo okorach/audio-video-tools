@@ -23,10 +23,10 @@ import os
 import sys
 from unittest.mock import patch
 import pytest
+from mediatools import tools
 import mediatools.videofile as video
 import mediatools.imagefile as image
 import mediatools.media_config as conf
-from mediatools import slideshow
 
 large_img = None
 portrait_img = None
@@ -79,5 +79,5 @@ def test_slideshow_without_resolution(images, small_default_resolution):
 
 def test_main(images):
     file1, file2 = images[2], images[0]
-    with patch.object(sys, "argv", ["video-slideshow", "-g", "4", file1, "--resolution", "640x360", file2]):
-        slideshow.main()
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-g", "4", file1, "--resolution", "640x360", file2]):
+        tools.videotool()

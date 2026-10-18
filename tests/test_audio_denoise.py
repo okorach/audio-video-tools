@@ -27,6 +27,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import audio_denoise as dn
 
 VIDEO = "it" + os.sep + "video-720p.mp4"
@@ -130,13 +131,13 @@ def test_denoise_not_a_media_file() -> None:
 
 def test_main() -> None:
     """main() denoises each input file with the options given"""
-    argv = ["audio-denoise", "-i", VIDEO, AUDIO, "--level", "light", "--cutoff", "100"]
+    argv = ["audiotool", "denoise", "-i", VIDEO, AUDIO, "--level", "light", "--cutoff", "100"]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch("mediatools.audio_denoise.denoise", return_value="o.mp4") as denoise,
         pytest.raises(SystemExit) as e,
     ):
-        dn.main()
+        tools.audiotool()
     assert e.value.code == 0
     assert denoise.call_count == 2
     assert denoise.call_args.kwargs["level"] == "light"
@@ -145,26 +146,26 @@ def test_main() -> None:
 
 def test_main_invalid_option() -> None:
     """An invalid option exits with code 2 before any processing"""
-    with mock.patch.object(sys, "argv", ["audio-denoise", "-i", VIDEO, "--method", "arnndn"]), pytest.raises(SystemExit) as e:
-        dn.main()
+    with mock.patch.object(sys, "argv", ["audiotool", "denoise", "-i", VIDEO, "--method", "arnndn"]), pytest.raises(SystemExit) as e:
+        tools.audiotool()
     assert e.value.code == 2
 
 
 def test_main_output_with_several_inputs() -> None:
     """-o is refused with several input files"""
-    with mock.patch.object(sys, "argv", ["audio-denoise", "-i", VIDEO, AUDIO, "-o", "x.mp4"]), pytest.raises(SystemExit) as e:
-        dn.main()
+    with mock.patch.object(sys, "argv", ["audiotool", "denoise", "-i", VIDEO, AUDIO, "-o", "x.mp4"]), pytest.raises(SystemExit) as e:
+        tools.audiotool()
     assert e.value.code == 2
 
 
 def test_main_failure() -> None:
     """A failing file makes the command exit with 1"""
     with (
-        mock.patch.object(sys, "argv", ["audio-denoise", "-i", VIDEO]),
+        mock.patch.object(sys, "argv", ["audiotool", "denoise", "-i", VIDEO]),
         mock.patch("mediatools.audio_denoise.denoise", side_effect=RuntimeError("boom")),
         pytest.raises(SystemExit) as e,
     ):
-        dn.main()
+        tools.audiotool()
     assert e.value.code == 1
 
 
@@ -230,17 +231,17 @@ def test_keep_name_with_output_file() -> None:
 def test_main_keep_name() -> None:
     """--keepName is passed on to denoise()"""
     with (
-        mock.patch.object(sys, "argv", ["audio-denoise", "-i", AUDIO, "--keepName"]),
+        mock.patch.object(sys, "argv", ["audiotool", "denoise", "-i", AUDIO, "--keepName"]),
         mock.patch("mediatools.audio_denoise.denoise", return_value=AUDIO) as denoise,
         pytest.raises(SystemExit) as e,
     ):
-        dn.main()
+        tools.audiotool()
     assert e.value.code == 0
     assert denoise.call_args.kwargs["keep_name"] is True
 
 
 def test_main_keep_name_with_output_file() -> None:
     """-o and --keepName are refused together"""
-    with mock.patch.object(sys, "argv", ["audio-denoise", "-i", AUDIO, "--keepName", "-o", "x.mp3"]), pytest.raises(SystemExit) as e:
-        dn.main()
+    with mock.patch.object(sys, "argv", ["audiotool", "denoise", "-i", AUDIO, "--keepName", "-o", "x.mp3"]), pytest.raises(SystemExit) as e:
+        tools.audiotool()
     assert e.value.code == 2

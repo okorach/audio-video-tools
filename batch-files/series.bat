@@ -20,6 +20,6 @@
 
 setlocal enabledelayedexpansion
 for %%F in (%*) do (
-    video-encode -i "%%~F" -p 2mbps --width 720 --vcodec h265 --vbitrate 700k -o "%%~F.series.mp4"
+    videotool profile-encode -i "%%~F" -p 2mbps --width 720 --vcodec h265 --vbitrate 700k -o "%%~F.series.mp4"
 )
 pause

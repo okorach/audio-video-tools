@@ -27,6 +27,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import pdf_merge, pdf_split
 
 HAS_GS = pdf_split.find_ghostscript() is not None
@@ -99,9 +100,9 @@ def test_merge_sorts_inputs(tmp_path: Path) -> None:
 
 def test_main_error(tmp_path: Path) -> None:
     """main() exits with 1 and logs the error"""
-    argv = ["pdf-merge", "-i", str(tmp_path / "nope.pdf")]
+    argv = ["pdftool", "merge", "-i", str(tmp_path / "nope.pdf")]
     with mock.patch.object(sys, "argv", argv), mock.patch.object(pdf_merge.log.logger, "error") as log_error, pytest.raises(SystemExit) as e:
-        pdf_merge.main()
+        tools.pdftool()
     assert e.value.code == 1
     assert "not found" in str(log_error.call_args[0][1])
 
@@ -111,11 +112,11 @@ def test_main(tmp_path: Path) -> None:
     a = _touch(tmp_path / "a.pdf")
     out = str(tmp_path / "out.pdf")
     with (
-        mock.patch.object(sys, "argv", ["pdf-merge", "-i", a, "-o", out]),
+        mock.patch.object(sys, "argv", ["pdftool", "merge", "-i", a, "-o", out]),
         mock.patch("mediatools.pdf_merge.merge", return_value=out) as merge,
         mock.patch.object(pdf_merge.log.logger, "info") as log_info,
     ):
-        pdf_merge.main()
+        tools.pdftool()
     merge.assert_called_once_with([a], out)
     assert out in log_info.call_args[0]
 

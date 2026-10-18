@@ -18,5 +18,5 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 :: setlocal enabledelayedexpansion
-video-encode -i %* -p mp3_192k --abitrate 192k
+audiotool profile-encode -i %* -p mp3_192k --abitrate 192k
 pause

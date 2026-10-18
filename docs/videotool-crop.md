@@ -1,4 +1,4 @@
-# media-crop
+# videotool crop
 
 Crops a region of a video. The output has the same codec and container as the source, a video bitrate
 proportional to the cropped area, and audio tracks (and other streams) copied unchanged.
@@ -6,7 +6,7 @@ proportional to the cropped area, and audio tracks (and other streams) copied un
 ## Usage
 
 ```
-media-crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-g <level>]
+videotool crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-g <level>]
 ```
 
 | Option | Description |
@@ -49,16 +49,16 @@ Conflicting positions (eg `--top --bottom`) or a malformed `--box` exit with cod
 
 ```
 # Crop the 1280x720 top left corner of the source video
-media-crop -i foo.mp4 --box 1280x720 --top --left
+videotool crop -i foo.mp4 --box 1280x720 --top --left
 # Same, with the corner shortcut
-media-crop -i foo.mp4 --box 1280x720 --topleft
+videotool crop -i foo.mp4 --box 1280x720 --topleft
 
 # Crop a 1920x1080 region at the center of the source video
-media-crop -i foo.mp4 --box 1920x1080 --center
+videotool crop -i foo.mp4 --box 1920x1080 --center
 
 # Crop a 4K region at the top left of an 8K source
-media-crop -i foo.mp4 --box 4k --top --left
+videotool crop -i foo.mp4 --box 4k --top --left
 
 # Crop a portrait 720x1280 region at the bottom center of the source video
-media-crop -i foo.mp4 --box 720x1280 --bottom --center
+videotool crop -i foo.mp4 --box 720x1280 --bottom --center
 ```

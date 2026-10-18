@@ -28,6 +28,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import pdf_compress, pdf_split
 
 
@@ -124,17 +125,17 @@ def test_main_mocked(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     """main() compresses the file with the requested ppp"""
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"x")
-    argv = ["pdf-compress", "-i", str(src), "-o", "out.pdf", "--ppp", "600"]
+    argv = ["pdftool", "compress", "-i", str(src), "-o", "out.pdf", "--ppp", "600"]
     with mock.patch.object(sys, "argv", argv), mock.patch("mediatools.pdf_compress.compress", return_value="out.pdf") as compress:
-        pdf_compress.main()
+        tools.pdftool()
     compress.assert_called_once_with(str(src), "out.pdf", 600)
     assert "into out.pdf" in capsys.readouterr().out
 
 
 def test_main_missing_file(tmp_path: Path) -> None:
     """main() exits with 1 if the input file does not exist"""
-    with mock.patch.object(sys, "argv", ["pdf-compress", "-i", str(tmp_path / "nope.pdf")]), pytest.raises(SystemExit) as e:
-        pdf_compress.main()
+    with mock.patch.object(sys, "argv", ["pdftool", "compress", "-i", str(tmp_path / "nope.pdf")]), pytest.raises(SystemExit) as e:
+        tools.pdftool()
     assert e.value.code == 1
 
 
@@ -143,11 +144,11 @@ def test_main_error(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"x")
     with (
-        mock.patch.object(sys, "argv", ["pdf-compress", "-i", str(src)]),
+        mock.patch.object(sys, "argv", ["pdftool", "compress", "-i", str(src)]),
         mock.patch("mediatools.pdf_compress.compress", side_effect=RuntimeError("boom")),
         pytest.raises(SystemExit) as e,
     ):
-        pdf_compress.main()
+        tools.pdftool()
     assert e.value.code == 1
 
 

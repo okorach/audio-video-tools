@@ -18,6 +18,6 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-fix-mp3-meta -i %*
+audiotool fix-mp3-meta -i %*
 
 pause

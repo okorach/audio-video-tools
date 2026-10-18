@@ -30,6 +30,7 @@ from unittest import mock
 import pytest
 from dateutil.relativedelta import relativedelta
 
+from mediatools import tools
 import mediatools.exceptions as ex
 from filters import filter as flt
 from filters import filters as flts
@@ -79,17 +80,17 @@ def test_audio_speed_without_bitrate_and_output():
 
 def test_audio_speed_main():
     with (
-        mock.patch.object(sys, "argv", ["audio-speed", "-i", "a.mp3", "b.mp3", "--size", "90"]),
+        mock.patch.object(sys, "argv", ["audiotool", "speed", "-i", "a.mp3", "b.mp3", "--size", "90"]),
         mock.patch.object(audiospeed, "speed", return_value="o.mp3") as speed,
         mock.patch("mediatools.utilities.generated_file"),
     ):
-        audiospeed.main()
+        tools.audiotool()
     assert [(c.args[0], c.args[2]) for c in speed.call_args_list] == [("a.mp3", 90.0), ("b.mp3", 90.0)]
 
 
 def test_audio_speed_main_invalid_size():
-    with mock.patch.object(sys, "argv", ["audio-speed", "-i", "a.mp3", "--size", "0"]), pytest.raises(SystemExit) as e:
-        audiospeed.main()
+    with mock.patch.object(sys, "argv", ["audiotool", "speed", "-i", "a.mp3", "--size", "0"]), pytest.raises(SystemExit) as e:
+        tools.audiotool()
     assert e.value.code == 1
 
 
@@ -546,14 +547,14 @@ def test_cli_build_file_name(tmp_path):
 
 def run_cli_encode(*args):
     with (
-        mock.patch.object(sys, "argv", ["encode", *args]),
+        mock.patch.object(sys, "argv", ["videotool", "encode", *args]),
         mock.patch.object(cli_encode.vf, "VideoFile") as video_file,
         mock.patch.object(cli_encode.vf, "set_creation_date") as set_date,
         mock.patch.object(cli_encode.vf, "get_creation_date", return_value="THE-DATE"),
         mock.patch.object(cli_encode.fil, "rename") as rename,
         pytest.raises(SystemExit) as e,
     ):
-        cli_encode.main()
+        tools.videotool()
     assert e.value.code == 0
     return video_file, set_date, rename
 
@@ -583,8 +584,12 @@ def test_cli_encode_keep_name(tmp_path):
 
 # ---------------------------------------------------------------- image-to-video
 def run_image2video(*args):
-    with mock.patch.object(sys, "argv", ["image2video", *args]), mock.patch("mediatools.utilities.generated_file"), pytest.raises(SystemExit) as e:
-        image2video.main()
+    with (
+        mock.patch.object(sys, "argv", ["imagetool", "to-video", *args]),
+        mock.patch("mediatools.utilities.generated_file"),
+        pytest.raises(SystemExit) as e,
+    ):
+        tools.imagetool()
     return e.value.code
 
 
