@@ -24,11 +24,5 @@
 @echo off
 set /p SIZE=Enter target size as %% of original (e.g. 90 = 10%% faster, 110 = 10%% slower):
 
-:loop
-if "%~1"=="" goto end
-audio-speed -i "%~1" --size %SIZE%
-shift
-goto loop
-
-:end
+audio-speed -i %* --size %SIZE%
 pause

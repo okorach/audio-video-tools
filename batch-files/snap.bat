@@ -26,15 +26,10 @@
 set /p nbr=Number of photos per video (leave empty to snap a photo every N seconds) ?
 if "%nbr%"=="" set /p every=Snap a photo every how many seconds ?
 
-:loop
-if "%~1"=="" goto end
 if "%nbr%"=="" (
-    video-snap -i "%~1" --every %every%
+    video-snap -i %* --every %every%
 ) else (
-    video-snap -i "%~1" --nbr_photos %nbr%
+    video-snap -i %* --nbr_photos %nbr%
 )
-shift
-goto loop
 
-:end
 pause

@@ -25,11 +25,5 @@
 
 @echo off
 
-:loop
-if "%~1"=="" goto end
-video-enhance -i "%~1"
-shift
-goto loop
-
-:end
+video-enhance -i %*
 pause
