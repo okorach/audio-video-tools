@@ -20,6 +20,9 @@
 
 """Tests of encodeauto, with ffmpeg replaced by a function that creates the output file"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import re
 import sys
 from pathlib import Path
@@ -31,19 +34,28 @@ from mediatools import tools
 from mediatools import encodeauto as ea
 
 
+class Commands(list):
+    """The (parameters, duration) of the ffmpeg commands that were run, with the mocks that replace the video functions"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.get_duration = mock.Mock(return_value=7.0)
+        self.set_creation_date = mock.Mock()
+
+
 @pytest.fixture
 def fake_ffmpeg(monkeypatch):
     """ffmpeg creates the output file (the last quoted argument) with the content 'encoded'"""
-    commands = []
+    commands = Commands()
 
     def run_ffmpeg(params, duration=None):
         commands.append((params, duration))
-        Path(re.findall(r'"([^"]+)"', params)[-1]).write_text("encoded")
+        Path(re.findall(r'"([^"]+)"', params)[-1]).write_text("encoded", encoding="utf-8")
 
     monkeypatch.setattr(ea.util, "run_ffmpeg", run_ffmpeg)
-    monkeypatch.setattr(ea.video, "get_duration", mock.Mock(return_value=7.0))
+    monkeypatch.setattr(ea.video, "get_duration", commands.get_duration)
     monkeypatch.setattr(ea.video, "get_creation_date", mock.Mock(return_value="THE-DATE"))
-    monkeypatch.setattr(ea.video, "set_creation_date", mock.Mock())
+    monkeypatch.setattr(ea.video, "set_creation_date", commands.set_creation_date)
     return commands
 
 
@@ -63,7 +75,7 @@ def test_encode_file_replaces_the_file_and_keeps_the_original(fake_ffmpeg, tmp_p
     assert "-c:v hevc_nvenc" in params
     assert params.endswith('clip.encode.00.mp4"')
     assert duration == 7.0
-    ea.video.set_creation_date.assert_called_once_with(str(tmp_path / "clip.encode.00.mp4"), "THE-DATE")
+    fake_ffmpeg.set_creation_date.assert_called_once_with(str(tmp_path / "clip.encode.00.mp4"), "THE-DATE")
 
 
 def test_encode_file_given_duration(fake_ffmpeg, tmp_path):
@@ -71,7 +83,7 @@ def test_encode_file_given_duration(fake_ffmpeg, tmp_path):
     src.write_text("original")
     ea.encode_file(str(src), "", "", True, duration=99.0)
     assert fake_ffmpeg[0][1] == 99.0
-    ea.video.get_duration.assert_not_called()
+    fake_ffmpeg.get_duration.assert_not_called()
 
 
 def test_encode_file_does_not_overwrite_encoded_files(fake_ffmpeg, tmp_path):

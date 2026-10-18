@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -20,6 +19,9 @@
 
 """Tests of the copy of the creation date and geotagging from the source to the generated files"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import shutil
 import subprocess
 from unittest import mock
@@ -29,6 +31,7 @@ from exiftool import ExifToolHelper
 
 import mediatools.utilities as util
 from mediatools import metacopy
+from mediatools import videofile as video
 
 DATE = "2018:03:02 08:09:10"
 
@@ -121,8 +124,6 @@ def test_copy_after_ffmpeg_does_nothing_without_target(tmp_path):
 
 
 def test_tools_keep_the_date_and_geotag(geotagged_video, tmp_path):
-    from mediatools import videofile as video
-
     out = video.speed(geotagged_video, "2", output=str(tmp_path / "fast.mp4"))
     assert_same_date_and_place(out)
     out = video.VideoFile(geotagged_video).encode(target_file=str(tmp_path / "enc.mp4"), vcodec="h265", width=80, hw_accel="off")

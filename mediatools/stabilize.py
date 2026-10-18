@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -45,6 +44,7 @@ def has_vidstab() -> bool:
             [f"{quot}{util.get_ffmpeg()}{quot}", "-filters"],
             capture_output=True,
             text=True,
+            check=False,
         )
         return "vidstabdetect" in result.stdout or "vidstabdetect" in result.stderr
     except Exception:
@@ -62,7 +62,15 @@ def run_vidstabdetect(filename: str, shakiness: int = 8) -> str:
 
 
 def stabilize(
-    filename: str, output: str | None = None, shakiness: int = 8, smoothing: int = 30, zoom: int = 0, optzoom: int = 1, sharpen: bool = True, **kwargs
+    filename: str,
+    output: str | None = None,
+    *,
+    shakiness: int = 8,
+    smoothing: int = 30,
+    zoom: int = 0,
+    optzoom: int = 1,
+    sharpen: bool = True,
+    **kwargs,
 ) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
 

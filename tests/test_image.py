@@ -229,3 +229,11 @@ def test_to_video_zoom_keeps_duration():
         img.to_video(with_effect=True, duration=3, resolution="320x180")
     assert zoom.call_args.kwargs["duration"] == 3
     del_files(img)
+
+
+def test_crop_any(tmp_path):
+    src = str(tmp_path / "wide.jpg")
+    util.run_ffmpeg(f'-f lavfi -i testsrc=size=400x200:rate=1:duration=1 -frames:v 1 -update 1 "{src}"')
+    for ratio, expected in (("1", (200, 200)), ("2", (400, 200)), ("1:2", (100, 200)), (4.0, (400, 100))):
+        out = image.ImageFile(src).crop_any(ratio, "center", str(tmp_path / f"out-{ratio}.jpg"))
+        assert image.ImageFile(out).dimensions() == expected

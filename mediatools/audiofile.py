@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -37,6 +36,7 @@ import mediatools.imagefile as image
 import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.media_config as conf
+import filters.filter as filters
 
 _CSV_KEYS: tuple[str, ...] = (
     "filename",
@@ -417,8 +417,6 @@ def csv_headers() -> list[str]:
 
 def concat(target_file: str, file_list: list[str]) -> str:
     """Concatenates several audio files - they must share the same codec and sample rate"""
-    import filters.filter as filters
-
     file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
     count = len(file_list)

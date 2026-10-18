@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -33,6 +32,7 @@ from mediatools import log
 def enhance_file(
     input_file: str,
     output_file: str | None,
+    *,
     saturation: float,
     contrast: float,
     brightness: float,
@@ -130,10 +130,10 @@ def main():
         enhance_file(
             f,
             output_file,
-            saturation,
-            contrast,
-            brightness,
-            gamma,
+            saturation=saturation,
+            contrast=contrast,
+            brightness=brightness,
+            gamma=gamma,
             hw_accel=hw_accel,
             stabilize=do_stabilize,
             batch_remaining=total_dur - processed_dur,

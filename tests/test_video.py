@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -19,11 +18,11 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import datetime
-import pytest
+import datetime as dt
 import os
 import shutil
 from unittest import mock
+import pytest
 import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.avfile as av
@@ -217,7 +216,7 @@ def test_crop_default_output_name():
 def test_crop_keeps_creation_date():
     """The cropped file gets the creation date of the source, set after encoding"""
     v = video.VideoFile(FILE)
-    date = datetime.datetime(2020, 5, 17, 10, 30, 0)
+    date = dt.datetime(2020, 5, 17, 10, 30, 0)
     calls = []
 
     def fake_encode(*args, **kwargs):
@@ -419,3 +418,10 @@ def test_fade_in_and_out(options, fade_out_start, duration):
     cmd = run.call_args[0][0]
     assert f"fade=t=in:st=0.0:d={duration}:alpha=1" in cmd
     assert f"fade=t=out:st={fade_out_start}:d={duration}:alpha=1" in cmd
+
+
+def test_set_creation_date_method_formats_the_date():
+    with mock.patch.object(video, "ExifToolHelper") as helper:
+        video.VideoFile(FILE).set_creation_date(dt.datetime(2020, 5, 17, 10, 30, 0))
+    tags = helper.return_value.__enter__.return_value.set_tags.call_args_list[0].kwargs["tags"]
+    assert tags["CreateDate"] == "2020:05:17 10:30:00"

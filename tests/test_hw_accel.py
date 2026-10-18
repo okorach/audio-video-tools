@@ -20,15 +20,15 @@
 
 """Tests of the --hw_accel option (auto, on, off) and of the fallback to the CPU when a hardware accelerated command fails"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import subprocess
 import sys
 from unittest import mock
 
 import pytest
 
-from mediatools import tools
-import mediatools.utilities as util
-import mediatools.videofile as video
 from cli import encode as cli_encode
 from mediatools import (
     album_art,
@@ -53,9 +53,12 @@ from mediatools import (
     speed,
     stabilize,
     stack,
+    tools,
     video_enhance,
     volume,
 )
+import mediatools.utilities as util
+import mediatools.videofile as video
 
 FILE = "it/video-720p.mp4"
 HW_COMMAND = "-hwaccel cuda -i in.mp4 -c:v h264_nvenc out.mp4"
@@ -269,7 +272,7 @@ def test_fallback_with_a_keyword_argument(gpu_available):
 def test_fallback_in_a_method(gpu_available):
     attempts = []
 
-    class Converter:
+    class Converter:  # pylint: disable=too-few-public-methods
         @util.hw_accel_fallback
         def convert(self, target, **kwargs):
             attempts.append(util.use_hardware_accel(**kwargs))

@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2024 Olivier Korach
@@ -19,13 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import os
 import shutil
-import datetime
+import datetime as dt
 from unittest.mock import patch, MagicMock
 import pytest
 
-from mutagen.id3 import ID3
+from mutagen.id3 import ID3, ID3NoHeaderError, TRCK, TDRC
 from mutagen.mp3 import MP3
 
 from mediatools import tools
@@ -169,11 +171,11 @@ def test_write_tags_id3v1_present(tmp_mp3):
 def test_set_file_date(tmp_mp3):
     fix.set_file_date(tmp_mp3, 1991)
     mtime = os.path.getmtime(tmp_mp3)
-    dt = datetime.datetime.fromtimestamp(mtime)
-    assert dt.year == 1991
-    assert dt.month == 1
-    assert dt.day == 1
-    assert dt.hour == 12
+    file_time = dt.datetime.fromtimestamp(mtime)
+    assert file_time.year == 1991
+    assert file_time.month == 1
+    assert file_time.day == 1
+    assert file_time.hour == 12
 
 
 # ---------------------------------------------------------------------------
@@ -205,14 +207,14 @@ def test_mb_lookup_release_empty_result():
     with patch("musicbrainzngs.search_releases", return_value={"release-list": []}):
         year, tracks = fix.mb_lookup_release("Unknown", "Unknown Album")
     assert year is None
-    assert tracks == []
+    assert not tracks
 
 
 def test_mb_lookup_release_network_error():
     with patch("musicbrainzngs.search_releases", side_effect=Exception("network error")):
         year, tracks = fix.mb_lookup_release("Artist", "Album")
     assert year is None
-    assert tracks == []
+    assert not tracks
 
 
 def test_mb_lookup_track_returns_year():
@@ -258,8 +260,8 @@ def test_process_file_writes_tags_and_date(tmp_mp3):
         fix.process_file(tmp_mp3, dir_artist="Seal", dir_album="Seal", dir_year=1991, mb_tracks=[], dry_run=False)
     tags = ID3(tmp_mp3)
     assert str(tags["TPE1"]) == "Seal"
-    dt = datetime.datetime.fromtimestamp(os.path.getmtime(tmp_mp3))
-    assert dt.year == 1991
+    file_time = dt.datetime.fromtimestamp(os.path.getmtime(tmp_mp3))
+    assert file_time.year == 1991
 
 
 def test_process_file_uses_mb_tracks_for_title(tmp_path):
@@ -303,8 +305,8 @@ def test_process_directory(tmp_path):
         tags = ID3(os.path.join(dest, fname))
         assert str(tags["TPE1"]) == "Seal"
         assert str(tags["TALB"]) == "Seal"
-        dt = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, fname)))
-        assert dt.year == 1991
+        file_time = dt.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, fname)))
+        assert file_time.year == 1991
 
 
 # ---------------------------------------------------------------------------
@@ -315,13 +317,13 @@ def test_process_directory(tmp_path):
 def test_mb_lookup_release_no_artist():
     year, tracks = fix.mb_lookup_release("", "Album")
     assert year is None
-    assert tracks == []
+    assert not tracks
 
 
 def test_mb_lookup_release_no_album():
     year, tracks = fix.mb_lookup_release("Artist", "")
     assert year is None
-    assert tracks == []
+    assert not tracks
 
 
 def test_mb_lookup_track_no_artist():
@@ -344,7 +346,7 @@ def test_mb_lookup_release_invalid_date():
     with patch("musicbrainzngs.search_releases", return_value=mock_result), patch("musicbrainzngs.get_release_by_id", return_value=mock_full):
         year, tracks = fix.mb_lookup_release("Artist", "Album")
     assert year is None
-    assert tracks == []
+    assert not tracks
 
 
 def test_mb_lookup_track_invalid_date():
@@ -364,8 +366,6 @@ def test_write_tags_no_existing_id3_header(tmp_path):
     """Writing tags to a file that has no ID3 header should not raise."""
     bare = str(tmp_path / "bare.mp3")
     shutil.copy(FIXTURE_MP3, bare)
-    from mutagen.id3 import ID3NoHeaderError
-
     with patch("mediatools.fix_mp3_meta.ID3", side_effect=[ID3NoHeaderError, ID3()]):
         fix.write_tags(bare, artist="A", title="T", album="Al", track=1, year=2000)
 
@@ -393,7 +393,6 @@ def test_set_file_date_exception_is_swallowed(tmp_mp3):
 
 def test_process_file_non_numeric_track_tag(tmp_path):
     """A non-numeric TRCK tag must not crash process_file."""
-    from mutagen.id3 import TRCK, TDRC
 
     dest = str(tmp_path / "track.mp3")
     shutil.copy(FIXTURE_MP3, dest)
@@ -428,8 +427,8 @@ def test_process_file_mb_year_lookup_from_album(tmp_path):
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
     ):
         fix.process_file(dest, dir_artist="Seal", dir_album="Seal", dir_year=None, mb_tracks=[], dry_run=False)
-    dt = datetime.datetime.fromtimestamp(os.path.getmtime(dest))
-    assert dt.year == 1991
+    file_time = dt.datetime.fromtimestamp(os.path.getmtime(dest))
+    assert file_time.year == 1991
 
 
 def test_process_file_mb_year_lookup_from_track(tmp_path):
@@ -444,8 +443,8 @@ def test_process_file_mb_year_lookup_from_track(tmp_path):
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": [{"release-list": [{"date": "1991"}]}]}),
     ):
         fix.process_file(dest, dir_artist="Seal", dir_album="Seal", dir_year=None, mb_tracks=[], dry_run=False)
-    dt = datetime.datetime.fromtimestamp(os.path.getmtime(dest))
-    assert dt.year == 1991
+    file_time = dt.datetime.fromtimestamp(os.path.getmtime(dest))
+    assert file_time.year == 1991
 
 
 # ---------------------------------------------------------------------------
@@ -469,8 +468,8 @@ def test_process_directory_mb_album_lookup(tmp_path):
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
     ):
         fix.process_directory(dest, dry_run=False)
-    dt = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, "01 - Crazy.mp3")))
-    assert dt.year == 1991
+    file_time = dt.datetime.fromtimestamp(os.path.getmtime(os.path.join(dest, "01 - Crazy.mp3")))
+    assert file_time.year == 1991
 
 
 # ---------------------------------------------------------------------------
@@ -591,14 +590,14 @@ def test_main_individual_files_mb_lookup(tmp_path):
     ):
         tools.audiotool()
     assert exc.value.code == 0
-    dt = datetime.datetime.fromtimestamp(os.path.getmtime(src))
-    assert dt.year == 1991
+    file_time = dt.datetime.fromtimestamp(os.path.getmtime(src))
+    assert file_time.year == 1991
 
 
 def test_main_skips_non_audio_file(tmp_path):
     """main() logs a warning and skips entries that are not audio files or directories."""
     txt_file = str(tmp_path / "readme.txt")
-    with open(txt_file, "w") as f:
+    with open(txt_file, "w", encoding="utf-8") as f:
         f.write("not audio")
     with patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", txt_file]), pytest.raises(SystemExit) as exc:
         tools.audiotool()

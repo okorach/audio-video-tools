@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -22,6 +21,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 import re
 from exiftool import ExifToolHelper
 import ffmpeg
@@ -32,6 +32,9 @@ import mediatools.utilities as util
 from filters import filters
 import mediatools.options as opt
 import mediatools.media_config as conf
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 EXIF_LONGITUDE_TAG: str = "EXIF:GPSLongitude"
 EXIF_LONG_REF_TAG: str = "EXIF:GPSLongitudeRef"
@@ -51,6 +54,9 @@ class MediaFile(fil.File):
     - A video file
     - An audio file
     - An image file"""
+
+    # The media files that have a size (videos and images) implement it
+    dimensions: Callable[..., tuple[int, int]]
 
     def __init__(self, filename: str) -> None:
         if not fil.is_media_file(filename):
@@ -145,6 +151,7 @@ class MediaFile(fil.File):
             return stream[attr]
         except KeyError as e:
             log.logger.error("Video stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
+            return None
 
     def __get_stream_by_codec__(self, field: str, codec_list: tuple | list | str) -> dict | None:
         log.logger.debug("Searching stream for codec %s = %s", field, codec_list)
@@ -430,10 +437,6 @@ def get_exif_creation_date(filename: str) -> datetime | None:
 
 def set_exif_creation_date(filename: str, some_datetime: datetime | str) -> None:
     MediaFile(filename).set_exif_creation_date(some_datetime)
-
-
-def get_dimensions(filename: str) -> tuple[int, int]:
-    return MediaFile(filename).get_dimensions()
 
 
 def get_exif_gps_coordinates(filename: str) -> tuple[float, float]:

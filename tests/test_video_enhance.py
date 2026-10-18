@@ -20,6 +20,9 @@
 
 """Tests of video-enhance, with the ffmpeg commands and the file operations mocked"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import sys
 import types
 from pathlib import Path
@@ -61,7 +64,7 @@ def collab(monkeypatch, tmp_path):
 
 
 def enhance(**kwargs):
-    ve.enhance_file("dir/clip.mp4", kwargs.pop("output_file", None), 1.3, 1.1, 0.0, 1.0, **kwargs)
+    ve.enhance_file("dir/clip.mp4", kwargs.pop("output_file", None), saturation=1.3, contrast=1.1, brightness=0.0, gamma=1.0, **kwargs)
 
 
 def test_enhance_replaces_the_file_and_keeps_the_original(collab):
@@ -156,7 +159,8 @@ def run_main(*args: str) -> None:
 def test_main_defaults(cli):
     run_main("-i", "a.mp4")
     assert cli.call_count == 1
-    assert cli.call_args.args == ("a.mp4", None, 1.3, 1.1, 0.0, 1.0)
+    assert cli.call_args.args == ("a.mp4", None)
+    assert [cli.call_args.kwargs[k] for k in ("saturation", "contrast", "brightness", "gamma")] == [1.3, 1.1, 0.0, 1.0]
     assert cli.call_args.kwargs["hw_accel"] is False
     assert cli.call_args.kwargs["stabilize"] is True
     assert cli.call_args.kwargs["batch_remaining"] == 5.0
@@ -179,7 +183,8 @@ def test_main_options(cli):
         "-o",
         "o.mp4",
     )
-    assert cli.call_args.args == ("a.mp4", "o.mp4", 2.0, 1.5, 0.1, 2.0)
+    assert cli.call_args.args == ("a.mp4", "o.mp4")
+    assert [cli.call_args.kwargs[k] for k in ("saturation", "contrast", "brightness", "gamma")] == [2.0, 1.5, 0.1, 2.0]
     assert cli.call_args.kwargs["hw_accel"] is None  # GPU filters: the hardware acceleration is left to the auto mode
     assert cli.call_args.kwargs["stabilize"] is False
 

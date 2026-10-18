@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -222,7 +221,6 @@ def get_media_properties() -> dict:
 
 
 def get_conf_property(prop: str):
-    global PROPERTIES_VALUES
     if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]

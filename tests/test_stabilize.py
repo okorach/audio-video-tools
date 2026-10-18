@@ -20,6 +20,9 @@
 
 """Tests of video-stabilize, with ffmpeg mocked"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import os
 import platform
 import re

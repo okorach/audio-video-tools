@@ -27,9 +27,6 @@ from unittest import mock
 
 import pytest
 
-from mediatools import tools
-import mediatools.utilities as util
-import utilities.file as fil
 from mediatools import (
     audio_denoise,
     audio_normalize,
@@ -46,8 +43,11 @@ from mediatools import (
     reverse,
     shake,
     speed,
+    tools,
     volume,
 )
+import mediatools.utilities as util
+import utilities.file as fil
 
 
 def _tree(root: Path) -> dict:
@@ -132,7 +132,7 @@ def test_expand_inputs_extensions(tmp_path: Path) -> None:
 def test_expand_inputs_empty_directory(tmp_path: Path) -> None:
     """A directory without matching file gives nothing"""
     files = _tree(tmp_path)
-    assert fil.expand_inputs([files["empty"]]) == []
+    assert not fil.expand_inputs([files["empty"]])
 
 
 def test_expand_inputs_keeps_duplicates(tmp_path: Path) -> None:
