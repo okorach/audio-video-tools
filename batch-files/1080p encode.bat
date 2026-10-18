@@ -18,8 +18,20 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-:: setlocal enabledelayedexpansion
+:: Encodes the files passed as argument in 1080p (1920 wide), with hardware acceleration
+:: Asks for the codec (x265 default or x264), the frame rate (default 50fps) and the video bitrate (default 10000k)
+:: Each file is replaced by the encoded file, the original is kept as <name>.original.<ext>
 
-encode -i %* --hw_accel on --vcodec x264 --width 1920 --vbitrate 6000k --acodec aac --abitrate 128k --fps 50 --keepName
+setlocal enabledelayedexpansion
+set codec=x265
+set /p codec=Codec [x265, x264] (default x265) ? 
+set fps=50fps
+set /p fps=Frame rate [25fps, 30fps, 50fps, 60fps...] (default 50fps) ? 
+:: The frame rate can be given with or without the fps suffix: 50 or 50fps
+set fps=!fps:fps=!
+set bitrate=10000k
+set /p bitrate=Video bitrate (default 10000k) ? 
+
+encode -i %* --hw_accel on --vcodec !codec! --width 1920 --vbitrate !bitrate! --acodec aac --abitrate 128k --fps !fps! --keepName
 
 pause
