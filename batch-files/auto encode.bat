@@ -22,7 +22,7 @@ setlocal enabledelayedexpansion
 
 :: ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i "%%~F" -vcodec hevc_nvenc -acodec aac -b:a 128k "%%~F.auto.mp4"
 for %%F in (%*) do (
-    encodeauto -i "%%~F" --nooverwrite --before "-y -hwaccel cuda -hwaccel_output_format cuda" --after "-preset p7 -tune hq -rc vbr -cq 23 -tag:v hvc1 -vcodec hevc_nvenc -acodec aac -b:a 128k"
+    videotool encodeauto -i "%%~F" --nooverwrite --before "-y -hwaccel cuda -hwaccel_output_format cuda" --after "-preset p7 -tune hq -rc vbr -cq 23 -tag:v hvc1 -vcodec hevc_nvenc -acodec aac -b:a 128k"
 )
 
 pause

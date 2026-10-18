@@ -26,6 +26,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 from cli import encode as cli_encode
@@ -49,7 +50,6 @@ from mediatools import (
     rescale,
     reverse,
     shake,
-    slideshow,
     speed,
     stabilize,
     stack,
@@ -198,41 +198,43 @@ TOOLS = [
 @pytest.mark.parametrize("tool", TOOLS, ids=[t.__name__ for t in TOOLS])
 def test_tools_have_the_hw_accel_option(tool, capsys):
     """All the tools that decode or encode media have the --hw_accel option"""
-    with mock.patch.object(sys, "argv", [tool.__name__, "-h"]), pytest.raises(SystemExit) as e:
-        tool.main()
+    command, action = tools.find_action(tool.__name__)
+    with mock.patch.object(sys, "argv", [command, action, "-h"]), pytest.raises(SystemExit) as e:
+        tools.run(command)
     assert e.value.code == 0
     assert "--hw_accel" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("tool", TOOLS, ids=[t.__name__ for t in TOOLS])
 def test_tools_refuse_invalid_hw_accel(tool):
-    with mock.patch.object(sys, "argv", [tool.__name__, "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
-        tool.main()
+    command, action = tools.find_action(tool.__name__)
+    with mock.patch.object(sys, "argv", [command, action, "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
+        tools.run(command)
     assert e.value.code == 2
 
 
 def test_slideshow_option(tmp_path):
     with (
-        mock.patch.object(sys, "argv", ["video-slideshow", "--hw_accel", "off", "a.jpg"]),
+        mock.patch.object(sys, "argv", ["videotool", "slideshow", "--hw_accel", "off", "a.jpg"]),
         mock.patch("mediatools.videofile.slideshow", return_value=(str(tmp_path / "o.mp4"), [])) as make_slideshow,
         mock.patch("mediatools.slideshow._dump_report_"),
     ):
-        slideshow.main()
+        tools.videotool()
     assert make_slideshow.call_args.kwargs["hw_accel"] == "off"
 
 
 def test_slideshow_invalid_option():
-    with mock.patch.object(sys, "argv", ["video-slideshow", "--hw_accel", "maybe", "a.jpg"]), pytest.raises(SystemExit) as e:
-        slideshow.main()
+    with mock.patch.object(sys, "argv", ["videotool", "slideshow", "--hw_accel", "maybe", "a.jpg"]), pytest.raises(SystemExit) as e:
+        tools.videotool()
     assert e.value.code == 1
 
 
 def test_concat_passes_the_mode():
     with (
-        mock.patch.object(sys, "argv", ["video-concat", "-i", FILE, FILE, "-o", "o.mp4", "--hw_accel", "on"]),
+        mock.patch.object(sys, "argv", ["videotool", "concat", "-i", FILE, FILE, "-o", "o.mp4", "--hw_accel", "on"]),
         mock.patch("mediatools.videofile.concat", return_value="o.mp4") as concatenate,
     ):
-        concat.main()
+        tools.videotool()
     assert concatenate.call_args.kwargs["hw_accel"] == "on"
 
 

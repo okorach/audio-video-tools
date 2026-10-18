@@ -23,7 +23,7 @@ import os
 import sys
 import subprocess
 from unittest.mock import patch
-from mediatools import encode
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
@@ -84,8 +84,10 @@ def test_hw_accel_2(monkeypatch):
 def test_main_file(short_video):
     file1 = short_video
     try:
-        with patch.object(sys, "argv", ["video-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]):
-            encode.main()
+        with patch.object(
+            sys, "argv", ["videotool", "profile-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]
+        ):
+            tools.videotool()
         assert True
     except subprocess.CalledProcessError:
         # Encoding will fail... just to cover some source code
@@ -95,8 +97,8 @@ def test_main_file(short_video):
 def test_main_file_audio():
 
     file1 = "it" + os.sep + "seal.mp3"
-    with patch.object(sys, "argv", ["video-encode", "-p", "mp3_128k", "-i", file1, "--outputfile", TMP_AUDIO, "--hw_accel", "off"]):
-        encode.main()
+    with patch.object(sys, "argv", ["videotool", "profile-encode", "-p", "mp3_128k", "-i", file1, "--outputfile", TMP_AUDIO, "--hw_accel", "off"]):
+        tools.videotool()
     # log.set_logger("tests")
     # log.logger.setLevel(log.get_logging_level(4))
     audio_f = audio.AudioFile(TMP_AUDIO)
@@ -112,9 +114,24 @@ def test_main_dir_timeranges_1(video_5s):
         with patch.object(
             sys,
             "argv",
-            ["video-encode", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360", "--timeranges", "00:02-00:04", "-g", "4"],
+            [
+                "videotool",
+                "profile-encode",
+                "-p",
+                "1mbps",
+                "-i",
+                file1,
+                "--hw_accel",
+                "off",
+                "--resolution",
+                "640x360",
+                "--timeranges",
+                "00:02-00:04",
+                "-g",
+                "4",
+            ],
         ):
-            encode.main()
+            tools.videotool()
         # Can't delete output file, don't know the name
         assert True
     except subprocess.CalledProcessError:
@@ -130,11 +147,24 @@ def test_main_dir_timeranges_2(video_5s):
         with patch.object(
             sys,
             "argv",
-            ["video-encode", "-p", "1mbps", "-i", file1, "--resolution", "640x360", "--hw_accel", "off", "--timeranges", "00:00-00:01,00:02-00:04"],
+            [
+                "videotool",
+                "profile-encode",
+                "-p",
+                "1mbps",
+                "-i",
+                file1,
+                "--resolution",
+                "640x360",
+                "--hw_accel",
+                "off",
+                "--timeranges",
+                "00:00-00:01,00:02-00:04",
+            ],
             "-o",
             output,
         ):
-            encode.main()
+            tools.videotool()
         # Output file is hardcoded for now :-(
         os.remove(file1.replace("video-5s.mp4", "video-5s.combined.mp4"))
         assert True

@@ -1,4 +1,4 @@
-# audio-denoise
+# audiotool denoise
 
 Reduces the noise of the audio of audio and video files, with a focus on **wind noise**. For video files the
 video stream is copied unchanged and only the audio is re-encoded.
@@ -6,7 +6,7 @@ video stream is copied unchanged and only the audio is re-encoded.
 ## Usage
 
 ```
-audio-denoise -i <file> [<file> ...] [-o <output>] [--method wind|afftdn|arnndn] [--level light|medium|strong]
+audiotool denoise -i <file> [<file> ...] [-o <output>] [--method wind|afftdn|arnndn] [--level light|medium|strong]
               [--cutoff <Hz>] [--reduction <dB>] [--noise-floor <dB>] [--model <file>] [--mix <-1..1>] [--keepName]
 ```
 
@@ -56,17 +56,17 @@ signal is used.
 
 ```
 # Reduce the wind noise of an action cam video
-audio-denoise -i DJI_0031_D.MP4
+audiotool denoise -i DJI_0031_D.MP4
 
 # Heavy wind
-audio-denoise -i DJI_0031_D.MP4 --level strong
+audiotool denoise -i DJI_0031_D.MP4 --level strong
 
 # Replace the file, keeping the original as DJI_0031_D.before-denoise.MP4
-audio-denoise -i DJI_0031_D.MP4 --keepName
+audiotool denoise -i DJI_0031_D.MP4 --keepName
 
 # Custom: cut everything below 150 Hz and reduce by 15 dB
-audio-denoise -i interview.mp4 --cutoff 150 --reduction 15 -o interview.clean.mp4
+audiotool denoise -i interview.mp4 --cutoff 150 --reduction 15 -o interview.clean.mp4
 
 # Neural network denoiser
-audio-denoise -i speech.wav --method arnndn --model std.rnnn
+audiotool denoise -i speech.wav --method arnndn --model std.rnnn
 ```

@@ -5,6 +5,6 @@ setlocal enabledelayedexpansion
 set ppp=150
 set /p ppp=Quality in ppp [150, 300, 600] (default 150) ?
 for %%F in (%*) do (
-    pdf-split -i "%%~F" --ppp !ppp!
+    pdftool split -i "%%~F" --ppp !ppp!
 )
 pause

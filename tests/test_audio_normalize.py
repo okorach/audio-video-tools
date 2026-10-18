@@ -29,6 +29,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from mutagen.id3 import ID3
 
+from mediatools import tools
 import mediatools.audio_normalize as norm
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
@@ -638,18 +639,22 @@ def test_process_directory_skip_cover_if_exists(mock_pf, mock_mb, mock_save, moc
 @patch("mediatools.audio_normalize.process_directory")
 def test_main_default_dir(mock_pd):
     with (
-        patch("sys.argv", ["audio-normalize"]),
+        patch("sys.argv", ["audiotool", "normalize"]),
         patch("os.path.isdir", return_value=True),
         patch("os.listdir", return_value=[]),
         pytest.raises(SystemExit),
     ):
-        norm.main()
+        tools.audiotool()
 
 
 @patch("mediatools.audio_normalize.process_directory")
 def test_main_dry_run(mock_pd, tmp_path):
-    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "--dry-run"]), patch("os.listdir", return_value=[]), pytest.raises(SystemExit):
-        norm.main()
+    with (
+        patch("sys.argv", ["audiotool", "normalize", "-f", str(tmp_path), "--dry-run"]),
+        patch("os.listdir", return_value=[]),
+        pytest.raises(SystemExit),
+    ):
+        tools.audiotool()
 
 
 @patch("mediatools.audio_normalize.process_file")
@@ -658,18 +663,22 @@ def test_main_dry_run(mock_pd, tmp_path):
 def test_main_with_mp3_file(mock_cover, mock_mb, mock_pf, tmp_path):
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
-    with patch("sys.argv", ["audio-normalize", "-f", dest]), pytest.raises(SystemExit):
-        norm.main()
+    with patch("sys.argv", ["audiotool", "normalize", "-f", dest]), pytest.raises(SystemExit):
+        tools.audiotool()
     mock_pf.assert_called()
 
 
 def test_main_non_audio_file(tmp_path):
     f = str(tmp_path / "notes.txt")
     open(f, "w").close()
-    with patch("sys.argv", ["audio-normalize", "-f", f]), pytest.raises(SystemExit):
-        norm.main()
+    with patch("sys.argv", ["audiotool", "normalize", "-f", f]), pytest.raises(SystemExit):
+        tools.audiotool()
 
 
 def test_main_debug_flag(tmp_path):
-    with patch("sys.argv", ["audio-normalize", "-f", str(tmp_path), "-g", "2"]), patch("os.listdir", return_value=[]), pytest.raises(SystemExit):
-        norm.main()
+    with (
+        patch("sys.argv", ["audiotool", "normalize", "-f", str(tmp_path), "-g", "2"]),
+        patch("os.listdir", return_value=[]),
+        pytest.raises(SystemExit),
+    ):
+        tools.audiotool()

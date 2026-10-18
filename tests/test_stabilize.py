@@ -28,6 +28,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import stabilize as stab
 
 
@@ -122,8 +123,8 @@ def cli():
 
 
 def run_main(*args: str) -> None:
-    with mock.patch.object(sys, "argv", ["video-stabilize", *args]):
-        stab.main()
+    with mock.patch.object(sys, "argv", ["videotool", "stabilize", *args]):
+        tools.videotool()
 
 
 def test_main_defaults(cli):

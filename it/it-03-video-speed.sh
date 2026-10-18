@@ -20,7 +20,7 @@ do
             keep_audio=""
             ;;
     esac
-    run_cmd "video-speed -i $file -o tmp/$file.speed.$speed.mp4 $keep_audio --speed $speed -o video.speed.$speed.mp4"
+    run_cmd "videotool speed -i $file -o tmp/$file.speed.$speed.mp4 $keep_audio --speed $speed -o video.speed.$speed.mp4"
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"

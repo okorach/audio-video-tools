@@ -23,11 +23,10 @@ import os
 import sys
 from unittest.mock import patch
 import pytest
-from mediatools import reverse
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = "video-reverse"
 VIDEO = "it" + os.sep + "video-360p-1.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
 
@@ -39,18 +38,18 @@ def use_short_video(short_video, monkeypatch):
 
 
 def test_main():
-    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", VIDEO]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO]):
         try:
-            reverse.main()
+            tools.videotool()
             assert True
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_with_output():
-    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", VIDEO, "-o", TMP1]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1]):
         try:
-            reverse.main()
+            tools.videotool()
             assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
             assert video.VideoFile(TMP1).audio_codec is None
             os.remove(TMP1)
@@ -62,9 +61,9 @@ def test_main_with_output():
 
 
 def test_keep_audio():
-    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", VIDEO, "-o", TMP1, "-k"]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1, "-k"]):
         try:
-            reverse.main()
+            tools.videotool()
             assert abs(video.VideoFile(VIDEO).duration - video.VideoFile(TMP1).duration) < 0.06
             assert video.VideoFile(TMP1).audio_codec == "aac"
             os.remove(TMP1)
@@ -76,27 +75,27 @@ def test_keep_audio():
 
 
 def test_main_help():
-    with patch.object(sys, "argv", [CMD, "-h"]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
         try:
-            reverse.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, "argv", [CMD, "-i", VIDEO, "--badoption", "yes"]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
         try:
-            reverse.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_no_file():
-    with patch.object(sys, "argv", [CMD, "-o", TMP1]):
+    with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
         try:
-            reverse.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2

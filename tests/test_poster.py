@@ -22,11 +22,10 @@
 import os
 import sys
 from unittest.mock import patch
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.imagefile as img
-from mediatools import poster
 
-CMD = "image-poster"
 DIR = "it" + os.sep
 IMG1 = DIR + "img-640x480.jpg"
 IMG2 = DIR + "img-1770x1291.jpg"
@@ -38,54 +37,56 @@ TMP1 = util.get_tmp_file() + ".jpg"
 
 
 def test_main():
-    with patch.object(sys, "argv", [CMD, "-g", "4", "-b", "black", "-m", "10", "--stretch", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
+    with patch.object(
+        sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]
+    ):
         try:
-            poster.main()
+            tools.imagetool()
             assert True
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_help():
-    with patch.object(sys, "argv", [CMD, "-i", IMG1, IMG2, "-h"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-h"]):
         try:
-            poster.main()
+            tools.imagetool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, "argv", [CMD, "-b", "-i", IMG1, IMG2, "--badoption", "yes"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-b", "-i", IMG1, IMG2, "--badoption", "yes"]):
         try:
-            poster.main()
+            tools.imagetool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_no_file():
-    with patch.object(sys, "argv", [CMD, "-g", "4", "-b", "black", "-m", "10"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10"]):
         try:
-            poster.main()
+            tools.imagetool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_other_options():
-    with patch.object(sys, "argv", [CMD, "-b", "white", "-m", "50", "-i", IMG1, IMG2]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "-m", "50", "-i", IMG1, IMG2]):
         try:
-            poster.main()
+            tools.imagetool()
             assert True
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_with_output():
-    with patch.object(sys, "argv", [CMD, "-i", IMG1, IMG2, "-o", TMP1, "-g", "4"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-o", TMP1, "-g", "4"]):
         try:
-            poster.main()
+            tools.imagetool()
             assert img.ImageFile(TMP1).width > 0
         except SystemExit as e:
             assert int(str(e)) == 0
@@ -94,9 +95,9 @@ def test_main_with_output():
 
 
 def test_main_with_output2():
-    with patch.object(sys, "argv", [CMD, "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-o", TMP1, "-g", "4"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-o", TMP1, "-g", "4"]):
         try:
-            poster.main()
+            tools.imagetool()
             assert img.ImageFile(TMP1).width > 0
             os.remove(TMP1)
         except SystemExit as e:

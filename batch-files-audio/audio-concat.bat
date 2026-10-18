@@ -21,6 +21,6 @@
 :: The output is saved next to the first file as <name>.concat.<ext>
 ::
 
-audio-concat -i %* -o "%~dpn1.concat%~x1"
+audiotool concat -i %* -o "%~dpn1.concat%~x1"
 
 pause

@@ -6,7 +6,7 @@ for file in ./*.mp4
 do
     for vol in 10% 25% 66% 200% 500% 4dB 8dB
     do
-        run_cmd "media-volume -i $file -o $file.vol.$vol.mp4 --volume $vol -o video.volume.$vol.mp4"
+        run_cmd "videotool volume -i $file -o $file.vol.$vol.mp4 --volume $vol -o video.volume.$vol.mp4"
     done
 done
 echo "----------------------------------------"

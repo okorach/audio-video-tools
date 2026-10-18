@@ -12,7 +12,7 @@ do
                 # Generates a too wide image, skip
                 continue
             fi
-            run_cmd "image-scale -i $f -o tmp/$f.scale.$w.$h.jpg -s ${w}x${h}"
+            run_cmd "imagetool scale -i $f -o tmp/$f.scale.$w.$h.jpg -s ${w}x${h}"
         done
     done
 done

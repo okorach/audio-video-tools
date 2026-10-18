@@ -1,4 +1,4 @@
-:: Reduces the noise (focus on wind noise) of the audio of the files passed as argument, using audio-denoise
+:: Reduces the noise (focus on wind noise) of the audio of the files passed as argument, using audiotool denoise
 :: Methods: wind (default), afftdn, arnndn (neural network, uses the model D:\Tools\ffmpeg\bin\std.rnnn)
 :: Wind method options (press Enter to keep the default):
 ::   Level: light, medium (default), strong
@@ -26,4 +26,4 @@ set options=--method !method! --level !level! --noise-floor !noise_floor! --keep
 if defined cutoff set options=!options! --cutoff !cutoff!
 if defined reduction set options=!options! --reduction !reduction!
 :run
-audio-denoise -i %* !options!
+audiotool denoise -i %* !options!

@@ -28,6 +28,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import pdf_split
 
 
@@ -118,18 +119,18 @@ def test_main_mocked(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"x")
     with (
-        mock.patch.object(sys, "argv", ["pdf-split", "-i", str(src), "--ppp", "600"]),
+        mock.patch.object(sys, "argv", ["pdftool", "split", "-i", str(src), "--ppp", "600"]),
         mock.patch("mediatools.pdf_split.split", return_value=3) as split,
     ):
-        pdf_split.main()
+        tools.pdftool()
     split.assert_called_once_with(str(src), 600)
     assert "3 files" in capsys.readouterr().out
 
 
 def test_main_missing_file(tmp_path: Path) -> None:
     """main() exits with 1 if the input file does not exist"""
-    with mock.patch.object(sys, "argv", ["pdf-split", "-i", str(tmp_path / "nope.pdf")]), pytest.raises(SystemExit) as e:
-        pdf_split.main()
+    with mock.patch.object(sys, "argv", ["pdftool", "split", "-i", str(tmp_path / "nope.pdf")]), pytest.raises(SystemExit) as e:
+        tools.pdftool()
     assert e.value.code == 1
 
 
@@ -138,9 +139,9 @@ def test_main_error(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"x")
     with (
-        mock.patch.object(sys, "argv", ["pdf-split", "-i", str(src)]),
+        mock.patch.object(sys, "argv", ["pdftool", "split", "-i", str(src)]),
         mock.patch("mediatools.pdf_split.split", side_effect=RuntimeError("boom")),
         pytest.raises(SystemExit) as e,
     ):
-        pdf_split.main()
+        tools.pdftool()
     assert e.value.code == 1

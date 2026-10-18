@@ -27,6 +27,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 import mediatools.utilities as util
 import utilities.file as fil
 from mediatools import (
@@ -40,9 +41,6 @@ from mediatools import (
     deshake,
     fix_mp3_meta,
     metadata,
-    pdf_compress,
-    pdf_merge,
-    pdf_split,
     rescale,
     renamer,
     reverse,
@@ -70,10 +68,25 @@ def _tree(root: Path) -> dict:
     return files
 
 
-def _main_exit_ok(module) -> None:
-    """Runs module.main(), tolerating an exit with code 0"""
-    try:
+def _argv(module, *args: str) -> list[str]:
+    """The command line of a tool: the unified command and action, or the name of the tool if it has none"""
+    action = tools.find_action(module.__name__)
+    return [*action, *args] if action else [module.__name__, *args]
+
+
+def _call_main(module) -> None:
+    """Runs a tool the way its command line does: through the unified command if it has one"""
+    action = tools.find_action(module.__name__)
+    if action:
+        tools.run(action[0])
+    else:
         module.main()
+
+
+def _main_exit_ok(module) -> None:
+    """Runs a tool, tolerating an exit with code 0"""
+    try:
+        _call_main(module)
     except SystemExit as e:
         assert e.code in (0, None)
 
@@ -215,9 +228,9 @@ IMAGE_TOOLS = [
 
 
 def _run_tool(module, argv: list[str]) -> None:
-    with mock.patch.object(sys, "argv", [module.__name__, *argv]):
+    with mock.patch.object(sys, "argv", _argv(module, *argv)):
         try:
-            module.main()
+            _call_main(module)
         except SystemExit as e:
             assert e.code in (0, None)
 
@@ -286,16 +299,19 @@ def test_audio_denoise_processes_audio_and_video(tmp_path: Path) -> None:
 def test_tool_output_with_directory(tmp_path: Path) -> None:
     """-o with a directory resulting in several files exits with code 2"""
     files = _tree(tmp_path)
-    with mock.patch.object(sys, "argv", ["volume", "-i", files["dir1"], "--volume", "200%", "-o", "out.mp4"]), pytest.raises(SystemExit) as e:
-        volume.main()
+    with (
+        mock.patch.object(sys, "argv", ["videotool", "volume", "-i", files["dir1"], "--volume", "200%", "-o", "out.mp4"]),
+        pytest.raises(SystemExit) as e,
+    ):
+        tools.videotool()
     assert e.value.code == 2
 
 
 def test_tool_directory_without_matching_file(tmp_path: Path) -> None:
     """A directory without any matching file exits with code 1"""
     files = _tree(tmp_path)
-    with mock.patch.object(sys, "argv", ["volume", "-i", files["empty"], "--volume", "200%"]), pytest.raises(SystemExit) as e:
-        volume.main()
+    with mock.patch.object(sys, "argv", ["videotool", "volume", "-i", files["empty"], "--volume", "200%"]), pytest.raises(SystemExit) as e:
+        tools.videotool()
     assert e.value.code == 1
 
 
@@ -309,11 +325,11 @@ def test_tool_continues_after_failure(tmp_path: Path) -> None:
         return "out.mp4"
 
     with (
-        mock.patch.object(sys, "argv", ["volume", "-i", files["dir1"], "--volume", "200%"]),
+        mock.patch.object(sys, "argv", ["videotool", "volume", "-i", files["dir1"], "--volume", "200%"]),
         mock.patch("mediatools.videofile.volume", side_effect=fail_on_b) as patched,
         pytest.raises(SystemExit) as e,
     ):
-        volume.main()
+        tools.videotool()
     assert e.value.code == 1
     assert len(patched.call_args_list) == 3
 
@@ -324,10 +340,10 @@ def test_pdf_split_directory(tmp_path: Path) -> None:
     files = _tree(tmp_path)
     (tmp_path / "dir1" / "f.pdf").write_bytes(b"x")
     with (
-        mock.patch.object(sys, "argv", ["pdf-split", "-i", files["dir1"], "--ppp", "300"]),
+        mock.patch.object(sys, "argv", ["pdftool", "split", "-i", files["dir1"], "--ppp", "300"]),
         mock.patch("mediatools.pdf_split.split", return_value=2) as split,
     ):
-        pdf_split.main()
+        tools.pdftool()
     assert _names([c.args[0] for c in split.call_args_list], tmp_path) == ["dir1/f.pdf", "dir1/sub/e.pdf"]
 
 
@@ -335,11 +351,11 @@ def test_pdf_split_failure(tmp_path: Path) -> None:
     """pdf-split exits with 1 if a file is missing, after having processed the others"""
     files = _tree(tmp_path)
     with (
-        mock.patch.object(sys, "argv", ["pdf-split", "-i", str(tmp_path / "missing.pdf"), files["dir1/sub/e.pdf"]]),
+        mock.patch.object(sys, "argv", ["pdftool", "split", "-i", str(tmp_path / "missing.pdf"), files["dir1/sub/e.pdf"]]),
         mock.patch("mediatools.pdf_split.split", return_value=2) as split,
         pytest.raises(SystemExit) as e,
     ):
-        pdf_split.main()
+        tools.pdftool()
     assert e.value.code == 1
     assert split.call_count == 1
 
@@ -348,10 +364,10 @@ def test_pdf_compress_directory(tmp_path: Path) -> None:
     """pdf-compress processes all the PDF files of a directory"""
     files = _tree(tmp_path)
     with (
-        mock.patch.object(sys, "argv", ["pdf-compress", "-i", files["dir1"]]),
+        mock.patch.object(sys, "argv", ["pdftool", "compress", "-i", files["dir1"]]),
         mock.patch("mediatools.pdf_compress.compress", side_effect=lambda f, _o, _p: f) as compress,
     ):
-        pdf_compress.main()
+        tools.pdftool()
     assert _names([c.args[0] for c in compress.call_args_list], tmp_path) == ["dir1/sub/e.pdf"]
 
 
@@ -359,8 +375,8 @@ def test_pdf_compress_output_with_several_inputs(tmp_path: Path) -> None:
     """pdf-compress refuses -o with several input files"""
     files = _tree(tmp_path)
     (tmp_path / "dir1" / "f.pdf").write_bytes(b"x")
-    with mock.patch.object(sys, "argv", ["pdf-compress", "-i", files["dir1"], "-o", "x.pdf"]), pytest.raises(SystemExit) as e:
-        pdf_compress.main()
+    with mock.patch.object(sys, "argv", ["pdftool", "compress", "-i", files["dir1"], "-o", "x.pdf"]), pytest.raises(SystemExit) as e:
+        tools.pdftool()
     assert e.value.code == 2
 
 
@@ -371,10 +387,10 @@ def test_pdf_merge_directory(tmp_path: Path) -> None:
     extra = tmp_path / "a.pdf"
     extra.write_bytes(b"x")
     with (
-        mock.patch.object(sys, "argv", ["pdf-merge", "-i", str(extra), files["dir1"]]),
+        mock.patch.object(sys, "argv", ["pdftool", "merge", "-i", str(extra), files["dir1"]]),
         mock.patch("mediatools.pdf_merge.merge", return_value="o.pdf") as merge,
     ):
-        pdf_merge.main()
+        tools.pdftool()
     assert _names(merge.call_args[0][0], tmp_path) == ["a.pdf", "dir1/f.pdf", "dir1/sub/e.pdf"]
 
 
@@ -429,7 +445,7 @@ def test_album_tools_input_option(tmp_path: Path, module) -> None:
     files = _tree(tmp_path)
     for option in ("-i", "-f", "--files"):
         with (
-            mock.patch.object(sys, "argv", [module.__name__, option, files["dir1"], files["c.mp3"], "--dry-run"]),
+            mock.patch.object(sys, "argv", _argv(module, option, files["dir1"], files["c.mp3"], "--dry-run")),
             mock.patch.object(module, "process_directory") as process_directory,
             mock.patch.object(module, "process_file") as process_file,
             mock.patch.object(module, "mb_lookup_release", return_value=(None, None, None, [], None) if module is audio_normalize else (None, [])),

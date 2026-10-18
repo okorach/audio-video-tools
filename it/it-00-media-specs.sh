@@ -4,7 +4,7 @@
 
 for f in *.mp4 *.mkv *.avi *.mov *.jpg *.gif *.png *.mp3 *.m4a *.wav *.ogg
 do
-    run_cmd "media-specs -i $f"
+    run_cmd "videotool specs -i $f"
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"

@@ -25,5 +25,5 @@
 
 @echo off
 
-video-enhance -i %*
+videotool enhance -i %*
 pause

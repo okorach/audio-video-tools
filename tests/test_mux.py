@@ -22,11 +22,10 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import mux
+from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video
 
-CMD = "video-mux"
 VIDEO = "it" + os.sep + "video-720p.mp4"
 AUDIO1 = "it" + os.sep + "seal.mp3"
 AUDIO2 = "it" + os.sep + "ub40.mp3"
@@ -34,9 +33,9 @@ TMP1 = util.get_tmp_file() + ".mp4"
 
 
 def test_main():
-    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", VIDEO, AUDIO1, AUDIO2]):
+    with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", VIDEO, AUDIO1, AUDIO2]):
         try:
-            mux.main()
+            tools.videotool()
             assert True
         except SystemExit as e:
             assert int(str(e)) == 0
@@ -46,9 +45,9 @@ def test_main():
 
 
 def test_main_with_output():
-    with patch.object(sys, "argv", [CMD, "-g", "2", "-i", AUDIO1, VIDEO, AUDIO2, "-o", TMP1]):
+    with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", AUDIO1, VIDEO, AUDIO2, "-o", TMP1]):
         try:
-            mux.main()
+            tools.videotool()
             v = video.VideoFile(TMP1)
             v.get_specs()
             assert v.duration > 0
@@ -62,27 +61,27 @@ def test_main_with_output():
 
 
 def test_main_help():
-    with patch.object(sys, "argv", [CMD, "-b", "black", "-m", "10", "--stretch", "-h"]):
+    with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "-h"]):
         try:
-            mux.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
 def test_main_bad_option():
-    with patch.object(sys, "argv", [CMD, "-b", "black", "-m", "10", "--stretch", "--badoption", "yes"]):
+    with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "--badoption", "yes"]):
         try:
-            mux.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
 
 
 def test_main_no_file():
-    with patch.object(sys, "argv", [CMD, "-g", "4", "-b", "black", "-m", "10"]):
+    with patch.object(sys, "argv", ["videotool", "mux", "-g", "4", "-b", "black", "-m", "10"]):
         try:
-            mux.main()
+            tools.videotool()
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2

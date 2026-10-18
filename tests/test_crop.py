@@ -26,7 +26,7 @@ from unittest import mock
 
 import pytest
 
-from mediatools import crop
+from mediatools import tools
 
 FILE = "it" + os.sep + "video-720p.mp4"
 
@@ -35,8 +35,8 @@ def _run(*args: str) -> mock.Mock:
     """Runs media-crop with a mocked VideoFile, returns the mocked crop method"""
     video = mock.Mock()
     video.crop.return_value = "out.mp4"
-    with mock.patch.object(sys, "argv", ["media-crop", "-i", FILE, *args]), mock.patch("mediatools.creator.file", return_value=video):
-        crop.main()
+    with mock.patch.object(sys, "argv", ["videotool", "crop", "-i", FILE, *args]), mock.patch("mediatools.creator.file", return_value=video):
+        tools.videotool()
     return video.crop
 
 
@@ -109,6 +109,6 @@ def test_invalid_options(args: list) -> None:
 
 def test_box_too_big() -> None:
     """A crop box bigger than the source fails with a non 0 exit code"""
-    with mock.patch.object(sys, "argv", ["media-crop", "-i", FILE, "--box", "4000x3000", "--hw_accel", "off"]), pytest.raises(SystemExit) as e:
-        crop.main()
+    with mock.patch.object(sys, "argv", ["videotool", "crop", "-i", FILE, "--box", "4000x3000", "--hw_accel", "off"]), pytest.raises(SystemExit) as e:
+        tools.videotool()
     assert e.value.code == 1

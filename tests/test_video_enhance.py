@@ -27,6 +27,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import video_enhance as ve
 
 
@@ -148,8 +149,8 @@ def cli(monkeypatch):
 
 
 def run_main(*args: str) -> None:
-    with mock.patch.object(sys, "argv", ["video-enhance", *args]):
-        ve.main()
+    with mock.patch.object(sys, "argv", ["videotool", "enhance", *args]):
+        tools.videotool()
 
 
 def test_main_defaults(cli):

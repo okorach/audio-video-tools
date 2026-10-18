@@ -24,5 +24,5 @@
 :: The output videos have the same size and the same video bitrate as the input videos.
 set /p speed=Speed factor ?:
 
-video-speed -i %* --speed "%speed%"
+videotool speed -i %* --speed "%speed%"
 pause

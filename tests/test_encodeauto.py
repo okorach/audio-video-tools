@@ -27,6 +27,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import encodeauto as ea
 
 
@@ -113,8 +114,8 @@ def cli(monkeypatch):
 
 
 def run_main(*args: str) -> None:
-    with mock.patch.object(sys, "argv", ["encodeauto", *args]):
-        ea.main()
+    with mock.patch.object(sys, "argv", ["videotool", "encodeauto", *args]):
+        tools.videotool()
 
 
 def test_main_encodes_each_video_file(cli, tmp_path):

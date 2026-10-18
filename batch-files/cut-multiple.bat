@@ -20,5 +20,5 @@
 
 set /p ranges=Ranges ?
 
-media-cut -i "%~1" --timeranges %ranges% -g 5
+videotool cut -i "%~1" --timeranges %ranges% -g 5
 pause

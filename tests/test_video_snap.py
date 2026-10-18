@@ -28,6 +28,7 @@ from unittest import mock
 
 import pytest
 
+from mediatools import tools
 from mediatools import video_snap as vs
 
 
@@ -68,8 +69,8 @@ def test_snap_file_without_duration(monkeypatch):
 
 def run_main(monkeypatch, *args):
     monkeypatch.setattr(vs.util, "expand_input_files", lambda inputs, *_a, **_k: inputs)
-    with mock.patch.object(sys, "argv", ["video-snap", *args]):
-        vs.main()
+    with mock.patch.object(sys, "argv", ["videotool", "snap", *args]):
+        tools.videotool()
 
 
 def test_main_every(monkeypatch):
@@ -115,6 +116,6 @@ def test_snap_real_video_zero_padding(video_5s, tmp_path):
 
 def test_main_real_directory(video_5s, tmp_path):
     shutil.copy(video_5s, tmp_path / "a.mp4")
-    with mock.patch.object(sys, "argv", ["video-snap", "-i", str(tmp_path), "--nbr_photos", "2"]):
-        vs.main()
+    with mock.patch.object(sys, "argv", ["videotool", "snap", "-i", str(tmp_path), "--nbr_photos", "2"]):
+        tools.videotool()
     assert sorted(f for f in os.listdir(tmp_path) if f.endswith(".jpg")) == ["a.1.jpg", "a.2.jpg"]

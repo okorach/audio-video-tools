@@ -24,5 +24,5 @@
 @echo off
 set /p SIZE=Enter target size as %% of original (e.g. 90 = 10%% faster, 110 = 10%% slower):
 
-audio-speed -i %* --size %SIZE%
+audiotool speed -i %* --size %SIZE%
 pause
