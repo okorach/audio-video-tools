@@ -70,14 +70,14 @@ _ARTIST_TITLE_RE = re.compile(r"^(.+?)\s+-\s+(.+)$")
 # ---------------------------------------------------------------------------
 
 
-def _title_case(text: str) -> str:
+def title_case(text: str) -> str:
     """Every word's first letter uppercase (artist style)."""
     if not text:
         return text
     return " ".join(w.capitalize() for w in text.split())
 
 
-def _sentence_case(text: str) -> str:
+def sentence_case(text: str) -> str:
     """Only the very first letter uppercase, rest lowercase (track title style)."""
     if not text:
         return text
@@ -89,18 +89,18 @@ def _sentence_case(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _parse_dir_name(dir_name: str) -> tuple[str | None, str | None, int | None]:
+def parse_dir_name(dir_name: str) -> tuple[str | None, str | None, int | None]:
     """Returns (artist, album, year) extracted from a directory base name."""
     m = _DIR_ARTIST_ALBUM_RE.match(dir_name)
     if m:
-        artist = _title_case(m.group(1).strip())
+        artist = title_case(m.group(1).strip())
         album = m.group(2).strip()
         year = int(m.group(3)) if m.group(3) else None
         return artist, album, year
-    return _title_case(dir_name.strip()), None, None
+    return title_case(dir_name.strip()), None, None
 
 
-def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None]:
+def parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None]:
     """Returns (track_number, artist, title) parsed from a file base name (no extension)."""
     track: int | None = None
     artist: str | None = None
@@ -117,10 +117,10 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
     # Try "Artist - Title"
     am = _ARTIST_TITLE_RE.match(rest)
     if am:
-        artist = _title_case(am.group(1).strip())
-        title = _sentence_case(am.group(2).strip())
+        artist = title_case(am.group(1).strip())
+        title = sentence_case(am.group(2).strip())
     else:
-        title = _sentence_case(rest) or None
+        title = sentence_case(rest) or None
 
     return track, artist, title
 
@@ -130,7 +130,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
 # ---------------------------------------------------------------------------
 
 
-def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, list[str]]:
+def mb_lookup_release(artist: str, album: str) -> tuple[int | None, list[str]]:
     """Returns (year, [track_title, ...]) from MusicBrainz for the best-matching release."""
     if not artist or not album:
         return None, []
@@ -159,7 +159,7 @@ def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, list[str]]:
         return None, []
 
 
-def _mb_lookup_track(artist: str, title: str) -> int | None:
+def mb_lookup_track(artist: str, title: str) -> int | None:
     """Returns the release year for a specific recording from MusicBrainz."""
     if not artist or not title:
         return None
@@ -184,16 +184,16 @@ def _mb_lookup_track(artist: str, title: str) -> int | None:
 # ---------------------------------------------------------------------------
 
 
-def _is_m4a(filepath: str) -> bool:
+def is_m4a(filepath: str) -> bool:
     return fil.extension(filepath).lower() in ("m4a", "aac")
 
 
-def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
+def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
     """Returns (artist, title, album, track, year) from existing file tags."""
     artist = title = album = None
     track = year = None
     try:
-        if _is_m4a(filepath):
+        if is_m4a(filepath):
             tags = MP4(filepath).tags or {}
             artist = (tags.get(_M4A_TAG_MAP["artist"], [None])[0] or "").strip() or None
             title = (tags.get(_M4A_TAG_MAP["title"], [None])[0] or "").strip() or None
@@ -233,10 +233,10 @@ def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | No
     return artist, title, album, track, year
 
 
-def _write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
+def write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
     """Writes tags to an audio file — ID3v1+v2 for MP3, iTunes atoms for M4A."""
     try:
-        if _is_m4a(filepath):
+        if is_m4a(filepath):
             audio = MP4(filepath)
             if audio.tags is None:
                 audio.add_tags()
@@ -278,7 +278,7 @@ def _write_tags(filepath: str, artist: str | None, title: str | None, album: str
 # ---------------------------------------------------------------------------
 
 
-def _set_file_date(filepath: str, year: int) -> None:
+def set_file_date(filepath: str, year: int) -> None:
     """Sets file creation and modification timestamps to YYYY-01-01 12:00:00."""
     try:
         dt = datetime.datetime(year, 1, 1, 12, 0, 0)
@@ -294,15 +294,15 @@ def _set_file_date(filepath: str, year: int) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, dir_year: int | None, mb_tracks: list[str], dry_run: bool) -> None:
+def process_file(filepath: str, dir_artist: str | None, dir_album: str | None, dir_year: int | None, mb_tracks: list[str], dry_run: bool) -> None:
     """Processes a single audio file: reads tags, fills in gaps, writes tags."""
     base = os.path.splitext(os.path.basename(filepath))[0]
 
     # 1. Parse filename for track#, artist, title
-    fn_track, fn_artist, fn_title = _parse_file_name(base)
+    fn_track, fn_artist, fn_title = parse_file_name(base)
 
     # 2. Read existing tags via mutagen (handles both MP3 and M4A)
-    existing_artist, existing_title, existing_album, existing_track, existing_year = _read_existing_tags(filepath)
+    existing_artist, existing_title, existing_album, existing_track, existing_year = read_existing_tags(filepath)
 
     # 3. Resolve final values: prefer existing tag, fall back to filename parse, then directory info
     artist = existing_artist or fn_artist or dir_artist
@@ -313,20 +313,20 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
 
     # 4. Try to match title against MusicBrainz track list (if album was looked up)
     if not title and track is not None and mb_tracks and (track - 1) < len(mb_tracks):
-        title = _sentence_case(mb_tracks[track - 1])
+        title = sentence_case(mb_tracks[track - 1])
 
     # 5. MusicBrainz lookup for year if still missing
     if year is None and artist and album:
-        mb_year, _ = _mb_lookup_release(artist, album)
+        mb_year, _ = mb_lookup_release(artist, album)
         year = mb_year
     if year is None and artist and title:
-        year = _mb_lookup_track(artist, title)
+        year = mb_lookup_track(artist, title)
 
     # 6. Normalise capitalisation
     if artist:
-        artist = _title_case(artist)
+        artist = title_case(artist)
     if title:
-        title = _sentence_case(title)
+        title = sentence_case(title)
 
     log.logger.info("File: %s  artist=%s  title=%s  album=%s  track=%s  year=%s", base, artist, title, album, track, year)
 
@@ -334,11 +334,11 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
         return
 
     # 7. Write tags
-    _write_tags(filepath, artist, title, album, track, year)
+    write_tags(filepath, artist, title, album, track, year)
 
     # 8. Set file timestamp
     if year:
-        _set_file_date(filepath, year)
+        set_file_date(filepath, year)
 
 
 # ---------------------------------------------------------------------------
@@ -346,16 +346,16 @@ def _process_file(filepath: str, dir_artist: str | None, dir_album: str | None, 
 # ---------------------------------------------------------------------------
 
 
-def _process_directory(dirpath: str, dry_run: bool) -> None:
+def process_directory(dirpath: str, dry_run: bool) -> None:
     """Processes all audio files in a single directory."""
     dir_name = os.path.basename(dirpath)
-    dir_artist, dir_album, dir_year = _parse_dir_name(dir_name)
+    dir_artist, dir_album, dir_year = parse_dir_name(dir_name)
     log.logger.info("Directory: %s  →  artist=%s  album=%s  year=%s", dir_name, dir_artist, dir_album, dir_year)
 
     # MusicBrainz album lookup (once per directory)
     mb_tracks: list[str] = []
     if dir_artist and dir_album and dir_year is None:
-        mb_year, mb_tracks = _mb_lookup_release(dir_artist, dir_album)
+        mb_year, mb_tracks = mb_lookup_release(dir_artist, dir_album)
         if mb_year and dir_year is None:
             dir_year = mb_year
 
@@ -366,7 +366,7 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
     log.logger.info("Found %d audio file(s) in %s", len(audio_files), dirpath)
 
     for filepath in audio_files:
-        _process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
+        process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
 
 
 # ---------------------------------------------------------------------------
@@ -424,25 +424,25 @@ def main() -> None:
             for subdir in subdirs:
                 log.logger.info("=== Processing directory: %s ===", subdir)
                 try:
-                    _process_directory(subdir, dry_run)
+                    process_directory(subdir, dry_run)
                 except Exception as e:
                     log.logger.error("Error processing %s: %s", subdir, str(e))
         if root_audio:
             log.logger.info("Processing %d audio file(s) directly in %s", len(root_audio), root)
-            _process_directory(root, dry_run)
+            process_directory(root, dry_run)
 
     # For individual files: process them with the context of their parent directory
     for parent, file_list in sorted(files_by_dir.items()):
-        dir_artist, dir_album, dir_year = _parse_dir_name(os.path.basename(parent))
+        dir_artist, dir_album, dir_year = parse_dir_name(os.path.basename(parent))
         mb_tracks: list[str] = []
         if dir_artist and dir_album and dir_year is None:
-            mb_year, mb_tracks = _mb_lookup_release(dir_artist, dir_album)
+            mb_year, mb_tracks = mb_lookup_release(dir_artist, dir_album)
             if mb_year:
                 dir_year = mb_year
         log.logger.info("Processing %d file(s) from %s", len(file_list), parent)
         for filepath in sorted(file_list):
             try:
-                _process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
+                process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
             except Exception as e:
                 log.logger.error("Error processing %s: %s", filepath, str(e))
 

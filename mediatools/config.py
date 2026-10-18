@@ -29,7 +29,7 @@ from mediatools import log
 _CONFIG_SETTINGS: dict | None = None
 
 
-def _load_properties_file(file: str | pathlib.Path) -> dict:
+def load_properties_file(file: str | pathlib.Path) -> dict:
     settings: dict = {}
     try:
         with open(file, encoding="utf-8") as fp:
@@ -48,9 +48,9 @@ def load(config_name: str | None = None, settings: dict | None = None) -> dict:
     if settings is None:
         settings = {}
 
-    default_conf = _load_properties_file(pathlib.Path(__file__).parent / f"{config_name}.properties")
-    home_conf = _load_properties_file(f"{os.path.expanduser('~')}{os.sep}.{config_name}.properties")
-    local_conf = _load_properties_file(f"{os.getcwd()}{os.sep}{config_name}.properties")
+    default_conf = load_properties_file(pathlib.Path(__file__).parent / f"{config_name}.properties")
+    home_conf = load_properties_file(f"{os.path.expanduser('~')}{os.sep}.{config_name}.properties")
+    local_conf = load_properties_file(f"{os.getcwd()}{os.sep}{config_name}.properties")
 
     _CONFIG_SETTINGS = {**default_conf, **home_conf, **local_conf, **settings}
 

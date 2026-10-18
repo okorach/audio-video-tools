@@ -28,7 +28,7 @@ from mediatools import log
 import utilities.file as fil
 
 
-def _atempo_filters(factor: float) -> list[str]:
+def atempo_filters(factor: float) -> list[str]:
     """Returns a chained list of atempo filter strings whose product equals factor.
     atempo only accepts values in [0.5, 2.0], so multiple filters are chained when needed."""
     parts = []
@@ -53,7 +53,7 @@ def speed(input_file: str, output_file: str | None, size_percent: float) -> str:
     factor = 100.0 / size_percent
     af = audio.AudioFile(input_file)
     af.get_specs()
-    af_filter = ",".join(_atempo_filters(factor))
+    af_filter = ",".join(atempo_filters(factor))
     output_file = util.automatic_output_file_name(output_file, input_file, f"speed{size_percent:.0f}")
     log.logger.info("Changing speed of %s: size=%g%% → atempo factor=%.4f", input_file, size_percent, factor)
     bitrate_opt = f'-b:a "{af.abitrate}"' if af.abitrate else ""

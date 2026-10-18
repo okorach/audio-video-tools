@@ -99,20 +99,20 @@ def test_no_issue(monkeypatch, capsys):
 
 def test_range_marker_with_an_end_line():
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "RUF012", 5, 2, 9)
+    ruff2sonar.apply_range_marker(issue_range, "RUF012", 5, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5, "startColumn": 2, "endColumn": 9}
 
 
 def test_range_marker_of_the_imports():
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "I001", 6, 2, 9)
+    ruff2sonar.apply_range_marker(issue_range, "I001", 6, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5}
 
 
 @pytest.mark.parametrize("columns", [(None, None), (4, None), (None, 8)])
 def test_range_marker_with_missing_columns(columns):
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "B904", None, *columns)
+    ruff2sonar.apply_range_marker(issue_range, "B904", None, *columns)
     assert issue_range["endLine"] == 3
     assert issue_range["startColumn"] == (columns[0] if columns[0] is not None else 0)
     assert issue_range["endColumn"] == (columns[1] if columns[1] is not None else 1)

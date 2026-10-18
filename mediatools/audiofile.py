@@ -56,7 +56,7 @@ _CSV_KEYS: tuple[str, ...] = (
 _ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
 
 
-def _strip_encoding_postfix(base_name: str) -> str:
+def strip_encoding_postfix(base_name: str) -> str:
     """Removes a trailing bitrate/codec postfix (eg " (128kbit_AAC)") from a file base name"""
     return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
 
@@ -70,7 +70,7 @@ def clean_file_name(filename: str) -> str:
     """Cleans up a file name (without extension) before re-encoding: removes bitrate/codec
     postfixes and exotic unicode characters from the file base name"""
     directory, base = os.path.split(fil.strip_extension(filename))
-    base = _strip_exotic_chars(_strip_encoding_postfix(base))
+    base = _strip_exotic_chars(strip_encoding_postfix(base))
     return os.path.join(directory, base) if directory else base
 
 

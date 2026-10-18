@@ -31,6 +31,7 @@ import re
 import argparse
 import pathlib
 import tempfile
+import uuid
 import subprocess
 import shlex
 from collections.abc import Callable
@@ -561,7 +562,7 @@ def package_home() -> pathlib.Path:
 
 
 def get_tmp_file() -> str:
-    return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
+    return tempfile.gettempdir() + os.sep + uuid.uuid4().hex[:8]
 
 
 def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:

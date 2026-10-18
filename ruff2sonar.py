@@ -30,7 +30,7 @@ TRIVY_TO_MQR_MAPPING = {"CRITICAL": "BLOCKER"}
 MAPPING = {"LOW": "MINOR", "MEDIUM": "MAJOR", "HIGH": "CRITICAL", "BLOCKER": "BLOCKER"}
 
 
-def _apply_range_marker(issue_range: dict, rule_id: str, end_line: int | None, start_col: int | None, end_col: int | None) -> None:
+def apply_range_marker(issue_range: dict, rule_id: str, end_line: int | None, start_col: int | None, end_col: int | None) -> None:
     """Update issue_range when a caret/underscore range marker line is parsed."""
     issue_range["endLine"] = end_line or issue_range["startLine"]
     if rule_id != "I001":
@@ -88,11 +88,11 @@ def main() -> None:
             }
         elif m := re.match(r"\s+\|\s\|(_+)\^ [A-Z0-9]+", line):
             # Multi-line span closing marker: "   | |_____^ RUF012"
-            _apply_range_marker(issue_range, rule_id, end_line, None, len(m.group(1)))
+            apply_range_marker(issue_range, rule_id, end_line, None, len(m.group(1)))
             end_line = None
         elif m := re.match(r"\s+\| (\s+)(\^+) [A-Z0-9]+", line):
             # Inline caret marker: "    |     ^^^^ RET505"
-            _apply_range_marker(issue_range, rule_id, end_line, len(m.group(1)), len(m.group(1)) + len(m.group(2)))
+            apply_range_marker(issue_range, rule_id, end_line, len(m.group(1)), len(m.group(1)) + len(m.group(2)))
             end_line = None
         elif m := re.match(r"\s*(\d+)\s\|\s\|.*$", line):
             end_line = int(m.group(1))

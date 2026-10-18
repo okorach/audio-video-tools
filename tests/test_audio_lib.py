@@ -48,7 +48,7 @@ def test_fix_symlink():
         moved_file = "Z" + original_file[1:]
         f = fil.File(moved_file)
         f.create_link(symlink)
-        assert ad.__fix_symlink(symlink, moved_file) == original_file
+        assert ad.fix_symlink(symlink, moved_file) == original_file
         f2 = fil.File(symlink)
         assert f2.read_link() == original_file
     else:
@@ -61,6 +61,6 @@ def test_fix_symlink_2():
         moved_file = "doesnotexit.txt"
         f = fil.File(moved_file)
         f.create_link(symlink)
-        assert ad.__fix_symlink(symlink, moved_file) is None
+        assert ad.fix_symlink(symlink, moved_file) is None
     else:
         assert True

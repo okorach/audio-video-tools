@@ -430,9 +430,9 @@ def test_album_tools_input_option(tmp_path: Path, module) -> None:
     for option in ("-i", "-f", "--files"):
         with (
             mock.patch.object(sys, "argv", [module.__name__, option, files["dir1"], files["c.mp3"], "--dry-run"]),
-            mock.patch.object(module, "_process_directory") as process_directory,
-            mock.patch.object(module, "_process_file") as process_file,
-            mock.patch.object(module, "_mb_lookup_release", return_value=(None, None, None, [], None) if module is audio_normalize else (None, [])),
+            mock.patch.object(module, "process_directory") as process_directory,
+            mock.patch.object(module, "process_file") as process_file,
+            mock.patch.object(module, "mb_lookup_release", return_value=(None, None, None, [], None) if module is audio_normalize else (None, [])),
         ):
             _main_exit_ok(module)
         assert process_file.call_count == 1  # c.mp3 given as a file

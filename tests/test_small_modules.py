@@ -43,7 +43,7 @@ from cli import encode as cli_encode
     [(1.0, ["atempo=1.000000"]), (1.5, ["atempo=1.500000"]), (4.0, ["atempo=2.0", "atempo=2.000000"]), (0.25, ["atempo=0.5", "atempo=0.500000"])],
 )
 def test_atempo_filters(factor, expected):
-    chain = audiospeed._atempo_filters(factor)
+    chain = audiospeed.atempo_filters(factor)
     assert chain == expected
     product = 1.0
     for f in chain:
@@ -52,7 +52,7 @@ def test_atempo_filters(factor, expected):
 
 
 def test_atempo_filters_long_chain():
-    assert len(audiospeed._atempo_filters(10.0)) == 4
+    assert len(audiospeed.atempo_filters(10.0)) == 4
 
 
 def test_audio_speed():
@@ -155,7 +155,7 @@ def _record(message="héllo"):
 
 def test_log_handler_writes_to_the_stream():
     stream = io.StringIO()
-    handler = log._Utf8StreamHandler(stream)
+    handler = log.Utf8StreamHandler(stream)
     handler.emit(_record("hello"))
     assert stream.getvalue() == "hello\n"
 
@@ -166,7 +166,7 @@ def test_log_handler_with_an_unencodable_message_writes_utf8_bytes():
             text.encode("ascii")
 
     stream = AsciiStream()
-    log._Utf8StreamHandler(stream).emit(_record())
+    log.Utf8StreamHandler(stream).emit(_record())
     assert stream.buffer.getvalue() == "héllo\n".encode()
 
 
@@ -185,19 +185,19 @@ def test_log_handler_with_an_unencodable_message_and_no_buffer():
             pass
 
     stream = AsciiStreamNoBuffer()
-    log._Utf8StreamHandler(stream).emit(_record())
+    log.Utf8StreamHandler(stream).emit(_record())
     assert stream.written == ["h?llo\n"]
 
 
 def test_log_handler_error_while_formatting():
-    handler = log._Utf8StreamHandler(io.StringIO())
+    handler = log.Utf8StreamHandler(io.StringIO())
     with mock.patch.object(handler, "format", side_effect=ValueError("bad record")), mock.patch.object(handler, "handleError") as handle:
         handler.emit(_record())
     handle.assert_called_once()
 
 
 def test_log_handler_recursion_error_is_raised():
-    handler = log._Utf8StreamHandler(io.StringIO())
+    handler = log.Utf8StreamHandler(io.StringIO())
     with mock.patch.object(handler, "format", side_effect=RecursionError), pytest.raises(RecursionError):
         handler.emit(_record())
 
@@ -216,7 +216,7 @@ def test_log_handler_error_while_writing_the_bytes():
         def buffer(self):
             raise OSError("closed")
 
-    handler = log._Utf8StreamHandler(BrokenStream())
+    handler = log.Utf8StreamHandler(BrokenStream())
     with mock.patch.object(handler, "handleError") as handle:
         handler.emit(_record())
     handle.assert_called_once()
@@ -278,7 +278,7 @@ def test_load_config_without_files(tmp_path, monkeypatch):
 
 def test_load_config_without_permission(tmp_path):
     with mock.patch("builtins.open", side_effect=PermissionError):
-        assert config._load_properties_file(tmp_path / "x.properties") == {}
+        assert config.load_properties_file(tmp_path / "x.properties") == {}
 
 
 # ---------------------------------------------------------------- filters (filters/filter.py)
