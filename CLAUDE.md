@@ -85,6 +85,8 @@ Each CLI tool follows this pattern:
 4. Core logic runs via the media file classes or utility functions, once per input file with `util.process_input_files(kwargs, process)` (tools combining all the files, like concat, use `kwargs["inputfiles"]` as a whole)
 5. `util.generated_file(path)` — logs output file path
 
+The `--hw_accel auto|on|off` option is in the common arguments (`util.add_hw_accel_arg(parser)` for the tools that don't use `get_common_args`). Functions that run hardware accelerated ffmpeg commands decide with `util.use_hardware_accel(**kwargs)` and are decorated with `@util.hw_accel_fallback`, which runs them again on the CPU if a command fails in auto mode.
+
 ### External Dependencies
 
 Requires `ffmpeg` and `ffprobe` on PATH (or configured via properties). Image metadata operations require `exiftool`.

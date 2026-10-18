@@ -22,6 +22,9 @@
 import os
 import sys
 import platform
+import functools
+import inspect
+import contextvars
 import json
 import logging
 import re
@@ -41,8 +44,17 @@ import mediatools.media_config as conf
 
 DEBUG_LEVEL: int = 0
 DRY_RUN: bool = False
+# Result of the check of the availability of the hardware acceleration (None = not checked yet)
 HW_ACCEL: bool | None = None
 HW_ACCEL_PREFIX: str = "-hwaccel cuda -hwaccel_output_format cuda"
+HW_ACCEL_MODES: tuple[str, ...] = ("auto", "on", "off")
+# A command line using one of those options (or an nvenc/cuvid/cuda codec or filter) is a hardware accelerated command
+HW_ACCEL_COMMAND_REGEXP: re.Pattern = re.compile(r"-hwaccel|_nvenc|_cuvid|_cuda|_qsv|_amf")
+
+# State of the fallback of the hardware acceleration (context variables, so that it's safe with threads)
+_hw_attempt_depth: contextvars.ContextVar[int] = contextvars.ContextVar("hw_attempt_depth", default=0)
+_hw_forced_off: contextvars.ContextVar[bool] = contextvars.ContextVar("hw_forced_off", default=False)
+_hw_command_run: contextvars.ContextVar[list | None] = contextvars.ContextVar("hw_command_run", default=None)
 
 LANGUAGE_MAPPING: dict[str, str] = {"fre": "French", "eng": "English"}
 
@@ -182,6 +194,9 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
 
 
 def run_ffmpeg(params: str, duration: float | None = None) -> None:
+    commands = _hw_command_run.get()
+    if commands is not None and HW_ACCEL_COMMAND_REGEXP.search(params):
+        commands.append(params)  # Remember that a hardware accelerated command was run, see hw_accel_fallback()
     quot = '"' if platform.system() == "Windows" else ""
     cmd = f"{quot}{get_ffmpeg()}{quot} -y {params}"
     run_os_cmd(cmd, duration)
@@ -282,8 +297,20 @@ def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
 
     parser.add_argument("-g", "--debug", required=False, help="Debug level")
     parser.add_argument("--keepName", required=False, default=False, action="store_true", help="Generate new file with same name as old")
+    add_hw_accel_arg(parser)
 
     return parser
+
+
+def add_hw_accel_arg(parser: argparse.ArgumentParser) -> None:
+    """Adds the --hw_accel option to the parser of a tool"""
+    parser.add_argument(
+        "--hw_accel",
+        required=False,
+        choices=HW_ACCEL_MODES,
+        help="Nvidia hardware acceleration: auto (default) uses it when available and falls back to the CPU if a command fails with it, "
+        "on forces it, off disables it. Only used by the tools that decode or encode videos",
+    )
 
 
 def expand_input_files(inputs: list[str], input_type: str | tuple[str, ...] | None = None, extensions: tuple[str, ...] | None = None) -> list[str]:
@@ -343,17 +370,7 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
         timerange = timerange.split(",")[0]
     if timerange and "-" in timerange:
         kwargs[opt.Option.START], kwargs[opt.Option.STOP] = timerange.split("-")
-    if kwargs.get("hw_accel") is None:
-        kwargs["hw_accel"] = conf.get_property("default.hw_accel")
-    if kwargs.get("hw_accel") is None:
-        kwargs["hw_accel"] = "auto"
-
-    if kwargs.get("hw_accel") == "on":
-        kwargs["hw_accel"] = True
-    elif kwargs.get("hw_accel") == "off":
-        kwargs["hw_accel"] = False
-    else:
-        kwargs["hw_accel"] = use_hardware_accel(**kwargs)
+    kwargs["hw_accel"] = get_hw_accel_mode(**kwargs)
     kwargs = remove_nones(kwargs)
     log.logger.debug("Processed args = %s", str(kwargs))
     return kwargs
@@ -565,29 +582,23 @@ def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:
     return (w, h)
 
 
-def use_hardware_accel(**kwargs) -> bool:
-    global HW_ACCEL
-    my_hw_accel = kwargs.get("hw_accel", "auto")
-    log.logger.debug("my hw accel = %s", str(my_hw_accel))
-    if (isinstance(my_hw_accel, bool) and my_hw_accel) or my_hw_accel == "on":
-        HW_ACCEL = True
-        log.logger.info("Hardware acceleration explicitly forced on")
-        return True
-    if (isinstance(my_hw_accel, bool) and not my_hw_accel) or my_hw_accel == "off":
-        HW_ACCEL = False
-        log.logger.info("Hardware acceleration explicitly turned off")
-        return False
+def get_hw_accel_mode(**kwargs) -> str:
+    """Returns the hardware acceleration mode: auto, on or off.
+    It's the value of the hw_accel option (a boolean means on / off), or the default.hw_accel property, or auto"""
+    value = kwargs.get("hw_accel")
+    if value is None:
+        value = conf.get_property("default.hw_accel")
+    if isinstance(value, bool):
+        return "on" if value else "off"
+    value = str(value).strip().lower() if value is not None else "auto"
+    return value if value in HW_ACCEL_MODES else "auto"
 
-    if kwargs.get(opt.Option.DEINTERLACE, False):
-        # Deinterlacing is incompatible with HW accel
-        log.logger.info("Turning off hardware acceleration because of deinterlace")
-        HW_ACCEL = False
-    if my_hw_accel != "auto":
-        HW_ACCEL = False
+
+def check_hardware_accel() -> bool:
+    """Checks (once) whether the hardware acceleration can be used, by encoding a few frames with it"""
+    global HW_ACCEL
     if HW_ACCEL is not None:
         return HW_ACCEL
-
-    # Auto mode, test execution with HW acceleration
     log.logger.info("Checking if hardware acceleration can be used")
     outputfile = get_tmp_file() + ".mp4"
     inputfile = str(package_home() / "video-720p.mp4")
@@ -600,6 +611,77 @@ def use_hardware_accel(**kwargs) -> bool:
         HW_ACCEL = False
     log.logger.info("Auto hardware acceleration = %s", str(HW_ACCEL))
     return HW_ACCEL
+
+
+def use_hardware_accel(**kwargs) -> bool:
+    """Returns whether the hardware acceleration must be used (hw_accel option: auto, on or off).
+    In auto mode it's used if it's available, unless the command is being retried on the CPU, see hw_accel_fallback()"""
+    if _hw_forced_off.get():
+        return False
+    mode = get_hw_accel_mode(**kwargs)
+    log.logger.debug("hw accel = %s", mode)
+    if mode == "on":
+        log.logger.info("Hardware acceleration explicitly forced on")
+        return True
+    if mode == "off":
+        log.logger.info("Hardware acceleration explicitly turned off")
+        return False
+    if kwargs.get(opt.Option.DEINTERLACE, False):
+        # Deinterlacing is incompatible with HW accel
+        log.logger.info("Not using hardware acceleration because of deinterlace")
+        return False
+    return check_hardware_accel()
+
+
+def _call_options(func: Callable, args: tuple, kwargs: dict) -> dict:
+    """Returns the options of a call that are relevant to know whether hardware acceleration is used"""
+    options = dict(kwargs)
+    try:
+        signature = inspect.signature(func)
+        bound = signature.bind_partial(*args, **kwargs).arguments
+    except (TypeError, ValueError):
+        return options
+    for name, param in signature.parameters.items():
+        if param.kind is inspect.Parameter.VAR_KEYWORD:
+            options.update(bound.get(name, {}))
+        elif name in ("hw_accel", opt.Option.DEINTERLACE) and name in bound:
+            options[name] = bound[name]
+    return options
+
+
+def hw_accel_fallback(func: Callable) -> Callable:
+    """Decorator of the functions that decode or encode videos with ffmpeg and use the hardware acceleration if use_hardware_accel().
+    In auto mode, if a hardware accelerated ffmpeg command fails, the whole function is run again on the CPU.
+    With the on mode the failure is raised, with the off mode the hardware acceleration is not used.
+    The function must get its hardware acceleration option as hw_accel (argument or keyword argument)"""
+
+    @functools.wraps(func)
+    def wrapper(*args: object, **kwargs: object) -> object:
+        options = _call_options(func, args, kwargs)
+        if _hw_attempt_depth.get() > 0 or _hw_forced_off.get() or get_hw_accel_mode(**options) != "auto" or not use_hardware_accel(**options):
+            # Nothing to retry: the CPU is used, the hardware acceleration is forced, or an outer function already handles the fallback
+            return func(*args, **kwargs)
+        commands: list = []
+        depth_token = _hw_attempt_depth.set(_hw_attempt_depth.get() + 1)
+        commands_token = _hw_command_run.set(commands)
+        try:
+            return func(*args, **kwargs)
+        except subprocess.CalledProcessError as e:
+            if not commands:
+                raise  # No hardware accelerated command was run, running again on the CPU would fail the same way
+            log.logger.warning(
+                "A command failed with hardware acceleration (%s), trying again with the CPU", e.output or f"return code {e.returncode}"
+            )
+        finally:
+            _hw_command_run.reset(commands_token)
+            _hw_attempt_depth.reset(depth_token)
+        forced_token = _hw_forced_off.set(True)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            _hw_forced_off.reset(forced_token)
+
+    return wrapper
 
 
 def get_creation_date(exif_data: dict) -> datetime | None:

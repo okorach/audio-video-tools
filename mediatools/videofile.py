@@ -294,6 +294,7 @@ class VideoFile(media.MediaFile):
         log.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
 
+    @util.hw_accel_fallback
     def crop(self, out_file: str | None = None, **kwargs) -> str:
         """Crops a region of the video.
         The region size is given by either box="WxH" (default 1920x1080) or width and height.
@@ -416,6 +417,7 @@ class VideoFile(media.MediaFile):
     def get_copyright(self) -> str | None:
         return self.copyright
 
+    @util.hw_accel_fallback
     def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:
         """Encodes a file
         - target_file is the name of the output file. Optional
@@ -450,7 +452,7 @@ class VideoFile(media.MediaFile):
         if kwargs.get(opt.Option.MUTE, False):
             mapping = "-map 0:v:0"
         else:
-            mapping = "-map 0:v:0 -map 0:a -map 0:s? -c:s copy"
+            mapping = "-map 0:v:0 -map 0:a? -map 0:s? -c:s copy"
 
         cmd = f'{" ".join(input_settings)} -i "{self.filename}" {" ".join(prefilter_settings)}'
         cmd += f'{video_filters!s} {audio_filters!s} {output_str} {mapping} "{target_file}"'
@@ -635,8 +637,10 @@ def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str
     return f"-filter:v crop={width}:{height}:{top}:{left}"
 
 
-def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_accel: bool = False) -> str:
-    """Concatenates several video files - They must have same video+audio format and bitrate"""
+@util.hw_accel_fallback
+def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_accel: bool | str = "auto") -> str:
+    """Concatenates several video files - They must have same video+audio format and bitrate
+    hw_accel is the hardware acceleration mode: auto, on or off"""
     file_list = sorted(file_list, key=lambda f: os.path.basename(f).lower())
     log.logger.info("%s = %s", target_file, " + ".join(file_list))
 
@@ -653,7 +657,7 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
 
     mapping = '-map "[outv]"' + "".join(f' -map "[outa{j}]"' for j in range(n_audio))
 
-    if hw_accel:
+    if util.use_hardware_accel(hw_accel=hw_accel):
         # Decode each input on the GPU; concat filter runs on CPU frames
         files_str = " ".join(f'-hwaccel cuda -i "{f}"' for f in file_list)
         out_codec = opt.HW_ACCEL_CODECS.get(first.video_codec or "", "hevc_nvenc")
@@ -674,8 +678,6 @@ def add_video_args(parser) -> object:
 
     parser.add_argument("--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...)")
     parser.add_argument("--" + opt.Option.ACODEC, required=False, help="Audio codec (mp3, aac, ac3...)")
-
-    parser.add_argument("--hw_accel", required=False, choices=["auto", "off", "on"], help="Use Nvidia HW acceleration")
 
     parser.add_argument("--" + opt.Option.VBITRATE, required=False, help="Video bitrate eg 1024k")
     parser.add_argument("--" + opt.Option.ABITRATE, required=False, help="Audio bitrate eg 128k")
@@ -715,6 +717,9 @@ def __get_audio_channel_mapping__(**kwargs) -> str:
 
 def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", resolution: str | None = None, **kwargs) -> str:
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
+    # The filter graph of the slideshow is only run with hardware accelerated decoding and encoding when it's explicitly requested:
+    # it fails on some systems, so the CPU is used in auto mode
+    hw_accel = util.get_hw_accel_mode(**kwargs) == "on"
 
     transition_duration = float(conf.get_property("default.fade.duration"))
     fade_in = filter.fade_in(duration=transition_duration)
@@ -742,8 +747,8 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
     util.run_ffmpeg(
-        f"{filters.hw_accel_input(**kwargs)} {fcomp.format_inputs()} {fcomp!s} "
-        f'{filters.hw_accel_output(**kwargs)} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
+        f"{filters.hw_accel_input(hw_accel=hw_accel)} {fcomp.format_inputs()} {fcomp!s} "
+        f'{filters.hw_accel_output(hw_accel=hw_accel)} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
         total_duration,
     )
 
@@ -758,7 +763,8 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     # -vcodec libx264 -map [outv] out.mp4
 
 
-def slideshow(*inputs: str, resolution: str | None = None) -> tuple[str, list]:
+@util.hw_accel_fallback
+def slideshow(*inputs: str, resolution: str | None = None, hw_accel: bool | str = "auto") -> tuple[str, list]:
     log.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = fil.file_list(*inputs)
@@ -790,15 +796,19 @@ def slideshow(*inputs: str, resolution: str | None = None) -> tuple[str, list]:
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(
-                __build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}")
+                __build_slideshow__(
+                    video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}", hw_accel=hw_accel
+                )
             )
             all_video_files.append(video_files)
             video_files = []
     final_file = f"{slideshow_root_filename}.{fmt}"
     if len(all_video_files) == 0:
-        return (__build_slideshow__(video_files, resolution=resolution, outfile=final_file), operations)
-    slideshows.append(__build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}"))
-    return (concat(target_file=final_file, file_list=slideshows, with_audio=False), operations)
+        return (__build_slideshow__(video_files, resolution=resolution, outfile=final_file, hw_accel=hw_accel), operations)
+    slideshows.append(
+        __build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}", hw_accel=hw_accel)
+    )
+    return (concat(target_file=final_file, file_list=slideshows, with_audio=False, hw_accel=hw_accel), operations)
 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:
