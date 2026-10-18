@@ -20,6 +20,7 @@
 
 """Tests of the copy of the creation date and geotagging from the source to the generated files"""
 
+import shutil
 import subprocess
 from unittest import mock
 
@@ -30,6 +31,8 @@ import mediatools.utilities as util
 from mediatools import metacopy
 
 DATE = "2018:03:02 08:09:10"
+
+pytestmark = pytest.mark.skipif(shutil.which(util.get_exiftool()) is None, reason="exiftool is not installed")
 
 
 def ffmpeg(*args: str) -> None:
@@ -81,7 +84,7 @@ def test_find_source_skips_inputs_that_are_not_media_files(geotagged_video, tmp_
     assert metacopy.find_source_and_target(f'-f lavfi -i color=c=black -i "{geotagged_video}" "{target}"')[0] == geotagged_video
 
 
-@pytest.mark.parametrize(("extra", "extension"), [(["-vf", "scale=80:-2"], "mp4"), (["-frames:v", "1"], "jpg"), (["-vn"], "m4a")])
+@pytest.mark.parametrize(("extra", "extension"), [(["-vf", "scale=80:-2"], "mp4"), (["-frames:v", "1", "-update", "1"], "jpg"), (["-vn"], "m4a")])
 def test_run_ffmpeg_copies_date_and_geotag(geotagged_video, tmp_path, extra, extension):
     target = str(tmp_path / f"out.{extension}")
     util.run_ffmpeg(f'-i "{geotagged_video}" {" ".join(extra)} "{target}"')
