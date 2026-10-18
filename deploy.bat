@@ -39,7 +39,7 @@ if "%1"=="offline" (
 
 :: Deploy locally for tests
 for %%a in (dist\*.whl) do (
-    python -m pip install --no-deps --force-reinstall %%a
+    python -m pip install --no-deps --only-binary :all: --force-reinstall %%a
 )
 
 :: Deploy on pypi.org once released

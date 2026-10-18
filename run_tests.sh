@@ -23,7 +23,7 @@ buildDir="build"
 coverageReport="$buildDir/coverage.xml"
 utReport="$buildDir/ut.xml"
 
-[ ! -d $buildDir ] && mkdir $buildDir
+[[ ! -d "$buildDir" ]] && mkdir "$buildDir"
 # rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
 echo "Running tests"

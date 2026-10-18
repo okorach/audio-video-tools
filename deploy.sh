@@ -22,7 +22,7 @@
 black --line-length=150 .
 rm -rf build dist
 
-if [ "$1" = "offline" ]; then
+if [[ "$1" == "offline" ]]; then
     # Offline build: uses setup.py directly, no internet access required
     python3 setup.py bdist_wheel
 else
@@ -31,9 +31,9 @@ else
 fi
 
 # Deploy locally for tests
-python3 -m pip install --no-deps --force-reinstall dist/*-py3-*.whl
+python3 -m pip install --no-deps --only-binary :all: --force-reinstall dist/*-py3-*.whl
 
 # Deploy on pypi.org once released
-if [ "$1" = "pypi" ]; then
+if [[ "$1" == "pypi" ]]; then
     python3 -m twine upload dist/*
 fi

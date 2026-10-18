@@ -4,7 +4,7 @@
 
 for c in crop nocrop
 do
-    if [ "$c" = "crop" ]; then
+    if [[ "$c" == "crop" ]]; then
         r=32
     else
         r=64
