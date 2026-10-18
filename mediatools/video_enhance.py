@@ -96,7 +96,7 @@ def main():
     parser.add_argument(
         "--no_stabilize", required=False, default=False, action="store_true", help="Skip video stabilization (stabilization is applied by default)"
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fileutil.FileType.VIDEO_FILE)
 
     output_file = kwargs.get("outputfile", None)
     saturation = kwargs["saturation"]

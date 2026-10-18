@@ -28,6 +28,7 @@
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
+import utilities.file as fil
 
 USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 [--background_color [black|white]] [--stretch] [-g 0-4] file1 file2 ... filen"
@@ -51,7 +52,7 @@ def main():
         default=False,
         help="Stretch images so that they have the same width and height",
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
     file_list = kwargs["inputfiles"]
 
     posterfile = image.posterize(*file_list, out_file=kwargs.get("outputfile", None), **kwargs)

@@ -73,7 +73,7 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
 
 def main():
     parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
-    parser.add_argument("-i", "--inputfiles", type=str, required=True)
+    parser.add_argument("-i", "--inputfiles", type=str, nargs="+", required=True, help="Video files and/or directories to encode")
     parser.add_argument("-g", "--debug", required=False)
     parser.add_argument("--nooverwrite", required=False, default=False, action="store_true")
     parser.add_argument("--keepName", required=False, default=False, action="store_true")
@@ -82,12 +82,12 @@ def main():
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get("debug", 3))
 
-    inputpath = kwargs["inputfiles"]
+    inputpath = ", ".join(kwargs["inputfiles"])
     before = " ".join(kwargs["before"])
     after = " ".join(kwargs["after"])
     force = not kwargs["nooverwrite"]
 
-    files = fileutil.file_list(inputpath, file_type=fileutil.FileType.VIDEO_FILE)
+    files = [f for f in fileutil.expand_inputs(kwargs["inputfiles"], fileutil.FileType.VIDEO_FILE) if fileutil.is_video_file(f)]
     if not files:
         logger.error("No video files found in %s", inputpath)
         return

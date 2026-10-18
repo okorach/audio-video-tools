@@ -20,6 +20,7 @@
 #
 
 import os
+import sys
 import platform
 import json
 import logging
@@ -29,6 +30,7 @@ import pathlib
 import tempfile
 import subprocess
 import shlex
+from collections.abc import Callable
 from datetime import datetime
 from mediatools import version
 from mediatools import log
@@ -284,11 +286,46 @@ def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
     return parser
 
 
+def expand_input_files(inputs: list[str], input_type: str | tuple[str, ...] | None = None, extensions: tuple[str, ...] | None = None) -> list[str]:
+    """Replaces the directories of a list of input files and directories by the files they contain (recursively).
+    Exits with code 1 if there is no input file left"""
+    files = fil.expand_inputs(inputs, input_type, extensions)
+    if not files:
+        log.logger.error("No input file found in %s", ", ".join(inputs))
+        sys.exit(1)
+    return files
+
+
+def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> None:
+    """Calls process(input_file, options) on each of the input files, options being a copy of kwargs without the input files.
+    An error on a file doesn't prevent the next files from being processed, but the program exits with code 1 at the end.
+    Exits with code 2 if an output file is given with several input files"""
+    options = dict(kwargs)
+    inputs = options.pop("inputfiles")
+    if len(inputs) > 1 and options.get("outputfile"):
+        log.logger.error("-o can't be used with several input files")
+        sys.exit(2)
+    failed = 0
+    for i, input_file in enumerate(inputs, start=1):
+        if len(inputs) > 1:
+            log.logger.info("%3d/%3d : %s", i, len(inputs), input_file)
+        try:
+            process(input_file, dict(options))
+        except Exception as e:  # noqa: BLE001
+            log.logger.error("Could not process %s: %s", input_file, e)
+            failed += 1
+    if failed:
+        sys.exit(1)
+
+
 def remove_nones(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = None) -> dict:
+def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = None, input_type: str | tuple[str, ...] | None = None) -> dict:
+    """Parses the command line arguments.
+    The input files (-i) may be files and/or directories: the directories are replaced by the files they contain (recursively),
+    which are of type input_type (a FileType or a tuple of FileTypes), any audio/video/image file by default"""
     if args is None:
         kwargs = vars(parser.parse_args())
     else:
@@ -298,6 +335,8 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     log.logger.debug("Raw args = %s", str(kwargs))
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
+    if isinstance(kwargs.get("inputfiles"), list):
+        kwargs["inputfiles"] = expand_input_files(kwargs["inputfiles"], input_type)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get("timeranges")
     if timerange:

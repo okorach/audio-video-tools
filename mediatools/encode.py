@@ -80,7 +80,7 @@ def main() -> None:
     parser = util.get_common_args("video-encode", "Audio and Video file (re)encoder")
     parser = video.add_video_args(parser)
 
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
 
     file_list = fil.file_list(*kwargs["inputfiles"])
     nb_files = len(file_list)

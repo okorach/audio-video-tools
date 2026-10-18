@@ -31,7 +31,8 @@ import subprocess
 import sys
 import argparse
 
-from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PPP_PRESETS, DEFAULT_PPP
+import mediatools.utilities as util
+from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PPP_PRESETS, DEFAULT_PPP, PDF_EXTENSIONS
 
 
 def original_file(pdf_file):
@@ -79,8 +80,10 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compresses a PDF file (requires Ghostscript)")
-    parser.add_argument("-i", "--inputfile", required=True, help="Input PDF file")
+    parser = argparse.ArgumentParser(description="Compresses PDF files (requires Ghostscript)")
+    parser.add_argument(
+        "-i", "--inputfiles", required=True, nargs="+", help="Input PDF files and/or directories (all the PDF files they contain are processed)"
+    )
     parser.add_argument(
         "-o",
         "--outputfile",
@@ -97,15 +100,25 @@ def main():
         help="Compression level in pixels per inch: 150 (/ebook, default), 300 (/printer) or 600 (/prepress)",
     )
     args = parser.parse_args()
-    if not os.path.isfile(args.inputfile):
-        print(f"File {args.inputfile} not found")
+    input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
+    if len(input_files) > 1 and args.outputfile:
+        print("ERROR: -o can't be used with several input files")
+        sys.exit(2)
+    failed = 0
+    for input_file in input_files:
+        if not os.path.isfile(input_file):
+            print(f"File {input_file} not found")
+            failed += 1
+            continue
+        try:
+            out = compress(input_file, args.outputfile, args.ppp)
+        except (RuntimeError, subprocess.CalledProcessError) as e:
+            print(f"ERROR: {e}")
+            failed += 1
+            continue
+        print(f"Compressed {input_file} into {out}")
+    if failed:
         sys.exit(1)
-    try:
-        out = compress(args.inputfile, args.outputfile, args.ppp)
-    except (RuntimeError, subprocess.CalledProcessError) as e:
-        print(f"ERROR: {e}")
-        sys.exit(1)
-    print(f"Compressed {args.inputfile} into {out}")
 
 
 if __name__ == "__main__":

@@ -140,7 +140,7 @@ def main() -> None:
         default=True,
         help="Skip the unsharp-mask pass applied after stabilization",
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     input_files = fil.file_list(*kwargs["inputfiles"], file_type=fil.FileType.VIDEO_FILE)
     stab_kwargs = dict(

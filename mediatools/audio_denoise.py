@@ -158,7 +158,7 @@ def main() -> None:
     )
     parser.add_argument("--model", required=False, help="arnndn: path of the RNN model file (eg std.rnnn)")
     parser.add_argument("--mix", required=False, type=float, default=DEFAULT_MIX, help="arnndn: mix of denoised signal, -1 to 1 (default 0.8)")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
     inputs = kwargs["inputfiles"]
     if len(inputs) > 1 and kwargs.get("outputfile"):
         log.logger.error("-o can't be used with several input files")
@@ -181,14 +181,12 @@ def main() -> None:
     except ValueError as e:
         log.logger.error("%s", e)
         sys.exit(2)
-    failed = 0
-    for input_file in inputs:
-        try:
-            util.generated_file(denoise(input_file, kwargs.get("outputfile"), keep_name=keep_name, **options))
-        except Exception as e:  # noqa: BLE001
-            log.logger.error("Could not denoise %s: %s", input_file, e)
-            failed += 1
-    sys.exit(1 if failed else 0)
+
+    def process(input_file: str, file_options: dict) -> None:
+        util.generated_file(denoise(input_file, file_options.get("outputfile"), keep_name=keep_name, **options))
+
+    util.process_input_files(kwargs, process)
+    sys.exit(0)
 
 
 if __name__ == "__main__":

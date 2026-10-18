@@ -27,6 +27,7 @@ import sys
 import argparse
 import mediatools.imagefile as image
 import mediatools.utilities as util
+import utilities.file as fil
 
 USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 [--stretch] [-g 0-4] file1 file2 ... filen"
@@ -50,7 +51,7 @@ def main():
         default=False,
         help="Stretch images so that they have the same width or height",
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
     files = kwargs["inputfiles"]
     output = image.stack(*files, out_file=kwargs.get("outputfile", None), **kwargs)
     util.generated_file(output)

@@ -29,6 +29,7 @@ from mediatools import log
 import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
+import utilities.file as fil
 
 ALLOWED_SPEEDS = (
     "10%",
@@ -65,15 +66,18 @@ def main():
         "-k", "--keep_audio", required=False, dest=opt.Option.MUTE, action="store_false", default=True, help="Keep audio track after speed change"
     )
     parser.set_defaults(audio=False)
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
     speed = kwargs.pop("speed")
     kwargs["hw_accel"] = "off"
     if re.match(r".*%$", speed) and speed not in ALLOWED_SPEEDS:
         log.logger.critical("Speed value %s is not allowed, it must be less than 100%% or one of %s", speed, ", ".join(ALLOWED_SPEEDS))
         sys.exit(1)
 
-    output = video.speed(filename=kwargs.pop("inputfiles")[0], target_speed=speed, output=kwargs.pop("outputfile", None), **kwargs)
-    util.generated_file(output)
+    def process(input_file: str, options: dict) -> None:
+        output = video.speed(filename=input_file, target_speed=speed, output=options.pop("outputfile", None), **options)
+        util.generated_file(output)
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":
