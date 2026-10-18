@@ -22,7 +22,7 @@ do
             else
                 c=white
             fi
-            run_cmd "image-blinds -i $f -o tmp/$f.blind.$n.$r.jpg -n $n -d $d -c $c -b $r"
+            run_cmd "imagetool blinds -i $f -o tmp/$f.blind.$n.$r.jpg -n $n -d $d -c $c -b $r"
         done
     done
 done

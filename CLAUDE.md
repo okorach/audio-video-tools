@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Python batch tools for transcoding and manipulating audio, video, and image files, built as a high-level wrapper around FFmpeg. The package name is `audio-video-tools` (importable as `mediatools`). It provides both a Python library and 29 CLI tools installed as console entry points, plus 4 unified commands (`videotool`, `audiotool`, `imagetool`, `pdftool`) that run them as `<command> <action> <parameters>` (`mediatools/tools.py`).
+Python batch tools for transcoding and manipulating audio, video, and image files, built as a high-level wrapper around FFmpeg. The package name is `audio-video-tools` (importable as `mediatools`). It provides both a Python library and CLI tools: 4 unified commands (`videotool`, `audiotool`, `imagetool`, `pdftool`) that run the tools as `<command> <action> <parameters>` (`mediatools/tools.py`), and `linker`, `renamer`, `datefixer` and `shuffle`. All are installed as console entry points.
 
 ## Build and Development Commands
 
@@ -49,7 +49,7 @@ utilities.file.File
 
 ### Package Layout
 
-- **`mediatools/`** — Core library. Each module typically has a `main()` function that serves as a CLI entry point (registered in `setup.py` `entry_points`).
+- **`mediatools/`** — Core library. Each module typically has a `main()` function that serves as a CLI entry point (run by an action of `mediatools/tools.py`).
 - **`cli/`** — Two additional CLI frontends (`encode.py`, `shuffle.py`) that wrap `mediatools` functionality.
 - **`filters/`** — FFmpeg filter abstraction: `Simple` filters (`-vf`/`-af`) and `Complex` filter graphs (`-filter_complex`).
 - **`utilities/`** — `file.py` provides base `File` class and `FileType` enum (AUDIO_FILE, VIDEO_FILE, IMAGE_FILE) based on extension.

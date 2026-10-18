@@ -6,7 +6,7 @@ for file in ./*.mp4
 do
     for keep_audio in "" "--keep_audio"
     do
-        run_cmd "video-reverse -i $file -o tmp/$file.reverse.mp4 $keep_audio"
+        run_cmd "videotool reverse -i $file -o tmp/$file.reverse.mp4 $keep_audio"
     done
 done
 echo "----------------------------------------"

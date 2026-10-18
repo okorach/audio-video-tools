@@ -45,19 +45,8 @@ def test_every_action_is_implemented(command, action):
     assert callable(tools.get_action_function(command, action))
 
 
-def test_every_tool_is_available_as_an_action():
-    actions = {target for actions in tools.COMMANDS.values() for target, _ in actions.values()}
-    for name, target in console_scripts().items():
-        if name not in NOT_UNIFIED and name not in tools.COMMANDS:
-            assert target in actions, f"{name} ({target}) has no videotool/audiotool/imagetool/pdftool action"
-
-
-def test_prefixed_tools_are_in_the_matching_command():
-    prefixes = {"video": "videotool", "audio": "audiotool", "image": "imagetool", "pdf": "pdftool"}
-    for name, target in console_scripts().items():
-        prefix, _, _ = name.partition("-")
-        if prefix in prefixes:
-            assert target in [t for t, _ in tools.COMMANDS[prefixes[prefix]].values()], f"{name} is not in {prefixes[prefix]}"
+def test_only_the_unified_commands_and_the_generic_tools_are_console_scripts():
+    assert set(console_scripts()) == set(tools.COMMANDS) | NOT_UNIFIED
 
 
 def test_commands_are_registered(request):

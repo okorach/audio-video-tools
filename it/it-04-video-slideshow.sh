@@ -9,7 +9,7 @@ fi
 
 for res in $res_list
 do
-    run_cmd "video-slideshow *.jpg --resolution $res"
+    run_cmd "videotool slideshow *.jpg --resolution $res"
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
