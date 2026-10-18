@@ -462,3 +462,46 @@ def test_process_input_files_keeps_the_mode(gpu_available):
     seen = []
     util.process_input_files({"inputfiles": ["a"], "hw_accel": "off"}, lambda _f, options: seen.append(options["hw_accel"]))
     assert seen == ["off"]
+
+
+# Videos that the GPU can't decode (H.264 beyond 4096 pixels or 8 bits): they are decoded on the CPU and uploaded to the GPU
+def video_with_stream(**stream) -> video.VideoFile:
+    vf = video.VideoFile(FILE)
+    vf.specs = {"streams": [{"codec_type": "video", "codec_name": "h264", "width": 1920, "height": 1080, "pix_fmt": "yuv420p", **stream}]}
+    return vf
+
+
+@pytest.mark.parametrize(
+    ("stream", "expected"),
+    [
+        ({}, True),
+        ({"width": 4096}, True),
+        ({"width": 5184, "height": 2916}, False),
+        ({"width": 2160, "height": 5120}, False),
+        ({"pix_fmt": "yuv420p10le"}, False),
+        ({"pix_fmt": "yuv422p"}, False),
+        ({"codec_name": "hevc", "width": 5184, "height": 2916, "pix_fmt": "yuv420p10le"}, True),
+    ],
+)
+def test_can_hw_decode(stream, expected):
+    assert video_with_stream(**stream).can_hw_decode() is expected
+
+
+def encode_command(vf: video.VideoFile) -> str:
+    with mock.patch("mediatools.utilities.run_os_cmd") as run:
+        vf.encode(target_file="out.mp4", vcodec="h265", width=1920, hw_accel="on")
+    return run.call_args.args[0]
+
+
+def test_encode_decodes_on_the_gpu_when_possible():
+    cmd = encode_command(video_with_stream())
+    assert "-hwaccel cuda -hwaccel_output_format cuda" in cmd
+    assert "scale_cuda=1920:-2" in cmd
+    assert "hwupload_cuda" not in cmd
+
+
+def test_encode_decodes_on_the_cpu_when_the_gpu_cant():
+    cmd = encode_command(video_with_stream(width=5184, height=2916))
+    assert "-hwaccel" not in cmd
+    assert "hwupload_cuda,scale_cuda=1920:-2" in cmd
+    assert "hevc_nvenc" in cmd
