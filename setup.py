@@ -104,6 +104,10 @@ setuptools.setup(
             "pdf-split = mediatools.pdf_split:main",
             "pdf-compress = mediatools.pdf_compress:main",
             "pdf-merge = mediatools.pdf_merge:main",
+            "videotool = mediatools.tools:videotool",
+            "audiotool = mediatools.tools:audiotool",
+            "imagetool = mediatools.tools:imagetool",
+            "pdftool = mediatools.tools:pdftool",
         ]
     },
     python_requires=">=3.10",
