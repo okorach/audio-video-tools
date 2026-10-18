@@ -27,4 +27,3 @@ if defined cutoff set options=!options! --cutoff !cutoff!
 if defined reduction set options=!options! --reduction !reduction!
 :run
 audio-denoise -i %* !options!
-pause
