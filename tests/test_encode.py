@@ -22,7 +22,6 @@
 import os
 import sys
 import subprocess
-import platform
 from unittest.mock import patch
 from mediatools import encode
 import mediatools.utilities as util
@@ -72,17 +71,14 @@ def test_encode_vcodec():
     os.remove(TMP_VID)
 
 
-def test_hw_accel_2():
-    util.HW_ACCEL = True
-    # HW accel expected to be available on Windows, not on Linux
-    hw_accel_avail = platform.system() == "Windows"
+def test_hw_accel_2(monkeypatch):
+    """The hardware acceleration is available according to the check: the encoding succeeds in any case, on the GPU or,
+    if the GPU command fails (no GPU), on the CPU"""
+    monkeypatch.setattr(util, "HW_ACCEL", True)
     vid_o = video.VideoFile(get_video())
-    try:
-        _ = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", abitrate="64k", start=1, stop=2))
-        assert hw_accel_avail
-    except subprocess.CalledProcessError:
-        # Encoding will fail... just to cover some source code
-        assert not hw_accel_avail
+    vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", abitrate="64k", start=1, stop=2))
+    assert abs(vid2_o.duration - 1) < 0.1
+    os.remove(TMP_VID)
 
 
 def test_main_file(short_video):
