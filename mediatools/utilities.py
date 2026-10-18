@@ -42,6 +42,7 @@ import mediatools.options as opt
 import mediatools.resolution as res
 import utilities.file as fil
 import mediatools.media_config as conf
+from mediatools import metacopy
 
 DEBUG_LEVEL: int = 0
 DRY_RUN: bool = False
@@ -201,6 +202,7 @@ def run_ffmpeg(params: str, duration: float | None = None) -> None:
     quot = '"' if platform.system() == "Windows" else ""
     cmd = f"{quot}{get_ffmpeg()}{quot} -y {params}"
     run_os_cmd(cmd, duration)
+    metacopy.copy_after_ffmpeg(params)
 
 
 def build_ffmpeg_complex_prep(input_file_list: list) -> str:
