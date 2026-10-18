@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -21,7 +20,7 @@
 
 """Tests of the renamer file renaming logic"""
 
-import datetime
+import datetime as dt
 import os
 import sys
 from unittest import mock
@@ -123,7 +122,7 @@ def test_time_placeholder(tmp_path):
             "size": "10x20",
             "fps": 25,
             "bitrate": 5,
-            "creation_date": datetime.datetime(2024, 3, 9, 14, 5, 7),
+            "creation_date": dt.datetime(2024, 3, 9, 14, 5, 7),
         }
     }
     argv = ["renamer", "-i", str(src), "--video_format", "#SEQ2# - #TIME# - #DEVICE#"]
@@ -146,7 +145,7 @@ def test_time_placeholder_has_no_sequence_prefix():
     assert renamer.get_fmt("a.mp4", "x", "DJI", "x") == "#SEQ# - DJI"
 
 
-def _file_data(path, creation_date: datetime.datetime) -> dict:
+def _file_data(path, creation_date: dt.datetime) -> dict:
     return {
         "file": str(path),
         "filename": os.path.basename(str(path)),
@@ -158,7 +157,7 @@ def _file_data(path, creation_date: datetime.datetime) -> dict:
     }
 
 
-def _run_main(tmp_path, names: list[str], dates: list[datetime.datetime], *args: str) -> list[tuple[str, str]]:
+def _run_main(tmp_path, names: list[str], dates: list[dt.datetime], *args: str) -> list[tuple[str, str]]:
     files = []
     data = {}
     for i, (name, date) in enumerate(zip(names, dates, strict=True)):
@@ -178,26 +177,26 @@ def _run_main(tmp_path, names: list[str], dates: list[datetime.datetime], *args:
 
 def test_time_placeholder_each_file_uses_its_own_time(tmp_path):
     """Each file gets the time of its own creation date"""
-    dates = [datetime.datetime(2024, 3, 9, 8, 0, 1), datetime.datetime(2024, 3, 9, 23, 59, 59)]
+    dates = [dt.datetime(2024, 3, 9, 8, 0, 1), dt.datetime(2024, 3, 9, 23, 59, 59)]
     renames = _run_main(tmp_path, ["a.mp4", "b.mp4"], dates, "--video_format", "#SEQ2# #TIME#")
     assert [os.path.basename(new) for _, new in renames] == ["01 08h00m01s.mp4", "02 23h59m59s.mp4"]
 
 
 def test_time_placeholder_photos_and_prefix(tmp_path):
     """#TIME# works in photo formats and in the format built from --prefix"""
-    renames = _run_main(tmp_path, ["a.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#TIME# - #SIZE#")
+    renames = _run_main(tmp_path, ["a.jpg"], [dt.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#TIME# - #SIZE#")
     assert os.path.basename(renames[0][1]) == "01h02m03s - 10x20.jpg"
-    renames = _run_main(tmp_path, ["b.jpg"], [datetime.datetime(2024, 3, 9, 1, 2, 3)], "--prefix", "Trip #TIME#")
+    renames = _run_main(tmp_path, ["b.jpg"], [dt.datetime(2024, 3, 9, 1, 2, 3)], "--prefix", "Trip #TIME#")
     assert "Trip 01h02m03s" in os.path.basename(renames[0][1])
 
 
 def test_time_placeholder_with_timestamp(tmp_path):
     """#TIME# and #TIMESTAMP# can be used together"""
-    renames = _run_main(tmp_path, ["a.mp4"], [datetime.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "#TIMESTAMP# (#TIME#)")
+    renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "#TIMESTAMP# (#TIME#)")
     assert os.path.basename(renames[0][1]) == "2024-03-09 14h05m07s (14h05m07s).mp4"
 
 
 def test_time_placeholder_no_prefix_in_file_name(tmp_path):
     """DJI_#TIME# gives DJI_14h05m07s, without sequence prefix"""
-    renames = _run_main(tmp_path, ["a.mp4"], [datetime.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "DJI_#TIME#")
+    renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "DJI_#TIME#")
     assert os.path.basename(renames[0][1]) == "DJI_14h05m07s.mp4"

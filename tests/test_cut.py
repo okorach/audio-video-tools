@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2021 Olivier Korach
@@ -21,8 +20,8 @@
 
 import os
 import sys
-import pytest
 from unittest.mock import patch
+import pytest
 from mediatools import tools
 import mediatools.utilities as util
 import mediatools.videofile as video

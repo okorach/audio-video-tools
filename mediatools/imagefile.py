@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -104,6 +103,19 @@ class ImageFile(media.MediaFile):
 
     def get_image_properties(self) -> dict:
         return {"format": self.format, "width": self.width, "height": self.height, "pixels": self.pixels}
+
+    def crop_any(self, ratio: str | float, align: str = "center", out_file: str | None = None) -> str:
+        """Crops the largest part of the image that has a W/H ratio (a number like 1.5 or W:H like 16:9), aligned as given"""
+        if isinstance(ratio, str) and ":" in ratio:
+            num, den = ratio.split(":")
+            ratio = float(num) / float(den)
+        ratio = float(ratio)
+        width, height = self.dimensions()
+        if width / height > ratio:
+            width = round(height * ratio)
+        else:
+            height = round(width / ratio)
+        return self.crop(out_file, width=width, height=height, position=align)
 
     def crop(self, out_file: str | None = None, **kwargs) -> str:
         w, h = kwargs.pop("width"), kwargs.pop("height")

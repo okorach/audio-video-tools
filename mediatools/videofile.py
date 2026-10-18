@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -484,8 +483,8 @@ class VideoFile(media.MediaFile):
         return target_file
 
     def set_creation_date(self, some_datetime: datetime.datetime | str) -> None:
-        if type(some_datetime) is datetime.datetime:
-            time_to_set = datetime.strftime(some_datetime, media.EXIF_DATE_FMT)
+        if isinstance(some_datetime, datetime.datetime):
+            time_to_set = some_datetime.strftime(media.EXIF_DATE_FMT)
         else:
             time_to_set = some_datetime
         p = ["-P", "-overwrite_original"]
@@ -866,7 +865,7 @@ def reverse(filename: str, output: str | None = None, mute: bool = True, **kwarg
 
 
 def color_enhance(
-    filename: str, output: str | None = None, saturation: float = 1.3, contrast: float = 1.1, brightness: float = 0.0, gamma: float = 1.0, **kwargs
+    filename: str, output: str | None = None, *, saturation: float = 1.3, contrast: float = 1.1, brightness: float = 0.0, gamma: float = 1.0, **kwargs
 ) -> str:
     """Enhances video colors using the ffmpeg eq filter (saturation, contrast, brightness, gamma)."""
     eq = f"eq=saturation={saturation}:contrast={contrast}:brightness={brightness}:gamma={gamma}"

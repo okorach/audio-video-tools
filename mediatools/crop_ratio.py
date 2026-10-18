@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -33,7 +32,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
-        image.ImageFile(input_file).crop_any(options["ratio"], options["align"])
+        util.generated_file(image.ImageFile(input_file).crop_any(options["ratio"], options["align"], options.get("outputfile")))
 
     util.process_input_files(kwargs, process)
 

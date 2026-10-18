@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -79,7 +78,8 @@ def _novelty_from_ssm(ssm: object, kernel_size: int = 64) -> object:
     n = ssm.shape[0]
     novelty = np.zeros(n)
     for i in range(kernel_size, n - kernel_size):
-        patch = ssm[i - kernel_size : i + kernel_size, i - kernel_size : i + kernel_size]
+        lo, hi = i - kernel_size, i + kernel_size
+        patch = ssm[lo:hi, lo:hi]
         novelty[i] = np.sum(patch * kernel)
     # Half-wave rectify and normalize
     novelty = np.maximum(novelty, 0)

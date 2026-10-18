@@ -21,6 +21,9 @@
 """Tests of small modules: audio-speed, the Encoder class, the logger, the config files, the filters classes
 and the command lines of encode, datefixer and image-to-video. Media commands are mocked."""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import io
 import logging
 import sys
@@ -30,12 +33,11 @@ from unittest import mock
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from mediatools import tools
-import mediatools.exceptions as ex
 from filters import filter as flt
 from filters import filters as flts
-from mediatools import audiospeed, config, datefixer, encoder, image2video, log
 from cli import encode as cli_encode
+from mediatools import audiospeed, config, datefixer, encoder, image2video, log, tools
+import mediatools.exceptions as ex
 
 
 # ---------------------------------------------------------------- audio-speed
@@ -107,7 +109,7 @@ def test_encoder_defaults_and_ignored_settings():
     assert enc.acodec == "copy"
     assert enc.start is None
     assert enc.stop is None
-    assert enc.vfilters == []
+    assert not enc.vfilters
 
 
 def test_encoder_filters():

@@ -76,7 +76,8 @@ def parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None]
     tm = _TRACK_PREFIX_RE.match(base_name)
     if tm:
         track = int(tm.group(1))
-        rest = base_name[tm.end() :].strip()
+        end = tm.end()
+        rest = base_name[end:].strip()
     else:
         rest = base_name.strip()
 

@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2021 Olivier Korach
@@ -21,10 +20,10 @@
 import re
 import setuptools
 
-with open("README.md") as fh:
+with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
 
-with open("mediatools/version.py") as fh:
+with open("mediatools/version.py", encoding="utf-8") as fh:
     _version_match = re.search(r'MEDIA_TOOLS_VERSION\s*=\s*["\']([^"\']+)["\']', fh.read())
     _version = _version_match.group(1) if _version_match else "0.0.0"
 

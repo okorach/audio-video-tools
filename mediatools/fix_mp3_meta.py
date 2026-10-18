@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2024 Olivier Korach
@@ -35,19 +34,19 @@ from __future__ import annotations
 import os
 import sys
 import argparse
-import datetime
+import datetime as dt
 
 import musicbrainzngs
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, TDRC, ID3NoHeaderError
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 
-_M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "©day", "track": "trkn"}
-
 from mediatools import log
+from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
+
+_M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "©day", "track": "trkn"}
 
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
@@ -162,7 +161,7 @@ def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | Non
     return artist, title, album, track, year
 
 
-def write_tags(filepath: str, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
+def write_tags(filepath: str, *, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
     """Writes tags to an audio file — ID3v1+v2 for MP3, iTunes atoms for M4A."""
     try:
         if is_m4a(filepath):
@@ -210,8 +209,8 @@ def write_tags(filepath: str, artist: str | None, title: str | None, album: str 
 def set_file_date(filepath: str, year: int) -> None:
     """Sets file creation and modification timestamps to YYYY-01-01 12:00:00."""
     try:
-        dt = datetime.datetime(year, 1, 1, 12, 0, 0)
-        ts = dt.timestamp()
+        file_time = dt.datetime(year, 1, 1, 12, 0, 0)
+        ts = file_time.timestamp()
         os.utime(filepath, (ts, ts))
         log.logger.info("Set file date of %s to %d-01-01 12:00", filepath, year)
     except Exception as e:
@@ -223,7 +222,7 @@ def set_file_date(filepath: str, year: int) -> None:
 # ---------------------------------------------------------------------------
 
 
-def process_file(filepath: str, dir_artist: str | None, dir_album: str | None, dir_year: int | None, mb_tracks: list[str], dry_run: bool) -> None:
+def process_file(filepath: str, dir_artist: str | None, dir_album: str | None, dir_year: int | None, mb_tracks: list[str], *, dry_run: bool) -> None:
     """Processes a single audio file: reads tags, fills in gaps, writes tags."""
     base = os.path.splitext(os.path.basename(filepath))[0]
 
@@ -263,7 +262,7 @@ def process_file(filepath: str, dir_artist: str | None, dir_album: str | None, d
         return
 
     # 7. Write tags
-    write_tags(filepath, artist, title, album, track, year)
+    write_tags(filepath, artist=artist, title=title, album=album, track=track, year=year)
 
     # 8. Set file timestamp
     if year:
@@ -295,7 +294,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
     log.logger.info("Found %d audio file(s) in %s", len(audio_files), dirpath)
 
     for filepath in audio_files:
-        process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
+        process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run=dry_run)
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +340,7 @@ def main() -> None:
         log.logger.info("Processing %d file(s) from %s", len(file_list), parent)
         for filepath in sorted(file_list):
             try:
-                process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run)
+                process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run=dry_run)
             except Exception as e:
                 log.logger.error("Error processing %s: %s", filepath, str(e))
 

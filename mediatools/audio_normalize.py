@@ -1,4 +1,3 @@
-#!python3
 #
 # media-tools
 # Copyright (C) 2019-2024 Olivier Korach
@@ -35,7 +34,7 @@ For each audio file:
 from __future__ import annotations
 
 import base64
-import datetime
+import datetime as dt
 from dataclasses import dataclass, field as dc_field
 import io
 import os
@@ -59,9 +58,9 @@ except ImportError:
     _PIL_AVAILABLE = False
 
 from mediatools import log
+from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 
 # ---------------------------------------------------------------------------
 # Tag data container
@@ -312,7 +311,7 @@ def clean_basename(base_name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
+def parse_mb_date(date_str: str) -> tuple[int | None, dt.date | None]:
     """Parse a MusicBrainz date string (YYYY, YYYY-MM, YYYY-MM-DD) into (year, date)."""
     if not date_str:
         return None, None
@@ -321,7 +320,7 @@ def parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
         year = int(parts[0])
         month = int(parts[1]) if len(parts) > 1 else 1
         day = int(parts[2]) if len(parts) > 2 else 1
-        return year, datetime.date(year, month, day)
+        return year, dt.date(year, month, day)
     except (ValueError, IndexError):
         return None, None
 
@@ -347,7 +346,7 @@ def extract_tracks_from_release(release: dict) -> list[str]:
     return tracks
 
 
-def mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.date | None, str | None, list[str], str | None]:
+def mb_lookup_release(artist: str, album: str) -> tuple[int | None, dt.date | None, str | None, list[str], str | None]:
     """Returns (year, exact_date, genre, track_titles, release_id) for the best MusicBrainz match."""
     if not artist or not album:
         return None, None, None, [], None
@@ -372,7 +371,7 @@ def mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.dat
         return None, None, None, [], None
 
 
-def mb_lookup_track(artist: str, title: str) -> tuple[int | None, datetime.date | None]:
+def mb_lookup_track(artist: str, title: str) -> tuple[int | None, dt.date | None]:
     """Returns (year, exact_date) for a specific recording from MusicBrainz."""
     if not artist or not title:
         return None, None
@@ -667,11 +666,11 @@ def _write_tags_vorbis(filepath: str, audio_tags: AudioTags) -> None:
 # ---------------------------------------------------------------------------
 
 
-def set_file_date(filepath: str, release_date: datetime.date) -> None:
+def set_file_date(filepath: str, release_date: dt.date) -> None:
     """Sets file timestamps to the release date at 12:00:00."""
     try:
-        dt = datetime.datetime(release_date.year, release_date.month, release_date.day, 12, 0, 0)
-        ts = dt.timestamp()
+        file_time = dt.datetime(release_date.year, release_date.month, release_date.day, 12, 0, 0)
+        ts = file_time.timestamp()
         os.utime(filepath, (ts, ts))
         log.logger.info("Set file date of %s to %s 12:00", filepath, release_date.isoformat())
     except Exception as e:
@@ -709,7 +708,7 @@ def process_file(
     dir_artist: str | None,
     dir_album: str | None,
     dir_year: int | None,
-    dir_date: datetime.date | None,
+    dir_date: dt.date | None,
     dir_genre: str | None,
     mb_tracks: list[str],
     cover_bytes: bytes | None,
@@ -751,7 +750,7 @@ def process_file(
         year, release_date = mb_lookup_track(artist, title)
 
     if year and not release_date:
-        release_date = datetime.date(year, 1, 1)
+        release_date = dt.date(year, 1, 1)
 
     # 7. Normalise capitalisation
     if artist:
@@ -789,7 +788,7 @@ def process_file(
     if release_date:
         set_file_date(filepath, release_date)
     elif year:
-        set_file_date(filepath, datetime.date(year, 1, 1))
+        set_file_date(filepath, dt.date(year, 1, 1))
 
     return filepath
 
@@ -806,7 +805,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
     log.logger.info("Directory: %s  →  artist=%s  album=%s  year=%s", dir_name, dir_artist, dir_album, dir_year)
 
     mb_tracks: list[str] = []
-    dir_date: datetime.date | None = None
+    dir_date: dt.date | None = None
     dir_genre: str | None = None
     cover_bytes: bytes | None = None
     release_id: str | None = None
@@ -821,7 +820,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
             dir_genre = mb_genre
 
     if dir_year and not dir_date:
-        dir_date = datetime.date(dir_year, 1, 1)
+        dir_date = dt.date(dir_year, 1, 1)
 
     # Fetch cover art from MusicBrainz
     if release_id:
@@ -878,7 +877,7 @@ def main() -> None:
     for parent, file_list in sorted(files_by_dir.items()):
         dir_artist, dir_album, dir_year = parse_dir_name(os.path.basename(parent))
         mb_tracks: list[str] = []
-        dir_date: datetime.date | None = None
+        dir_date: dt.date | None = None
         dir_genre: str | None = None
         cover_bytes: bytes | None = None
         release_id: str | None = None
@@ -887,7 +886,7 @@ def main() -> None:
             if mb_year and dir_year is None:
                 dir_year = mb_year
         if dir_year and not dir_date:
-            dir_date = datetime.date(dir_year, 1, 1)
+            dir_date = dt.date(dir_year, 1, 1)
         if release_id:
             cover_bytes = fetch_cover_art(release_id)
         log.logger.info("Processing %d file(s) from %s", len(file_list), parent)

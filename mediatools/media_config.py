@@ -33,7 +33,7 @@ SLIDESHOW_DURATION_KEY: str = "default.slideshow.duration"
 def load() -> dict:
     import mediatools.utilities as util
 
-    global CONFIG_SETTINGS, CONFIG_FILE
+    global CONFIG_SETTINGS
     target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
     if not os.path.isfile(target_file):
         default_file = util.package_home() / "media-tools.properties"
@@ -75,6 +75,5 @@ def load() -> dict:
 
 def get_property(name: str, settings: dict | None = None):
     if settings is None:
-        global CONFIG_SETTINGS
         settings = CONFIG_SETTINGS
     return settings.get(name, None)
