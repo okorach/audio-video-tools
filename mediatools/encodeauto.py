@@ -100,7 +100,7 @@ def main():
     processed_dur = 0.0
     wall_start = time.time()
 
-    for i, (f, dur) in enumerate(zip(files, durations)):
+    for i, (f, dur) in enumerate(zip(files, durations, strict=True)):
         encode_file(f, before, after, force, duration=total_dur - processed_dur)
         processed_dur += dur
         pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0

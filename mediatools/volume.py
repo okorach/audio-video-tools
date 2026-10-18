@@ -19,9 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script changes the volume of a video or audio file
-"""
+"""This script changes the volume of a video or audio file"""
 
 import mediatools.utilities as util
 import mediatools.videofile as video

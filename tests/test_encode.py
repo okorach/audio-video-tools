@@ -28,7 +28,7 @@ from mediatools import encode
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.log as log
+from mediatools import log
 
 TMP_VID = util.get_tmp_file() + ".mp4"
 TMP_AUDIO = util.get_tmp_file() + ".mp3"

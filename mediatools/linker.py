@@ -39,12 +39,12 @@ def link_file(file, directory, hash_data):
         log.logger.warning("Can't hash %s", file)
         return None
     log.logger.debug("Hash for %s is %s", file, h)
-    if h not in hashes.keys():
+    if h not in hashes:
         log.logger.warning("Can't find master file for %s", file)
         return None
     srcfile = audio.AudioFile(hashes[h][0])
     srcfile.get_tags()
-    base = "{}{}{} - {}".format(directory, os.sep, srcfile.title, srcfile.artist)
+    base = f"{directory}{os.sep}{srcfile.title} - {srcfile.artist}"
     srcfile.create_link(base)
     return directory + os.sep + base
 
@@ -59,7 +59,7 @@ def copy_file(file, directory, hash_data):
         log.logger.error("Shortcut %s is not pointing to an existing audio file", file)
         return None
     srcfile.get_tags()
-    targetfile = "{}{}{} - {}.{}".format(directory, os.sep, srcfile.title, srcfile.artist, srcfile.extension())
+    targetfile = f"{directory}{os.sep}{srcfile.title} - {srcfile.artist}.{srcfile.extension()}"
     shutil.copyfile(srcfile.filename, targetfile)
     return targetfile
 

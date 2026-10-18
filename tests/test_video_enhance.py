@@ -119,7 +119,7 @@ def test_enhance_passes_hw_accel_and_batch_remaining(collab):
     enhance(hw_accel=False, batch_remaining=42.5, stabilize=False)
     kwargs = collab.color_enhance.call_args.kwargs
     assert kwargs["hw_accel"] is False
-    assert kwargs["batch_remaining"] == 42.5  # noqa: PLR2004
+    assert kwargs["batch_remaining"] == 42.5
 
 
 def test_enhance_does_not_pass_unset_options(collab):
@@ -158,7 +158,7 @@ def test_main_defaults(cli):
     assert cli.call_args.args == ("a.mp4", None, 1.3, 1.1, 0.0, 1.0)
     assert cli.call_args.kwargs["hw_accel"] is False
     assert cli.call_args.kwargs["stabilize"] is True
-    assert cli.call_args.kwargs["batch_remaining"] == 5.0  # noqa: PLR2004
+    assert cli.call_args.kwargs["batch_remaining"] == 5.0
 
 
 def test_main_options(cli):

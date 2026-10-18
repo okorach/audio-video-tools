@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This scripts adds a shaky effect to an image
+"""This scripts adds a shaky effect to an image
 Effect can be horizontal or vertical
 Arguments: -c <color> -r <ratio> -n <slices> -d <direction>
 """

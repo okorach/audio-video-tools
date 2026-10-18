@@ -69,7 +69,7 @@ class Resolution:
             w = kwargs["width"]
             h = kwargs["height"]
         elif "resolution" in kwargs or opt.Option.RESOLUTION in kwargs:
-            r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION, None)))
+            r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION)))
             if re.search(r"[x:]", r):
                 w, h = re.split(r"[x:]", r, maxsplit=2)
         if int(w) <= 0 or int(h) <= 0:
@@ -80,7 +80,7 @@ class Resolution:
         self.pixels = self.width * self.height
 
     def __str__(self) -> str:
-        return "{}x{}".format(self.width, self.height)
+        return f"{self.width}x{self.height}"
 
     def __mul__(self, factor: float) -> "Resolution":
         return Resolution(width=self.width * factor, height=self.height * factor)
@@ -103,7 +103,7 @@ class Resolution:
         return (w, h)
 
     def as_string(self, separator: str = "x") -> str:
-        return "{}{}{}".format(self.width, separator, self.height)
+        return f"{self.width}{separator}{self.height}"
 
     def as_list(self) -> list[int]:
         return [self.width, self.height]

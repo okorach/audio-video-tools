@@ -27,6 +27,7 @@ If an output file is specified, the original file is left untouched.
 """
 
 import os
+from pathlib import Path
 import subprocess
 import sys
 import argparse
@@ -71,8 +72,8 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
     tmp_file = f"{os.path.splitext(pdf_file)[0]}.compressing.pdf"
     try:
         _run_gs(pdf_file, tmp_file, ppp)
-        os.replace(pdf_file, backup)
-        os.replace(tmp_file, pdf_file)
+        Path(pdf_file).replace(backup)
+        Path(tmp_file).replace(pdf_file)
     finally:
         if os.path.exists(tmp_file):
             os.remove(tmp_file)

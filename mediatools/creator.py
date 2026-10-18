@@ -32,9 +32,8 @@ import mediatools.mediafile as media
 def file(filename: str) -> media.MediaFile:
     if fil.is_audio_file(filename):
         return audio.AudioFile(filename)
-    elif fil.is_video_file(filename):
+    if fil.is_video_file(filename):
         return video.VideoFile(filename)
-    elif fil.is_image_file(filename):
+    if fil.is_image_file(filename):
         return image.ImageFile(filename)
-    else:
-        raise ex.FileTypeError(file=filename)
+    raise ex.FileTypeError(file=filename)

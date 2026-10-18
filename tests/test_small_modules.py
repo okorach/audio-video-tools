@@ -52,7 +52,7 @@ def test_atempo_filters(factor, expected):
 
 
 def test_atempo_filters_long_chain():
-    assert len(audiospeed._atempo_filters(10.0)) == 4  # noqa: PLR2004
+    assert len(audiospeed._atempo_filters(10.0)) == 4
 
 
 def test_audio_speed():
@@ -117,7 +117,7 @@ def test_encoder_filters():
     assert enc.vfilters[0] == "crop=10:20:1:2"
     assert enc.vfilters[1] == "deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=8"
     assert enc.vfilters[2] == "fade=type=in:duration=1:start_time=2,fade=type=out:duration=1:start_time=9"
-    assert enc.get_vfilters_string().count("-filter:v") == 3  # noqa: PLR2004
+    assert enc.get_vfilters_string().count("-filter:v") == 3
 
 
 def test_encoder_fade_without_start():
@@ -229,7 +229,7 @@ def test_set_logger(tmp_path, monkeypatch):
         log.set_logger("unit-test-logger")
         assert log.logger.name == "unit-test-logger"
         assert not log.logger.propagate
-        assert len(log.logger.handlers) == 2  # noqa: PLR2004
+        assert len(log.logger.handlers) == 2
         log.logger.info("a message")
         for handler in list(log.logger.handlers):
             handler.close()
@@ -261,8 +261,8 @@ def test_load_config(tmp_path, monkeypatch):
     settings = config.load("unit-conf", {"extra": "yes"})
     assert settings["a"] == "local"  # The local file overrides the file of the home directory
     assert settings["b"] is True
-    assert settings["c"] == 12  # noqa: PLR2004
-    assert settings["d"] == 1.5  # noqa: PLR2004
+    assert settings["c"] == 12
+    assert settings["d"] == 1.5
     assert settings["e"] is False
     assert settings["f"] == "text"
     assert settings["g"] is True
@@ -525,7 +525,7 @@ def test_datefixer_main_year_mode_needs_two_files(exif):
 
 
 def test_datefixer_main_year_mode_without_a_bad_file(exif):
-    exif.get_creation_date.side_effect = lambda f: datetime(2020, 1, 1)
+    exif.get_creation_date.side_effect = lambda _f: datetime(2020, 1, 1)
     assert run_datefixer("-i", "a.mp4", "b.mp4", "--mode", "year", "--year", "2020") == 1
     exif.set_creation_date.assert_not_called()
 
@@ -596,7 +596,7 @@ def test_image2video_zoom():
     kwargs = image_file.return_value.zoom.call_args.kwargs
     assert kwargs["resolution"] == "640x360"
     assert kwargs["effect"] == [1.0, 1.5]
-    assert kwargs["duration"] == 3.0  # noqa: PLR2004
+    assert kwargs["duration"] == 3.0
     image_file.return_value.panorama.assert_not_called()
 
 
@@ -604,7 +604,7 @@ def test_image2video_panorama():
     with mock.patch.object(image2video.image, "ImageFile") as image_file:
         image_file.return_value.panorama.return_value = "pan.mp4"
         assert run_image2video("-i", "a.jpg", "b.jpg", "--style", "panorama") == 0
-    assert image_file.return_value.panorama.call_count == 2  # noqa: PLR2004
+    assert image_file.return_value.panorama.call_count == 2
     assert "resolution" in image_file.return_value.panorama.call_args.kwargs
     assert "effect" not in image_file.return_value.panorama.call_args.kwargs
 

@@ -72,7 +72,7 @@ def test_stabilize_two_passes():
     with mock.patch.object(stab, "has_vidstab", return_value=True), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = stab.stabilize("dir/clip.mp4", smoothing=10, zoom=5, optzoom=2)
     assert output == os.path.join("dir", "clip.stabilized.mp4") or output.endswith("clip.stabilized.mp4")
-    assert run.call_count == 2  # noqa: PLR2004
+    assert run.call_count == 2
     detect, transform = (c.args[0] for c in run.call_args_list)
     assert "vidstabdetect=shakiness=8" in detect
     assert "vidstabtransform=smoothing=10:optzoom=2:zoom=5:input=" in transform
@@ -115,7 +115,7 @@ def test_stabilize_falls_back_to_deshake_without_vidstab():
 @pytest.fixture
 def cli():
     with (
-        mock.patch.object(stab, "stabilize", side_effect=lambda f, output=None, **kw: output or f + ".stabilized") as stabilize,
+        mock.patch.object(stab, "stabilize", side_effect=lambda f, output=None, **_kw: output or f + ".stabilized") as stabilize,
         mock.patch("mediatools.utilities.generated_file"),
     ):
         yield stabilize

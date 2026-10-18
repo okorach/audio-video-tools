@@ -40,8 +40,8 @@ def main():
     kwargs["deshake"] = "{}x{}".format(kwargs.pop("rx"), kwargs.pop("ry"))
 
     def process(input_file: str, options: dict) -> None:
-        outputfile = video.deshake(input_file, out_file=options.get("outputfile", None), **options)
-        print("Generated {}".format(outputfile))
+        outputfile = video.deshake(input_file, out_file=options.get("outputfile"), **options)
+        print(f"Generated {outputfile}")
 
     util.process_input_files(kwargs, process)
 

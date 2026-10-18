@@ -338,7 +338,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
             log.logger.info("%3d/%3d : %s", i, len(inputs), input_file)
         try:
             process(input_file, dict(options))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.logger.error("Could not process %s: %s", input_file, e)
             failed += 1
     if failed:

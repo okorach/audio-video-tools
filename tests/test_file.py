@@ -23,7 +23,7 @@ import re
 import platform
 import utilities.file as fil
 import mediatools.videofile as video
-import mediatools.version as version
+from mediatools import version
 
 BASE = "video-720p.mp4"
 FILE = "it" + os.sep + BASE
@@ -65,7 +65,7 @@ def test_basename():
 
 def test_dirname():
     # The directory of a file is returned as an absolute path (with the drive letter on Windows)
-    dirname = os.path.abspath(os.sep.join("/usr/local/bin".split("/")))
+    dirname = os.path.abspath(os.sep.join(["", "usr", "local", "bin"]))
     filename = dirname + os.sep + "python3"
     assert fil.dirname(filename) == dirname
     f = fil.File(filename)
@@ -102,7 +102,7 @@ def test_hash():
 
 def test_hash_list():
     hashes = fil.get_hash_list([FILE, FILE_2, FILE])
-    h = list(hashes.keys())[0]
+    h = next(iter(hashes))
     assert h is not None
     assert len(hashes[h]) == 2
     print(str(hashes))

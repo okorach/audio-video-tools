@@ -479,9 +479,8 @@ def test_process_directory_mb_album_lookup(tmp_path):
 
 def test_main_nonexistent_directory():
     """main() logs a warning and exits 0 when a non-existent path is given."""
-    with patch("sys.argv", ["fix-mp3-meta", "-f", "/nonexistent_path_xyz"]):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+    with patch("sys.argv", ["fix-mp3-meta", "-f", "/nonexistent_path_xyz"]), pytest.raises(SystemExit) as exc:
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -491,9 +490,9 @@ def test_main_empty_directory(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -504,9 +503,9 @@ def test_main_dry_run(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "--dry-run"]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -521,9 +520,9 @@ def test_main_individual_files(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", src]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -538,9 +537,9 @@ def test_main_mixed_files_and_dirs(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", str(subdir), lone_file]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -550,9 +549,9 @@ def test_main_with_debug_flag(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -565,9 +564,9 @@ def test_main_with_subdirectories(tmp_path):
         patch("sys.argv", ["fix-mp3-meta", "-f", str(tmp_path)]),
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -587,9 +586,9 @@ def test_main_individual_files_mb_lookup(tmp_path):
         patch("musicbrainzngs.search_releases", return_value=mock_release),
         patch("musicbrainzngs.get_release_by_id", return_value=mock_full),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
+        pytest.raises(SystemExit) as exc,
     ):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+        fix.main()
     assert exc.value.code == 0
     dt = datetime.datetime.fromtimestamp(os.path.getmtime(src))
     assert dt.year == 1991
@@ -600,9 +599,8 @@ def test_main_skips_non_audio_file(tmp_path):
     txt_file = str(tmp_path / "readme.txt")
     with open(txt_file, "w") as f:
         f.write("not audio")
-    with patch("sys.argv", ["fix-mp3-meta", "-f", txt_file]):
-        with pytest.raises(SystemExit) as exc:
-            fix.main()
+    with patch("sys.argv", ["fix-mp3-meta", "-f", txt_file]), pytest.raises(SystemExit) as exc:
+        fix.main()
     assert exc.value.code == 0
 
 
@@ -618,8 +616,10 @@ def test_is_m4a():
     assert fix._is_m4a("song.ogg") is False
 
 
-def _make_mp4_mock(artist="Seal", title="Crazy", album="Seal", track=[(3, 0)], year="1991"):
+def _make_mp4_mock(artist="Seal", title="Crazy", album="Seal", track=None, year="1991"):
     """Build a MagicMock that behaves like a mutagen MP4 object."""
+    if track is None:
+        track = [(3, 0)]
     tags = {
         "©ART": [artist],
         "©nam": [title],

@@ -23,7 +23,6 @@
 import json
 import re
 import sys
-from typing import Optional
 
 TOOLNAME = "ruff"
 
@@ -31,7 +30,7 @@ TRIVY_TO_MQR_MAPPING = {"CRITICAL": "BLOCKER"}
 MAPPING = {"LOW": "MINOR", "MEDIUM": "MAJOR", "HIGH": "CRITICAL", "BLOCKER": "BLOCKER"}
 
 
-def _apply_range_marker(issue_range: dict, rule_id: str, end_line: Optional[int], start_col: Optional[int], end_col: Optional[int]) -> None:
+def _apply_range_marker(issue_range: dict, rule_id: str, end_line: int | None, start_col: int | None, end_col: int | None) -> None:
     """Update issue_range when a caret/underscore range marker line is parsed."""
     issue_range["endLine"] = end_line or issue_range["startLine"]
     if rule_id != "I001":
@@ -107,7 +106,7 @@ def main() -> None:
     external_issues = {"rules": list(rules_dict.values()), "issues": issue_list}
     if v1:
         external_issues.pop("rules")
-    print(json.dumps(external_issues, indent=3, separators=(",", ": ")))  # noqa: T201
+    print(json.dumps(external_issues, indent=3, separators=(",", ": ")))
 
 
 if __name__ == "__main__":

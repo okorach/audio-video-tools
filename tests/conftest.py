@@ -49,7 +49,7 @@ def clean_it_directory() -> Iterator[None]:
 
 
 def _ffmpeg(*args: str) -> None:
-    subprocess.run([util.get_ffmpeg(), "-v", "error", "-y", *args], check=True)  # noqa: S603
+    subprocess.run([util.get_ffmpeg(), "-v", "error", "-y", *args], check=True)
 
 
 def _make_video(path: Path, duration: float) -> str:

@@ -75,7 +75,7 @@ def _main_exit_ok(module) -> None:
     try:
         module.main()
     except SystemExit as e:
-        assert e.code in (0, None)  # noqa: PT017
+        assert e.code in (0, None)
 
 
 def _names(files: list[str], root: Path) -> list[str]:
@@ -172,7 +172,7 @@ def test_process_input_files_output_with_several_inputs() -> None:
     process = mock.Mock()
     with pytest.raises(SystemExit) as e:
         util.process_input_files({"inputfiles": ["a", "b"], "outputfile": "o"}, process)
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
     process.assert_not_called()
 
 
@@ -219,15 +219,12 @@ def _run_tool(module, argv: list[str]) -> None:
         try:
             module.main()
         except SystemExit as e:
-            assert e.code in (0, None)  # noqa: PT017
+            assert e.code in (0, None)
 
 
 def _called_files(target: mock.Mock) -> list[str]:
     """The input files the tool was called with (first argument, or filename/input_file keyword)"""
-    files = []
-    for call in target.call_args_list:
-        files.append(call.args[0] if call.args else call.kwargs.get("filename"))
-    return files
+    return [call.args[0] if call.args else call.kwargs.get("filename") for call in target.call_args_list]
 
 
 @pytest.mark.parametrize(("module", "target", "extra"), VIDEO_TOOLS, ids=[t[0].__name__ for t in VIDEO_TOOLS])
@@ -291,7 +288,7 @@ def test_tool_output_with_directory(tmp_path: Path) -> None:
     files = _tree(tmp_path)
     with mock.patch.object(sys, "argv", ["volume", "-i", files["dir1"], "--volume", "200%", "-o", "out.mp4"]), pytest.raises(SystemExit) as e:
         volume.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_tool_directory_without_matching_file(tmp_path: Path) -> None:
@@ -318,7 +315,7 @@ def test_tool_continues_after_failure(tmp_path: Path) -> None:
     ):
         volume.main()
     assert e.value.code == 1
-    assert len(patched.call_args_list) == 3  # noqa: PLR2004
+    assert len(patched.call_args_list) == 3
 
 
 # PDF tools
@@ -352,7 +349,7 @@ def test_pdf_compress_directory(tmp_path: Path) -> None:
     files = _tree(tmp_path)
     with (
         mock.patch.object(sys, "argv", ["pdf-compress", "-i", files["dir1"]]),
-        mock.patch("mediatools.pdf_compress.compress", side_effect=lambda f, o, p: f) as compress,
+        mock.patch("mediatools.pdf_compress.compress", side_effect=lambda f, _o, _p: f) as compress,
     ):
         pdf_compress.main()
     assert _names([c.args[0] for c in compress.call_args_list], tmp_path) == ["dir1/sub/e.pdf"]
@@ -364,7 +361,7 @@ def test_pdf_compress_output_with_several_inputs(tmp_path: Path) -> None:
     (tmp_path / "dir1" / "f.pdf").write_bytes(b"x")
     with mock.patch.object(sys, "argv", ["pdf-compress", "-i", files["dir1"], "-o", "x.pdf"]), pytest.raises(SystemExit) as e:
         pdf_compress.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_pdf_merge_directory(tmp_path: Path) -> None:

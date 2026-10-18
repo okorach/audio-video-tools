@@ -50,7 +50,7 @@ def parse_crop_box(box: str | None) -> tuple[str, str]:
     value = str(box or DEFAULT_CROP_BOX).strip().lower()
     value = CROP_BOX_ALIASES.get(value, value)
     parts = value.split("x")
-    if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):  # noqa: PLR2004
+    if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):
         raise ValueError(f"Invalid crop box '{box}', expected <width>x<height> or one of {', '.join(CROP_BOX_ALIASES)}")
     return parts[0].strip(), parts[1].strip()
 
@@ -236,7 +236,7 @@ class VideoFile(media.MediaFile):
     def displayed_dimensions(self) -> tuple[int, int]:
         """Returns the dimensions of the video once rotation is applied (width and height swapped for a 90 or 270 degrees rotation)"""
         w, h = self.dimensions()
-        return (h, w) if abs(self.get_rotation()) % 180 == 90 else (w, h)  # noqa: PLR2004
+        return (h, w) if abs(self.get_rotation()) % 180 == 90 else (w, h)
 
     def get_height(self) -> int:
         if self.resolution is None:
@@ -400,7 +400,7 @@ class VideoFile(media.MediaFile):
 
     def add_audio_tracks(self, *audio_files: str, out_file: str | None = None) -> str:
         maps = " ".join([f"-map {i}" for i in range(len(audio_files) + 1)])
-        inputs = " ".join([f'-i "{file}"' for file in [self.filename] + list(audio_files)])
+        inputs = " ".join([f'-i "{file}"' for file in [self.filename, *audio_files]])
         out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix="muxed")
         util.run_ffmpeg(f'{inputs} {maps} -dn -codec copy "{out_file}"', self.duration)
         return out_file
@@ -556,7 +556,7 @@ class VideoFile(media.MediaFile):
         height = height if height and height > 0 else -2
         if util.use_hardware_accel(**kwargs):
             return f"scale_cuda={width}:{height}"
-        if kwargs.get(opt.Option.RESOLUTION, None) is not None:
+        if kwargs.get(opt.Option.RESOLUTION) is not None:
             # Software resize with a --resolution is done by the -s output option
             return None
         return f"scale={width}:{height}"
@@ -586,7 +586,7 @@ class VideoFile(media.MediaFile):
         scale = self.__get_scale_filter(**kwargs)
         if scale:
             vfilters.append(scale)
-        if kwargs.get("color_eq", None) is not None:
+        if kwargs.get("color_eq") is not None:
             if util.use_hardware_accel(**kwargs):
                 log.logger.warning("Skipping eq color filter: not compatible with GPU hw acceleration (use --software_filters to enable)")
             else:

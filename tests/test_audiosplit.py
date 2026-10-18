@@ -22,7 +22,7 @@
 import os
 import pytest
 import mediatools.utilities as util
-import mediatools.audiosplit as audiosplit
+from mediatools import audiosplit
 
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 

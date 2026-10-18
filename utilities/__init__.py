@@ -20,4 +20,4 @@
 #
 
 # Importing the mediatools package first avoids a circular import when utilities.file is the first module imported
-import mediatools  # noqa: F401, E402
+import mediatools  # noqa: F401
