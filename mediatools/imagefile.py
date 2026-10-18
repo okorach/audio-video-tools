@@ -34,9 +34,6 @@ from mediatools import resolution as res, exceptions as ex, media_config as conf
 from filters import filters
 
 INPUT_FILE_FMT: str = ' -i "%s"'
-STEP_FMT: str = "[step%d]; "
-OVERLAY_0_FMT: str = "[%d][pip0]overlay=0:0" + STEP_FMT
-OVERLAY_N_FMT: str = "[step%d][pip%d]overlay=%d:%d"
 
 MAX_INT: int = 2000000000
 DEFAULT_PAN_SPEED: float = 0.02  # 2% of image width traveled per second
@@ -66,8 +63,9 @@ class ImageFile(media.MediaFile):
 
     def get_properties(self) -> dict:
         """Returns file media properties as a dict"""
+        image_props = self.get_image_properties()
         all_props = self.get_file_properties()
-        all_props.update(self.get_image_properties())
+        all_props.update(image_props)
         all_props.pop("resolution")
         log.logger.debug("Returning image props %s", str(all_props))
         return all_props
@@ -169,64 +167,46 @@ class ImageFile(media.MediaFile):
         util.run_ffmpeg(f'{fcomp.format_inputs()} {fcomp!s} -map "[{ovl}]" "{out_file}"')
         return out_file
 
-    def shake_vertical(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
+    def _shake(self, direction: str, nbr_slices: int, shake_pct: int, background_color: str, out_file: str | None) -> str:
+        """Cuts the image in slices (vertical strips, or horizontal strips for the horizontal direction)
+        and shifts each slice by a random offset (vertically for vertical strips, horizontally for horizontal strips)"""
         w, h = self.dimensions()
-        h_jitter = h * shake_pct // 100
-        slice_width = max(w // nbr_slices, 16)
-        slices = self.slice_vertical(nbr_slices)
-        tmpbg = get_rectangle(background_color, slice_width * len(slices), h + h_jitter)
-        filelist = filters.inputs_str(slices) + " " + filters.inputs_str([tmpbg])
-        cmplx = util.build_ffmpeg_complex_prep(slices)
-
-        step = 0
-        n_slices = len(slices)
-        cmplx = cmplx + OVERLAY_0_FMT % (n_slices, step)
-        first_slice = slices.pop(0)
-
-        for j in range(n_slices):
-            x = (j + 1) * slice_width
-            y = random.randint(1, h_jitter)
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
-            if j < n_slices - 1:
-                cmplx = cmplx + STEP_FMT % (j + 1)
-            j += 1
-        out_file = util.automatic_output_file_name(out_file, self.filename, "shake", self.extension())
-        util.run_ffmpeg(f' {filelist} -filter_complex "{cmplx}" "{out_file}"')
-        util.delete_files(*slices, first_slice, tmpbg)
+        horizontal = direction == "horizontal"
+        slices = self.get_crop_filters(nbr_slices, direction)
+        if horizontal:
+            slice_size = max(h // nbr_slices, 16)
+            canvas_w, canvas_h = w + w * shake_pct // 100, slice_size * len(slices)
+            jitter = canvas_w - w
+        else:
+            slice_size = max(w // nbr_slices, 16)
+            canvas_w, canvas_h = slice_size * len(slices), h + h * shake_pct // 100
+            jitter = canvas_h - h
+        background = get_rectangle(background_color, canvas_w, canvas_h)
+        try:
+            fcomp = filters.Complex(ImageFile(background), self)
+            out = fcomp.add_filtergraph([0], filters.scale(canvas_w, canvas_h))
+            for i, crop_filter in enumerate(slices):
+                piece = fcomp.add_filtergraph(1, crop_filter)
+                offset = random.randint(0, max(jitter, 0))
+                x, y = (offset, i * slice_size) if horizontal else (i * slice_size, offset)
+                out = fcomp.add_filtergraph([out, piece], filters.overlay(x, y))
+            out_file = util.automatic_output_file_name(out_file, self.filename, "shake", self.extension())
+            util.run_ffmpeg(f'{fcomp.format_inputs()} {fcomp!s} -map "[{out}]" "{out_file}"')
+        finally:
+            util.delete_files(background)
         return out_file
+
+    def shake_vertical(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
+        return self._shake("vertical", nbr_slices, shake_pct, background_color, out_file)
+
+    def shake_horizontal(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
+        return self._shake("horizontal", nbr_slices, shake_pct, background_color, out_file)
 
     def rotate(self, degrees: int = 90, **kwargs) -> str:
         vfilters = [filters.rotate(degrees)]
         out_file = util.automatic_output_file_name(kwargs.get("out_file"), self.filename, "rotate", extension=self.extension())
         cmd = f'-i "{self.filename}" -vf {",".join(vfilters)} "{out_file}"'
         util.run_ffmpeg(cmd)
-        return out_file
-
-    def shake_horizontal(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
-        w, h = self.dimensions()
-        w_jitter = w * shake_pct // 100
-        slice_height = max(h // nbr_slices, 16)
-        slices = self.slice_horizontal(nbr_slices)
-        tmpbg = get_rectangle(background_color, w + w_jitter, slice_height * len(slices))
-        filelist = filters.inputs_str(slices) + " " + filters.inputs_str([tmpbg])
-        cmplx = util.build_ffmpeg_complex_prep(slices)
-
-        step = 0
-        n_slices = len(slices)
-        cmplx = cmplx + OVERLAY_0_FMT % (n_slices, step)
-        first_slice = slices.pop(0)
-
-        for j in range(n_slices):
-            x = random.randint(1, w_jitter)
-            y = (j + 1) * slice_height
-            cmplx = cmplx + OVERLAY_N_FMT % (j, j + 1, x, y)
-            if j < n_slices - 1:
-                cmplx = cmplx + STEP_FMT % (j + 1)
-            j += 1
-
-        out_file = util.automatic_output_file_name(out_file, self.filename, "shake")
-        util.run_ffmpeg(f' {filelist} -filter_complex "{cmplx}" {out_file}')
-        util.delete_files(*slices, first_slice, tmpbg)
         return out_file
 
     def shake(
@@ -318,9 +298,7 @@ class ImageFile(media.MediaFile):
         if "effect" not in kwargs:
             kwargs["effect"] = (0, 1, 0.45, 0.55)
 
-        out_file = util.automatic_output_file_name(
-            kwargs.get("out_file"), self.filename, "pan", extension=conf.get_property("default.video.format")
-        )
+        out_file = util.automatic_output_file_name(kwargs.get("out_file"), self.filename, "pan", extension=conf.get_property("default.video.format"))
 
         if self.orientation == "portrait":
             rot_args = kwargs.copy()
@@ -417,7 +395,7 @@ class ImageFile(media.MediaFile):
         if random.randint(0, 1) == 0:
             x = random.randint(0, 1)
             return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
-        return self.zoom(effect=_get_random_zoom(), **kwargs)
+        return self.zoom(effect=_get_random_zoom(), duration=duration, **kwargs)
 
 
 def get_rectangle(color: str, w: int, h: int) -> str:

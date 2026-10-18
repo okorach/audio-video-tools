@@ -55,43 +55,42 @@ def test_extension():
 
 
 def test_basename():
-    assert fil.basename(FILE) == BASE
-    assert fil.basename(FILE, "mp4") == "video-720p"
+    assert fil.basename(FILE, strip_ext=False) == BASE
+    assert fil.basename(FILE) == "video-720p"
+    assert fil.basename(FILE, strip_dir=False, strip_ext=False) == os.path.abspath(FILE)
     f = fil.File(FILE)
-    assert f.basename() == BASE
-    assert f.basename("mp4") == "video-720p"
+    assert f.basename(strip_ext=False) == BASE
+    assert f.basename() == "video-720p"
 
 
 def test_dirname():
-    dirname = os.sep.join("/usr/local/bin".split("/"))
+    # The directory of a file is returned as an absolute path (with the drive letter on Windows)
+    dirname = os.path.abspath(os.sep.join("/usr/local/bin".split("/")))
     filename = dirname + os.sep + "python3"
     assert fil.dirname(filename) == dirname
     f = fil.File(filename)
     assert f.dirname() == dirname
 
 
-def test_link():
+def test_link(tmp_path):
     assert not fil.is_link(FILE)
     assert not fil.is_shortcut(FILE)
     f = fil.File(FILE)
     assert not f.is_link()
     assert not f.is_shortcut()
-    lnk = f.create_link("link_to_video")
+    lnk = f.create_link(str(tmp_path / "link_to_video"))
     assert fil.is_link(lnk)
 
+    # The link points to the absolute path of the file
+    target = os.path.normcase(os.path.abspath(FILE))
     obj = fil.File(lnk)
     assert obj.is_link()
     if platform.system() == "Windows":
         assert obj.is_shortcut()
-        reg = r"^[A-Za-z]:" + re.escape(os.sep) + re.escape(FILE) + r"$"
-        assert re.match(reg, obj.read_link())
-        assert re.match(reg, fil.read_link(lnk))
     else:
         assert not obj.is_shortcut()
-        assert obj.read_link() == FILE
-        assert fil.read_link(lnk) == FILE
-
-    os.remove(lnk)
+    assert os.path.normcase(obj.read_link()) == target
+    assert os.path.normcase(fil.read_link(lnk)) == target
 
 
 def test_hash():

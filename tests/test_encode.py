@@ -85,8 +85,8 @@ def test_hw_accel_2():
         assert not hw_accel_avail
 
 
-def test_main_file():
-    file1 = "it" + os.sep + "video-720p.mp4"
+def test_main_file(short_video):
+    file1 = short_video
     try:
         with patch.object(sys, "argv", ["video-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]):
             encode.main()
@@ -110,8 +110,8 @@ def test_main_file_audio():
     os.remove(TMP_AUDIO)
 
 
-def test_main_dir_timeranges_1():
-    file1 = "it" + os.sep + "video-720p.mp4"
+def test_main_dir_timeranges_1(video_5s):
+    file1 = video_5s
     try:
         with patch.object(
             sys,
@@ -125,10 +125,10 @@ def test_main_dir_timeranges_1():
         assert False
 
 
-def test_main_dir_timeranges_2():
+def test_main_dir_timeranges_2(video_5s):
     log.set_logger("tests")
     log.logger.setLevel(log.get_logging_level(4))
-    file1 = "it" + os.sep + "video-720p.mp4"
+    file1 = video_5s
     output = f"{file1}.out.mp4"
     try:
         with patch.object(
@@ -140,7 +140,7 @@ def test_main_dir_timeranges_2():
         ):
             encode.main()
         # Output file is hardcoded for now :-(
-        os.remove("it" + os.sep + "video-720p.combined.mp4")
+        os.remove(file1.replace("video-5s.mp4", "video-5s.combined.mp4"))
         assert True
     except subprocess.CalledProcessError:
         assert False

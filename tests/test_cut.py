@@ -21,6 +21,7 @@
 
 import os
 import sys
+import pytest
 from unittest.mock import patch
 from mediatools import cut
 import mediatools.utilities as util
@@ -91,3 +92,39 @@ def test_main_no_file():
             assert False
         except SystemExit as e:
             assert int(str(e)) == 2
+
+
+def test_output_file_is_used_for_a_single_range():
+    """-o is the name of the file generated with --start and --stop"""
+    with patch.object(sys, "argv", [CMD, "--start", "1", "--stop", "2", "-i", VIDEO, "-o", "out.mp4"]), patch("mediatools.avfile.cut") as av_cut:
+        cut.main()
+    assert av_cut.call_count == 1
+    assert av_cut.call_args.kwargs["output"] == "out.mp4"
+    assert av_cut.call_args.kwargs["start"] == "1"
+    assert av_cut.call_args.kwargs["stop"] == "2"
+
+
+def test_time_ranges():
+    """All the time ranges are cut by one call per file"""
+    with patch.object(sys, "argv", [CMD, "--timeranges", "0-1,2-3", "-i", VIDEO, AUDIO]), patch("mediatools.avfile.cut") as av_cut:
+        cut.main()
+    assert [c.args[0] for c in av_cut.call_args_list] == [VIDEO, AUDIO]
+    for call in av_cut.call_args_list:
+        assert call.kwargs["timeranges"] == "0-1,2-3"
+        assert "start" not in call.kwargs
+        assert "stop" not in call.kwargs
+        assert call.kwargs["output"] is None
+
+
+def test_output_file_with_several_ranges():
+    """-o can't be used with several time ranges"""
+    with patch.object(sys, "argv", [CMD, "--timeranges", "0-1,2-3", "-i", VIDEO, "-o", "out.mp4"]), pytest.raises(SystemExit) as e:
+        cut.main()
+    assert e.value.code == 2
+
+
+def test_missing_range():
+    """--start and --stop or --timeranges is mandatory"""
+    with patch.object(sys, "argv", [CMD, "-i", VIDEO]), pytest.raises(SystemExit) as e:
+        cut.main()
+    assert e.value.code == 1

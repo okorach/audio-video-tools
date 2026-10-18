@@ -18,3 +18,6 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
+# Importing the mediatools package first avoids a circular import when utilities.file is the first module imported
+import mediatools  # noqa: F401, E402

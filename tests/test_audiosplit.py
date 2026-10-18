@@ -54,21 +54,21 @@ def test_missing_input():
     assert exc_info.value.code == 2
 
 
-def test_detect_tune_changes():
-    boundaries = audiosplit.detect_tune_changes(AUDIO_FILE, sensitivity=0.5, min_segment=5)
+def test_detect_tune_changes(short_audio):
+    boundaries = audiosplit.detect_tune_changes(short_audio, sensitivity=0.5, min_segment=5)
     assert isinstance(boundaries, list)
     for b in boundaries:
         assert isinstance(b, float)
         assert b > 0
 
 
-def test_dry_run(capsys):
+def test_dry_run(capsys, short_audio):
     parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     parser.add_argument("--fade-duration", required=False, type=float, default=1.0)
     parser.add_argument("--min-segment", required=False, type=float, default=30.0)
     parser.add_argument("--sensitivity", required=False, type=float, default=0.5)
     parser.add_argument("--dry-run", required=False, default=False, action="store_true")
-    kwargs = util.parse_media_args(parser, args=["-i", AUDIO_FILE, "--dry-run", "--min-segment", "5"])
+    kwargs = util.parse_media_args(parser, args=["-i", short_audio, "--dry-run", "--min-segment", "5"])
     input_file = kwargs.pop("inputfiles")[0]
     boundaries = audiosplit.detect_tune_changes(input_file, sensitivity=kwargs.get("sensitivity", 0.5), min_segment=kwargs.get("min_segment", 5))
     # dry run should not produce any files - just verify boundaries are returned

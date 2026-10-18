@@ -31,6 +31,7 @@ import mediatools.videofile as video
 import mediatools.resolution as res
 
 FILE = "it" + os.sep + "video-720p.mp4"
+FILE_SIZE = 2001067
 TMP1 = util.get_tmp_file() + ".mp4"
 TMP2 = util.get_tmp_file() + ".mp4"
 
@@ -49,7 +50,7 @@ def test_type():
         pass
 
     v = video.VideoFile(FILE)
-    assert v.filename == FILE
+    assert v.filename == os.path.abspath(FILE)
 
 
 def test_video_specs():
@@ -62,7 +63,7 @@ def test_video_specs():
 
 def test_ffmpeg_cmdline():
     cmd1 = "-c:a libmp3lame -vn -b:a 192k -map_metadata 0 -id3v2_version 3 -write_id3v1 1"
-    cmd2 = "-f mp4 -acodec aac -deinterlace -vcodec libx265 -f 60 -aspect 16:10 -b:v 1536k -s 720x400"
+    cmd2 = "-f mp4 -acodec aac -deinterlace -vcodec libx265 -r 60 -aspect 16:10 -b:v 1536k -s 720x400"
     assert video.get_size_option(cmd1) == ""
     assert video.get_size_option(cmd2) == "720x400"
     assert video.get_video_codec_option(cmd1) == ""
@@ -102,8 +103,8 @@ def test_attributes():
     assert p["vbitrate"] == 1489365
 
 
-def test_crop():
-    v = video.VideoFile(FILE)
+def test_crop(short_video):
+    v = video.VideoFile(short_video)
     # util.set_debug_level(4)
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position="center"))
     cropv.probe()
@@ -111,8 +112,8 @@ def test_crop():
     util.delete_files(cropv.filename)
 
 
-def test_crop_box_position():
-    v = video.VideoFile(FILE)
+def test_crop_box_position(short_video):
+    v = video.VideoFile(short_video)
     cropv = video.VideoFile(v.crop(out_file=TMP1, box="160x120", position="top left"))
     cropv.probe()
     assert cropv.dimensions() == (160, 120)
@@ -263,21 +264,22 @@ def test_add_metadata():
 def test_speed():
     v1 = video.VideoFile(FILE)
     v2 = video.VideoFile(video.speed(FILE, 2, output=TMP1))
-    assert v1.duration == 2 * v2.duration
+    # Twice as fast: half the duration, to the precision of 2 frames
+    assert abs(v1.duration / 2 - v2.duration) < 0.1
     os.remove(v2.filename)
 
 
-def test_volume():
-    v1 = video.VideoFile(FILE)
-    v2 = video.VideoFile(video.volume(FILE, 2, output=TMP1))
+def test_volume(short_video):
+    v1 = video.VideoFile(short_video)
+    v2 = video.VideoFile(video.volume(short_video, 2, output=TMP1))
     assert abs(v1.duration - v2.duration) < 0.1
     os.remove(v2.filename)
 
 
-def test_reverse():
-    v1 = video.VideoFile(FILE)
-    v2 = video.VideoFile(video.reverse(FILE, output=TMP1))
-    assert v1.duration == v2.duration
+def test_reverse(short_video):
+    v1 = video.VideoFile(short_video)
+    v2 = video.VideoFile(video.reverse(short_video, output=TMP1))
+    assert abs(v1.duration - v2.duration) < 0.1
     os.remove(v2.filename)
 
 
@@ -358,3 +360,44 @@ def test_encode_no_resize(hw_accel):
     cmd = run.call_args[0][0]
     assert "scale" not in cmd
     assert " -s " not in cmd
+
+
+def test_properties_do_not_alter_the_object():
+    """Reading the properties of a file doesn't change the attributes of the object (the size is still a method)"""
+    v = video.VideoFile(FILE)
+    props = v.get_properties()
+    assert props["file_size"] == FILE_SIZE
+    assert props["size"] == FILE_SIZE
+    assert v.size() == FILE_SIZE
+    assert v.get_properties()["file_size"] == FILE_SIZE
+
+
+@pytest.mark.parametrize("hw_accel", [True, False])
+def test_deinterlace_uses_yadif(hw_accel):
+    """-deinterlace is not supported by recent ffmpeg versions: the yadif filter is used instead"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.encode(target_file=TMP1, hw_accel=hw_accel, deinterlace=True, vcodec="x264")
+    cmd = run.call_args[0][0]
+    assert '-vf "yadif"' in cmd
+    assert "-deinterlace" not in cmd
+
+
+def test_profile_deinterlace_uses_yadif():
+    """A profile with the -deinterlace option also uses the yadif filter"""
+    v = video.VideoFile(FILE)
+    with (
+        mock.patch("mediatools.utilities.run_ffmpeg") as run,
+        mock.patch("mediatools.utilities.get_profile_params", return_value={"f": "mp4", "deinterlace": True}),
+    ):
+        v.encode(target_file=TMP1, profile="any", hw_accel=False)
+    cmd = run.call_args[0][0]
+    assert '-vf "yadif"' in cmd
+    assert "-deinterlace" not in cmd
+
+
+def test_no_deinterlace_by_default():
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.encode(target_file=TMP1, hw_accel=False, vcodec="x264")
+    assert "yadif" not in run.call_args[0][0]

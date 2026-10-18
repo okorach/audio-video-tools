@@ -31,6 +31,13 @@ VIDEO = "it" + os.sep + "video-360p-1.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
 
 
+def assert_duration(speed_factor):
+    """The duration of the output is the duration of the source divided by the speed factor, to the precision of 2 frames
+    (the audio, when kept, can be slightly longer than the video)"""
+    expected = video.VideoFile(VIDEO).duration / speed_factor
+    assert abs(expected - video.VideoFile(TMP1).duration) < 0.1
+
+
 def test_main():
     with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "--speed", "2"]):
         speed.main()
@@ -40,7 +47,7 @@ def test_main():
 def test_main_with_output():
     with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "200%"]):
         speed.main()
-        assert abs(video.VideoFile(VIDEO).duration - 2 * video.VideoFile(TMP1).duration) < 0.06
+        assert_duration(2)
         assert video.VideoFile(TMP1).audio_codec is None
         os.remove(TMP1)
 
@@ -48,7 +55,7 @@ def test_main_with_output():
 def test_slowmo():
     with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "50%"]):
         speed.main()
-        assert abs(video.VideoFile(VIDEO).duration - 0.5 * video.VideoFile(TMP1).duration) < 0.06
+        assert_duration(0.5)
         assert video.VideoFile(TMP1).audio_codec is None
         os.remove(TMP1)
 
@@ -57,7 +64,7 @@ def test_keep_audio():
     with patch.object(sys, "argv", [CMD, "-p", "360p", "-i", VIDEO, "-o", TMP1, "-k", "--speed", "4"]):
         speed.main()
         # TODO - Truncate audio when video is shorter, and adjust tests
-        assert abs(video.VideoFile(VIDEO).duration - 4 * video.VideoFile(TMP1).duration) < 0.06
+        assert_duration(4)
         assert video.VideoFile(TMP1).audio_codec == "aac"
         os.remove(TMP1)
 

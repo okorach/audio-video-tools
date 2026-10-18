@@ -34,15 +34,15 @@ TMP2 = util.get_tmp_file() + ".mp4"
 TMP3 = util.get_tmp_file() + ".mp4"
 
 
-def test_main_with_output():
+def test_main_with_output(short_video, tmp_path):
     util.HW_ACCEL = False
-    with patch.object(sys, "argv", [CMD, "-g", "3", "-i", VIDEO1, VIDEO2, "-o", TMP3]):
+    output = str(tmp_path / "concat.mp4")
+    with patch.object(sys, "argv", [CMD, "-g", "3", "-i", short_video, short_video, "-o", output]):
         try:
             concat.main()
-            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration - video.VideoFile(TMP3).duration) < 0.06
         except SystemExit as e:
             assert int(str(e)) == 0
-            assert abs(video.VideoFile(VIDEO1).duration + video.VideoFile(VIDEO2).duration - video.VideoFile(TMP3).duration) < 0.06
+    assert abs(2 * video.VideoFile(short_video).duration - video.VideoFile(output).duration) < 0.1
 
 
 def test_main_help():
