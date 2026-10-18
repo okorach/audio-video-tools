@@ -20,7 +20,10 @@
 
 """Tests of video-snap, with the ffmpeg commands mocked"""
 
+import os
+import shutil
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -87,3 +90,31 @@ def test_main_rejects_non_positive(monkeypatch):
     with pytest.raises(SystemExit) as e:
         run_main(monkeypatch, "-i", "a.mp4", "--nbr_photos", "0")
     assert e.value.code == 2
+
+
+def test_snap_real_video_nbr_photos(video_5s):
+    photos = vs.snap_file(video_5s, nbr_photos=4)
+    assert [os.path.basename(p) for p in photos] == [f"video-5s.{i}.jpg" for i in range(1, 5)]
+    assert all(Path(p).stat().st_size > 0 for p in photos)
+
+
+def test_snap_real_video_every_in_output_dir(video_5s, tmp_path):
+    photos = vs.snap_file(video_5s, every=1, out_dir=str(tmp_path / "photos"))
+    assert sorted(os.listdir(tmp_path / "photos")) == [f"video-5s.{i}.jpg" for i in range(1, 5)]
+    assert len(photos) == 4
+
+
+def test_snap_real_video_zero_padding(video_5s, tmp_path):
+    photos = vs.snap_file(video_5s, every=0.5, out_dir=str(tmp_path))
+    assert len(photos) == 9
+    assert os.path.basename(photos[0]) == "video-5s.1.jpg"
+    photos = vs.snap_file(video_5s, every=0.25, out_dir=str(tmp_path))
+    assert len(photos) == 19
+    assert os.path.basename(photos[0]) == "video-5s.01.jpg"
+
+
+def test_main_real_directory(video_5s, tmp_path):
+    shutil.copy(video_5s, tmp_path / "a.mp4")
+    with mock.patch.object(sys, "argv", ["video-snap", "-i", str(tmp_path), "--nbr_photos", "2"]):
+        vs.main()
+    assert sorted(f for f in os.listdir(tmp_path) if f.endswith(".jpg")) == ["a.1.jpg", "a.2.jpg"]
