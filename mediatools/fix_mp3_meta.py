@@ -51,7 +51,7 @@ _M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
-musicbrainzngs.set_useragent("audio-video-tools", "0.9", "olivier.korach@gmail.com")
+musicbrainzngs.set_useragent("audio-video-tools", "0.10", "olivier.korach@gmail.com")
 
 # ---------------------------------------------------------------------------
 # MusicBrainz lookup
