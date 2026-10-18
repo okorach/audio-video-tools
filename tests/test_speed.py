@@ -21,7 +21,8 @@
 
 import os
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+import pytest
 from mediatools import speed
 import mediatools.utilities as util
 import mediatools.videofile as video
@@ -115,3 +116,23 @@ def test_speed_api_keep_audio():
     output = video.speed(VIDEO, "2", output=TMP1, mute=False)
     assert video.VideoFile(output).audio_codec is not None
     os.remove(output)
+
+
+def test_speed_api_keeps_source_size_and_bitrate(monkeypatch):
+    encode = MagicMock(return_value="out.mp4")
+    monkeypatch.setattr(video.VideoFile, "encode", encode)
+    monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", 1234567))
+    video.speed(VIDEO, "2", output=TMP1)
+    assert encode.call_args.kwargs["vbitrate"] == 1234567
+    assert "width" not in encode.call_args.kwargs
+    video.speed(VIDEO, "2", output=TMP1, vbitrate=999)
+    assert encode.call_args.kwargs["vbitrate"] == 999
+    video.speed(VIDEO, "2", output=TMP1, profile="360p")
+    assert "vbitrate" not in encode.call_args.kwargs
+
+
+def test_speed_real_video_same_size_and_bitrate(short_video, tmp_path):
+    source = video.VideoFile(short_video)
+    output = video.VideoFile(video.speed(short_video, "2", output=str(tmp_path / "fast.mp4")))
+    assert output.get_width() == source.get_width()
+    assert output.video_bitrate == pytest.approx(source.video_bitrate, rel=0.5)
