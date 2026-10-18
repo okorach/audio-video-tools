@@ -136,3 +136,11 @@ def test_speed_real_video_same_size_and_bitrate(short_video, tmp_path):
     output = video.VideoFile(video.speed(short_video, "2", output=str(tmp_path / "fast.mp4")))
     assert output.get_width() == source.get_width()
     assert output.video_bitrate == pytest.approx(source.video_bitrate, rel=0.5)
+
+
+def test_speed_default_output_name(monkeypatch):
+    encode = MagicMock(return_value="out.mp4")
+    monkeypatch.setattr(video.VideoFile, "encode", encode)
+    monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", None))
+    video.speed("dir" + os.sep + "foo.mp4", "2.5")
+    assert os.path.basename(encode.call_args.kwargs["target_file"]) == "foo.2.5.mp4"
