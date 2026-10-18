@@ -25,15 +25,18 @@ This script changes the volume of a video or audio file
 
 import mediatools.utilities as util
 import mediatools.videofile as video
+import utilities.file as fil
 
 
 def main():
     parser = util.get_common_args("media-volume", "Change volume of a video or audio file")
-    parser.add_argument("--volume", required=True, help="Change volume like 400% (relative change) or 6dB (absolute)")
-    kwargs = util.parse_media_args(parser)
+    parser.add_argument("--volume", required=True, help="Change volume like 400%% (relative change) or 6dB (absolute)")
+    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE))
 
-    output = video.volume(kwargs.pop("inputfiles")[0], kwargs.pop("volume"))
-    util.generated_file(output)
+    def process(input_file: str, options: dict) -> None:
+        util.generated_file(video.volume(input_file, options["volume"]))
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

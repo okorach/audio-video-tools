@@ -271,9 +271,39 @@ def file_list(*args: str, file_type: str | None = None, recurse: bool = False) -
     for arg in args:
         log.logger.debug("Check file %s", str(arg))
         if os.path.isdir(arg):
-            files.extend(dir_list(arg, file_type=file_type, recurse=recurse))
+            files.extend(expand_inputs([arg], file_type))
         elif file_type is None or __is_type_file(arg, file_type):
             files.append(arg)
+    return files
+
+
+def expand_inputs(
+    paths: list[str] | tuple[str, ...], file_type: str | tuple[str, ...] | list[str] | None = None, extensions: tuple[str, ...] | None = None
+) -> list[str]:
+    """Expands a list of files and directories into a list of files.
+    - A file is kept as is (even if it doesn't exist or doesn't match file_type: the tool decides what to do with it)
+    - A directory is replaced by all the files it contains, recursively, in alphabetical order of their paths (case insensitive).
+      Only files matching file_type (a FileType, or a list of FileTypes) are taken, or any audio/video/image file if file_type is None.
+      If extensions (lowercase, without the dot) is given, it replaces file_type, eg ("pdf",)
+    The order of the arguments is preserved (a file given several times is returned several times, as concatenating a file with itself is legitimate)
+    """
+    if isinstance(file_type, str):
+        file_type = (file_type,)
+    if extensions is None:
+        extensions = MEDIA_FILE_EXTENSIONS if file_type is None else tuple(e for t in file_type for e in FileType.FILE_EXTENSIONS[t])
+    files: list[str] = []
+    for path in paths:
+        if os.path.isdir(path):
+            found: list[str] = []
+            for root, _, names in os.walk(path):
+                found.extend(os.path.join(root, name) for name in names if __match_extension(name, extensions))
+            found.sort(key=lambda f: [part.lower() for part in os.path.normpath(f).split(os.sep)])
+            log.logger.info("Found %d files in directory %s", len(found), path)
+            if not found:
+                log.logger.warning("No matching file found in directory %s", path)
+            files.extend(found)
+        else:
+            files.append(path)
     return files
 
 

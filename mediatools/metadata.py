@@ -41,14 +41,16 @@ def main():
     parser.add_argument(
         "--language", required=False, nargs="+", help='Languages of tracks, eg "0:fre:Francais sans sous-title" "1:eng:English with music"'
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
-    inputfile = kwargs.pop("inputfiles")[0]
-    if fil.is_video_file(inputfile):
-        output = video.VideoFile(inputfile).add_metadata(**kwargs)
-        util.generated_file(output)
-    else:
-        log.logger.error("File %s is not a video file", inputfile)
+    def process(inputfile: str, options: dict) -> None:
+        if fil.is_video_file(inputfile):
+            output = video.VideoFile(inputfile).add_metadata(**options)
+            util.generated_file(output)
+        else:
+            raise ValueError(f"File {inputfile} is not a video file")
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

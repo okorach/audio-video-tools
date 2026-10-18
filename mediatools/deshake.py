@@ -24,6 +24,7 @@
 
 import mediatools.utilities as util
 import mediatools.videofile as video
+import utilities.file as fil
 
 
 def main():
@@ -34,11 +35,15 @@ def main():
     parser.add_argument("--crop", dest="nocrop", action="store_false", help="Crop video after stabilization")
     parser.add_argument("--nocrop", dest="nocrop", action="store_true", help="Do not crop video after stabilization")
     parser.set_defaults(crop=True)
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     kwargs["deshake"] = "{}x{}".format(kwargs.pop("rx"), kwargs.pop("ry"))
-    outputfile = video.deshake(kwargs["inputfiles"], out_file=kwargs.get("outputfile", None), **kwargs)
-    print("Generated {}".format(outputfile))
+
+    def process(input_file: str, options: dict) -> None:
+        outputfile = video.deshake(input_file, out_file=options.get("outputfile", None), **options)
+        print("Generated {}".format(outputfile))
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

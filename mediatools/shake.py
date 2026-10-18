@@ -28,6 +28,7 @@ Arguments: -c <color> -r <ratio> -n <slices> -d <direction>
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.imagefile as image
+import utilities.file as fil
 
 
 def main():
@@ -36,11 +37,14 @@ def main():
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")
     parser.add_argument("-c", "--color", required=False, default="black", help="Blinds color")
     parser.add_argument("-r", "--shake_ratio", required=False, type=float, default=3.0, help="Size of the shake")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
-    output = image.ImageFile(kwargs.pop("inputfiles")[0]).shake(kwargs["slices"], kwargs["shake_ratio"], kwargs["color"], kwargs["direction"])
-    log.logger.info("Generated %s", output)
-    print("Generated %s", output)
+    def process(input_file: str, options: dict) -> None:
+        output = image.ImageFile(input_file).shake(options["slices"], options["shake_ratio"], options["color"], options["direction"])
+        log.logger.info("Generated %s", output)
+        print("Generated", output)
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

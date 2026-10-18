@@ -25,6 +25,7 @@ import sys
 import mediatools.utilities as util
 import mediatools.audiofile as audio
 from mediatools import log
+import utilities.file as fil
 
 
 def _atempo_filters(factor: float) -> list[str]:
@@ -70,14 +71,16 @@ def main():
         type=float,
         help="Target duration as %% of original (e.g. 90 = 10%% faster, 110 = 10%% slower)",
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.AUDIO_FILE)
     size_percent = kwargs["size"]
     if size_percent <= 0:
         log.logger.error("--size must be a positive number, got %g", size_percent)
         sys.exit(1)
-    input_file = kwargs["inputfiles"][0]
-    output = speed(input_file, kwargs.get("outputfile"), size_percent)
-    util.generated_file(output)
+
+    def process(input_file: str, options: dict) -> None:
+        util.generated_file(speed(input_file, options.get("outputfile"), size_percent))
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

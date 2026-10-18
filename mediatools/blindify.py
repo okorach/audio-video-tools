@@ -25,6 +25,7 @@
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.imagefile as image
+import utilities.file as fil
 
 
 def main():
@@ -32,11 +33,15 @@ def main():
     parser.add_argument("-n", "--blinds", required=False, default=10, help="Number of blinds")
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")
     parser.add_argument("-c", "--background_color", required=False, default="black", help="Blinds color")
-    parser.add_argument("-b", "--blinds_size", required=False, default="3%", help="Size of the blind like 2%")
-    kwargs = util.parse_media_args(parser)
-    output = image.ImageFile(kwargs.pop("inputfiles")).blindify(**kwargs)
-    log.logger.info("Generated file %s", output)
-    print("Generated file {}".format(output))
+    parser.add_argument("-b", "--blinds_size", required=False, default="3%", help="Size of the blind like 2%%")
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
+
+    def process(input_file: str, options: dict) -> None:
+        output = image.ImageFile(input_file).blindify(**options)
+        log.logger.info("Generated file %s", output)
+        print("Generated file {}".format(output))
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

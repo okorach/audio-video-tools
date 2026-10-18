@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""This script renames files with format YYYY-MM-DD_HHMMSS_<root>
-"""
+"""This script renames files with format YYYY-MM-DD_HHMMSS_<root>"""
 
 from __future__ import annotations
 
@@ -131,14 +130,23 @@ def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
 def main() -> None:
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
-    parser.add_argument("-f", "--files", nargs="+", help="List of files to rename", required=True)
+    parser.add_argument(
+        "-i",
+        "--inputfiles",
+        "-f",
+        "--files",
+        dest="inputfiles",
+        nargs="+",
+        help="Files and/or directories to process (-f/--files is a deprecated alias)",
+        required=True,
+    )
     parser.add_argument("--mode", help="filename or offset or absolute or year", required=True)
     parser.add_argument("--offset", help="Time to add or remove, prefix with - to remove", required=False)
     parser.add_argument("--year", help="Proper year of the file", required=False)
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
-    file_list = fil.file_list(*kwargs["files"], file_type=None, recurse=False)
+    file_list = kwargs["inputfiles"]
     file_list = [f for f in file_list if fil.extension(f).lower() in fil.IMAGE_AND_VIDEO_EXTENSIONS]
     mode = kwargs["mode"]
     if mode == "filename":

@@ -25,6 +25,7 @@ import mediatools.utilities as util
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.media_config as conf
+import utilities.file as fil
 
 
 def main():
@@ -34,25 +35,28 @@ def main():
     parser.add_argument("--speed", required=False, type=float, help="Panorama or zoom speed")
     parser.add_argument("--vspeed", required=False, type=float, default=0, help="Panorama or zoom vertical speed")
     parser.add_argument("--duration", required=False, type=float, help="Panorama or zoom duration")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
-    inputfile = kwargs.pop("inputfiles")[0]
     resolution = kwargs.get("resolution", conf.get_property("default.video.resolution"))
-    kwargs.pop("resolution")
+    kwargs.pop("resolution", None)
 
     if kwargs.get("bounds", None) is not None:
         kwargs["effect"] = [float(x) for x in kwargs["bounds"].split(",")]
+    style = kwargs.pop("style", "zoom")
 
-    try:
-        if kwargs.pop("style", "zoom") == "panorama":
-            output = image.ImageFile(inputfile).panorama(resolution=resolution, **kwargs)
-        else:
-            output = image.ImageFile(inputfile).zoom(resolution=resolution, **kwargs)
-    except ex.InputError as e:
-        log.logger.critical(e.message)
-        print("ERROR: {}", e.message)
-        sys.exit(ex.InputError("Missing args", "image2video"))
-    util.generated_file(output)
+    def process(inputfile: str, options: dict) -> None:
+        try:
+            if style == "panorama":
+                output = image.ImageFile(inputfile).panorama(resolution=resolution, **options)
+            else:
+                output = image.ImageFile(inputfile).zoom(resolution=resolution, **options)
+        except ex.InputError as e:
+            log.logger.critical(e.message)
+            print("ERROR: {}", e.message)
+            sys.exit(ex.InputError("Missing args", "image2video"))
+        util.generated_file(output)
+
+    util.process_input_files(kwargs, process)
     sys.exit(0)
 
 

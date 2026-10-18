@@ -31,8 +31,12 @@ import shutil
 import subprocess
 import sys
 import argparse
+import mediatools.utilities as util
 
 GS_BINARIES = ("gswin64c", "gswin32c", "gs")
+
+# Extensions of the PDF files found in the input directories
+PDF_EXTENSIONS = ("pdf",)
 
 # Resolution in pixels per inch -> Ghostscript PDFSETTINGS preset
 PPP_PRESETS = {150: "ebook", 300: "printer", 600: "prepress"}
@@ -89,8 +93,10 @@ def split(pdf_file, ppp=DEFAULT_PPP):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Splits a PDF file into 1 PDF file per page (requires Ghostscript)")
-    parser.add_argument("-i", "--inputfile", required=True, help="Input PDF file")
+    parser = argparse.ArgumentParser(description="Splits PDF files into 1 PDF file per page (requires Ghostscript)")
+    parser.add_argument(
+        "-i", "--inputfiles", required=True, nargs="+", help="Input PDF files and/or directories (all the PDF files they contain are processed)"
+    )
     parser.add_argument(
         "--ppp",
         required=False,
@@ -100,15 +106,21 @@ def main():
         help="Compression level in pixels per inch: 150 (/ebook, default), 300 (/printer) or 600 (/prepress)",
     )
     args = parser.parse_args()
-    if not os.path.isfile(args.inputfile):
-        print(f"File {args.inputfile} not found")
+    failed = 0
+    for input_file in util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS):
+        if not os.path.isfile(input_file):
+            print(f"File {input_file} not found")
+            failed += 1
+            continue
+        try:
+            nb_pages = split(input_file, args.ppp)
+        except (RuntimeError, subprocess.CalledProcessError) as e:
+            print(f"ERROR: {e}")
+            failed += 1
+            continue
+        print(f"Split {input_file} into {nb_pages} files")
+    if failed:
         sys.exit(1)
-    try:
-        nb_pages = split(args.inputfile, args.ppp)
-    except (RuntimeError, subprocess.CalledProcessError) as e:
-        print(f"ERROR: {e}")
-        sys.exit(1)
-    print(f"Split {args.inputfile} into {nb_pages} files")
 
 
 if __name__ == "__main__":

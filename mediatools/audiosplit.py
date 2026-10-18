@@ -55,6 +55,7 @@ from mediatools import log
 import mediatools.utilities as util
 import mediatools.audiofile as audio
 from filters import filters
+import utilities.file as fil
 
 
 def _checkerboard_kernel(M: int) -> object:  # noqa: N803
@@ -326,8 +327,7 @@ def main() -> None:
     )
     parser.add_argument("--dry-run", required=False, default=False, action="store_true", help="Only detect and print change points, do not split")
 
-    kwargs = util.parse_media_args(parser)
-    input_file = kwargs.pop("inputfiles")[0]
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.AUDIO_FILE)
     fade_duration = kwargs.get("fade_duration", 1.0)
     min_segment = kwargs.get("min_segment", 30.0)
     sensitivity = kwargs.get("sensitivity", 0.5)
@@ -337,23 +337,26 @@ def main() -> None:
         log.logger.error("Sensitivity must be between 0.0 and 1.0")
         sys.exit(1)
 
-    boundaries = detect_tune_changes(input_file, sensitivity=sensitivity, min_segment=min_segment)
+    def process(input_file: str, options: dict) -> None:
+        boundaries = detect_tune_changes(input_file, sensitivity=sensitivity, min_segment=min_segment)
 
-    if not boundaries:
-        log.logger.warning("No tune changes detected. Try increasing --sensitivity or decreasing --min-segment.")
-        print("No tune changes detected.")
-        return
+        if not boundaries:
+            log.logger.warning("No tune changes detected in %s. Try increasing --sensitivity or decreasing --min-segment.", input_file)
+            print("No tune changes detected.")
+            return
 
-    print(f"Detected {len(boundaries)} tune change(s):")
-    for i, b in enumerate(boundaries):
-        print(f"  {i + 1}. {util.to_hms_str(b)} ({b:.1f}s)")
+        print(f"Detected {len(boundaries)} tune change(s) in {input_file}:")
+        for i, b in enumerate(boundaries):
+            print(f"  {i + 1}. {util.to_hms_str(b)} ({b:.1f}s)")
 
-    if dry_run:
-        print("Dry run mode - no files generated.")
-        return
+        if dry_run:
+            print("Dry run mode - no files generated.")
+            return
 
-    output_files = split_audio_at_boundaries(input_file, boundaries, fade_duration=fade_duration)
-    print(f"Generated {len(output_files)} segment(s).")
+        output_files = split_audio_at_boundaries(input_file, boundaries, fade_duration=fade_duration)
+        print(f"Generated {len(output_files)} segment(s).")
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,8 @@ import sys
 from pathlib import Path
 
 from mediatools import log
-from mediatools.pdf_split import find_ghostscript, GS_BINARIES
+import mediatools.utilities as util
+from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PDF_EXTENSIONS
 
 MERGED_POSTFIX = "_merged"
 
@@ -66,15 +67,22 @@ def merge(pdf_files: list, out_file: str | None = None) -> str:
 def main() -> None:
     """Entry point of the pdf-merge command"""
     parser = argparse.ArgumentParser(description="Merges several PDF files into 1 PDF file (requires Ghostscript)")
-    parser.add_argument("-i", "--inputfiles", required=True, nargs="+", help="Input PDF files (merged in lexicographic order)")
+    parser.add_argument(
+        "-i",
+        "--inputfiles",
+        required=True,
+        nargs="+",
+        help="Input PDF files and/or directories, the PDF files they contain being included (merged in lexicographic order)",
+    )
     parser.add_argument("-o", "--outputfile", required=False, default=None, help="Output PDF file (default: first input file with a _merged postfix)")
     args = parser.parse_args()
     try:
-        out = merge(args.inputfiles, args.outputfile)
+        input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
+        out = merge(input_files, args.outputfile)
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as e:
         log.logger.error("%s", e)
         sys.exit(1)
-    log.logger.info("Merged %d files into %s", len(args.inputfiles), out)
+    log.logger.info("Merged %d files into %s", len(input_files), out)
 
 
 if __name__ == "__main__":

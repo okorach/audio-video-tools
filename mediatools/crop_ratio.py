@@ -23,14 +23,19 @@
 
 import mediatools.utilities as util
 import mediatools.imagefile as image
+import utilities.file as fil
 
 
 def main():
     parser = util.get_common_args("image-crop-ratio", "Image cropper")
     parser.add_argument("--align", required=False, default="center", help="How to crop")
     parser.add_argument("--ratio", required=True, help="W/H ratio of picture like 2, 1.5")
-    kwargs = util.parse_media_args(parser)
-    image.ImageFile(kwargs["inputfiles"]).crop_any(kwargs["ratio"], kwargs["align"])
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
+
+    def process(input_file: str, options: dict) -> None:
+        image.ImageFile(input_file).crop_any(options["ratio"], options["align"])
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

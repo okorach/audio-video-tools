@@ -38,12 +38,7 @@ def main():
     parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to shuffle")
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     kwargs = util.parse_media_args(parser)
-    files_to_shuffle = []
-    for file in kwargs["inputfiles"]:
-        if os.path.isdir(file):
-            files_to_shuffle += fil.dir_list(file, recurse=False)
-        else:
-            files_to_shuffle.append(file)
+    files_to_shuffle = list(kwargs["inputfiles"])
 
     log.logger.info("Unfiltered files (%d)", len(files_to_shuffle))
     files_to_shuffle = [f for f in files_to_shuffle if fil.is_media_file(f)]

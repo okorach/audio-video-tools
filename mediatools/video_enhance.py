@@ -96,7 +96,7 @@ def main():
     parser.add_argument(
         "--no_stabilize", required=False, default=False, action="store_true", help="Skip video stabilization (stabilization is applied by default)"
     )
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fileutil.FileType.VIDEO_FILE)
 
     output_file = kwargs.get("outputfile", None)
     saturation = kwargs["saturation"]
@@ -106,7 +106,7 @@ def main():
     hw_accel = None if kwargs.get("gpu_filters", False) else False
     do_stabilize = not kwargs.get("no_stabilize", False)
 
-    all_files = fileutil.file_list(*kwargs["inputfiles"], file_type=fileutil.FileType.VIDEO_FILE, recurse=True)
+    all_files = kwargs["inputfiles"]
     files = [f for f in all_files if ".color." not in os.path.basename(f) and ".original." not in os.path.basename(f)]
     if len(files) < len(all_files):
         log.logger.info("Skipped %d already-generated file(s) (.color./.original.)", len(all_files) - len(files))

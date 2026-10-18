@@ -31,6 +31,7 @@ from mediatools import log
 from mediatools import creator
 import mediatools.videofile as video
 import mediatools.utilities as util
+import utilities.file as fil
 
 POSITIONS = ("top", "center", "bottom", "left", "right")
 # Corner shortcuts, each is the equivalent of the 2 options it is made of (eg --topleft is --top --left)
@@ -54,7 +55,7 @@ def main() -> None:
     for corner, (vertical, horizontal) in CORNERS.items():
         parser.add_argument(f"--{corner}", required=False, default=False, action="store_true", help=f"Same as --{vertical} --{horizontal}")
     parser.add_argument("--hw_accel", required=False, choices=["auto", "off", "on"], help="Use Nvidia HW acceleration")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     selected = {p for p in POSITIONS if kwargs.pop(p, False)}
     for corner, parts in CORNERS.items():
@@ -72,13 +73,16 @@ def main() -> None:
         log.logger.error("Invalid --box value: %s", str(e))
         sys.exit(2)
     log.logger.debug("KW=%s", str(kwargs))
-    try:
-        outputfile = creator.file(kwargs.pop("inputfiles")[0]).crop(out_file=kwargs.pop("outputfile", None), **kwargs)
-    except (ValueError, subprocess.CalledProcessError) as e:
-        log.logger.error("Crop failed: %s", str(e))
-        sys.exit(1)
-    log.logger.info("Generated %s", outputfile)
-    print("Generated {}".format(outputfile))
+
+    def process(input_file: str, options: dict) -> None:
+        try:
+            outputfile = creator.file(input_file).crop(out_file=options.pop("outputfile", None), **options)
+        except (ValueError, subprocess.CalledProcessError) as e:
+            raise ValueError(f"Crop failed: {e}") from e
+        log.logger.info("Generated %s", outputfile)
+        print("Generated {}".format(outputfile))
+
+    util.process_input_files(kwargs, process)
 
 
 if __name__ == "__main__":

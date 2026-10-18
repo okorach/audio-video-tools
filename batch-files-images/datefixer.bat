@@ -1,6 +1,6 @@
 :: setlocal enabledelayedexpansion
 
 set /p datestamp=Datestamp ?
-datefixer --mode offset --offset="%datestamp%" --files %*
+datefixer --mode offset --offset="%datestamp%" -i %*
 
 pause
