@@ -43,6 +43,7 @@ def main():
     files = []
     util.init("video-slideshow")
     resolution = conf.get_property("default.video.resolution")
+    hw_accel = util.get_hw_accel_mode()
     me = sys.argv.pop(0).split(os.sep)[-1]
     while sys.argv:
         arg = sys.argv.pop(0)
@@ -50,13 +51,18 @@ def main():
             util.set_debug_level(sys.argv.pop(0))
         elif arg == "--resolution":
             resolution = sys.argv.pop(0)
+        elif arg == "--hw_accel":
+            hw_accel = sys.argv.pop(0)
+            if hw_accel not in util.HW_ACCEL_MODES:
+                print(f"--hw_accel must be one of {', '.join(util.HW_ACCEL_MODES)}")
+                sys.exit(1)
         elif arg[0] == "-":
-            print(f"Usage: {me} [-g <LEVEL>] [-h] [--resolution WxH] <file1> ... <filen>")
+            print(f"Usage: {me} [-g <LEVEL>] [-h] [--resolution WxH] [--hw_accel auto|on|off] <file1> ... <filen>")
             sys.exit(1)
         else:
             files.append(arg)
     if files:
-        output, operations = video.slideshow(*files, resolution=resolution)
+        output, operations = video.slideshow(*files, resolution=resolution, hw_accel=hw_accel)
         json_file = output + ".json"
         _dump_report_(operations, json_file)
         msg = f"File {output} generated, report is {json_file}"

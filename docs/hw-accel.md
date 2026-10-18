@@ -1,0 +1,40 @@
+# Hardware acceleration (`--hw_accel`)
+
+The tools that decode or encode videos can use the Nvidia hardware acceleration (CUDA decoding, NVENC encoding).
+Every tool that runs ffmpeg has the `--hw_accel` option:
+
+| Value | Behavior |
+|-------|----------|
+| `auto` (default) | The hardware acceleration is used when it's available. If a command fails with it, the tool tries again with the CPU |
+| `on` | The hardware acceleration is always used, a failure is an error |
+| `off` | The CPU is always used |
+
+The default can be changed with the `default.hw_accel` property of `~/.mediatools.properties`.
+
+## Auto mode
+
+- The availability of the hardware acceleration is checked once per run, by encoding a few frames of a test video with
+  NVENC. If it's not available (no Nvidia GPU, missing driver), the CPU is used and nothing is retried.
+- When it's available, every ffmpeg command that decodes and encodes video uses it: `video-encode`, `encode`, `media-crop`
+  and `video-concat` (also the concatenation of the parts of a long `video-slideshow`).
+- If such a command fails (a source format the GPU can't decode, a resolution or a filter the encoder doesn't support...),
+  a warning is logged and the whole operation is run again on the CPU, so that the result is the same as with `--hw_accel off`.
+  The operation is only run again if a hardware accelerated command was run, so a failure that has nothing to do with the GPU
+  (a missing file, an invalid option) is reported at once.
+- Deinterlacing (`--deinterlace`) is not compatible with the hardware acceleration: the CPU is used in auto mode.
+
+## Tools
+
+`video-slideshow` builds its filter graph on the CPU unless `--hw_accel on` is given (the graph fails with hardware accelerated
+frames on some systems).
+
+The operations that always use the CPU don't use the hardware acceleration whatever the option: video filters that run on the
+CPU only (`video-reverse`, `video-speed`, `video-stabilize`, `video-enhance` color filters), the copy of streams
+(`media-cut`, `video-mux`, `video-metadata`), and the image and audio tools. They accept the option so that the same command line
+works with all the tools.
+
+## In the code
+
+`util.hw_accel_fallback` decorates the functions that run hardware accelerated commands (`VideoFile.encode`, `VideoFile.crop`,
+`concat`, `slideshow`): they get the `hw_accel` mode in their arguments and test `util.use_hardware_accel(**kwargs)` to build
+their command. `util.get_hw_accel_mode()` returns the mode (`auto`, `on` or `off`).

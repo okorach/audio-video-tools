@@ -34,9 +34,9 @@ def main():
     parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to concatenate", required=True)
     parser.add_argument("-o", "--outputfile", help="Output file to generate", required=True)
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
-    parser.add_argument("--hw_accel", required=False, choices=["auto", "off", "on"], help="Use Nvidia HW acceleration")
+    util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
-    output = video.concat(kwargs.get("outputfile"), kwargs.pop("inputfiles"), hw_accel=kwargs.get("hw_accel", False))
+    output = video.concat(kwargs.get("outputfile"), kwargs.pop("inputfiles"), hw_accel=kwargs["hw_accel"])
     util.generated_file(output)
 
 

@@ -54,7 +54,6 @@ def main() -> None:
     parser.add_argument("--right", required=False, default=False, action="store_true", help="Crop region is aligned with the right of the source")
     for corner, (vertical, horizontal) in CORNERS.items():
         parser.add_argument(f"--{corner}", required=False, default=False, action="store_true", help=f"Same as --{vertical} --{horizontal}")
-    parser.add_argument("--hw_accel", required=False, choices=["auto", "off", "on"], help="Use Nvidia HW acceleration")
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     selected = {p for p in POSITIONS if kwargs.pop(p, False)}

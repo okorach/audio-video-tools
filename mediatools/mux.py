@@ -36,6 +36,7 @@ def main():
     parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to mux")
     parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser)
 
     afiles = kwargs.pop("inputfiles")

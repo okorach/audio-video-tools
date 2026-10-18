@@ -37,6 +37,7 @@ def main():
     parser.add_argument("inputfiles", metavar="N", type=str, nargs="+", help="List of files to mux")
     parser.add_argument("--scale", help=f"Rescaling of image, {DEFAULT_RESCALING} by default", required=False)
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser)
 
     files = kwargs["inputfiles"]

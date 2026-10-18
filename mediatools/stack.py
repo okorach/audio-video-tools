@@ -40,6 +40,7 @@ def main():
     parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to stack", required=True)
     parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_hw_accel_arg(parser)
     parser.add_argument("-d", "--direction", required=False, choices=["vertical", "horizontal"], default="vertical", help="How to stack images")
     parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], default="black", help="Background color of frame")
     parser.add_argument("-m", "--margin", required=False, default=0, help="Width of frame")
