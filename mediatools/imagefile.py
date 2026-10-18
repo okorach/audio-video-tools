@@ -116,7 +116,7 @@ class ImageFile(media.MediaFile):
     def scale(self, w: int = -1, h: int = -1, out_file: str | None = None) -> str:
         out_file = util.automatic_output_file_name(out_file, self.filename, f"scale-{w}x{h}")
         if w == -1 and h == -1:
-            shutil.copy(self.filename, out_file)
+            shutil.copy2(self.filename, out_file)
             return out_file
         log.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
         util.run_ffmpeg(f'-i "{self.filename}" -vf "{filters.scale(w, h)}" "{out_file}"')
