@@ -106,9 +106,10 @@ class FadeIn(Fade):
 
 
 class FadeOut(Fade):
+    """Fades out during the duration that starts at start (the end of the video minus the duration)"""
 
-    def __init__(self, duration: float = 0.5, **kwargs) -> None:
-        super().__init__(start=self.inputs[0].duration() - duration, direction="in", duration=duration, **kwargs)
+    def __init__(self, start: float = 0.0, duration: float = 0.5, **kwargs) -> None:
+        super().__init__(start=start, direction="out", duration=duration, **kwargs)
 
 
 class Sar(Simple):
@@ -128,7 +129,7 @@ class Trim(Simple):
         self.params: dict = kwargs.copy()
 
     def __str__(self) -> str:
-        return f"trim=start={self.start}end={self.end}" + "".join([f"{k}={v}" for k, v in self.params.items()])
+        return f"trim=start={self.start}:end={self.end}" + "".join([f":{k}={v}" for k, v in self.params.items()])
 
 
 class Scale(Simple):
@@ -256,7 +257,7 @@ class Rotate(Simple):
         self.params: dict = kwargs.copy()
 
     def __str__(self) -> str:
-        return "rotate=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
+        return f"rotate={self.angle}" + "".join([f":{k}={v}" for k, v in self.params.items()])
 
 
 # -------------------------------------------------------------------------------
@@ -316,7 +317,7 @@ def in_out(filter_str: str, in_streams: list | tuple | str, out_streams: list | 
 
 
 def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
-    opts = ":".join([f"{k}={v}" for k, v in kwargs])
+    opts = ":".join([f"{k}={v}" for k, v in kwargs.items()])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 

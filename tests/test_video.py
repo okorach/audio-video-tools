@@ -401,3 +401,21 @@ def test_no_deinterlace_by_default():
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
         v.encode(target_file=TMP1, hw_accel=False, vcodec="x264")
     assert "yadif" not in run.call_args[0][0]
+
+
+@pytest.mark.parametrize(
+    ("options", "fade_out_start", "duration"),
+    [
+        ({"fade": "1"}, "9.0", "1.0"),  # 10 seconds video
+        ({"fade": "0.5", "start": 2, "stop": 6}, "3.5", "0.5"),  # 4 seconds encoded
+        ({"fade": "yes"}, "9.5", "0.5"),  # Not a duration: 0.5 second
+    ],
+)
+def test_fade_in_and_out(options, fade_out_start, duration):
+    """--fade fades in at the start and out at the end of the part of the video that is encoded"""
+    v = video.VideoFile(FILE)
+    with mock.patch("mediatools.utilities.run_ffmpeg") as run:
+        v.encode(target_file=TMP1, hw_accel=False, vcodec="x264", **options)
+    cmd = run.call_args[0][0]
+    assert f"fade=t=in:st=0.0:d={duration}:alpha=1" in cmd
+    assert f"fade=t=out:st={fade_out_start}:d={duration}:alpha=1" in cmd
