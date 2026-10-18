@@ -49,13 +49,17 @@ owaspDependencyReport="$buildDir/dependency-check-report.json"
 rm -rf -- ${buildDir:?"."}/* .coverage */__pycache__ */*.pyc # mediatools/__pycache__  tests/__pycache__
 
 if [[ $skiptests -eq 0 ]]; then
-  ./run_tests.sh
+  coverage run -m pytest --junitxml="$buildDir/ut.xml"
+  coverage xml -o "$buildDir/coverage.xml"
 else
   echo "Skipping tests"
 fi
 
 if [[ "$dolint" != "false" ]]; then
-  ./run_linters.sh
+  ruff check --output-format=concise . | tee "$buildDir/ruff-report.txt" | python3 ruff2sonar.py >"$buildDir/ruff-report.json"
+  pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" >"$buildDir/pylint-report.out"
+  flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391,F401,E722 --max-line-length=150 . >"$buildDir/flake8-report.out"
+  bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests >"$buildDir/bandit-report.json"
 fi
 
 dependency-check --scan . --format JSON --prettyPrint --out $owaspDependencyReport

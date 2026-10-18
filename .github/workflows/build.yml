@@ -38,28 +38,45 @@ jobs:
       #     run: |
       #       pytest
       - name: Run tests
-        working-directory: .
         run: |
-          chmod +x ./run_tests.sh
-          ./run_tests.sh
-          # echo "--------- UT report ---------"; cat build/ut.xml
-          # echo "---------Coverage report ---------"; cat build/coverage.xml
-      - name: Run linters
-        working-directory: .
+          mkdir -p build
+          coverage run -m pytest --junitxml=build/ut.xml
+      - name: Coverage report
+        if: success() || failure()
         run: |
-          chmod +x ./run_linters.sh
-          ./run_linters.sh
+          coverage xml -o build/coverage.xml
+      - name: Run ruff
+        if: success() || failure()
+        run: |
+          mkdir -p build
+          # ruff reports the issues with its exit code: the issues are reported to SonarCloud, they don't fail the build
+          ruff check --output-format=concise . | tee build/ruff-report.txt | python ruff2sonar.py > build/ruff-report.json || true
+      - name: Run pylint
+        if: success() || failure()
+        run: |
+          pylint *.py */*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" | tee build/pylint-report.out || true
+      - name: Run flake8
+        if: success() || failure()
+        run: |
+          flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391,F401,E722 --max-line-length=150 . > build/flake8-report.out || true
+      - name: Run bandit
+        if: success() || failure()
+        run: |
+          bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests > build/bandit-report.json
       - name: Patch project version
+        if: success() || failure()
         run: |
           version=$(grep VERSION mediatools/version.py | cut -d "=" -f 2 | sed "s/[\'\" ]//g")
           echo "sonar.projectVersion=$version" >> sonar-project.properties
       - name: Cache SonarQube packages
+        if: success() || failure()
         uses: actions/cache@v5
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: SonarQube Cloud scan
+        if: success() || failure()
         uses: SonarSource/sonarqube-scan-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
