@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import os
 import sys
-import re
 import argparse
 import datetime
 
@@ -48,82 +47,12 @@ _M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "
 from mediatools import log
 import mediatools.utilities as util
 import utilities.file as fil
+from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
 musicbrainzngs.set_useragent("audio-video-tools", "0.9", "olivier.korach@gmail.com")
-
-# ---------------------------------------------------------------------------
-# Regex patterns for directory and filename parsing
-# ---------------------------------------------------------------------------
-# Directory: "Artist - Album" or "Artist - Album (Year)" or "Artist"
-_DIR_ARTIST_ALBUM_RE = re.compile(r"^(.+?)\s+-\s+(.+?)(?:\s*[\(\[]\s*(\d{4})\s*[\)\]])?\s*$")
-# Track prefix in filename: "01 ", "01 - ", "01. ", "(01) " etc.
-_TRACK_PREFIX_RE = re.compile(r"^\s*[\(\[]?(\d{1,3})[\)\].]?\s*[-.]?\s*")
-# Artist - Title separator in filename
-_ARTIST_TITLE_RE = re.compile(r"^(.+?)\s+-\s+(.+)$")
-
-
-# ---------------------------------------------------------------------------
-# Capitalisation helpers
-# ---------------------------------------------------------------------------
-
-
-def title_case(text: str) -> str:
-    """Every word's first letter uppercase (artist style)."""
-    if not text:
-        return text
-    return " ".join(w.capitalize() for w in text.split())
-
-
-def sentence_case(text: str) -> str:
-    """Only the very first letter uppercase, rest lowercase (track title style)."""
-    if not text:
-        return text
-    return text[0].upper() + text[1:].lower()
-
-
-# ---------------------------------------------------------------------------
-# Filename / directory parsing
-# ---------------------------------------------------------------------------
-
-
-def parse_dir_name(dir_name: str) -> tuple[str | None, str | None, int | None]:
-    """Returns (artist, album, year) extracted from a directory base name."""
-    m = _DIR_ARTIST_ALBUM_RE.match(dir_name)
-    if m:
-        artist = title_case(m.group(1).strip())
-        album = m.group(2).strip()
-        year = int(m.group(3)) if m.group(3) else None
-        return artist, album, year
-    return title_case(dir_name.strip()), None, None
-
-
-def parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None]:
-    """Returns (track_number, artist, title) parsed from a file base name (no extension)."""
-    track: int | None = None
-    artist: str | None = None
-    title: str | None = None
-
-    # Strip a leading track number if present
-    tm = _TRACK_PREFIX_RE.match(base_name)
-    if tm:
-        track = int(tm.group(1))
-        rest = base_name[tm.end() :].strip()
-    else:
-        rest = base_name.strip()
-
-    # Try "Artist - Title"
-    am = _ARTIST_TITLE_RE.match(rest)
-    if am:
-        artist = title_case(am.group(1).strip())
-        title = sentence_case(am.group(2).strip())
-    else:
-        title = sentence_case(rest) or None
-
-    return track, artist, title
-
 
 # ---------------------------------------------------------------------------
 # MusicBrainz lookup
@@ -398,38 +327,8 @@ def main() -> None:
     if dry_run:
         log.logger.info("DRY RUN mode — no files will be modified")
 
-    # Collect directories to process and loose audio files grouped by their parent directory
-    dirs_to_process: list[str] = []
-    files_by_dir: dict[str, list[str]] = {}
-
-    for entry in inputs:
-        entry = os.path.abspath(entry)
-        if os.path.isdir(entry):
-            dirs_to_process.append(entry)
-        elif fil.is_audio_file(entry):
-            parent = os.path.dirname(entry)
-            files_by_dir.setdefault(parent, []).append(entry)
-        else:
-            log.logger.warning("Skipping %s: not a directory or audio file", entry)
-
-    # For directories: process each immediate subdirectory, then any audio files at the root level
-    for root in sorted(dirs_to_process):
-        if not os.path.isdir(root):
-            log.logger.error("Directory not found: %s", root)
-            continue
-        subdirs = sorted([os.path.join(root, d) for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
-        root_audio = [os.path.join(root, f) for f in os.listdir(root) if fil.is_audio_file(f)]
-        if subdirs:
-            log.logger.info("Processing %d subdirectories under %s", len(subdirs), root)
-            for subdir in subdirs:
-                log.logger.info("=== Processing directory: %s ===", subdir)
-                try:
-                    process_directory(subdir, dry_run)
-                except Exception as e:
-                    log.logger.error("Error processing %s: %s", subdir, str(e))
-        if root_audio:
-            log.logger.info("Processing %d audio file(s) directly in %s", len(root_audio), root)
-            process_directory(root, dry_run)
+    dirs_to_process, files_by_dir = collect_inputs(inputs)
+    process_album_directories(dirs_to_process, process_directory, dry_run)
 
     # For individual files: process them with the context of their parent directory
     for parent, file_list in sorted(files_by_dir.items()):

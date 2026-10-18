@@ -278,7 +278,7 @@ def test_load_config_without_files(tmp_path, monkeypatch):
 
 def test_load_config_without_permission(tmp_path):
     with mock.patch("builtins.open", side_effect=PermissionError):
-        assert config.load_properties_file(tmp_path / "x.properties") == {}
+        assert not config.load_properties_file(tmp_path / "x.properties")
 
 
 # ---------------------------------------------------------------- filters (filters/filter.py)

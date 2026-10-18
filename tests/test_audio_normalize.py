@@ -236,7 +236,7 @@ def test_extract_tracks_from_release():
 
 
 def test_extract_tracks_empty():
-    assert norm.extract_tracks_from_release({}) == []
+    assert not norm.extract_tracks_from_release({})
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.get_release_by_id")

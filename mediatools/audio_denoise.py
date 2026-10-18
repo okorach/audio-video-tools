@@ -36,10 +36,9 @@ import os
 import sys
 from pathlib import Path
 
-from mediatools import creator
+from mediatools import creator, log
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools import log
 
 METHODS = ("wind", "afftdn", "arnndn")
 DEFAULT_METHOD = "wind"
