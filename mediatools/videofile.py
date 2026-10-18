@@ -39,6 +39,8 @@ from filters import filter  # noqa: A004
 from filters import filters
 import mediatools.media_config as conf
 
+H264_HW_DECODE_MAX_SIZE: int = 4096
+H264_HW_DECODE_PIX_FMTS: tuple[str, ...] = ("yuv420p", "yuvj420p", "nv12")
 DEFAULT_CROP_BOX: str = "1920x1080"
 # Names accepted by --box (case insensitive) as aliases of a WxH size
 CROP_BOX_ALIASES: dict[str, str] = {"4k": "3840x2160", "fhd": "1920x1080", "1k": "1920x1080", "hd": "1280x720"}
@@ -188,6 +190,15 @@ class VideoFile(media.MediaFile):
         if self.duration is None:
             self.get_specs()
         return self.duration
+
+    def can_hw_decode(self) -> bool:
+        """Returns False if the video can't be decoded by the GPU (NVDEC), in which case ffmpeg decodes it on the CPU:
+        H.264 is limited to 4096 pixels in each dimension and to 8 bits 4:2:0"""
+        stream = self.__get_first_video_stream__()
+        if stream.get("codec_name") != "h264":
+            return True
+        too_big = max(int(stream.get("width", 0)), int(stream.get("height", 0))) > H264_HW_DECODE_MAX_SIZE
+        return not too_big and stream.get("pix_fmt", "yuv420p") in H264_HW_DECODE_PIX_FMTS
 
     def get_fps(self, stream: dict | None = None) -> float | None:
         if self.video_fps is None:
@@ -429,6 +440,9 @@ class VideoFile(media.MediaFile):
             target_file = media.build_target_file(self.filename, profile)
 
         input_settings = media.get_input_settings(**kwargs)
+        if util.HW_ACCEL_PREFIX in input_settings and not self.can_hw_decode():
+            log.logger.info("%s can't be decoded by the GPU, decoding it on the CPU", self.filename)
+            input_settings.remove(util.HW_ACCEL_PREFIX)
         prefilter_settings = media.get_prefilter_settings(**kwargs)
         raw_settings = util.get_profile_params(profile)
         if raw_settings.pop(opt.OptionFfmpeg.DEINTERLACE, False):
@@ -555,7 +569,9 @@ class VideoFile(media.MediaFile):
         width = width if width and width > 0 else -2
         height = height if height and height > 0 else -2
         if util.use_hardware_accel(**kwargs):
-            return f"scale_cuda={width}:{height}"
+            # The frames of a video that the GPU can't decode are in system memory, they must be uploaded to the GPU
+            upload = "" if self.can_hw_decode() else "hwupload_cuda,"
+            return f"{upload}scale_cuda={width}:{height}"
         if kwargs.get(opt.Option.RESOLUTION) is not None:
             # Software resize with a --resolution is done by the -s output option
             return None
