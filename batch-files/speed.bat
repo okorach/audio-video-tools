@@ -18,9 +18,11 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-setlocal enabledelayedexpansion
+@echo off
+:: Usage: drop one or more video files or folders onto this batch file.
+:: The speed factor is asked (eg 4 = 4x faster, 0.5 = 2x slower, or 200%).
+:: The output videos have the same size and the same video bitrate as the input videos.
 set /p speed=Speed factor ?:
-for %%F in (%*) do (
-    video-speed -i "%%~F" --speed "%speed%"
-)
+
+video-speed -i %* --speed "%speed%"
 pause
