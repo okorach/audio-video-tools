@@ -39,7 +39,7 @@ def main():
     def process(input_file: str, options: dict) -> None:
         output = image.ImageFile(input_file).blindify(**options)
         log.logger.info("Generated file %s", output)
-        print("Generated file {}".format(output))
+        print(f"Generated file {output}")
 
     util.process_input_files(kwargs, process)
 

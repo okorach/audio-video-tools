@@ -83,7 +83,7 @@ def test_find_ghostscript() -> None:
 def test_page_count_mocked() -> None:
     """The page count is read from the Ghostscript output, with the path escaped in PostScript"""
     with mock.patch("subprocess.run", return_value=_gs_result(stdout="12\n")) as run:
-        assert pdf_split.page_count("gs", "C:\\dir\\fo(o).pdf") == 12  # noqa: PLR2004
+        assert pdf_split.page_count("gs", "C:\\dir\\fo(o).pdf") == 12
     assert "(C:/dir/fo\\(o\\).pdf)" in run.call_args[0][0][-1]
 
 
@@ -100,7 +100,7 @@ def test_split_mocked() -> None:
         mock.patch("mediatools.pdf_split.page_count", return_value=120),
         mock.patch("subprocess.run") as run,
     ):
-        assert pdf_split.split("foo.pdf", 300) == 120  # noqa: PLR2004
+        assert pdf_split.split("foo.pdf", 300) == 120
     cmd = run.call_args[0][0]
     assert "-dPDFSETTINGS=/printer" in cmd
     assert "-sOutputFile=foo.page_%03d.pdf" in cmd

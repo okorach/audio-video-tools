@@ -19,9 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script slows down or accelerate a video
-"""
+"""This script slows down or accelerate a video"""
 
 import sys
 import re

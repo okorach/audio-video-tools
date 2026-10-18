@@ -31,6 +31,7 @@ import re
 import argparse
 import pathlib
 import tempfile
+import uuid
 import subprocess
 import shlex
 from collections.abc import Callable
@@ -338,7 +339,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
             log.logger.info("%3d/%3d : %s", i, len(inputs), input_file)
         try:
             process(input_file, dict(options))
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.logger.error("Could not process %s: %s", input_file, e)
             failed += 1
     if failed:
@@ -561,7 +562,7 @@ def package_home() -> pathlib.Path:
 
 
 def get_tmp_file() -> str:
-    return tempfile.gettempdir() + os.sep + next(tempfile._get_candidate_names())
+    return tempfile.gettempdir() + os.sep + uuid.uuid4().hex[:8]
 
 
 def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:

@@ -79,7 +79,7 @@ def main() -> None:
         except (ValueError, subprocess.CalledProcessError) as e:
             raise ValueError(f"Crop failed: {e}") from e
         log.logger.info("Generated %s", outputfile)
-        print("Generated {}".format(outputfile))
+        print(f"Generated {outputfile}")
 
     util.process_input_files(kwargs, process)
 

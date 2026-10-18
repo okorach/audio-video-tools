@@ -123,9 +123,9 @@ def test_crop_box_position(short_video):
 def test_crop_too_big():
     v = video.VideoFile(FILE)
     w, h = v.dimensions()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="bigger than source video"):
         v.crop(out_file=TMP1, box=f"{w + 2}x{h}")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="bigger than source video"):
         v.crop(out_file=TMP1, box=f"{w}x{h + 2}")
 
 
@@ -229,7 +229,7 @@ def test_crop_keeps_creation_date():
         mock.patch("mediatools.videofile.set_creation_date") as set_date,
         mock.patch("mediatools.utilities.run_ffmpeg", side_effect=fake_encode),
     ):
-        set_date.side_effect = lambda *args, **kwargs: calls.append("set_date")
+        set_date.side_effect = lambda *_args, **_kwargs: calls.append("set_date")
         v.crop(out_file=TMP1, box="160x120", hw_accel="off")
     get_date.assert_called_once_with(v.filename)
     set_date.assert_called_once_with(TMP1, date)

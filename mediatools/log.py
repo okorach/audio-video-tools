@@ -20,12 +20,11 @@
 #
 
 import os
-import sys
 import logging
 import pathlib
 
 
-class _Utf8StreamHandler(logging.StreamHandler):
+class Utf8StreamHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             msg = self.format(record)
@@ -58,7 +57,7 @@ except PermissionError:
     fh = logging.FileHandler(fallback_log, encoding="utf-8")
 
 # fh.setLevel(logging.DEBUG)
-ch: logging.StreamHandler = _Utf8StreamHandler()
+ch: logging.StreamHandler = Utf8StreamHandler()
 # ch.setLevel(logging.DEBUG)
 logger.addHandler(fh)
 logger.addHandler(ch)
@@ -76,7 +75,7 @@ def set_logger(name: str) -> None:
     except PermissionError:
         _fallback_log = pathlib.Path(os.getenv("TMP", "/")) / (name + ".log")
         new_fh = logging.FileHandler(_fallback_log, encoding="utf-8")
-    new_ch = _Utf8StreamHandler()
+    new_ch = Utf8StreamHandler()
     logger.addHandler(new_fh)
     logger.addHandler(new_ch)
     new_fh.setFormatter(formatter)

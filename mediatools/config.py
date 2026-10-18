@@ -29,10 +29,10 @@ from mediatools import log
 _CONFIG_SETTINGS: dict | None = None
 
 
-def _load_properties_file(file: str | pathlib.Path) -> dict:
+def load_properties_file(file: str | pathlib.Path) -> dict:
     settings: dict = {}
     try:
-        with open(file, "r", encoding="utf-8") as fp:
+        with open(file, encoding="utf-8") as fp:
             log.logger.info("Loading config file %s", file)
             settings = jprops.load_properties(fp)
     except FileNotFoundError:
@@ -48,9 +48,9 @@ def load(config_name: str | None = None, settings: dict | None = None) -> dict:
     if settings is None:
         settings = {}
 
-    default_conf = _load_properties_file(pathlib.Path(__file__).parent / f"{config_name}.properties")
-    home_conf = _load_properties_file(f"{os.path.expanduser('~')}{os.sep}.{config_name}.properties")
-    local_conf = _load_properties_file(f"{os.getcwd()}{os.sep}{config_name}.properties")
+    default_conf = load_properties_file(pathlib.Path(__file__).parent / f"{config_name}.properties")
+    home_conf = load_properties_file(f"{os.path.expanduser('~')}{os.sep}.{config_name}.properties")
+    local_conf = load_properties_file(f"{os.getcwd()}{os.sep}{config_name}.properties")
 
     _CONFIG_SETTINGS = {**default_conf, **home_conf, **local_conf, **settings}
 
@@ -86,7 +86,7 @@ def get_property(name: str, settings: dict | None = None) -> object:
 
 def configure(seed: str) -> None:
     template_file = pathlib.Path(__file__).parent / f"{seed}.properties"
-    with open(template_file, "r", encoding="utf-8") as fh:
+    with open(template_file, encoding="utf-8") as fh:
         text = fh.read()
 
     config_file = f"{os.path.expanduser('~')}{os.sep}.{seed}.properties"
@@ -95,5 +95,5 @@ def configure(seed: str) -> None:
         print(text)
     else:
         log.logger.info("Creating file '%s'", config_file)
-        with open(config_file, "r", encoding="utf-8") as fh:
+        with open(config_file, encoding="utf-8") as fh:
             print(text, file=fh)

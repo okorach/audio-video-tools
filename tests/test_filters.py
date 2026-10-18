@@ -69,12 +69,12 @@ def test_str():
     assert str(testf) == ""
     f = fil.rotate(90)
     testf = fil.Simple(filters=f)
-    assert str(testf) == '-vf "{}"'.format(f)
+    assert str(testf) == f'-vf "{f}"'
     testf.append(f)
-    assert str(testf) == '-vf "{0},{0}"'.format(f)
+    assert str(testf) == f'-vf "{f},{f}"'
     o = fil.overlay()
     testf.insert(1, o)
-    assert str(testf) == '-vf "{0},{1},{0}"'.format(f, o)
+    assert str(testf) == f'-vf "{f},{o},{f}"'
 
     testf = fil.Simple(filters=[f, f])
-    assert str(testf) == '-vf "{0},{0}"'.format(f)
+    assert str(testf) == f'-vf "{f},{f}"'

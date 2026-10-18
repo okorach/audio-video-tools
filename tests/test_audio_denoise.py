@@ -138,23 +138,23 @@ def test_main() -> None:
     ):
         dn.main()
     assert e.value.code == 0
-    assert denoise.call_count == 2  # noqa: PLR2004
+    assert denoise.call_count == 2
     assert denoise.call_args.kwargs["level"] == "light"
-    assert denoise.call_args.kwargs["cutoff"] == 100  # noqa: PLR2004
+    assert denoise.call_args.kwargs["cutoff"] == 100
 
 
 def test_main_invalid_option() -> None:
     """An invalid option exits with code 2 before any processing"""
     with mock.patch.object(sys, "argv", ["audio-denoise", "-i", VIDEO, "--method", "arnndn"]), pytest.raises(SystemExit) as e:
         dn.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_main_output_with_several_inputs() -> None:
     """-o is refused with several input files"""
     with mock.patch.object(sys, "argv", ["audio-denoise", "-i", VIDEO, AUDIO, "-o", "x.mp4"]), pytest.raises(SystemExit) as e:
         dn.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_main_failure() -> None:
@@ -243,4 +243,4 @@ def test_main_keep_name_with_output_file() -> None:
     """-o and --keepName are refused together"""
     with mock.patch.object(sys, "argv", ["audio-denoise", "-i", AUDIO, "--keepName", "-o", "x.mp3"]), pytest.raises(SystemExit) as e:
         dn.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2

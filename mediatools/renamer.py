@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script renames files with format YYYY-MM-DD_HHMMSS_<root>
+"""This script renames files with format YYYY-MM-DD_HHMMSS_<root>
 
 The format may contain the placeholders:
 #SEQ# (#SEQ1# ... #SEQ5#) sequence number, #SIZE# WxH, #DEVICE#, #FPS#, #BITRATE#,
@@ -36,7 +35,7 @@ import argparse
 import concurrent.futures
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
-import mediatools.log as log
+from mediatools import log
 import utilities.file as fil
 
 SEQ: str = "#SEQ#"
@@ -111,10 +110,10 @@ def get_fps(exif_data: dict[str, str]) -> int | None:
 
 
 def get_formats(nb_photos: int, nb_videos: int, **kwargs) -> tuple[str, str]:
-    prefix = kwargs.get("prefix", None)
+    prefix = kwargs.get("prefix")
     pformat = vformat = SEQ
     if nb_videos > 0:
-        if kwargs.get("video_format", None) in (None, ""):
+        if kwargs.get("video_format") in (None, ""):
             if prefix is None:
                 print("Error: One of --prefix or --video_format option is required")
                 sys.exit(1)
@@ -122,7 +121,7 @@ def get_formats(nb_photos: int, nb_videos: int, **kwargs) -> tuple[str, str]:
         else:
             vformat = kwargs["video_format"]
     if nb_photos > 0:
-        if kwargs.get("photo_format", None) in (None, ""):
+        if kwargs.get("photo_format") in (None, ""):
             if prefix is None:
                 print("Error: One of --prefix or --photo_format option is required")
                 sys.exit(1)
@@ -176,9 +175,8 @@ def get_files_data(files: list[str], sortby: str) -> dict:
             elif sortby == "device":
                 if result["device"] is not None:
                     filelist[f"{result['device']} {seq:06}"] = result
-            else:
-                if result["creation_date"] is not None:
-                    filelist[f"{result['creation_date'].strftime(util.FILE_DATE_FMT)} {seq:06}"] = result
+            elif result["creation_date"] is not None:
+                filelist[f"{result['creation_date'].strftime(util.FILE_DATE_FMT)} {seq:06}"] = result
             seq += 1
             log.logger.debug("Renamed %d/%d files = %d%%", seq, nb_files, (100 * seq) // nb_files)
     return filelist

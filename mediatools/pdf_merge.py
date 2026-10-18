@@ -60,7 +60,7 @@ def merge(pdf_files: list, out_file: str | None = None) -> str:
     if gs is None:
         raise RuntimeError("Ghostscript not found on PATH (looked for " + ", ".join(GS_BINARIES) + ")")
     cmd = [gs, "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", "-dQUIET", f"-sOutputFile={out_file}", *pdf_files]
-    subprocess.run(cmd, check=True)  # noqa: S603
+    subprocess.run(cmd, check=True)
     return out_file
 
 

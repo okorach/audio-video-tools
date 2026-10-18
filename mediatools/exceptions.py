@@ -27,7 +27,7 @@ class FileTypeError(Exception):
         self.file: str = file
         self.message: str
         if message is None:
-            self.message = "File {} is not of the expected {} type".format(file, expected_type)
+            self.message = f"File {file} is not of the expected {expected_type} type"
         else:
             self.message = message
         super().__init__(self.message)
@@ -44,7 +44,7 @@ class InputError(Exception):
         else:
             self.message = message
         if operation is not None:
-            self.message = "{}: {}".format(operation, self.message)
+            self.message = f"{operation}: {self.message}"
         super().__init__(self.message)
 
 
@@ -59,5 +59,5 @@ class DimensionError(Exception):
         else:
             self.message = message
         if operation is not None:
-            self.message = "{}: {}".format(operation, self.message)
+            self.message = f"{operation}: {self.message}"
         super().__init__(self.message)

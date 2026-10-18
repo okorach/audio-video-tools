@@ -61,7 +61,7 @@ def test_encode_file_replaces_the_file_and_keeps_the_original(fake_ffmpeg, tmp_p
     assert params.startswith('-hwaccel cuda -i "')
     assert "-c:v hevc_nvenc" in params
     assert params.endswith('clip.encode.00.mp4"')
-    assert duration == 7.0  # noqa: PLR2004
+    assert duration == 7.0
     ea.video.set_creation_date.assert_called_once_with(str(tmp_path / "clip.encode.00.mp4"), "THE-DATE")
 
 
@@ -69,7 +69,7 @@ def test_encode_file_given_duration(fake_ffmpeg, tmp_path):
     src = tmp_path / "clip.mp4"
     src.write_text("original")
     ea.encode_file(str(src), "", "", True, duration=99.0)
-    assert fake_ffmpeg[0][1] == 99.0  # noqa: PLR2004
+    assert fake_ffmpeg[0][1] == 99.0
     ea.video.get_duration.assert_not_called()
 
 

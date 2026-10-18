@@ -62,21 +62,21 @@ def test_issues(monkeypatch, capsys):
     assert [i["ruleId"] for i in issues] == ["B904", "I001", "RUF012"]
     assert [i["primaryLocation"]["filePath"] for i in issues] == ["mediatools/foo.py", "mediatools/bar.py", "mediatools/baz.py"]
     assert issues[0]["primaryLocation"]["message"] == "Within an `except` clause, raise exceptions with `raise ... from err`"
-    assert all(i["engineId"] == "ruff" and i["effortMinutes"] == 5 for i in issues)  # noqa: PLR2004
+    assert all(i["engineId"] == "ruff" and i["effortMinutes"] == 5 for i in issues)
 
 
 def test_inline_range_marker(monkeypatch, capsys):
     text_range = json.loads(run(monkeypatch, capsys, REPORT))["issues"][0]["primaryLocation"]["textRange"]
-    assert text_range["startLine"] == 10  # noqa: PLR2004
-    assert text_range["endLine"] == 10  # noqa: PLR2004
-    assert text_range["endColumn"] - text_range["startColumn"] == len("^" * 20)  # noqa: PLR2004
+    assert text_range["startLine"] == 10
+    assert text_range["endLine"] == 10
+    assert text_range["endColumn"] - text_range["startColumn"] == len("^" * 20)
 
 
 def test_multi_line_range_of_the_imports(monkeypatch, capsys):
     """The range of the sorting of the imports covers whole lines, without columns"""
     text_range = json.loads(run(monkeypatch, capsys, REPORT))["issues"][1]["primaryLocation"]["textRange"]
-    assert text_range["startLine"] == 3  # noqa: PLR2004
-    assert text_range["endLine"] == 3  # noqa: PLR2004
+    assert text_range["startLine"] == 3
+    assert text_range["endLine"] == 3
     assert "startColumn" not in text_range
     assert "endColumn" not in text_range
 
@@ -99,20 +99,20 @@ def test_no_issue(monkeypatch, capsys):
 
 def test_range_marker_with_an_end_line():
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "RUF012", 5, 2, 9)
+    ruff2sonar.apply_range_marker(issue_range, "RUF012", 5, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5, "startColumn": 2, "endColumn": 9}
 
 
 def test_range_marker_of_the_imports():
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "I001", 6, 2, 9)
+    ruff2sonar.apply_range_marker(issue_range, "I001", 6, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5}
 
 
 @pytest.mark.parametrize("columns", [(None, None), (4, None), (None, 8)])
 def test_range_marker_with_missing_columns(columns):
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
-    ruff2sonar._apply_range_marker(issue_range, "B904", None, *columns)
-    assert issue_range["endLine"] == 3  # noqa: PLR2004
+    ruff2sonar.apply_range_marker(issue_range, "B904", None, *columns)
+    assert issue_range["endLine"] == 3
     assert issue_range["startColumn"] == (columns[0] if columns[0] is not None else 0)
     assert issue_range["endColumn"] == (columns[1] if columns[1] is not None else 1)

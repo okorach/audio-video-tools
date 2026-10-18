@@ -19,8 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script rescale an image to different dimension
+"""This script rescale an image to different dimension
 It can also rescale all the images of a given directory
 Pass rescale dimensions as -s WxH
 """
@@ -33,8 +32,7 @@ import utilities.file as fil
 def __int_or_empty(x):
     if x == "":
         return -1
-    else:
-        return int(x)
+    return int(x)
 
 
 def main():
@@ -42,7 +40,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
-        outputfile = image.ImageFile(input_file).scale(options.get("width", -1), options.get("height", -1), out_file=options.get("outputfile", None))
+        outputfile = image.ImageFile(input_file).scale(options.get("width", -1), options.get("height", -1), out_file=options.get("outputfile"))
         print("Generated", outputfile)
 
     util.process_input_files(kwargs, process)

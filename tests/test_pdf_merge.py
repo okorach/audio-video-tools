@@ -1,4 +1,3 @@
-# noqa: INP001
 #
 # media-tools
 # Copyright (C) 2019-2025 Olivier Korach
@@ -37,7 +36,7 @@ NB_PAGES_TOTAL = 6
 def _make_pdf(path: Path, nb_pages: int) -> None:
     ps_code = f"/Helvetica findfont 20 scalefont setfont 1 1 {nb_pages} {{pop 50 50 moveto (x) show showpage}} for"
     cmd = [pdf_split.find_ghostscript(), "-q", "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", f"-sOutputFile={path}", "-c", ps_code]
-    subprocess.run(cmd, check=True)  # noqa: S603
+    subprocess.run(cmd, check=True)
 
 
 def _touch(path: Path) -> str:

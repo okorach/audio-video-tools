@@ -163,7 +163,7 @@ def test_hw_accel_option_invalid():
     parser = util.get_common_args("test", "test")
     with pytest.raises(SystemExit) as e:
         util.parse_media_args(parser, ["-i", "a.mp4", "--hw_accel", "maybe"])
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 TOOLS = [
@@ -208,7 +208,7 @@ def test_tools_have_the_hw_accel_option(tool, capsys):
 def test_tools_refuse_invalid_hw_accel(tool):
     with mock.patch.object(sys, "argv", [tool.__name__, "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
         tool.main()
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_slideshow_option(tmp_path):
@@ -404,7 +404,7 @@ def test_encode_falls_back_to_the_cpu(gpu_available):
 
     with mock.patch("mediatools.utilities.run_os_cmd", side_effect=run_os_cmd):
         video.VideoFile(FILE).encode(target_file="out.mp4", vcodec="h265", resolution="320x180")
-    assert len(commands) == 2  # noqa: PLR2004
+    assert len(commands) == 2
     assert "-hwaccel cuda" in commands[0]
     assert "hevc_nvenc" in commands[0]
     assert "-hwaccel" not in commands[1]
@@ -430,7 +430,7 @@ def test_crop_falls_back_to_the_cpu(gpu_available):
         mock.patch("mediatools.videofile.get_creation_date", return_value=None),
     ):
         video.VideoFile(FILE).crop(out_file="out.mp4", box="320x180")
-    assert len(commands) == 2  # noqa: PLR2004
+    assert len(commands) == 2
     assert "-hwaccel cuda" in commands[0]
     assert "-hwaccel" not in commands[1]
 
@@ -445,7 +445,7 @@ def test_concat_falls_back_to_the_cpu(gpu_available, short_video, tmp_path):
 
     with mock.patch("mediatools.utilities.run_os_cmd", side_effect=run_os_cmd):
         video.concat(str(tmp_path / "out.mp4"), [short_video, short_video])
-    assert len(commands) == 2  # noqa: PLR2004
+    assert len(commands) == 2
     assert "-hwaccel cuda" in commands[0]
     assert "libx265" in commands[1]
 
@@ -460,5 +460,5 @@ def test_concat_mode_off_uses_the_cpu(gpu_available, short_video, tmp_path):
 def test_process_input_files_keeps_the_mode(gpu_available):
     """The tools run through process_input_files get the hw_accel option"""
     seen = []
-    util.process_input_files({"inputfiles": ["a"], "hw_accel": "off"}, lambda f, options: seen.append(options["hw_accel"]))
+    util.process_input_files({"inputfiles": ["a"], "hw_accel": "off"}, lambda _f, options: seen.append(options["hw_accel"]))
     assert seen == ["off"]

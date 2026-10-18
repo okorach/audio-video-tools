@@ -34,11 +34,11 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
-import mediatools.creator as creator
+from mediatools import creator, log
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools import log
 
 METHODS = ("wind", "afftdn", "arnndn")
 DEFAULT_METHOD = "wind"
@@ -110,7 +110,7 @@ def backup_file(input_file: str) -> str:
     return f"{root}{BACKUP_POSTFIX}{ext}"
 
 
-def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs) -> str:  # noqa: FBT001, FBT002
+def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs) -> str:
     """Reduces the noise of the audio of a file. Returns the output file name.
     With keep_name the output file takes the name of the input file, which is renamed with a .before-denoise postfix.
     Options: method, level, cutoff, reduction, noise_floor, model, mix (see build_filter())"""
@@ -135,8 +135,8 @@ def denoise(input_file: str, output_file: str | None = None, keep_name: bool = F
     if keep_name:
         # Only once the denoised file is generated: the original is kept under the backup name, the denoised file takes its name
         backup = backup_file(input_file)
-        os.replace(input_file, backup)
-        os.replace(output_file, input_file)
+        Path(input_file).replace(backup)
+        Path(output_file).replace(input_file)
         log.logger.info("Original file kept as %s", backup)
         return input_file
     return output_file

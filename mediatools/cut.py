@@ -19,9 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""
-This script cuts a video or audio file
-"""
+"""This script cuts a video or audio file"""
 
 import sys
 from mediatools import log

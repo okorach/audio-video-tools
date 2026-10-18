@@ -54,7 +54,7 @@ def __check_file_name(file):
         pass
 
 
-def __fix_symlink(symlink, target_file):
+def fix_symlink(symlink, target_file):
     old_tgt = target_file
     log.logger.info("Trying to fix symlink %s --> Target = %s", symlink, old_tgt)
     target_file = search_on_other_drives(old_tgt)
@@ -85,7 +85,7 @@ def main():
             continue
         tgt = fil.read_link(symlink)
         if not os.path.isfile(tgt):
-            tgt = __fix_symlink(tgt, symlink)
+            tgt = fix_symlink(tgt, symlink)
         log.logger.info("Symlink %s --> Target = %s", symlink, tgt)
         f = audio.AudioFile(tgt)
         # tags = f.get_tags()

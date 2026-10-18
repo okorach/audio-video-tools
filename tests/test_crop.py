@@ -76,7 +76,7 @@ def test_corner_conflict() -> None:
     """A corner shortcut conflicting with another position exits with code 2"""
     with pytest.raises(SystemExit) as e:
         _run("--topleft", "--bottom")
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 @pytest.mark.parametrize(
@@ -104,7 +104,7 @@ def test_invalid_options(args: list) -> None:
     """Incompatible positions and malformed box exit with code 2"""
     with pytest.raises(SystemExit) as e:
         _run(*args)
-    assert e.value.code == 2  # noqa: PLR2004
+    assert e.value.code == 2
 
 
 def test_box_too_big() -> None:

@@ -161,7 +161,7 @@ def _file_data(path, creation_date: datetime.datetime) -> dict:
 def _run_main(tmp_path, names: list[str], dates: list[datetime.datetime], *args: str) -> list[tuple[str, str]]:
     files = []
     data = {}
-    for i, (name, date) in enumerate(zip(names, dates)):
+    for i, (name, date) in enumerate(zip(names, dates, strict=True)):
         f = tmp_path / name
         f.write_text(name)
         files.append(str(f))

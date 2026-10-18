@@ -22,14 +22,11 @@
 import os
 import sys
 import re
-import shutil
 from random import randrange
-from pathlib import Path
 import argparse
 from mediatools import log
 import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.audiofile as audio
 
 
 def main():

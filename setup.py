@@ -21,10 +21,10 @@
 import re
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
 
-with open("mediatools/version.py", "r") as fh:
+with open("mediatools/version.py") as fh:
     _version_match = re.search(r'MEDIA_TOOLS_VERSION\s*=\s*["\']([^"\']+)["\']', fh.read())
     _version = _version_match.group(1) if _version_match else "0.0.0"
 

@@ -26,7 +26,6 @@
 # - Languages of audio tracks
 # - Author of video
 
-from mediatools import log
 import mediatools.utilities as util
 import utilities.file as fil
 import mediatools.videofile as video

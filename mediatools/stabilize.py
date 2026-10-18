@@ -143,13 +143,13 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     input_files = kwargs["inputfiles"]
-    stab_kwargs = dict(
-        shakiness=kwargs.get("shakiness", 8),
-        smoothing=kwargs.get("smoothing", 30),
-        zoom=kwargs.get("zoom", 0),
-        optzoom=kwargs.get("optzoom", 1),
-        sharpen=kwargs.get("sharpen", True),
-    )
+    stab_kwargs = {
+        "shakiness": kwargs.get("shakiness", 8),
+        "smoothing": kwargs.get("smoothing", 30),
+        "zoom": kwargs.get("zoom", 0),
+        "optzoom": kwargs.get("optzoom", 1),
+        "sharpen": kwargs.get("sharpen", True),
+    }
     # Only pass an explicit output path when processing a single file; for multiple
     # files (or a directory) each output is derived automatically from the input name.
     single = len(input_files) == 1

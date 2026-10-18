@@ -61,7 +61,7 @@ except ImportError:
 from mediatools import log
 import mediatools.utilities as util
 import utilities.file as fil
-
+from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 
 # ---------------------------------------------------------------------------
 # Tag data container
@@ -259,12 +259,6 @@ _GENRE_LOWER: dict[str, int] = {g.lower(): i for i, g in enumerate(_ID3V1_GENRES
 # Encoding postfix pattern (e.g. "(128kbit_AAC)", "[320kbps MP3]")
 _ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
 
-# Directory: "Artist - Album" or "Artist - Album (Year)" or "Artist"
-_DIR_ARTIST_ALBUM_RE = re.compile(r"^(.+?)\s+-\s+(.+?)(?:\s*[\(\[]\s*(\d{4})\s*[\)\]])?\s*$")
-# Track prefix: "01 ", "01 - ", "01. ", "(01) " etc.
-_TRACK_PREFIX_RE = re.compile(r"^\s*[\(\[]?(\d{1,3})[\)\].]?\s*[-.]?\s*")
-# Artist - Title separator
-_ARTIST_TITLE_RE = re.compile(r"^(.+?)\s+-\s+(.+)$")
 
 _COVER_FILENAME = "folder.jpg"
 _MAX_COVER_SIZE = 600
@@ -275,7 +269,7 @@ _MAX_COVER_SIZE = 600
 # ---------------------------------------------------------------------------
 
 
-def _find_genre(genre_name: str) -> str | None:
+def find_genre(genre_name: str) -> str | None:
     """Returns the canonical genre name if it matches an ID3v1 genre (0–147), else None."""
     if not genre_name:
         return None
@@ -294,12 +288,12 @@ def _find_genre(genre_name: str) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _strip_encoding_postfix(base_name: str) -> str:
+def strip_encoding_postfix(base_name: str) -> str:
     """Remove encoding postfixes like '(128kbit_AAC)' or '[320kbps MP3]'."""
     return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
 
 
-def _strip_exotic_unicode(text: str) -> str:
+def strip_exotic_unicode(text: str) -> str:
     """Replace non-ASCII chars with ASCII equivalents (via NFKD decomposition) or remove them."""
     # Decompose (é → e + combining accent) then drop combining marks
     decomposed = unicodedata.normalize("NFKD", text)
@@ -308,65 +302,9 @@ def _strip_exotic_unicode(text: str) -> str:
     return re.sub(r"[ _]{2,}", " ", ascii_only).strip()
 
 
-def _clean_basename(base_name: str) -> str:
+def clean_basename(base_name: str) -> str:
     """Return a cleaned file base name (no extension): strip postfixes and exotic unicode."""
-    return _strip_exotic_unicode(_strip_encoding_postfix(base_name))
-
-
-# ---------------------------------------------------------------------------
-# Capitalisation helpers
-# ---------------------------------------------------------------------------
-
-
-def _title_case(text: str) -> str:
-    if not text:
-        return text
-    return " ".join(w.capitalize() for w in text.split())
-
-
-def _sentence_case(text: str) -> str:
-    if not text:
-        return text
-    return text[0].upper() + text[1:].lower()
-
-
-# ---------------------------------------------------------------------------
-# Filename / directory parsing
-# ---------------------------------------------------------------------------
-
-
-def _parse_dir_name(dir_name: str) -> tuple[str | None, str | None, int | None]:
-    """Returns (artist, album, year) from a directory base name."""
-    m = _DIR_ARTIST_ALBUM_RE.match(dir_name)
-    if m:
-        artist = _title_case(m.group(1).strip())
-        album = m.group(2).strip()
-        year = int(m.group(3)) if m.group(3) else None
-        return artist, album, year
-    return _title_case(dir_name.strip()), None, None
-
-
-def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None]:
-    """Returns (track_number, artist, title) parsed from a file base name (no extension)."""
-    track: int | None = None
-    artist: str | None = None
-    title: str | None = None
-
-    tm = _TRACK_PREFIX_RE.match(base_name)
-    if tm:
-        track = int(tm.group(1))
-        rest = base_name[tm.end() :].strip()
-    else:
-        rest = base_name.strip()
-
-    am = _ARTIST_TITLE_RE.match(rest)
-    if am:
-        artist = _title_case(am.group(1).strip())
-        title = _sentence_case(am.group(2).strip())
-    else:
-        title = _sentence_case(rest) or None
-
-    return track, artist, title
+    return strip_exotic_unicode(strip_encoding_postfix(base_name))
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +312,7 @@ def _parse_file_name(base_name: str) -> tuple[int | None, str | None, str | None
 # ---------------------------------------------------------------------------
 
 
-def _parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
+def parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
     """Parse a MusicBrainz date string (YYYY, YYYY-MM, YYYY-MM-DD) into (year, date)."""
     if not date_str:
         return None, None
@@ -388,20 +326,20 @@ def _parse_mb_date(date_str: str) -> tuple[int | None, datetime.date | None]:
         return None, None
 
 
-def _extract_genre_from_release(release: dict) -> str | None:
+def extract_genre_from_release(release: dict) -> str | None:
     """Return the first recognisable genre from a MusicBrainz release dict."""
     for g in release.get("genre-list", []):
-        candidate = _find_genre(g.get("name", ""))
+        candidate = find_genre(g.get("name", ""))
         if candidate:
             return candidate
     for t in release.get("tag-list", []):
-        candidate = _find_genre(t.get("name", ""))
+        candidate = find_genre(t.get("name", ""))
         if candidate:
             return candidate
     return None
 
 
-def _extract_tracks_from_release(release: dict) -> list[str]:
+def extract_tracks_from_release(release: dict) -> list[str]:
     """Return a flat list of recording titles from a MusicBrainz release dict."""
     tracks: list[str] = []
     for medium in release.get("medium-list", []):
@@ -409,7 +347,7 @@ def _extract_tracks_from_release(release: dict) -> list[str]:
     return tracks
 
 
-def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.date | None, str | None, list[str], str | None]:
+def mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.date | None, str | None, list[str], str | None]:
     """Returns (year, exact_date, genre, track_titles, release_id) for the best MusicBrainz match."""
     if not artist or not album:
         return None, None, None, [], None
@@ -420,21 +358,21 @@ def _mb_lookup_release(artist: str, album: str) -> tuple[int | None, datetime.da
             return None, None, None, [], None
         rel = releases[0]
         release_id = rel["id"]
-        year, exact_date = _parse_mb_date(rel.get("date", ""))
+        year, exact_date = parse_mb_date(rel.get("date", ""))
         full = musicbrainzngs.get_release_by_id(release_id, includes=["recordings", "genres", "tags"])
         release = full.get("release", {})
         full_date_str = release.get("date", "")
         if full_date_str:
-            year, exact_date = _parse_mb_date(full_date_str)
-        genre = _extract_genre_from_release(release)
-        tracks = _extract_tracks_from_release(release)
+            year, exact_date = parse_mb_date(full_date_str)
+        genre = extract_genre_from_release(release)
+        tracks = extract_tracks_from_release(release)
         return year, exact_date, genre, tracks, release_id
     except Exception as e:
         log.logger.warning("MusicBrainz lookup failed for '%s' / '%s': %s", artist, album, str(e))
         return None, None, None, [], None
 
 
-def _mb_lookup_track(artist: str, title: str) -> tuple[int | None, datetime.date | None]:
+def mb_lookup_track(artist: str, title: str) -> tuple[int | None, datetime.date | None]:
     """Returns (year, exact_date) for a specific recording from MusicBrainz."""
     if not artist or not title:
         return None, None
@@ -442,7 +380,7 @@ def _mb_lookup_track(artist: str, title: str) -> tuple[int | None, datetime.date
         result = musicbrainzngs.search_recordings(artist=artist, recording=title, limit=3)
         for rec in result.get("recording-list", []):
             for release in rec.get("release-list", []):
-                year, exact_date = _parse_mb_date(release.get("date", ""))
+                year, exact_date = parse_mb_date(release.get("date", ""))
                 if year:
                     return year, exact_date
     except Exception as e:
@@ -455,7 +393,7 @@ def _mb_lookup_track(artist: str, title: str) -> tuple[int | None, datetime.date
 # ---------------------------------------------------------------------------
 
 
-def _fetch_cover_art(release_id: str) -> bytes | None:
+def fetch_cover_art(release_id: str) -> bytes | None:
     """Fetch the front cover image bytes from MusicBrainz Cover Art Archive."""
     if not release_id:
         return None
@@ -468,7 +406,7 @@ def _fetch_cover_art(release_id: str) -> bytes | None:
     return None
 
 
-def _resize_image(image_bytes: bytes, max_size: int = _MAX_COVER_SIZE) -> bytes:
+def resize_image(image_bytes: bytes, max_size: int = _MAX_COVER_SIZE) -> bytes:
     """Resize image so neither dimension exceeds max_size. Requires Pillow."""
     if not _PIL_AVAILABLE:
         return image_bytes
@@ -485,11 +423,11 @@ def _resize_image(image_bytes: bytes, max_size: int = _MAX_COVER_SIZE) -> bytes:
         return image_bytes
 
 
-def _save_cover_to_folder(dirpath: str, image_bytes: bytes) -> None:
+def save_cover_to_folder(dirpath: str, image_bytes: bytes) -> None:
     """Save cover art as folder.jpg (max 600×600) in the given directory."""
     cover_path = os.path.join(dirpath, _COVER_FILENAME)
     try:
-        resized = _resize_image(image_bytes)
+        resized = resize_image(image_bytes)
         with open(cover_path, "wb") as f:
             f.write(resized)
         log.logger.info("Saved cover art to %s", cover_path)
@@ -516,7 +454,7 @@ def _audio_format(filepath: str) -> str:
     return fil.extension(filepath).lower()
 
 
-def _is_m4a(filepath: str) -> bool:
+def is_m4a(filepath: str) -> bool:
     return _audio_format(filepath) in ("m4a", "aac")
 
 
@@ -610,10 +548,10 @@ def _read_tags_vorbis(filepath: str) -> tuple[str | None, str | None, str | None
     return artist, title, album, track, year, genre
 
 
-def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
+def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None, str | None]:
     """Returns (artist, title, album, track, year, genre) from existing file tags."""
     try:
-        if _is_m4a(filepath):
+        if is_m4a(filepath):
             return _read_tags_m4a(filepath)
         if _is_vorbis(filepath):
             return _read_tags_vorbis(filepath)
@@ -628,10 +566,10 @@ def _read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | No
 # ---------------------------------------------------------------------------
 
 
-def _write_tags(filepath: str, audio_tags: AudioTags) -> None:
+def write_tags(filepath: str, audio_tags: AudioTags) -> None:
     """Write tags to an audio file across all supported formats."""
     try:
-        if _is_m4a(filepath):
+        if is_m4a(filepath):
             _write_tags_m4a(filepath, audio_tags)
         elif _is_vorbis(filepath):
             _write_tags_vorbis(filepath, audio_tags)
@@ -639,8 +577,13 @@ def _write_tags(filepath: str, audio_tags: AudioTags) -> None:
             _write_tags_mp3(filepath, audio_tags)
         log.logger.info(
             "Tags written: %s | artist=%s title=%s album=%s track=%s year=%s genre=%s",
-            filepath, audio_tags.artist, audio_tags.title, audio_tags.album,
-            audio_tags.track, audio_tags.year, audio_tags.genre,
+            filepath,
+            audio_tags.artist,
+            audio_tags.title,
+            audio_tags.album,
+            audio_tags.track,
+            audio_tags.year,
+            audio_tags.genre,
         )
     except Exception as e:
         log.logger.error("Failed to write tags for %s: %s", filepath, str(e))
@@ -724,7 +667,7 @@ def _write_tags_vorbis(filepath: str, audio_tags: AudioTags) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _set_file_date(filepath: str, release_date: datetime.date) -> None:
+def set_file_date(filepath: str, release_date: datetime.date) -> None:
     """Sets file timestamps to the release date at 12:00:00."""
     try:
         dt = datetime.datetime(release_date.year, release_date.month, release_date.day, 12, 0, 0)
@@ -740,7 +683,7 @@ def _set_file_date(filepath: str, release_date: datetime.date) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _rename_file(filepath: str, new_base: str) -> str:
+def rename_file(filepath: str, new_base: str) -> str:
     """Rename file to new_base (keeping extension). Returns new path."""
     dirpath = os.path.dirname(filepath)
     ext = os.path.splitext(filepath)[1]
@@ -761,7 +704,7 @@ def _rename_file(filepath: str, new_base: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _process_file(
+def process_file(
     filepath: str,
     dir_artist: str | None,
     dir_album: str | None,
@@ -776,13 +719,13 @@ def _process_file(
     base, ext = os.path.splitext(os.path.basename(filepath))
 
     # 1. Clean filename
-    clean_base = _clean_basename(base)
+    clean_base = clean_basename(base)
 
     # 2. Parse cleaned filename
-    fn_track, fn_artist, fn_title = _parse_file_name(clean_base)
+    fn_track, fn_artist, fn_title = parse_file_name(clean_base)
 
     # 3. Read existing tags
-    existing_artist, existing_title, existing_album, existing_track, existing_year, existing_genre = _read_existing_tags(filepath)
+    existing_artist, existing_title, existing_album, existing_track, existing_year, existing_genre = read_existing_tags(filepath)
 
     # 4. Resolve final values
     artist = existing_artist or fn_artist or dir_artist
@@ -795,30 +738,30 @@ def _process_file(
 
     # 5. MusicBrainz track title from track list
     if not title and track is not None and mb_tracks and (track - 1) < len(mb_tracks):
-        title = _sentence_case(mb_tracks[track - 1])
+        title = sentence_case(mb_tracks[track - 1])
 
     # 6. MusicBrainz year/date lookup if still missing
     if year is None and artist and album:
-        mb_year, mb_date, mb_genre, _, _ = _mb_lookup_release(artist, album)
+        mb_year, mb_date, mb_genre, _, _ = mb_lookup_release(artist, album)
         year = mb_year
         release_date = mb_date
         if not genre:
             genre = mb_genre
     if year is None and artist and title:
-        year, release_date = _mb_lookup_track(artist, title)
+        year, release_date = mb_lookup_track(artist, title)
 
     if year and not release_date:
         release_date = datetime.date(year, 1, 1)
 
     # 7. Normalise capitalisation
     if artist:
-        artist = _title_case(artist)
+        artist = title_case(artist)
     if title:
-        title = _sentence_case(title)
+        title = sentence_case(title)
 
     # 8. Validate genre against ID3v1 list
     if genre:
-        genre = _find_genre(genre) or genre
+        genre = find_genre(genre) or genre
 
     log.logger.info(
         "File: %s  artist=%s  title=%s  album=%s  track=%s  year=%s  genre=%s  date=%s",
@@ -837,16 +780,16 @@ def _process_file(
 
     # 9. Rename file if needed
     if clean_base != base:
-        filepath = _rename_file(filepath, clean_base)
+        filepath = rename_file(filepath, clean_base)
 
     # 10. Write tags
-    _write_tags(filepath, AudioTags(artist=artist, title=title, album=album, track=track, year=year, genre=genre, cover_bytes=cover_bytes))
+    write_tags(filepath, AudioTags(artist=artist, title=title, album=album, track=track, year=year, genre=genre, cover_bytes=cover_bytes))
 
     # 11. Set file timestamp
     if release_date:
-        _set_file_date(filepath, release_date)
+        set_file_date(filepath, release_date)
     elif year:
-        _set_file_date(filepath, datetime.date(year, 1, 1))
+        set_file_date(filepath, datetime.date(year, 1, 1))
 
     return filepath
 
@@ -856,10 +799,10 @@ def _process_file(
 # ---------------------------------------------------------------------------
 
 
-def _process_directory(dirpath: str, dry_run: bool) -> None:
+def process_directory(dirpath: str, dry_run: bool) -> None:
     """Processes all audio files in a single directory."""
     dir_name = os.path.basename(dirpath)
-    dir_artist, dir_album, dir_year = _parse_dir_name(dir_name)
+    dir_artist, dir_album, dir_year = parse_dir_name(dir_name)
     log.logger.info("Directory: %s  →  artist=%s  album=%s  year=%s", dir_name, dir_artist, dir_album, dir_year)
 
     mb_tracks: list[str] = []
@@ -869,7 +812,7 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
     release_id: str | None = None
 
     if dir_artist and dir_album:
-        mb_year, mb_date, mb_genre, mb_tracks, release_id = _mb_lookup_release(dir_artist, dir_album)
+        mb_year, mb_date, mb_genre, mb_tracks, release_id = mb_lookup_release(dir_artist, dir_album)
         if mb_year and dir_year is None:
             dir_year = mb_year
         if mb_date:
@@ -882,13 +825,13 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
 
     # Fetch cover art from MusicBrainz
     if release_id:
-        cover_bytes = _fetch_cover_art(release_id)
+        cover_bytes = fetch_cover_art(release_id)
 
     # Save folder cover (only if this looks like an album folder with actual cover art)
     if cover_bytes and dir_album and not dry_run:
         existing_cover = os.path.join(dirpath, _COVER_FILENAME)
         if not os.path.exists(existing_cover):
-            _save_cover_to_folder(dirpath, cover_bytes)
+            save_cover_to_folder(dirpath, cover_bytes)
 
     audio_files = sorted(
         [os.path.join(dirpath, f) for f in os.listdir(dirpath) if fil.is_audio_file(f)],
@@ -897,7 +840,7 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
     log.logger.info("Found %d audio file(s) in %s", len(audio_files), dirpath)
 
     for filepath in audio_files:
-        _process_file(filepath, dir_artist, dir_album, dir_year, dir_date, dir_genre, mb_tracks, cover_bytes, dry_run)
+        process_file(filepath, dir_artist, dir_album, dir_year, dir_date, dir_genre, mb_tracks, cover_bytes, dry_run)
 
 
 # ---------------------------------------------------------------------------
@@ -929,56 +872,28 @@ def main() -> None:
     if dry_run:
         log.logger.info("DRY RUN mode — no files will be modified")
 
-    dirs_to_process: list[str] = []
-    files_by_dir: dict[str, list[str]] = {}
-
-    for entry in inputs:
-        entry = os.path.abspath(entry)
-        if os.path.isdir(entry):
-            dirs_to_process.append(entry)
-        elif fil.is_audio_file(entry):
-            parent = os.path.dirname(entry)
-            files_by_dir.setdefault(parent, []).append(entry)
-        else:
-            log.logger.warning("Skipping %s: not a directory or audio file", entry)
-
-    for root in sorted(dirs_to_process):
-        if not os.path.isdir(root):
-            log.logger.error("Directory not found: %s", root)
-            continue
-        subdirs = sorted([os.path.join(root, d) for d in os.listdir(root) if os.path.isdir(os.path.join(root, d))])
-        root_audio = [os.path.join(root, f) for f in os.listdir(root) if fil.is_audio_file(f)]
-        if subdirs:
-            log.logger.info("Processing %d subdirectories under %s", len(subdirs), root)
-            for subdir in subdirs:
-                log.logger.info("=== Processing directory: %s ===", subdir)
-                try:
-                    _process_directory(subdir, dry_run)
-                except Exception as e:
-                    log.logger.error("Error processing %s: %s", subdir, str(e))
-        if root_audio:
-            log.logger.info("Processing %d audio file(s) directly in %s", len(root_audio), root)
-            _process_directory(root, dry_run)
+    dirs_to_process, files_by_dir = collect_inputs(inputs)
+    process_album_directories(dirs_to_process, process_directory, dry_run)
 
     for parent, file_list in sorted(files_by_dir.items()):
-        dir_artist, dir_album, dir_year = _parse_dir_name(os.path.basename(parent))
+        dir_artist, dir_album, dir_year = parse_dir_name(os.path.basename(parent))
         mb_tracks: list[str] = []
         dir_date: datetime.date | None = None
         dir_genre: str | None = None
         cover_bytes: bytes | None = None
         release_id: str | None = None
         if dir_artist and dir_album:
-            mb_year, dir_date, dir_genre, mb_tracks, release_id = _mb_lookup_release(dir_artist, dir_album)
+            mb_year, dir_date, dir_genre, mb_tracks, release_id = mb_lookup_release(dir_artist, dir_album)
             if mb_year and dir_year is None:
                 dir_year = mb_year
         if dir_year and not dir_date:
             dir_date = datetime.date(dir_year, 1, 1)
         if release_id:
-            cover_bytes = _fetch_cover_art(release_id)
+            cover_bytes = fetch_cover_art(release_id)
         log.logger.info("Processing %d file(s) from %s", len(file_list), parent)
         for filepath in sorted(file_list):
             try:
-                _process_file(filepath, dir_artist, dir_album, dir_year, dir_date, dir_genre, mb_tracks, cover_bytes, dry_run)
+                process_file(filepath, dir_artist, dir_album, dir_year, dir_date, dir_genre, mb_tracks, cover_bytes, dry_run)
             except Exception as e:
                 log.logger.error("Error processing %s: %s", filepath, str(e))
 

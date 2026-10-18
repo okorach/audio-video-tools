@@ -126,7 +126,7 @@ def main():
     processed_dur = 0.0
     wall_start = time.time()
 
-    for i, (f, dur) in enumerate(zip(files, durations)):
+    for i, (f, dur) in enumerate(zip(files, durations, strict=True)):
         enhance_file(
             f,
             output_file,

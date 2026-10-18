@@ -47,10 +47,10 @@ def _make_pdf(path):
 def test_compress(tmp_path, ppp):
     src = str(tmp_path / "foo.pdf")
     _make_pdf(src)
-    orig_size = os.path.getsize(src)
+    orig_size = Path(src).stat().st_size
     assert pdf_compress.compress(src, ppp=ppp) == src
-    assert os.path.getsize(src) > 0
-    assert os.path.getsize(str(tmp_path / "foo_original.pdf")) == orig_size
+    assert Path(src).stat().st_size > 0
+    assert (tmp_path / "foo_original.pdf").stat().st_size == orig_size
     assert sorted(os.listdir(tmp_path)) == ["foo.pdf", "foo_original.pdf"]
 
 
@@ -80,7 +80,7 @@ def test_compress_mocked(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"original")
 
-    def fake_gs(cmd: list, check: bool) -> None:  # noqa: ARG001
+    def fake_gs(cmd: list, check: bool) -> None:
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"small")
 
@@ -168,7 +168,7 @@ def test_compress_failure_removes_temporary_file(tmp_path: Path) -> None:
     src = tmp_path / "foo.pdf"
     src.write_bytes(b"original")
 
-    def failing_gs(cmd: list, check: bool) -> None:  # noqa: ARG001
+    def failing_gs(cmd: list, check: bool) -> None:
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"partial")
         raise subprocess.CalledProcessError(1, "gs")

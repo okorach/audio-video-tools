@@ -33,7 +33,7 @@ def __patch_args(file_type: str, **kwargs) -> dict:
     if "acodec" not in kwargs:
         kwargs["acodec"] = "copy"
         kwargs["hw_accel"] = False
-    if kwargs["acodec"] == "copy" or kwargs.get("vcodec", None) == "copy":
+    if kwargs["acodec"] == "copy" or kwargs.get("vcodec") == "copy":
         for o in ("abitrate", "vbitrate", "fps", "aspect", "resolution", "achannels", "samplerate", "width", "height"):
             kwargs.pop(o, None)
     return kwargs
