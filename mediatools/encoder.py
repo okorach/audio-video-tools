@@ -82,7 +82,7 @@ class Encoder:
         if "start" in kwsettings:
             self.start = kwsettings[opt.Option.START]
         if "stop" in kwsettings:
-            self.start = kwsettings[opt.Option.STOP]
+            self.stop = kwsettings[opt.Option.STOP]
         if "format" in kwsettings:
             self.format = kwsettings[opt.Option.FORMAT]
 
@@ -121,7 +121,7 @@ class Encoder:
         options = vars(self)
         cmd = ""
         for option in options:
-            if options[option] is not None and not isinstance(options[option], list):
+            if options[option] is not None and not isinstance(options[option], (list, dict)) and option in opt.M2F_MAPPING:
                 cmd = cmd + f" -{opt.M2F_MAPPING[option]} {options[option]}"
         cmd = cmd + " " + self.get_vfilters_string()
         return cmd.strip()

@@ -532,6 +532,20 @@ class VideoFile(media.MediaFile):
                 n += 1
         return n
 
+    @staticmethod
+    def __get_fade_duration(fade: object) -> float:
+        """The fade in / fade out duration (--fade) in seconds, 0.5 if it's not a number"""
+        try:
+            return float(fade)
+        except (TypeError, ValueError):
+            return 0.5
+
+    def __get_encoded_duration(self, **kwargs) -> float:
+        """The duration of the part of the video that is encoded (the whole video, or between start and stop)"""
+        start = util.to_seconds(kwargs[opt.Option.START]) if kwargs.get(opt.Option.START) not in ("", None) else 0.0
+        stop = util.to_seconds(kwargs[opt.Option.STOP]) if kwargs.get(opt.Option.STOP) not in ("", None) else self.get_duration()
+        return stop - start
+
     def __get_scale_filter(self, **kwargs) -> str | None:
         """Returns the scale filter for the requested --width, --height or --resolution, None if the video is not resized.
         The unspecified dimension is computed to keep the aspect ratio (-2 keeps it even, as required by most encoders)"""
@@ -566,8 +580,9 @@ class VideoFile(media.MediaFile):
             trf = kwargs["vidstab_trf"]
             vfilters.append(f"vidstabtransform=input='{trf}',unsharp=5:5:0.8:3:3:0.4")
         if kwargs.get("fade", False):
-            vfilters.append(filter.FadeIn(duration=0.5))
-            vfilters.append(filter.FadeOut(duration=0.5))
+            fade_duration = self.__get_fade_duration(kwargs["fade"])
+            vfilters.append(filter.FadeIn(duration=fade_duration))
+            vfilters.append(filter.FadeOut(start=max(self.__get_encoded_duration(**kwargs) - fade_duration, 0.0), duration=fade_duration))
         scale = self.__get_scale_filter(**kwargs)
         if scale:
             vfilters.append(scale)
