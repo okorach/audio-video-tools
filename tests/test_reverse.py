@@ -22,6 +22,7 @@
 import os
 import sys
 from unittest.mock import patch
+import pytest
 from mediatools import reverse
 import mediatools.utilities as util
 import mediatools.videofile as video
@@ -29,6 +30,12 @@ import mediatools.videofile as video
 CMD = "video-reverse"
 VIDEO = "it" + os.sep + "video-360p-1.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
+
+
+@pytest.fixture(autouse=True)
+def use_short_video(short_video, monkeypatch):
+    """The tests don't depend on a specific video: reversing a short video is much faster"""
+    monkeypatch.setattr(sys.modules[__name__], "VIDEO", short_video)
 
 
 def test_main():

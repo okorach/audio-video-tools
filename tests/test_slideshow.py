@@ -22,7 +22,10 @@
 import os
 import sys
 from unittest.mock import patch
+import pytest
 import mediatools.videofile as video
+import mediatools.imagefile as image
+import mediatools.media_config as conf
 from mediatools import slideshow
 
 large_img = None
@@ -39,10 +42,26 @@ images_full = (
     "it" + os.sep + "img-640x480.jpg",
 )
 
-images = ("it" + os.sep + "img-1770x1291.jpg", "it" + os.sep + "img-3000x4000.jpg", "it" + os.sep + "img-640x480.jpg")
+# The slideshow converts each image to a video: the tests use small versions of landscape and portrait images
+SMALL_IMAGES = (("img-1770x1291.jpg", 400), ("img-3000x4000.jpg", 300), ("img-640x480.jpg", 320))
 
 
-def test_slideshow():
+@pytest.fixture(scope="module")
+def images(tmp_path_factory):
+    folder = tmp_path_factory.mktemp("slides")
+    return tuple(image.ImageFile("it" + os.sep + name).scale(width, -1, out_file=str(folder / name)) for name, width in SMALL_IMAGES)
+
+
+@pytest.fixture
+def small_default_resolution(monkeypatch):
+    """Generate the videos of the slideshows in 320x180 instead of the default resolution"""
+    real_get_property = conf.get_property
+    monkeypatch.setattr(
+        conf, "get_property", lambda name, settings=None: "320x180" if name == conf.VIDEO_RESOLUTION_KEY else real_get_property(name, settings)
+    )
+
+
+def test_slideshow(images):
     # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images, resolution="360x200")[0])
     assert vid2_o.duration > 12
@@ -51,15 +70,14 @@ def test_slideshow():
     os.remove(vid2_o.filename)
 
 
-def test_slideshow_without_resolution():
+def test_slideshow_without_resolution(images, small_default_resolution):
     # util.set_debug_level(4)
     vid2_o = video.VideoFile(video.slideshow(*images)[0])
     assert vid2_o.duration > 12
     os.remove(vid2_o.filename)
 
 
-def test_main():
-    file1 = "it" + os.sep + "img-640x480.jpg"
-    file2 = "it" + os.sep + "img-1770x1291.jpg"
+def test_main(images):
+    file1, file2 = images[2], images[0]
     with patch.object(sys, "argv", ["video-slideshow", "-g", "4", file1, "--resolution", "640x360", file2]):
         slideshow.main()

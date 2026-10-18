@@ -19,6 +19,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import os
 import mediatools.audiofile as audio
 import mediatools.filespecs as spec
 
@@ -32,7 +33,8 @@ def test_1():
     assert "192000" in csv
     assert "Seal" in csv
     assert "Crazy" in csv
-    assert "it/seal.mp3" in csv
+    # The file name is the absolute path
+    assert os.path.abspath(FILE) in csv
 
 
 def test_2():

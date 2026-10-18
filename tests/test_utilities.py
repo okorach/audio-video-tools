@@ -62,17 +62,16 @@ def test_args():
     parser = util.get_common_args("Tester", "media-tools unit testing")
     parser = video.add_video_args(parser)
     kw = util.parse_media_args(parser, ["-i", "file.mp4", "--resolution", "640x480"])
-    assert kw["width"] == 640
     assert kw["resolution"] == "640x480"
-    assert kw["inputfiles"] == "file.mp4"
+    assert util.resolve_resolution(**kw) == (640, 480)
+    assert kw["inputfiles"] == ["file.mp4"]
     assert "aspect" not in kw
 
     kw = util.parse_media_args(parser, ["-i", "file2.mp4", "--resolution", "x480"])
-    assert kw["width"] == -1
+    assert util.resolve_resolution(**kw) == (-1, 480)
 
     kw = util.parse_media_args(parser, ["-i", "file3.mp4", "--resolution", "1280x"])
-    assert kw["width"] == 1280
-    assert kw["height"] == -1
+    assert util.resolve_resolution(**kw) == (1280, -1)
 
     kw = util.parse_media_args(parser, ["-i", "file4.mp4", "--resolution", "1280x720", "-t", "07:00-12:00"])
     assert kw["start"] == "07:00"

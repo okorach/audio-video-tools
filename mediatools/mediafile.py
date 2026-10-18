@@ -113,7 +113,7 @@ class MediaFile(fil.File):
     def get_file_properties(self) -> dict:
         """Returns file properties as dict"""
         self.stat()
-        d = vars(self)
+        d = dict(vars(self))  # A copy, to not alter the attributes of the object
         d["size"] = d.pop("_size")
         return d
 
@@ -333,9 +333,6 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
 
         if kwargs.get(opt.Option.VBITRATE) is not None:
             settings[opt.OptionFfmpeg.VBITRATE] = kwargs[opt.Option.VBITRATE]
-
-        if kwargs.get(opt.Option.DEINTERLACE, False):
-            settings[opt.OptionFfmpeg.DEINTERLACE] = True
 
     start: float = 0
     if kwargs.get(opt.Option.START) not in ("", None):

@@ -270,7 +270,7 @@ class VideoFile(media.MediaFile):
         if self.video_codec is None:
             self.get_specs()
         return {
-            "file_size": self.size,
+            "file_size": self.size(),
             opt.Option.FORMAT: self.format,
             opt.Option.VBITRATE: self.video_bitrate,
             opt.Option.VCODEC: self.video_codec,
@@ -285,10 +285,11 @@ class VideoFile(media.MediaFile):
         }
 
     def get_properties(self) -> dict:
+        audio_props = self.get_audio_properties()  # Loads the specs of the file: before the file properties are read
+        video_props = self.get_video_properties()
         all_props = self.get_file_properties()
-        all_props.update(self.get_audio_properties())
-        all_props.update(self.get_video_properties())
-        all_props = all_props.copy()
+        all_props.update(audio_props)
+        all_props.update(video_props)
         all_props["resolution"] = str(all_props["resolution"])
         log.logger.debug("Properties(%s) = %s", self.filename, str(all_props))
         return all_props
@@ -427,9 +428,12 @@ class VideoFile(media.MediaFile):
 
         input_settings = media.get_input_settings(**kwargs)
         prefilter_settings = media.get_prefilter_settings(**kwargs)
+        raw_settings = util.get_profile_params(profile)
+        if raw_settings.pop(opt.OptionFfmpeg.DEINTERLACE, False):
+            # -deinterlace is not supported by recent ffmpeg versions, the yadif filter does the same
+            kwargs[opt.Option.DEINTERLACE] = True
         video_filters = self.__get_video_filters(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
-        raw_settings = util.get_profile_params(profile)
         output_settings = media.get_output_settings(**kwargs)
         ext = target_file.split(".")[-1].lower()
         log.logger.debug("Output file extension = %s", ext)
@@ -544,6 +548,8 @@ class VideoFile(media.MediaFile):
     def __get_video_filters(self, **kwargs) -> filter.Simple:
         log.logger.debug("Vfilters options = %s", str(kwargs))
         vfilters = filter.Simple(filters.VIDEO_TYPE)
+        if kwargs.get(opt.Option.DEINTERLACE, False):
+            vfilters.append("yadif")
         if kwargs.get("speed") is not None:
             vfilters.append(filter.speed(kwargs["speed"]))
         if kwargs.get("reverse", False):
@@ -711,7 +717,7 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
 
     transition_duration = float(conf.get_property("default.fade.duration"))
-    fade_in = filters.fade_in(duration=transition_duration)
+    fade_in = filter.fade_in(duration=transition_duration)
 
     pixfmt = filters.format("yuva420p")
     nb_files = len(input_files)
@@ -720,7 +726,7 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     fcomp = filters.Complex(*[VideoFile(f) for f in input_files])
     outs = []
     for i, f in enumerate(fcomp.inputs):
-        fade_out = filters.fade_out(start=f.duration - transition_duration, duration=f.duration)
+        fade_out = filter.fade_out(start=f.duration - transition_duration, duration=f.duration)
         pts = filters.setpts(f"PTS-STARTPTS+{total_duration}/TB")
         total_duration += f.duration - transition_duration
         last_out = fcomp.add_filtergraph(str(i) + ":v", f"{pixfmt},{fade_in},{fade_out},{pts}")

@@ -238,8 +238,9 @@ class AudioFile(media.MediaFile):
         return {opt.Option.ABITRATE: self.abitrate, opt.Option.ACODEC: self.acodec, "audio_sample_rate": self.audio_sample_rate}
 
     def get_properties(self) -> dict:
+        audio_props = self.get_audio_properties()  # Loads the specs of the file: before the file properties are read
         all_props = self.get_file_properties()
-        all_props.update(self.get_audio_properties())
+        all_props.update(audio_props)
         return all_props
 
     def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:

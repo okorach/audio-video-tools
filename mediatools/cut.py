@@ -40,38 +40,20 @@ def main():
     parser.add_argument("--start", required=False, help="Cut start timestamp")
     parser.add_argument("--stop", required=False, help="Cut stop timestamp")
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE))
-    if kwargs.get("timeranges", None) is not None:
-        log.logger.info("Getting multiple ranges")
-        ranges = kwargs.get("timeranges", None)
-        if ranges is None:
-            log.logger.error(MISSING_PARAM)
-            sys.exit(1)
-    else:
-        log.logger.info("Getting single start/stop range")
-        ranges = f"{kwargs.get('start', '')}-{kwargs.get('stop', '')}"
-    log.logger.info("Ranges = %s", str(ranges))
-    t_ranges = ranges.split(",")
-    log.logger.info("t_Ranges = %s", str(t_ranges))
+    timeranges = kwargs.get("timeranges")
+    if timeranges is None and kwargs.get("start") is None and kwargs.get("stop") is None:
+        log.logger.error(MISSING_PARAM)
+        sys.exit(1)
+    if timeranges is not None and len(timeranges.split(",")) > 1 and kwargs.get("outputfile"):
+        log.logger.error("-o can't be used with several time ranges")
+        sys.exit(2)
 
     def process(ifile: str, options: dict) -> None:
-        i = 0
-        for time_interval in t_ranges:
-            i += 1
-            log.logger.info("Cutting range %s", time_interval)
-            t_bounds = time_interval.split("-")
-            log.logger.info("t_bounds = %s len = %d", str(t_bounds), len(t_bounds))
-            if len(t_bounds) == 2:
-                start, stop = t_bounds
-                outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f"cut{i}")
-                log.logger.info("Generating file %s", outputfile)
-                av.cut(ifile, output=outputfile, start=start, stop=stop)
-                if i == len(t_ranges):
-                    i += 1
-                    outputfile = util.automatic_output_file_name(outfile=None, infile=ifile, postfix=f"cut{i}")
-                    av.cut(ifile, output=outputfile, start=start, stop=stop)
-            else:
-                log.logger.info("Generating single cut")
-                av.cut(ifile, output=options.get("outputfile", None), **options)
+        if timeranges is not None:
+            # start and stop are those of the first time range, av.cut() cuts all the ranges
+            options.pop("start", None)
+            options.pop("stop", None)
+        av.cut(ifile, output=options.pop("outputfile", None), **options)
 
     util.process_input_files(kwargs, process)
 

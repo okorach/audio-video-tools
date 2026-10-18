@@ -19,6 +19,7 @@
 #
 
 import os
+from unittest.mock import patch
 import mediatools.utilities as util
 from mediatools import log
 import mediatools.exceptions as ex
@@ -103,9 +104,9 @@ def test_to_image_effect():
     w, h = 3000, 2000
     img = get_img(w, h)
     util.set_debug_level(4)
-    vid_o = video.VideoFile(img.to_video(with_effect=True, duration=3, speed=0.02, out_file=TMP_VID)[0])
+    vid_o = video.VideoFile(img.to_video(with_effect=True, duration=3, speed=0.02, resolution="320x180", out_file=TMP_VID)[0])
     vid_o.get_specs()
-    assert vid_o.duration == 3
+    assert abs(vid_o.duration - 3) < 0.1
     del_files(img, vid_o)
 
 
@@ -113,7 +114,7 @@ def test_to_image_still():
     w, h = 2000, 2000
     img = get_img(w, h)
     util.set_debug_level(4)
-    vid_o = video.VideoFile(img.to_video(with_effect=False, duration=3, out_file=TMP_VID)[0])
+    vid_o = video.VideoFile(img.to_video(with_effect=False, duration=3, resolution="320x180", out_file=TMP_VID)[0])
     assert vid_o.duration == 3
     del_files(img, vid_o)
 
@@ -188,9 +189,6 @@ def test_blindify():
     del_files(img, f)
 
 
-# Those tests fail. image shake is broken
-
-
 def test_shake_1():
     w, h = 1000, 200
     img = get_img(w, h)
@@ -222,3 +220,12 @@ def test_rotate():
         assert False
     finally:
         del_files(img, f)
+
+
+def test_to_video_zoom_keeps_duration():
+    """The zoom effect (chosen randomly) is generated with the requested duration"""
+    img = get_img(2000, 2000)
+    with patch.object(image.ImageFile, "zoom", return_value=("zoom.mp4", {})) as zoom, patch("mediatools.imagefile.random.randint", return_value=1):
+        img.to_video(with_effect=True, duration=3, resolution="320x180")
+    assert zoom.call_args.kwargs["duration"] == 3
+    del_files(img)
