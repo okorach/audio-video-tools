@@ -97,6 +97,7 @@ setuptools.setup(
             "audio-concat = mediatools.audioconcat:main",
             "audio-speed = mediatools.audiospeed:main",
             "video-enhance = mediatools.video_enhance:main",
+            "video-snap = mediatools.video_snap:main",
             "fix-mp3-meta = mediatools.fix_mp3_meta:main",
             "audio-normalize = mediatools.audio_normalize:main",
             "audio-denoise = mediatools.audio_denoise:main",
