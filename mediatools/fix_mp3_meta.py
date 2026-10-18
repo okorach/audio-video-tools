@@ -377,7 +377,15 @@ def _process_directory(dirpath: str, dry_run: bool) -> None:
 def main() -> None:
     util.init("fix-mp3-meta")
     parser = argparse.ArgumentParser(description="Fix MP3 metadata tags for a music library")
-    parser.add_argument("-f", "--files", nargs="+", help="Files and/or directories to process (default: E:\\Musique)")
+    parser.add_argument(
+        "-i",
+        "--inputfiles",
+        "-f",
+        "--files",
+        dest="files",
+        nargs="+",
+        help="Files and/or directories to process (default: E:\\Musique). -f/--files is a deprecated alias",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Parse and log actions without writing tags or changing timestamps")
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
     args = parser.parse_args()

@@ -31,16 +31,20 @@ import mediatools.utilities as util
 import utilities.file as fil
 from mediatools import (
     audio_denoise,
+    audio_normalize,
     audiospeed,
     blindify,
     crop,
     crop_ratio,
+    datefixer,
     deshake,
+    fix_mp3_meta,
     metadata,
     pdf_compress,
     pdf_merge,
     pdf_split,
     rescale,
+    renamer,
     reverse,
     shake,
     speed,
@@ -64,6 +68,14 @@ def _tree(root: Path) -> dict:
     files["dir1"] = str(root / "dir1")
     files["empty"] = str(root / "empty")
     return files
+
+
+def _main_exit_ok(module) -> None:
+    """Runs module.main(), tolerating an exit with code 0"""
+    try:
+        module.main()
+    except SystemExit as e:
+        assert e.code in (0, None)  # noqa: PT017
 
 
 def _names(files: list[str], root: Path) -> list[str]:
@@ -374,3 +386,69 @@ def test_argparse_is_still_standard() -> None:
     parser = util.get_common_args("test", "test")
     assert isinstance(parser, argparse.ArgumentParser)
     assert parser.parse_args(["-i", "a", "b", "c"]).inputfiles == ["a", "b", "c"]
+
+
+# Tools whose files used to be given with -f / --files
+def test_renamer_inputs(tmp_path: Path) -> None:
+    """renamer -i takes files and directories: the image and video files of the directories are renamed"""
+    files = _tree(tmp_path)
+    with (
+        mock.patch.object(sys, "argv", ["renamer", "-i", files["pic.jpg"], files["dir1"], "--video_format", "#SEQ2#", "--photo_format", "#SEQ2#"]),
+        mock.patch("mediatools.renamer.get_files_data", return_value={}) as get_data,
+        mock.patch("mediatools.renamer.rename_files", return_value=True),
+    ):
+        renamer.main()
+    assert _names(get_data.call_args[0][0], tmp_path) == ["pic.jpg", "dir1/b.mp4", "dir1/sub/d.mp4", "dir1/z.mp4"]
+
+
+def test_renamer_files_alias(tmp_path: Path) -> None:
+    """-f and --files are still accepted as aliases of -i"""
+    files = _tree(tmp_path)
+    for option in ("-f", "--files"):
+        with (
+            mock.patch.object(sys, "argv", ["renamer", option, files["a.mp4"], "--video_format", "#SEQ2#"]),
+            mock.patch("mediatools.renamer.get_files_data", return_value={}) as get_data,
+            mock.patch("mediatools.renamer.rename_files", return_value=True),
+        ):
+            renamer.main()
+        assert get_data.call_args[0][0] == [files["a.mp4"]]
+
+
+def test_datefixer_inputs(tmp_path: Path) -> None:
+    """datefixer -i takes files and directories, the image and video files only are processed"""
+    files = _tree(tmp_path)
+    for option in ("-i", "-f", "--files"):
+        with (
+            mock.patch.object(sys, "argv", ["datefixer", option, files["pic.jpg"], files["dir1"], "--mode", "filename"]),
+            mock.patch("mediatools.datefixer.change_files_date", return_value=0) as change,
+        ):
+            _main_exit_ok(datefixer)
+        assert _names(list(change.call_args[0][2:]), tmp_path) == ["pic.jpg", "dir1/b.mp4", "dir1/sub/d.mp4", "dir1/z.mp4"]
+
+
+@pytest.mark.parametrize("module", [fix_mp3_meta, audio_normalize], ids=["fix_mp3_meta", "audio_normalize"])
+def test_album_tools_input_option(tmp_path: Path, module) -> None:
+    """fix-mp3-meta and audio-normalize take -i (and -f as an alias): files and directories, processed album by album"""
+    files = _tree(tmp_path)
+    for option in ("-i", "-f", "--files"):
+        with (
+            mock.patch.object(sys, "argv", [module.__name__, option, files["dir1"], files["c.mp3"], "--dry-run"]),
+            mock.patch.object(module, "_process_directory") as process_directory,
+            mock.patch.object(module, "_process_file") as process_file,
+            mock.patch.object(module, "_mb_lookup_release", return_value=(None, None, None, [], None) if module is audio_normalize else (None, [])),
+        ):
+            _main_exit_ok(module)
+        assert process_file.call_count == 1  # c.mp3 given as a file
+        assert process_file.call_args[0][0] == files["c.mp3"]
+        # dir1 has no audio file directly in it: only its sub-directory is an album
+        assert [Path(c.args[0]).name for c in process_directory.call_args_list] == ["sub"]
+
+
+def test_file_list_uses_expand_inputs(tmp_path: Path) -> None:
+    """fil.file_list expands the directories like the -i option, and filters the files given by type"""
+    files = _tree(tmp_path)
+    assert _names(fil.file_list(files["dir1"], files["c.mp3"], files["notes.txt"], file_type=fil.FileType.VIDEO_FILE), tmp_path) == [
+        "dir1/b.mp4",
+        "dir1/sub/d.mp4",
+        "dir1/z.mp4",
+    ]

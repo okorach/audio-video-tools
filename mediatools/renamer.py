@@ -267,7 +267,16 @@ def __restore(renames: list[tuple[str, str]], temps: list[str], current: list[st
 def main() -> None:
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
-    parser.add_argument("-f", "--files", nargs="+", help="List of files to rename", required=True)
+    parser.add_argument(
+        "-i",
+        "--inputfiles",
+        "-f",
+        "--files",
+        dest="inputfiles",
+        nargs="+",
+        help="Files and/or directories to rename (-f/--files is a deprecated alias)",
+        required=True,
+    )
     parser.add_argument("--prefix", help="Prefix for files", required=False)
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
     parser.add_argument(
@@ -281,9 +290,9 @@ def main() -> None:
     parser.add_argument("-r", "--root", help="Root name", required=False)
     parser.add_argument("--sortby", help="How to sort sequence numbers", required=False, default="timestamp")
     parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
-    kwargs = util.parse_media_args(parser)
+    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
-    file_list = fil.file_list(*kwargs["files"], file_type=None, recurse=False)
+    file_list = kwargs["inputfiles"]
     nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.IMAGE_FILE])
     nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.VIDEO_FILE])
     nb_other_files = len(file_list) - nb_photo_files - nb_video_files
@@ -291,7 +300,7 @@ def main() -> None:
     photo_seq = video_seq = other_seq = int(kwargs.get("seqstart", 1))
     photo_format, video_format = get_formats(nb_photo_files, nb_video_files, **kwargs)
 
-    files_data = get_files_data(fil.file_list(*kwargs["files"], file_type=None, recurse=False), kwargs["sortby"])
+    files_data = get_files_data(file_list, kwargs["sortby"])
 
     log.logger.info("%d image files and %d video files to process", nb_photo_files, nb_video_files)
     renames: list[tuple[str, str]] = []

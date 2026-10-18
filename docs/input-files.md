@@ -37,6 +37,12 @@ directories included) are combined into a single output, in the order described 
 For `pdf-merge` without `-o`, the output is named after the first file with a `_merged` postfix, in the folder of that file:
 avoid merging a directory twice, as the previous output would be included.
 
-## Other tools
+## `renamer`, `datefixer`, `fix-mp3-meta` and `audio-normalize`
 
-`renamer`, `datefixer`, `fix-mp3-meta` and `audio-normalize` take their files and directories with `-f` / `--files`.
+These tools used to take their files with `-f` / `--files`. They now take them with `-i` / `--inputfiles` like all the other
+tools (`-f` / `--files` is still accepted as a deprecated alias).
+
+- `renamer` and `datefixer` process the image and video files of the directories (recursively), like the other tools.
+- `fix-mp3-meta` and `audio-normalize` process the directories **album by album**: each sub-directory of a directory is an album
+  whose name gives the artist, album and year used to fix the tags, so the directories are not flattened into a list of files.
+  The audio files given explicitly are processed with the context of their parent directory.

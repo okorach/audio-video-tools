@@ -25,7 +25,6 @@ import argparse
 from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import utilities.file as fil
 from mediatools import creator
 import mediatools.options as opt
 
@@ -144,7 +143,7 @@ def main() -> None:
     parser.add_argument("--dry_run", required=False, default=0, help="Dry run mode")
     kwargs = util.parse_media_args(parser)
 
-    filelist = fil.file_list(*kwargs["inputfiles"])
+    filelist = kwargs["inputfiles"]
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 

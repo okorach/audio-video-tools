@@ -37,16 +37,6 @@ def set_and_parse_cli_args() -> dict:
     return util.parse_media_args(parser)
 
 
-def get_expanded_file_list(file_list: list[str]) -> list[str]:
-    expanded_list: list[str] = []
-    for file in file_list:
-        if os.path.isdir(file):
-            expanded_list += fil.dir_list(file, recurse=False)
-        else:
-            expanded_list.append(file)
-    return expanded_list
-
-
 def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
     pieces = file.split(".")
     pieces.pop()
@@ -61,7 +51,7 @@ def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
 
 def main() -> None:
     kwargs = set_and_parse_cli_args()
-    files_to_encode = get_expanded_file_list(kwargs.pop("inputfiles"))
+    files_to_encode = kwargs.pop("inputfiles")
     files_to_encode = [f for f in files_to_encode if fil.is_media_file(f)]
     log.logger.info("Filtered files (%d)", len(files_to_encode))
     postfix = ""

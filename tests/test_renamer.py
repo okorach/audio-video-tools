@@ -126,7 +126,7 @@ def test_time_placeholder(tmp_path):
             "creation_date": datetime.datetime(2024, 3, 9, 14, 5, 7),
         }
     }
-    argv = ["renamer", "-f", str(src), "--video_format", "#SEQ2# - #TIME# - #DEVICE#"]
+    argv = ["renamer", "-i", str(src), "--video_format", "#SEQ2# - #TIME# - #DEVICE#"]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch("mediatools.renamer.get_files_data", return_value=data),
@@ -166,7 +166,7 @@ def _run_main(tmp_path, names: list[str], dates: list[datetime.datetime], *args:
         f.write_text(name)
         files.append(str(f))
         data[f"{date:%Y%m%d%H%M%S} {i:06}"] = _file_data(f, date)
-    argv = ["renamer", "-f", *files, *args]
+    argv = ["renamer", "-i", *files, *args]
     with (
         mock.patch.object(sys, "argv", argv),
         mock.patch("mediatools.renamer.get_files_data", return_value=data),
