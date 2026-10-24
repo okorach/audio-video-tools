@@ -18,57 +18,27 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import sys
-import os
-import json
+import yaml
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.videofile as video
-import mediatools.media_config as conf
-
-
-def _dump_report_(report, file):
-    dump = json.dumps(report, indent=4, sort_keys=False, separators=(",", ": "))
-    if file is None:
-        log.logger.info("Dumping report to stdout")
-        print(dump)
-    else:
-        with open(file, "w") as f:
-            log.logger.info("Dumping report to file '%s'", file)
-            print(dump, file=f)
+import utilities.file as fil
 
 
 def main():
-    files = []
-    util.init("video-slideshow")
-    resolution = conf.get_property("default.video.resolution")
-    hw_accel = util.get_hw_accel_mode()
-    me = sys.argv.pop(0).split(os.sep)[-1]
-    while sys.argv:
-        arg = sys.argv.pop(0)
-        if arg == "-g":
-            util.set_debug_level(sys.argv.pop(0))
-        elif arg == "--resolution":
-            resolution = sys.argv.pop(0)
-        elif arg == "--hw_accel":
-            hw_accel = sys.argv.pop(0)
-            if hw_accel not in util.HW_ACCEL_MODES:
-                print(f"--hw_accel must be one of {', '.join(util.HW_ACCEL_MODES)}")
-                sys.exit(1)
-        elif arg[0] == "-":
-            print(f"Usage: {me} [-g <LEVEL>] [-h] [--resolution WxH] [--hw_accel auto|on|off] <file1> ... <filen>")
-            sys.exit(1)
-        else:
-            files.append(arg)
-    if files:
-        output, operations = video.slideshow(*files, resolution=resolution, hw_accel=hw_accel)
-        json_file = output + ".json"
-        _dump_report_(operations, json_file)
-        msg = f"File {output} generated, report is {json_file}"
-        log.logger.info(msg)
-        print(msg)
-    else:
-        log.logger.error("No inputs files could be used for slideshow, no slideshow generated")
+    parser = util.get_common_args("slideshow", "Creates a high quality video slide show from a set of photos")
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
+
+    output, operations = video.slideshow(
+        *kwargs["inputfiles"], outfile=kwargs.get("outputfile"), resolution=kwargs.get("resolution"), hw_accel=kwargs.get("hw_accel", "auto")
+    )
+
+    yaml_file = fil.strip_extension(output) + ".yaml"
+    with open(yaml_file, "w", encoding="utf-8") as f:
+        yaml.safe_dump({"output": output, "photos": operations}, f, sort_keys=False, default_flow_style=False)
+
+    log.logger.info("Slide show description written to %s", yaml_file)
+    util.generated_file(output)
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ CONFIG_SETTINGS: dict = {}
 CONFIG_FILE: str = ".mediatools.properties"
 VIDEO_RESOLUTION_KEY: str = "default.video.resolution"
 VIDEO_FPS_KEY: str = "default.video.fps"
-SLIDESHOW_DURATION_KEY: str = "default.slideshow.duration"
+SLIDESHOW_RESOLUTION_KEY: str = "default.slideshow.resolution"
 
 
 def load() -> dict:

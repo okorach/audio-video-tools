@@ -22,6 +22,7 @@
 # pylint: disable=redefined-outer-name
 
 import os
+import subprocess
 import sys
 from unittest.mock import patch
 import pytest
@@ -29,6 +30,8 @@ from mediatools import tools
 import mediatools.videofile as video
 import mediatools.imagefile as image
 import mediatools.media_config as conf
+import mediatools.utilities as util
+import utilities.file as fil
 
 large_img = None
 portrait_img = None
@@ -56,11 +59,10 @@ def images(tmp_path_factory):
 
 @pytest.fixture
 def small_default_resolution(monkeypatch):
-    """Generate the videos of the slideshows in 320x180 instead of the default resolution"""
+    """Generate the videos of the slideshows in 320x180 instead of the default (4K) resolution"""
     real_get_property = conf.get_property
-    monkeypatch.setattr(
-        conf, "get_property", lambda name, settings=None: "320x180" if name == conf.VIDEO_RESOLUTION_KEY else real_get_property(name, settings)
-    )
+    small_res_keys = (conf.VIDEO_RESOLUTION_KEY, conf.SLIDESHOW_RESOLUTION_KEY)
+    monkeypatch.setattr(conf, "get_property", lambda name, settings=None: "320x180" if name in small_res_keys else real_get_property(name, settings))
 
 
 def test_slideshow(images):
@@ -81,5 +83,99 @@ def test_slideshow_without_resolution(images, small_default_resolution):
 
 def test_main(images):
     file1, file2 = images[2], images[0]
-    with patch.object(sys, "argv", ["videotool", "slideshow", "-g", "4", file1, "--resolution", "640x360", file2]):
+    out_file = str(images[2]) + ".slideshow-test.mp4"
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-g", "4", "-i", file1, file2, "--resolution", "640x360", "-o", out_file]):
         tools.videotool()
+    os.remove(out_file)
+    os.remove(fil.strip_extension(out_file) + ".yaml")
+
+
+# Hardware acceleration: the clips of the photos and the slideshow are encoded by the GPU, the filters run on the CPU
+@pytest.fixture
+def commands():
+    """The ffmpeg commands that are run (not executed)"""
+    with patch("mediatools.utilities.run_os_cmd") as run:
+        yield run
+
+
+def run_commands(run) -> list[str]:
+    return [c.args[0] for c in run.call_args_list]
+
+
+@pytest.mark.parametrize("effect", ["zoom", "panorama"])
+def test_photo_clip_encoded_by_the_gpu(commands, effect):
+    getattr(image.ImageFile(images_full[0]), effect)(hw_accel="on")
+    (cmd,) = run_commands(commands)
+    assert "-c:v h264_nvenc" in cmd
+    assert "-hwaccel" not in cmd  # The filters of the effects run on the CPU
+
+
+@pytest.mark.parametrize("effect", ["zoom", "panorama"])
+def test_photo_clip_encoded_by_the_cpu(commands, effect):
+    getattr(image.ImageFile(images_full[0]), effect)(hw_accel="off")
+    (cmd,) = run_commands(commands)
+    assert "nvenc" not in cmd
+
+
+def test_slideshow_passes_the_mode_to_the_clips(commands):
+    with (
+        patch.object(video, "__build_slideshow__", return_value="out.mp4", create=True),
+        patch.object(image.ImageFile, "to_video", return_value=("clip.mp4", {})) as to_video,
+    ):
+        video.slideshow(images_full[0], outfile="out.mp4", hw_accel="on")
+    assert to_video.call_args.kwargs["hw_accel"] == "on"
+    commands.assert_not_called()
+
+
+@pytest.mark.parametrize(("mode", "nvenc"), [("on", True), ("off", False)])
+def test_slideshow_assembly_encoded_by_the_gpu_only(commands, short_video, tmp_path, mode, nvenc):
+    video.__build_slideshow__([short_video, short_video], outfile=str(tmp_path / "out.mp4"), resolution="320x180", hw_accel=mode)
+    (cmd,) = run_commands(commands)
+    assert ("-c:v h264_nvenc" in cmd) is nvenc
+    assert "-hwaccel" not in cmd and "cuvid" not in cmd  # Decoding the clips on the GPU and the CPU can't be mixed
+
+
+def test_slideshow_runs_again_on_the_cpu_when_the_gpu_fails(short_video, tmp_path):
+    attempts = []
+
+    def run_os_cmd(cmd, duration=None):
+        attempts.append(cmd)
+        if "nvenc" in cmd:
+            raise subprocess.CalledProcessError(1, cmd)
+
+    with (
+        patch("mediatools.utilities.run_os_cmd", side_effect=run_os_cmd),
+        patch.object(image.ImageFile, "to_video", return_value=(short_video, {"photo": "a.jpg"})),
+        patch.object(util, "check_hardware_accel", return_value=True),
+    ):
+        out, _ = video.slideshow(images_full[0], images_full[1], outfile=str(tmp_path / "out.mp4"), resolution="320x180")
+    assert out == str(tmp_path / "out.mp4")
+    assert "nvenc" in attempts[0]
+    assert "nvenc" not in attempts[-1]
+
+
+# Vertical drift of the panoramas of the photos that are not as wide as 16:9
+def test_panorama_logs_the_vertical_drift(commands):
+    _, details = image.ImageFile(images_full[0]).panorama(effect=(0, 1, 0.48, 0.52))
+    assert details["vertical_drift_pct"] == pytest.approx(4.0)
+    _, details = image.ImageFile(images_full[0]).panorama(effect=(0, 1, 0.53, 0.5))
+    assert details["vertical_drift_pct"] == pytest.approx(-3.0)
+    assert len(run_commands(commands)) == 2
+
+
+def test_panorama_of_a_wide_photo_has_no_vertical_drift(commands):
+    _, details = image.ImageFile(images_full[4]).panorama(effect=(0, 1, 0.45, 0.55))
+    assert details["vertical_drift_pct"] == 0.0
+    assert len(run_commands(commands)) == 1
+
+
+def test_to_video_drifts_up_or_down_by_at_most_5_percent(commands):
+    drifts = []
+    for _ in range(60):
+        _, details = image.ImageFile(images_full[0]).to_video(with_effect=True, resolution="320x180")
+        if "vertical_drift_pct" in details:
+            drifts.append(details["vertical_drift_pct"])
+    assert drifts
+    assert all(-5.0 <= d <= 5.0 for d in drifts)
+    assert any(d > 0 for d in drifts) and any(d < 0 for d in drifts)
+    assert commands.call_count == 60
