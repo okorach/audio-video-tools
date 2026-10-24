@@ -56,6 +56,7 @@ setuptools.setup(
         "musicbrainzngs",
         "mutagen",
         "Pillow>=10.3.0",
+        "PyYAML",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

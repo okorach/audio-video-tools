@@ -9,10 +9,10 @@ fi
 
 for res in $res_list
 do
-    run_cmd "videotool slideshow *.jpg --resolution $res"
+    run_cmd "videotool slideshow -i *.jpg --resolution $res -o slideshow.$res.mp4"
 done
 echo "----------------------------------------"
 echo "SUCCESS $(basename $0)"
 echo "----------------------------------------"
-rm ./slideshow.mp4 2>/dev/null
+rm ./slideshow.*.mp4 ./slideshow.*.yaml 2>/dev/null
 exit 0

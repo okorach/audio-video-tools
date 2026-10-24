@@ -29,6 +29,7 @@ from mediatools import tools
 import mediatools.videofile as video
 import mediatools.imagefile as image
 import mediatools.media_config as conf
+import utilities.file as fil
 
 large_img = None
 portrait_img = None
@@ -56,11 +57,10 @@ def images(tmp_path_factory):
 
 @pytest.fixture
 def small_default_resolution(monkeypatch):
-    """Generate the videos of the slideshows in 320x180 instead of the default resolution"""
+    """Generate the videos of the slideshows in 320x180 instead of the default (4K) resolution"""
     real_get_property = conf.get_property
-    monkeypatch.setattr(
-        conf, "get_property", lambda name, settings=None: "320x180" if name == conf.VIDEO_RESOLUTION_KEY else real_get_property(name, settings)
-    )
+    small_res_keys = (conf.VIDEO_RESOLUTION_KEY, conf.SLIDESHOW_RESOLUTION_KEY)
+    monkeypatch.setattr(conf, "get_property", lambda name, settings=None: "320x180" if name in small_res_keys else real_get_property(name, settings))
 
 
 def test_slideshow(images):
@@ -81,5 +81,8 @@ def test_slideshow_without_resolution(images, small_default_resolution):
 
 def test_main(images):
     file1, file2 = images[2], images[0]
-    with patch.object(sys, "argv", ["videotool", "slideshow", "-g", "4", file1, "--resolution", "640x360", file2]):
+    out_file = str(images[2]) + ".slideshow-test.mp4"
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-g", "4", "-i", file1, file2, "--resolution", "640x360", "-o", out_file]):
         tools.videotool()
+    os.remove(out_file)
+    os.remove(fil.strip_extension(out_file) + ".yaml")

@@ -217,19 +217,21 @@ def test_tools_refuse_invalid_hw_accel(tool):
 
 
 def test_slideshow_option(tmp_path):
+    out_file = tmp_path / "o.mp4"
     with (
-        mock.patch.object(sys, "argv", ["videotool", "slideshow", "--hw_accel", "off", "a.jpg"]),
-        mock.patch("mediatools.videofile.slideshow", return_value=(str(tmp_path / "o.mp4"), [])) as make_slideshow,
-        mock.patch("mediatools.slideshow._dump_report_"),
+        mock.patch.object(sys, "argv", ["videotool", "slideshow", "-i", FILE, "--hw_accel", "off", "-o", str(out_file)]),
+        mock.patch("mediatools.videofile.slideshow", return_value=(str(out_file), [])) as make_slideshow,
+        mock.patch("builtins.open", mock.mock_open()),
+        mock.patch("yaml.safe_dump"),
     ):
         tools.videotool()
     assert make_slideshow.call_args.kwargs["hw_accel"] == "off"
 
 
 def test_slideshow_invalid_option():
-    with mock.patch.object(sys, "argv", ["videotool", "slideshow", "--hw_accel", "maybe", "a.jpg"]), pytest.raises(SystemExit) as e:
+    with mock.patch.object(sys, "argv", ["videotool", "slideshow", "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
         tools.videotool()
-    assert e.value.code == 1
+    assert e.value.code == 2
 
 
 def test_concat_passes_the_mode():

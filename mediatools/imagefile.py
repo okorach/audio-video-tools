@@ -239,7 +239,7 @@ class ImageFile(media.MediaFile):
         zstart, zstop = [max(x, 1) for x in kwargs.get("effect", _get_random_zoom(1, 1.3))]
         fps = kwargs.get("framerate", conf.get_property(conf.VIDEO_FPS_KEY))
         log.logger.debug("DUR %s", str(kwargs.get("duration")))
-        duration = float(kwargs.get("duration", conf.get_property(conf.SLIDESHOW_DURATION_KEY)))
+        duration = float(kwargs.get("duration", 5))
         resolution = res.Resolution(resolution=kwargs.get("resolution", conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 2
         out_file = kwargs.get("out_file")
@@ -266,7 +266,18 @@ class ImageFile(media.MediaFile):
         vf_string = ",".join(vfilters)
         cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" -s "{resolution}" "{out_file}"'
         util.run_ffmpeg(cmd)
-        return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "zoom": zstop})
+        effect = "zoom-in" if zstop >= zstart else "zoom-out"
+        return (
+            out_file,
+            {
+                "photo": self.filename,
+                "output": out_file,
+                "effect": effect,
+                "duration": round(duration, 2),
+                "zoom_start_pct": round(zstart * 100, 1),
+                "zoom_stop_pct": round(zstop * 100, 1),
+            },
+        )
 
     def __compute_total_frame__(self, needed_width: int, needed_height: int) -> tuple[str, float, float]:
         if needed_width > self.resolution.width:
@@ -370,7 +381,16 @@ class ImageFile(media.MediaFile):
         vf_str = ",".join(vfilters)
         cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd)
-        return (out_file, {"input": self.filename, "output": out_file, "cmd": cmd, "duration": duration, "speed": speed, "vspeed": vspeed})
+        effect = "pan-right" if speed >= 0 else "pan-left"
+        return (
+            out_file,
+            {
+                "photo": self.filename,
+                "output": out_file,
+                "effect": effect,
+                "duration": round(duration, 2),
+            },
+        )
 
     def to_video(self, with_effect: bool = True, **kwargs) -> tuple[str, dict]:
         """Converts an image to a video.
@@ -387,7 +407,7 @@ class ImageFile(media.MediaFile):
         speed = DEFAULT_PAN_SPEED * random.randrange(-1, 3, 2)
         if "speed" in kwargs:
             speed = float(kwargs.pop("speed"))
-        duration = 5.0
+        duration = _compute_duration(self.resolution.ratio)
         if "duration" in kwargs:
             duration = float(kwargs.pop("duration"))
             log.logger.debug("Setting duration to %5f", duration)
@@ -546,6 +566,14 @@ def zoom(file: str, zoom_level: float, **kwargs) -> tuple[str, dict]:
     else:
         z = (1, zoom_level)
     return ImageFile(file).zoom(effect=z, **kwargs)
+
+
+def _compute_duration(ratio: float) -> float:
+    """Returns a slide duration between 4 and 10s depending on the photo aspect ratio:
+    the further the ratio is from 16:9, the more panning/zooming distance is needed to cover it,
+    so the effect is given a longer duration to stay slow"""
+    deviation = abs(math.log(ratio / (16 / 9)))
+    return min(10.0, 4.0 + deviation * 6.0)
 
 
 def _get_random_zoom(zmin: float = 1, zmax: float = 1.3) -> tuple[float, float]:

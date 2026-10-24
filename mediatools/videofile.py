@@ -752,66 +752,56 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     hw_accel = util.get_hw_accel_mode(**kwargs) == "on"
 
     transition_duration = float(conf.get_property("default.fade.duration"))
-    fade_in = filter.fade_in(duration=transition_duration)
-
-    pixfmt = filters.format("yuva420p")
-    nb_files = len(input_files)
-
-    total_duration = 0
     fcomp = filters.Complex(*[VideoFile(f) for f in input_files])
-    outs = []
-    for i, f in enumerate(fcomp.inputs):
-        fade_out = filter.fade_out(start=f.duration - transition_duration, duration=f.duration)
-        pts = filters.setpts(f"PTS-STARTPTS+{total_duration}/TB")
-        total_duration += f.duration - transition_duration
-        last_out = fcomp.add_filtergraph(str(i) + ":v", f"{pixfmt},{fade_in},{fade_out},{pts}")
-        outs.append(last_out)
 
-    last_out = outs[0]
-    for i in range(len(fcomp.inputs) - 1):
-        last_out = fcomp.add_filtergraph([last_out, outs[i + 1]], filters.overlay())
+    # Consecutive clips are cross-faded pairwise with xfade (clip-to-clip, no alpha compositing involved), then the
+    # whole result gets a plain fade in/out at its very start/end. A hand-rolled alpha-fade/overlay chain was tried
+    # first but ffmpeg's overlay filter only honors the alpha of its 2nd (top) input, so chaining clips as each
+    # other's background silently dropped the fade in of the first clip and the fade out of the last one as soon as
+    # more than 3 clips were chained
+    total_duration = fcomp.inputs[0].duration
+    last_out = "0:v"
+    for i in range(1, len(fcomp.inputs)):
+        xfade_offset = total_duration - transition_duration
+        last_out = fcomp.add_filtergraph([last_out, f"{i}:v"], f"xfade=transition=fade:duration={transition_duration}:offset={xfade_offset}")
+        total_duration += fcomp.inputs[i].duration - transition_duration
 
-    # Add fake input for the trim filter
-    fcomp.inputs.append(VideoFile(input_files[0]))
-    last_out = fcomp.add_filtergraph(last_out, filters.trim(duration=total_duration - transition_duration * (nb_files - 1)))
+    fade_in = filter.fade_in(duration=transition_duration, alpha=0)
+    fade_out = filter.fade_out(start=total_duration - transition_duration, duration=transition_duration, alpha=0)
+    last_out = fcomp.add_filtergraph(last_out, f"{fade_in},{fade_out}")
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
+    quality = "-cq 18" if hw_accel else "-crf 18 -preset slow"
     util.run_ffmpeg(
         f"{filters.hw_accel_input(hw_accel=hw_accel)} {fcomp.format_inputs()} {fcomp!s} "
-        f'{filters.hw_accel_output(hw_accel=hw_accel)} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
+        f'{filters.hw_accel_output(hw_accel=hw_accel)} {quality} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
         total_duration,
     )
 
     return outfile
 
-    # ffmpeg -i 1.mp4 -i 2.mp4 -f lavfi -i color=black -filter_complex \
-    # [0:v]format=pix_fmts=yuva420p,fade=t=out:st=4:d=1:alpha=1,setpts=PTS-STARTPTS[va0];\
-    # [1:v]format=pix_fmts=yuva420p,fade=t=in:st=0:d=1:alpha=1,setpts=PTS-STARTPTS+4/TB[va1];\
-    # [2:v]scale=960x720,trim=duration=9[over];\
-    # [over][va0]overlay[over1];\
-    # [over1][va1]overlay=format=yuv420[outv]" \
-    # -vcodec libx264 -map [outv] out.mp4
-
 
 @util.hw_accel_fallback
-def slideshow(*inputs: str, resolution: str | None = None, hw_accel: bool | str = "auto") -> tuple[str, list]:
+def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto") -> tuple[str, list]:
+    """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
+    with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
+    start/end. outfile defaults to the basename of the first input photo with the video extension.
+    Returns the (output file, list of per-photo operations) tuple"""
     log.logger.info("slideshow(%s)", str(inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slideshow_files = fil.file_list(*inputs)
     video_files: list[str] = []
     all_video_files: list[list[str]] = []
     slideshows: list[str] = []
-    slideshow_root_filename: str | None = None
     operations: list = []
     if resolution is None:
-        resolution = conf.get_property("default.video.resolution")
+        resolution = conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY)
     fmt = conf.get_property("default.video.format")
+    outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
+    log.logger.info("Final slideshow file will be %s", outfile)
 
     for slide_file in slideshow_files:
         if fil.is_image_file(slide_file):
-            if slideshow_root_filename is None:
-                slideshow_root_filename = fil.random_name(slide_file, "slideshow")
-                log.logger.info("Final slideshow file will be %s.%s", slideshow_root_filename, fmt)
             try:
                 out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution)
                 video_files.append(out_file)
@@ -827,18 +817,25 @@ def slideshow(*inputs: str, resolution: str | None = None, hw_accel: bool | str 
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(
                 __build_slideshow__(
-                    video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}", hw_accel=hw_accel
+                    video_files,
+                    resolution=resolution,
+                    outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
+                    hw_accel=hw_accel,
                 )
             )
             all_video_files.append(video_files)
             video_files = []
-    final_file = f"{slideshow_root_filename}.{fmt}"
     if len(all_video_files) == 0:
-        return (__build_slideshow__(video_files, resolution=resolution, outfile=final_file, hw_accel=hw_accel), operations)
+        return (__build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel), operations)
     slideshows.append(
-        __build_slideshow__(video_files, resolution=resolution, outfile=f"{slideshow_root_filename}.part{len(slideshows)}.{fmt}", hw_accel=hw_accel)
+        __build_slideshow__(
+            video_files,
+            resolution=resolution,
+            outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
+            hw_accel=hw_accel,
+        )
     )
-    return (concat(target_file=final_file, file_list=slideshows, with_audio=False, hw_accel=hw_accel), operations)
+    return (concat(target_file=outfile, file_list=slideshows, with_audio=False, hw_accel=hw_accel), operations)
 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:
