@@ -747,9 +747,9 @@ def __get_audio_channel_mapping__(**kwargs) -> str:
 
 def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", resolution: str | None = None, **kwargs) -> str:
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
-    # The filter graph of the slideshow is only run with hardware accelerated decoding and encoding when it's explicitly requested:
-    # it fails on some systems, so the CPU is used in auto mode
-    hw_accel = util.get_hw_accel_mode(**kwargs) == "on"
+    # The filters of the slideshow run on the CPU, only the encoding is done by the GPU (decoding some of the clips on the GPU
+    # and the others on the CPU fails). If it fails anyway, slideshow() runs it again on the CPU
+    hw_accel = util.use_hardware_accel(**kwargs)
 
     transition_duration = float(conf.get_property("default.fade.duration"))
     fcomp = filters.Complex(*[VideoFile(f) for f in input_files])
@@ -771,10 +771,9 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     last_out = fcomp.add_filtergraph(last_out, f"{fade_in},{fade_out}")
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
-    quality = "-cq 18" if hw_accel else "-crf 18 -preset slow"
+    encoder = "-c:v h264_nvenc -cq 18" if hw_accel else "-crf 18 -preset slow"
     util.run_ffmpeg(
-        f"{filters.hw_accel_input(hw_accel=hw_accel)} {fcomp.format_inputs()} {fcomp!s} "
-        f'{filters.hw_accel_output(hw_accel=hw_accel)} {quality} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
+        f'{fcomp.format_inputs()} {fcomp!s} {encoder} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
         total_duration,
     )
 
@@ -803,7 +802,7 @@ def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None =
     for slide_file in slideshow_files:
         if fil.is_image_file(slide_file):
             try:
-                out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution)
+                out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
                 video_files.append(out_file)
                 operations.append(details)
             except OSError:

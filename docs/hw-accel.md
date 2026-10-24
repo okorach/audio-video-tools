@@ -25,8 +25,9 @@ The default can be changed with the `default.hw_accel` property of `~/.mediatool
 
 ## Tools
 
-`videotool slideshow` builds its filter graph on the CPU unless `--hw_accel on` is given (the graph fails with hardware accelerated
-frames on some systems).
+`videotool slideshow` uses the GPU to encode the video of each photo and the final slideshow (`h264_nvenc`). The filters
+(zoom, pan, cross-fades) run on the CPU, and so does the decoding of the clips, as decoding some of them on the GPU and the others on
+the CPU fails. If a command fails with the GPU in auto mode, the whole slideshow is made again on the CPU.
 
 The operations that always use the CPU don't use the hardware acceleration whatever the option: video filters that run on the
 CPU only (`videotool reverse`, `speed`, `stabilize` and the `enhance` color filters), the copy of streams

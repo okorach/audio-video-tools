@@ -36,6 +36,7 @@ INPUT_FILE_FMT: str = ' -i "%s"'
 
 MAX_INT: int = 2000000000
 DEFAULT_PAN_SPEED: float = 0.02  # 2% of image width traveled per second
+MAX_VERTICAL_DRIFT: float = 0.05  # Max vertical travel of a panorama, in proportion of the height of the photo, up or down
 
 
 class ImageFile(media.MediaFile):
@@ -264,7 +265,8 @@ class ImageFile(media.MediaFile):
         vfilters.append(filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
         vfilters.append(filters.trim(duration=duration))
         vf_string = ",".join(vfilters)
-        cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" -s "{resolution}" "{out_file}"'
+        encoder = _encoder_options(**kwargs)
+        cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" {encoder} -s "{resolution}" "{out_file}"'
         util.run_ffmpeg(cmd)
         effect = "zoom-in" if zstop >= zstart else "zoom-out"
         return (
@@ -379,7 +381,8 @@ class ImageFile(media.MediaFile):
         vfilters.append(filters.crop(scale_res.width, scale_res.height, x_formula, y_formula))
 
         vf_str = ",".join(vfilters)
-        cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} -s {v_res!s} "{out_file}"'
+        encoder = _encoder_options(**kwargs)
+        cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} {encoder} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd)
         effect = "pan-right" if speed >= 0 else "pan-left"
         return (
@@ -389,6 +392,8 @@ class ImageFile(media.MediaFile):
                 "output": out_file,
                 "effect": effect,
                 "duration": round(duration, 2),
+                # Vertical travel in % of the height of the photo (positive = downwards), only for the photos that are not as wide as 16:9
+                "vertical_drift_pct": round((ystop - ystart) * 100, 1) if vspeed else 0.0,
             },
         )
 
@@ -426,7 +431,9 @@ class ImageFile(media.MediaFile):
             return self.panorama(duration=duration, effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), speed=speed, **kwargs)
         if random.randint(0, 1) == 0:
             x = random.randint(0, 1)
-            return self.panorama(effect=(x, 1 - x, 0.5 + drift, 0.5 - drift), duration=duration, speed=speed, **kwargs)
+            # The photo is not as wide as 16:9: the panorama also drifts vertically, by up to 5% of the height of the photo up or down
+            vertical_drift = round(random.uniform(-MAX_VERTICAL_DRIFT, MAX_VERTICAL_DRIFT), 3)
+            return self.panorama(effect=(x, 1 - x, 0.5 - vertical_drift / 2, 0.5 + vertical_drift / 2), duration=duration, speed=speed, **kwargs)
         return self.zoom(effect=_get_random_zoom(), duration=duration, **kwargs)
 
 
@@ -566,6 +573,11 @@ def zoom(file: str, zoom_level: float, **kwargs) -> tuple[str, dict]:
     else:
         z = (1, zoom_level)
     return ImageFile(file).zoom(effect=z, **kwargs)
+
+
+def _encoder_options(**kwargs) -> str:
+    """The video encoder of the clips generated from a photo: the GPU one (the filters of the effects run on the CPU), the default one on the CPU"""
+    return "-c:v h264_nvenc -cq 18" if util.use_hardware_accel(**kwargs) else ""
 
 
 def _compute_duration(ratio: float) -> float:
