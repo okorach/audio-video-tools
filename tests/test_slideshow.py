@@ -26,6 +26,7 @@ import subprocess
 import sys
 from unittest.mock import patch
 import pytest
+import yaml
 from mediatools import tools
 import mediatools.videofile as video
 import mediatools.imagefile as image
@@ -88,6 +89,38 @@ def test_main(images):
         tools.videotool()
     os.remove(out_file)
     os.remove(fil.strip_extension(out_file) + ".yaml")
+
+
+def test_main_yaml_input(images, tmp_path):
+    out_file = str(tmp_path / "from-yaml.mp4")
+    yaml_in = tmp_path / "in.yaml"
+    photos = [
+        {"photo": os.path.abspath(images[0]), "effect": "pan-left", "duration": 3.0, "vertical_drift_pct": 2.5},
+        {"photo": os.path.abspath(images[2]), "effect": "zoom-in", "duration": 3.0, "zoom_start_pct": 100.0, "zoom_stop_pct": 120.0},
+    ]
+    yaml_in.write_text(yaml.safe_dump({"slideshow": {"output": out_file, "resolution": "320x180"}, "photos": photos}), encoding="utf-8")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in)]):
+        tools.videotool()
+    assert os.path.isfile(out_file)
+    with open(fil.strip_extension(out_file) + ".yaml", encoding="utf-8") as f:
+        written = yaml.safe_load(f)["photos"]
+    assert [p["effect"] for p in written] == ["pan-left", "zoom-in"]
+    assert [p["duration"] for p in written] == [3.0, 3.0]
+    assert written[0]["vertical_drift_pct"] == pytest.approx(2.5, abs=0.2)
+
+
+def test_main_yaml_invalid(tmp_path):
+    yaml_in = tmp_path / "bad.yaml"
+    yaml_in.write_text("photos: []", encoding="utf-8")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in)]), pytest.raises(SystemExit) as e:
+        tools.videotool()
+    assert e.value.code == 1
+
+
+def test_main_requires_inputs():
+    with patch.object(sys, "argv", ["videotool", "slideshow"]), pytest.raises(SystemExit) as e:
+        tools.videotool()
+    assert e.value.code == 2
 
 
 # Hardware acceleration: the clips of the photos and the slideshow are encoded by the GPU, the filters run on the CPU
@@ -179,3 +212,10 @@ def test_to_video_drifts_up_or_down_by_at_most_5_percent(commands):
     assert all(-5.0 <= d <= 5.0 for d in drifts)
     assert any(d > 0 for d in drifts) and any(d < 0 for d in drifts)
     assert commands.call_count == 60
+
+
+def test_assembly_weight_grows_with_the_resolution():
+    full_hd = video.__assembly_weight__("1920x1080", 10)
+    assert full_hd == pytest.approx(0.8)
+    assert 1.5 < video.__assembly_weight__("3840x2160", 10) < 2.5
+    assert video.__assembly_weight__("invalid", 10) == pytest.approx(full_hd)

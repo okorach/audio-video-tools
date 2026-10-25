@@ -293,8 +293,10 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
     )
     log.logger.info("Found %d audio file(s) in %s", len(audio_files), dirpath)
 
+    progress = util.GlobalProgress(len(audio_files))
     for filepath in audio_files:
         process_file(filepath, dir_artist, dir_album, dir_year, mb_tracks, dry_run=dry_run)
+        progress.done()
 
 
 # ---------------------------------------------------------------------------

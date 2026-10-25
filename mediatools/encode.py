@@ -83,6 +83,7 @@ def main() -> None:
 
     file_list = kwargs["inputfiles"]
     nb_files = len(file_list)
+    progress = util.GlobalProgress(nb_files)
     for i in range(nb_files):
         log.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
         ofile = encode_file(file_list[i], fil.get_type(file_list[i]), **kwargs)
@@ -92,6 +93,7 @@ def main() -> None:
             base = ".".join(splits)
             fileutil.rename(file_list[i], f"{base}.original.{ext}", False)
             fileutil.rename(ofile, file_list[i])
+        progress.done()
 
 
 if __name__ == "__main__":

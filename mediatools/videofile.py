@@ -780,15 +780,35 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     return outfile
 
 
+def __assembly_weight__(resolution: str, nb_clips: int) -> float:
+    """Estimated cost of the assembly of nb_clips clips of a slideshow, in number of clips to generate.
+    Measured on logs of slideshows with GPU encoding: a clip (zoom or panorama of a photo) takes about 6-8 s whatever the resolution,
+    while the assembly takes about 0.55 s per clip in 1080p and 2 s per clip in 4K, so the cost of the assembly per clip is about
+    0.08 clip in 1080p and 0.2 clip in 4K, ie. it grows like the number of pixels to the power 0.65"""
+    try:
+        width, height = (int(x) for x in str(resolution).lower().split("x"))
+    except ValueError:
+        width, height = 1920, 1080
+    return nb_clips * 0.08 * (width * height / (1920 * 1080)) ** 0.65
+
+
 @util.hw_accel_fallback
-def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto") -> tuple[str, list]:
+def slideshow(
+    *inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto", descriptions: list[dict] | None = None
+) -> tuple[str, list]:
     """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
     with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
     start/end. outfile defaults to the basename of the first input photo with the video extension.
+    descriptions replaces the inputs: it is the list of the photos (as generated in the YAML file by a previous slideshow),
+    with the effect and duration to apply to each of them.
     Returns the (output file, list of per-photo operations) tuple"""
-    log.logger.info("slideshow(%s)", str(inputs))
+    log.logger.info("slideshow(%s)", str(descriptions or inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
-    slideshow_files = fil.file_list(*inputs)
+    if descriptions:
+        slides = [(d["photo"], d) for d in descriptions]
+    else:
+        slides = [(f, None) for f in fil.file_list(*inputs)]
+    slideshow_files = [f for f, _ in slides]
     video_files: list[str] = []
     all_video_files: list[list[str]] = []
     slideshows: list[str] = []
@@ -799,21 +819,36 @@ def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None =
     outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
     log.logger.info("Final slideshow file will be %s", outfile)
 
-    for slide_file in slideshow_files:
+    # The steps are the clips of the photos (weight 1 each) and the assemblies of the clips, which are much faster than the clips
+    # (see __assembly_weight__). When there are more than MAX_SLIDESHOW_AT_ONCE clips, the parts are assembled first,
+    # then concatenated (best guess: the concatenation weighs half of the assembly)
+    nb_slides = len(slides)
+    assembly_weight = __assembly_weight__(resolution, nb_slides)
+    progress = util.GlobalProgress(nb_slides + assembly_weight * (1 if nb_slides <= MAX_SLIDESHOW_AT_ONCE else 1.5))
+    for slide_file, description in slides:
         if fil.is_image_file(slide_file):
             try:
-                out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
+                img = image.ImageFile(slide_file)
+                if description is None:
+                    out_file, details = img.to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
+                else:
+                    out_file, details = img.from_description(description, resolution=resolution, hw_accel=hw_accel)
                 video_files.append(out_file)
                 operations.append(details)
             except OSError:
                 log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
+            progress.done()
         elif fil.is_video_file(slide_file):
             # video_files.append(slide_file)
             log.logger.info("File %s is a video, skipped", slide_file)
+            progress.done()
         else:
             log.logger.info("File %s is neither an image not a video, skipped", slide_file)
+            progress.done()
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
+            part_weight = __assembly_weight__(resolution, len(video_files))
+            progress.next_weight = part_weight
             slideshows.append(
                 __build_slideshow__(
                     video_files,
@@ -822,10 +857,16 @@ def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None =
                     hw_accel=hw_accel,
                 )
             )
+            progress.done(part_weight)
             all_video_files.append(video_files)
             video_files = []
     if len(all_video_files) == 0:
-        return (__build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel), operations)
+        progress.next_weight = assembly_weight
+        final = __build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel)
+        progress.done(assembly_weight)
+        return (final, operations)
+    part_weight = __assembly_weight__(resolution, len(video_files))
+    progress.next_weight = part_weight
     slideshows.append(
         __build_slideshow__(
             video_files,
@@ -834,7 +875,11 @@ def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None =
             hw_accel=hw_accel,
         )
     )
-    return (concat(target_file=outfile, file_list=slideshows, with_audio=False, hw_accel=hw_accel), operations)
+    progress.done(part_weight)
+    progress.next_weight = assembly_weight / 2
+    final = concat(target_file=outfile, file_list=slideshows, with_audio=False, hw_accel=hw_accel)
+    progress.done(assembly_weight / 2)
+    return (final, operations)
 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:

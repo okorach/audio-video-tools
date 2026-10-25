@@ -106,18 +106,23 @@ def main():
     )
     args = parser.parse_args()
     failed = 0
-    for input_file in util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS):
-        if not os.path.isfile(input_file):
-            print(f"File {input_file} not found")
-            failed += 1
-            continue
+    input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
+    progress = util.GlobalProgress(len(input_files))
+    for input_file in input_files:
         try:
-            nb_pages = split(input_file, args.ppp)
-        except (RuntimeError, subprocess.CalledProcessError) as e:
-            print(f"ERROR: {e}")
-            failed += 1
-            continue
-        print(f"Split {input_file} into {nb_pages} files")
+            if not os.path.isfile(input_file):
+                print(f"File {input_file} not found")
+                failed += 1
+                continue
+            try:
+                nb_pages = split(input_file, args.ppp)
+            except (RuntimeError, subprocess.CalledProcessError) as e:
+                print(f"ERROR: {e}")
+                failed += 1
+                continue
+            print(f"Split {input_file} into {nb_pages} files")
+        finally:
+            progress.done()
     if failed:
         sys.exit(1)
 

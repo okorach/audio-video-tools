@@ -27,6 +27,7 @@ import contextvars
 import json
 import logging
 import re
+import time
 import argparse
 import pathlib
 import tempfile
@@ -133,9 +134,14 @@ def __compute_eta__(line: str, total_time: float | str | None) -> str:
         log.logger.debug("%s does not match %s", line, r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x")
         return ""
     speed = float(m.group(2))
-    if speed == 0:
-        return " ETA=Undefined"
-    return " ETA=" + to_hms_str(max(0, (total_time - to_seconds(m.group(1))) / speed))
+    done_time = to_seconds(m.group(1))
+    eta = "Undefined" if speed == 0 else to_hms_str(max(0, (total_time - done_time) / speed))
+    progress = GlobalProgress.current
+    if progress is None or total_time <= 0:
+        return f" ETA={eta}"
+    # Several files are processed: display the progress of the file and the global progress
+    file_fraction = min(max(done_time / total_time, 0.0), 1.0)
+    return f" - File progress {file_fraction * 100:.0f}%/ETA {eta} - {progress.status(file_fraction)}"
 
 
 def __get_log_level_from_ffmpeg_log__(line: str) -> int:
@@ -199,7 +205,7 @@ def run_ffmpeg(params: str, duration: float | None = None) -> None:
     if commands is not None and HW_ACCEL_COMMAND_REGEXP.search(params):
         commands.append(params)  # Remember that a hardware accelerated command was run, see hw_accel_fallback()
     quot = '"' if platform.system() == "Windows" else ""
-    cmd = f"{quot}{get_ffmpeg()}{quot} -y {params}"
+    cmd = f"{quot}{get_ffmpeg()}{quot} -y -stats_period {FFMPEG_STATS_PERIOD} {params}"
     run_os_cmd(cmd, duration)
     metacopy.copy_after_ffmpeg(params)
 
@@ -282,12 +288,12 @@ def delete_files(*args: str) -> None:
         os.remove(f)
 
 
-def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
+def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("-i", "--inputfiles", required=True, metavar="N", type=str, nargs="+", help="List of files to encode")
+    parser.add_argument("-i", "--inputfiles", required=inputs_required, metavar="N", type=str, nargs="+", help="List of files to encode")
     parser.add_argument("-o", "--outputfile", required=False, help="Output file or directory")
 
     parser.add_argument("--" + opt.Option.WIDTH, required=False, type=int, help="width of video/image")
@@ -324,6 +330,49 @@ def expand_input_files(inputs: list[str], input_type: str | tuple[str, ...] | No
     return files
 
 
+FFMPEG_STATS_PERIOD = 2  # Interval in seconds between 2 progress lines of ffmpeg (0.5 by default)
+
+
+class GlobalProgress:
+    """Logs the global progress and ETA of a tool processing a collection of files, based on the number of files processed.
+    The remaining files are assumed to be processed at the same speed as the ones already processed.
+    While files are being processed, the progress of the file being processed (reported by the ffmpeg commands) is included
+    in the global progress: 60% of the 7th file out of 11 is a global progress of (6 * 100 + 60) / 11 = 60%.
+    Nothing is logged when there is a single file. Call done() each time a file has been processed.
+    The steps may have different weights (by default 1 each, the total being the sum of the weights of all steps): the weight of
+    the step being processed is set with next_weight before running it and passed to done()"""
+
+    current: "GlobalProgress | None" = None  # The progress being tracked, used by the ffmpeg commands to display it
+
+    def __init__(self, total: float) -> None:
+        self.total = total
+        self.count: float = 0
+        self.next_weight: float = 1
+        self.start = time.time()
+        GlobalProgress.current = self if total > 1 else None
+
+    def eta(self, file_fraction: float = 0.0) -> tuple[float, str]:
+        """Returns the global progress (0 to 1) and ETA when the file being processed is file_fraction (0 to 1) done"""
+        fraction = min((self.count + file_fraction * self.next_weight) / self.total, 1.0)
+        elapsed = time.time() - self.start
+        return (fraction, to_hms_str(elapsed * (1 - fraction) / fraction if fraction > 0 else 0.0))
+
+    def status(self, file_fraction: float) -> str:
+        """Returns the global progress and ETA while the file being processed is file_fraction (0 to 1) done"""
+        fraction, eta = self.eta(file_fraction)
+        return f"Global progress {fraction * 100:.0f}%/ETA {eta}"
+
+    def done(self, weight: float = 1) -> None:
+        self.count += weight
+        self.next_weight = 1
+        if self.total <= 1:
+            return
+        fraction, eta = self.eta()
+        log.logger.info("GLOBAL progress %g/%g - %d%%, ETA %s", self.count, self.total, fraction * 100, eta)
+        if self.count >= self.total and GlobalProgress.current is self:
+            GlobalProgress.current = None
+
+
 def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> None:
     """Calls process(input_file, options) on each of the input files, options being a copy of kwargs without the input files.
     An error on a file doesn't prevent the next files from being processed, but the program exits with code 1 at the end.
@@ -334,6 +383,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
     failed = 0
+    progress = GlobalProgress(len(inputs))
     for i, input_file in enumerate(inputs, start=1):
         if len(inputs) > 1:
             log.logger.info("%3d/%3d : %s", i, len(inputs), input_file)
@@ -342,6 +392,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
         except Exception as e:
             log.logger.error("Could not process %s: %s", input_file, e)
             failed += 1
+        progress.done()
     if failed:
         sys.exit(1)
 
