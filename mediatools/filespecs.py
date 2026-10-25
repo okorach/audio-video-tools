@@ -135,14 +135,14 @@ def __to_std__(specs: dict, all_props: list[str]) -> str:
 def main() -> None:
     util.init("file-specs")
     parser = argparse.ArgumentParser(description="Audio/Video/Image file specs extractor")
-    parser.add_argument("-i", "--inputfiles", required=True, nargs="+", help="Input files and/or directories to probe")
+    util.add_input_args(parser, "Input files and/or directories to probe")
     parser.add_argument("-f", "--format", required=False, default="txt", help="Output file format (txt or csv)")
     parser.add_argument("-t", "--types", required=False, default="", help="Types of files to include [audio,video,image]")
-    parser.add_argument("-g", "--debug", required=False, default=0, help="Debug level")
+    util.add_verbosity_arg(parser)
     parser.add_argument("--dry_run", required=False, default=0, help="Dry run mode")
     kwargs = util.parse_media_args(parser)
 
-    filelist = kwargs["inputfiles"]
+    filelist = kwargs[util.INPUT_FILES]
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 

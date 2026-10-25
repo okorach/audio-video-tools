@@ -68,7 +68,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     descriptions = None
-    outfile = kwargs.get("outputfile")
+    outfile = kwargs.get(util.OUTPUT_FILE)
     resolution = kwargs.get("resolution")
     if kwargs.get("yaml"):
         try:
@@ -78,14 +78,14 @@ def main():
             sys.exit(1)
         outfile = outfile or params.get("output")
         resolution = resolution or params.get("resolution")
-        kwargs["inputfiles"] = []
-    elif not kwargs.get("inputfiles"):
+        kwargs[util.INPUT_FILES] = []
+    elif not kwargs.get(util.INPUT_FILES):
         parser.error("-i or -y is required")
 
     resolution = resolution or conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY)
 
     output, operations = video.slideshow(
-        *kwargs["inputfiles"], outfile=outfile, resolution=resolution, hw_accel=kwargs.get("hw_accel", "auto"), descriptions=descriptions
+        *kwargs[util.INPUT_FILES], outfile=outfile, resolution=resolution, hw_accel=kwargs.get("hw_accel", "auto"), descriptions=descriptions
     )
 
     # The paths in the YAML file are relative to the folder of the YAML file

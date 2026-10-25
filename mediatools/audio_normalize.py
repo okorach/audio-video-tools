@@ -852,21 +852,18 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
 def main() -> None:
     util.init("audio-normalize")
     parser = argparse.ArgumentParser(description="Normalize audio metadata, cover art, and filenames")
-    parser.add_argument(
-        "-i",
-        "--inputfiles",
-        "-f",
-        "--files",
+    util.add_input_args(
+        parser,
+        "Files and/or directories to process (default: E:\\Musique). -f/--files is a deprecated alias",
+        required=False,
         dest="files",
-        nargs="+",
-        help="Files and/or directories to process (default: E:\\Musique). -f/--files is a deprecated alias",
+        aliases=("-f", "--files"),
     )
     parser.add_argument("--dry-run", action="store_true", help="Parse and log actions without modifying anything")
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     args = parser.parse_args()
 
-    if args.debug:
-        util.set_debug_level(args.debug)
+    util.set_debug_level(util.get_verbosity(vars(args)))
 
     inputs = args.files or [r"E:\Musique"]
     dry_run = args.dry_run

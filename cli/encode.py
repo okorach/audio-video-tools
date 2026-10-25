@@ -50,7 +50,7 @@ def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
 
 def main() -> None:
     kwargs = set_and_parse_cli_args()
-    files_to_encode = kwargs.pop("inputfiles")
+    files_to_encode = kwargs.pop(util.INPUT_FILES)
     files_to_encode = [f for f in files_to_encode if fil.is_media_file(f)]
     log.logger.info("Filtered files (%d)", len(files_to_encode))
     postfix = ""

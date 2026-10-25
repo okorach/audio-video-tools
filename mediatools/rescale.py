@@ -39,7 +39,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
-        outputfile = image.ImageFile(input_file).scale(options.get("width", -1), options.get("height", -1), out_file=options.get("outputfile"))
+        outputfile = image.ImageFile(input_file).scale(options.get("width", -1), options.get("height", -1), out_file=options.get(util.OUTPUT_FILE))
         print("Generated", outputfile)
 
     util.process_input_files(kwargs, process)

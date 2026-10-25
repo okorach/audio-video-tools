@@ -74,7 +74,7 @@ def main() -> None:
 
     def process(input_file: str, options: dict) -> None:
         try:
-            outputfile = creator.file(input_file).crop(out_file=options.pop("outputfile", None), **options)
+            outputfile = creator.file(input_file).crop(out_file=options.pop(util.OUTPUT_FILE, None), **options)
         except (ValueError, subprocess.CalledProcessError) as e:
             raise ValueError(f"Crop failed: {e}") from e
         log.logger.info("Generated %s", outputfile)

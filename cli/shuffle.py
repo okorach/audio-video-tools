@@ -31,10 +31,10 @@ import utilities.file as fil
 def main():
     util.init("audio-shuffle")
     parser = argparse.ArgumentParser(description="Shuffle audio files with random numeric prefix")
-    parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to shuffle")
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_input_args(parser, "List of files to shuffle", required=False)
+    util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser)
-    files_to_shuffle = list(kwargs["inputfiles"])
+    files_to_shuffle = list(kwargs[util.INPUT_FILES])
 
     log.logger.info("Unfiltered files (%d)", len(files_to_shuffle))
     files_to_shuffle = [f for f in files_to_shuffle if fil.is_media_file(f)]

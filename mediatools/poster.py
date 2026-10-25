@@ -37,9 +37,9 @@ def main():
     file_list = []
     util.init("image-poster")
     parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")
-    parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to posterize", required=True)
-    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_input_args(parser, "List of files to posterize")
+    util.add_output_args(parser, "Output file to generate")
+    util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], default="black", help="Background color of frame")
     parser.add_argument("-m", "--margin", required=False, default=0, help="Width of margin")
@@ -53,9 +53,9 @@ def main():
         help="Stretch images so that they have the same width and height",
     )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
-    file_list = kwargs["inputfiles"]
+    file_list = kwargs[util.INPUT_FILES]
 
-    posterfile = image.posterize(*file_list, out_file=kwargs.get("outputfile", None), **kwargs)
+    posterfile = image.posterize(*file_list, out_file=kwargs.get(util.OUTPUT_FILE, None), **kwargs)
     util.generated_file(posterfile)
 
 

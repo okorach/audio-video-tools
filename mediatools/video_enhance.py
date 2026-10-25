@@ -98,7 +98,7 @@ def main():
     )
     kwargs = util.parse_media_args(parser, input_type=fileutil.FileType.VIDEO_FILE)
 
-    output_file = kwargs.get("outputfile", None)
+    output_file = kwargs.get(util.OUTPUT_FILE, None)
     saturation = kwargs["saturation"]
     contrast = kwargs["contrast"]
     brightness = kwargs["brightness"]
@@ -106,12 +106,12 @@ def main():
     hw_accel = None if kwargs.get("gpu_filters", False) else False
     do_stabilize = not kwargs.get("no_stabilize", False)
 
-    all_files = kwargs["inputfiles"]
+    all_files = kwargs[util.INPUT_FILES]
     files = [f for f in all_files if ".color." not in os.path.basename(f) and ".original." not in os.path.basename(f)]
     if len(files) < len(all_files):
         log.logger.info("Skipped %d already-generated file(s) (.color./.original.)", len(all_files) - len(files))
     if not files:
-        log.logger.error("No video files found in %s", kwargs["inputfiles"])
+        log.logger.error("No video files found in %s", kwargs[util.INPUT_FILES])
         return
 
     if output_file is not None and len(files) > 1:

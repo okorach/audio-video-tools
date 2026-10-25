@@ -45,6 +45,10 @@ import mediatools.media_config as conf
 from mediatools import metacopy
 
 DEBUG_LEVEL: int = 0
+
+# Names of the input and output files options (--inputfiles/--outputfile) and of the corresponding keys of the parsed arguments
+INPUT_FILES: str = "inputfiles"
+OUTPUT_FILE: str = "outputfile"
 DRY_RUN: bool = False
 # Result of the check of the availability of the hardware acceleration (None = not checked yet)
 HW_ACCEL: bool | None = None
@@ -269,11 +273,45 @@ def json_fmt(json_data: object) -> str:
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(",", ": "))
 
 
+VERBOSITY_LEVELS: tuple[str, ...] = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")  # Index = integer debug level
+DEFAULT_VERBOSITY = "INFO"
+
+
+def parse_verbosity(level: int | str | None) -> int:
+    """Converts a verbosity (CRITICAL, ERROR, WARNING, INFO, DEBUG - case insensitive, or the equivalent integer 0 to 4) to its integer level.
+    INFO (3) is the default"""
+    if level is None or str(level).strip() == "":
+        return VERBOSITY_LEVELS.index(DEFAULT_VERBOSITY)
+    text = str(level).strip().upper()
+    if text in VERBOSITY_LEVELS:
+        return VERBOSITY_LEVELS.index(text)
+    return int(text)
+
+
+def get_verbosity(kwargs: dict) -> int:
+    """Returns the integer verbosity level from the parsed arguments (-v/--verbosity, or the deprecated -g/--debug)"""
+    return parse_verbosity(kwargs.get("verbosity") or kwargs.get("debug"))
+
+
+def add_verbosity_arg(parser: argparse.ArgumentParser) -> None:
+    """Adds the -v/--verbosity option to the parser of a tool (and the deprecated -g/--debug alias, that accepts the same values)"""
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        required=False,
+        metavar="|".join(VERBOSITY_LEVELS),
+        type=str.upper,
+        choices=VERBOSITY_LEVELS,
+        help=f"Verbosity of the logs, {DEFAULT_VERBOSITY} by default",
+    )
+    parser.add_argument("-g", "--debug", required=False, help=argparse.SUPPRESS)
+
+
 def set_debug_level(level: int | str | None) -> None:
     global DEBUG_LEVEL
-    DEBUG_LEVEL = 3 if level is None else int(level)
+    DEBUG_LEVEL = parse_verbosity(level)
     log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
-    log.logger.info("Set debug level to %d", DEBUG_LEVEL)
+    log.logger.info("Set verbosity to %s", VERBOSITY_LEVELS[min(max(DEBUG_LEVEL, 0), 4)])
 
 
 def init(logger_name: str) -> None:
@@ -288,13 +326,32 @@ def delete_files(*args: str) -> None:
         os.remove(f)
 
 
+def add_input_args(
+    parser: argparse.ArgumentParser,
+    help: str = "List of files to process",
+    required: bool = True,
+    dest: str = INPUT_FILES,
+    aliases: tuple[str, ...] = (),
+) -> None:  # pylint: disable=redefined-builtin
+    """Adds the -i/--inputfiles option (files and/or directories) to the parser of a tool.
+    aliases are other (deprecated) names of the option, dest is the name of the parsed argument"""
+    parser.add_argument("-i", "--" + INPUT_FILES, *aliases, dest=dest, required=required, nargs="+", help=help)
+
+
+def add_output_args(
+    parser: argparse.ArgumentParser, help: str = "Output file or directory", required: bool = False
+) -> None:  # pylint: disable=redefined-builtin
+    """Adds the -o/--outputfile option to the parser of a tool"""
+    parser.add_argument("-o", "--" + OUTPUT_FILE, required=required, help=help)
+
+
 def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("-i", "--inputfiles", required=inputs_required, metavar="N", type=str, nargs="+", help="List of files to encode")
-    parser.add_argument("-o", "--outputfile", required=False, help="Output file or directory")
+    add_input_args(parser, "List of files to encode", required=inputs_required)
+    add_output_args(parser, "Output file or directory")
 
     parser.add_argument("--" + opt.Option.WIDTH, required=False, type=int, help="width of video/image")
     parser.add_argument("--" + opt.Option.HEIGHT, required=False, type=int, help="height of video/image")
@@ -302,7 +359,7 @@ def get_common_args(executable: str, desc: str, inputs_required: bool = True) ->
 
     parser.add_argument("--aspect", required=False, help="Aspect Ratio eg 16:9, 4:3, 1.5 ...")
 
-    parser.add_argument("-g", "--debug", required=False, help="Debug level")
+    add_verbosity_arg(parser)
     parser.add_argument("--keepName", required=False, default=False, action="store_true", help="Generate new file with same name as old")
     add_hw_accel_arg(parser)
 
@@ -378,8 +435,8 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
     An error on a file doesn't prevent the next files from being processed, but the program exits with code 1 at the end.
     Exits with code 2 if an output file is given with several input files"""
     options = dict(kwargs)
-    inputs = options.pop("inputfiles")
-    if len(inputs) > 1 and options.get("outputfile"):
+    inputs = options.pop(INPUT_FILES)
+    if len(inputs) > 1 and options.get(OUTPUT_FILE):
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
     failed = 0
@@ -410,12 +467,13 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     else:
         kwargs = vars(parser.parse_args(args))
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
-    set_debug_level(kwargs.get("debug", 3))
+    set_debug_level(get_verbosity(kwargs))
     log.logger.debug("Raw args = %s", str(kwargs))
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
-    if isinstance(kwargs.get("inputfiles"), list):
-        kwargs["inputfiles"] = expand_input_files(kwargs["inputfiles"], input_type)
+    kwargs.pop("verbosity", None)
+    if isinstance(kwargs.get(INPUT_FILES), list):
+        kwargs[INPUT_FILES] = expand_input_files(kwargs[INPUT_FILES], input_type)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get("timeranges")
     if timerange:
@@ -430,7 +488,7 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
 
 def cleanup_options(kwargs: dict) -> dict:
     new_options = remove_nones(kwargs)
-    for key in ["inputfiles", "outputfile", "profile"]:
+    for key in [INPUT_FILES, OUTPUT_FILE, "profile"]:
         new_options.pop(key, None)
     return new_options
 

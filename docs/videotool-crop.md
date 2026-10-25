@@ -6,7 +6,7 @@ proportional to the cropped area, and audio tracks (and other streams) copied un
 ## Usage
 
 ```
-videotool crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-g <level>]
+videotool crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--center|--bottom] [--left|--right] [--hw_accel auto|on|off] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
 ```
 
 | Option | Description |
@@ -18,7 +18,7 @@ videotool crop -i <input> [-o <output>] [--box <W>x<H>|4k|fhd|1k|hd] [--top|--ce
 | `--left`, `--right` | Horizontal alignment of the region in the source |
 | `--topleft`, `--topright`, `--bottomleft`, `--bottomright` | Shortcuts for `--top --left`, `--top --right`, `--bottom --left` and `--bottom --right` |
 | `--hw_accel` | Nvidia hardware acceleration: `auto` (default), `on`, `off` |
-| `-g` | Debug level |
+| `-v`, `--verbosity` | Verbosity of the logs: `CRITICAL`, `ERROR`, `WARNING`, `INFO` (default) or `DEBUG` |
 
 Vertical and horizontal options can be combined: `--top --left` aligns the region with the top left corner
 of the source. `--center` alone, or no position at all, centers the region. A direction that is not given

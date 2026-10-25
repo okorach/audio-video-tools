@@ -71,12 +71,12 @@ def main():
     directory = None
     while sys.argv:
         arg = sys.argv.pop(0)
-        if arg == "-g":
+        if arg in ("-v", "--verbosity", "-g"):
             util.set_debug_level(sys.argv.pop(0))
         elif os.path.isdir(arg):
             directory = arg
     if directory is None:
-        print(f"Usage: {fil.basename(me)} [-g <debug_level>] <directory>")
+        print(f"Usage: {fil.basename(me)} [-v CRITICAL|ERROR|WARNING|INFO|DEBUG] <directory>")
         sys.exit(1)
     for symlink in fil.dir_list(directory, recurse=False):
         if not fil.is_link(symlink):

@@ -32,7 +32,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
-        util.generated_file(video.reverse(input_file, options.pop("outputfile", None), **options))
+        util.generated_file(video.reverse(input_file, options.pop(util.OUTPUT_FILE, None), **options))
 
     util.process_input_files(kwargs, process)
 

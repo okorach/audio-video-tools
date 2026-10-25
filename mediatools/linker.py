@@ -76,7 +76,7 @@ def main():
         "-c", "--copyFiles", action="store_true", default=False, help="ask to copy files linked from master directory", required=False
     )
     parser.add_argument("-a", "--all", action="store_true", default=False, help="Do everything", required=False)
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser)
 
     master_dir = kwargs["master"]

@@ -67,18 +67,12 @@ def merge(pdf_files: list, out_file: str | None = None) -> str:
 def main() -> None:
     """Entry point of the pdf-merge command"""
     parser = argparse.ArgumentParser(description="Merges several PDF files into 1 PDF file (requires Ghostscript)")
-    parser.add_argument(
-        "-i",
-        "--inputfiles",
-        required=True,
-        nargs="+",
-        help="Input PDF files and/or directories, the PDF files they contain being included (merged in lexicographic order)",
-    )
-    parser.add_argument("-o", "--outputfile", required=False, default=None, help="Output PDF file (default: first input file with a _merged postfix)")
+    util.add_input_args(parser, "Input PDF files and/or directories, the PDF files they contain being included (merged in lexicographic order)")
+    util.add_output_args(parser, "Output PDF file (default: first input file with a _merged postfix)")
     args = parser.parse_args()
     try:
-        input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
-        out = merge(input_files, args.outputfile)
+        input_files = util.expand_input_files(vars(args)[util.INPUT_FILES], extensions=PDF_EXTENSIONS)
+        out = merge(input_files, vars(args)[util.OUTPUT_FILE])
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as e:
         log.logger.error("%s", e)
         sys.exit(1)

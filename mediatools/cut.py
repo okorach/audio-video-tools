@@ -41,7 +41,7 @@ def main():
     if timeranges is None and kwargs.get("start") is None and kwargs.get("stop") is None:
         log.logger.error(MISSING_PARAM)
         sys.exit(1)
-    if timeranges is not None and len(timeranges.split(",")) > 1 and kwargs.get("outputfile"):
+    if timeranges is not None and len(timeranges.split(",")) > 1 and kwargs.get(util.OUTPUT_FILE):
         log.logger.error("-o can't be used with several time ranges")
         sys.exit(2)
 
@@ -50,7 +50,7 @@ def main():
             # start and stop are those of the first time range, av.cut() cuts all the ranges
             options.pop("start", None)
             options.pop("stop", None)
-        av.cut(ifile, output=options.pop("outputfile", None), **options)
+        av.cut(ifile, output=options.pop(util.OUTPUT_FILE, None), **options)
 
     util.process_input_files(kwargs, process)
 

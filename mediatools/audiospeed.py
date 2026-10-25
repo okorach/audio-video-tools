@@ -77,7 +77,7 @@ def main():
         sys.exit(1)
 
     def process(input_file: str, options: dict) -> None:
-        util.generated_file(speed(input_file, options.get("outputfile"), size_percent))
+        util.generated_file(speed(input_file, options.get(util.OUTPUT_FILE), size_percent))
 
     util.process_input_files(kwargs, process)
 

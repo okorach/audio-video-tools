@@ -5,7 +5,7 @@
 ::    renamer -i "%%~F" -r "%root%"
 :: )
 
-:: renamer -r "%root%" -i %* -g 5
+:: renamer -r "%root%" -i %* -v DEBUG
 set /p prefix=Format (#SEQ# #SIZE# #DEVICE# #TIMESTAMP# #TIME# #FPS# #BITRATE#)?
 set /p seqstart=Sequence Start ?
 renamer --seqstart %seqstart% --prefix "%prefix%" --photo_format "%prefix%" --video_format "%prefix%" -i %*

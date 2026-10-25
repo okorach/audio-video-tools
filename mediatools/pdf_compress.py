@@ -81,16 +81,8 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
 
 def main():
     parser = argparse.ArgumentParser(description="Compresses PDF files (requires Ghostscript)")
-    parser.add_argument(
-        "-i", "--inputfiles", required=True, nargs="+", help="Input PDF files and/or directories (all the PDF files they contain are processed)"
-    )
-    parser.add_argument(
-        "-o",
-        "--outputfile",
-        required=False,
-        default=None,
-        help="Output PDF file (default: replaces the input file, which is renamed with an _original postfix)",
-    )
+    util.add_input_args(parser, "Input PDF files and/or directories (all the PDF files they contain are processed)")
+    util.add_output_args(parser, "Output PDF file (default: replaces the input file, which is renamed with an _original postfix)")
     parser.add_argument(
         "--ppp",
         required=False,
@@ -100,8 +92,8 @@ def main():
         help="Compression level in pixels per inch: 150 (/ebook, default), 300 (/printer) or 600 (/prepress)",
     )
     args = parser.parse_args()
-    input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
-    if len(input_files) > 1 and args.outputfile:
+    input_files = util.expand_input_files(vars(args)[util.INPUT_FILES], extensions=PDF_EXTENSIONS)
+    if len(input_files) > 1 and vars(args)[util.OUTPUT_FILE]:
         print("ERROR: -o can't be used with several input files")
         sys.exit(2)
     failed = 0
@@ -113,7 +105,7 @@ def main():
                 failed += 1
                 continue
             try:
-                out = compress(input_file, args.outputfile, args.ppp)
+                out = compress(input_file, vars(args)[util.OUTPUT_FILE], args.ppp)
             except (RuntimeError, subprocess.CalledProcessError) as e:
                 print(f"ERROR: {e}")
                 failed += 1
