@@ -34,6 +34,7 @@ NOT_UNIFIED = {"linker", "renamer", "datefixer", "shuffle"}
 
 
 def console_scripts() -> dict[str, str]:
+    """Returns the console scripts of pyproject.toml: their names and the functions they run"""
     content = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     section = content.split("[project.scripts]")[1].split("[build-system]")[0]
     return dict(re.findall(r'^([\w-]+)\s*=\s*"([^"]+)"', section, re.MULTILINE))
@@ -41,14 +42,17 @@ def console_scripts() -> dict[str, str]:
 
 @pytest.mark.parametrize(("command", "action"), [(c, a) for c, actions in tools.COMMANDS.items() for a in actions])
 def test_every_action_is_implemented(command: str, action: str) -> None:
+    """Every action is implemented"""
     assert callable(tools.get_action_function(command, action))
 
 
 def test_only_the_unified_commands_and_the_generic_tools_are_console_scripts() -> None:
+    """Only the unified commands and the generic tools are console scripts"""
     assert set(console_scripts()) == set(tools.COMMANDS) | NOT_UNIFIED
 
 
 def test_commands_are_registered(request: pytest.FixtureRequest) -> None:
+    """Commands are registered"""
     scripts = console_scripts()
     setup_py = (ROOT / "setup.py").read_text(encoding="utf-8")
     for command in tools.COMMANDS:
@@ -57,6 +61,7 @@ def test_commands_are_registered(request: pytest.FixtureRequest) -> None:
 
 
 def test_run_passes_the_parameters_to_the_action(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run passes the parameters to the action"""
     action = mock.Mock(side_effect=lambda: seen.extend(sys.argv))
     seen: list[str] = []
     monkeypatch.setattr(tools, "get_action_function", lambda _command, _action: action)
@@ -67,6 +72,7 @@ def test_run_passes_the_parameters_to_the_action(monkeypatch: pytest.MonkeyPatch
 
 
 def test_run_uses_the_command_line_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run uses the command line by default"""
     seen: list[str] = []
     monkeypatch.setattr(tools, "get_action_function", lambda _command, _action: lambda: seen.extend(sys.argv))
     monkeypatch.setattr(sys, "argv", ["pdftool", "split", "-i", "a.pdf"])
@@ -75,6 +81,7 @@ def test_run_uses_the_command_line_by_default(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_run_unknown_action(capsys: pytest.CaptureFixture[str]) -> None:
+    """Run unknown action"""
     with pytest.raises(SystemExit) as e:
         tools.run("videotool", ["snpa"])
     assert e.value.code == 2
@@ -82,6 +89,7 @@ def test_run_unknown_action(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_run_without_action(capsys: pytest.CaptureFixture[str]) -> None:
+    """Run without action"""
     with pytest.raises(SystemExit) as e:
         tools.run("audiotool", [])
     assert e.value.code == 2
@@ -90,6 +98,7 @@ def test_run_without_action(capsys: pytest.CaptureFixture[str]) -> None:
 
 @pytest.mark.parametrize("option", ["-h", "--help"])
 def test_run_help(option: str, capsys: pytest.CaptureFixture[str]) -> None:
+    """Run help"""
     with pytest.raises(SystemExit) as e:
         tools.run("imagetool", [option])
     assert e.value.code == 0
@@ -97,6 +106,7 @@ def test_run_help(option: str, capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_action_help_shows_the_unified_command(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Action help shows the unified command"""
     # Python 3.14 names the program "python -m pytest" when run as a module, console scripts are named after sys.argv[0]
     monkeypatch.setattr(sys.modules["__main__"], "__spec__", None)
     with pytest.raises(SystemExit) as e:
@@ -106,6 +116,7 @@ def test_action_help_shows_the_unified_command(capsys: pytest.CaptureFixture[str
 
 
 def test_videotool_snap_end_to_end(video_5s: str, tmp_path: Path) -> None:
+    """Videotool snap end to end"""
     video = tmp_path / "clip.mp4"
     video.write_bytes(Path(video_5s).read_bytes())
     tools.run("videotool", ["snap", "-i", str(video), "--nbr_photos", "2"])

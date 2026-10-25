@@ -34,18 +34,21 @@ TMPA = util.get_tmp_file() + ".mp3"
 
 
 def test_main_v() -> None:
+    """Main v"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", VIDEO]):
         tools.videotool()
         assert True
 
 
 def test_main_a() -> None:
+    """Main a"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", AUDIO]):
         tools.videotool()
         assert True
 
 
 def test_main_v_with_output() -> None:
+    """Main v with output"""
     start, stop = 3, 7
     with patch.object(sys, "argv", ["videotool", "cut", "--start", str(start), "--stop", str(stop), "-i", VIDEO, "-o", TMPV]):
         tools.videotool()
@@ -56,6 +59,7 @@ def test_main_v_with_output() -> None:
 
 
 def test_main_a_with_output() -> None:
+    """Main a with output"""
     start, stop = 30, 60
     with patch.object(sys, "argv", ["videotool", "cut", "--start", str(start), "--stop", str(stop), "-i", AUDIO, "-o", TMPA]):
         tools.videotool()
@@ -66,6 +70,7 @@ def test_main_a_with_output() -> None:
 
 
 def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "cut", "-h"]):
         try:
             tools.videotool()
@@ -75,6 +80,7 @@ def test_main_help() -> None:
 
 
 def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "cut", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -84,6 +90,7 @@ def test_main_bad_option() -> None:
 
 
 def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "cut", "-o", TMPA]):
         try:
             tools.videotool()

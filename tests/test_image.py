@@ -31,6 +31,7 @@ TMP_VID = util.get_tmp_file() + ".mp4"
 
 
 def get_img(w: int, h: int, orientation: str = "landscape") -> image.ImageFile:
+    """Returns an image of a width and a height, with an orientation"""
     img = image.ImageFile(image.get_rectangle("black", w, h))
     img.probe()
     img.orientation = orientation
@@ -38,11 +39,13 @@ def get_img(w: int, h: int, orientation: str = "landscape") -> image.ImageFile:
 
 
 def del_files(*imgs: object) -> None:
+    """Deletes the files of the images"""
     for o in imgs:
         os.remove(o.filename)
 
 
 def test_str() -> None:
+    """Str"""
     img = get_img(400, 300)
     s = str(img)
     util.set_debug_level(4)
@@ -54,6 +57,7 @@ def test_str() -> None:
 
 
 def test_scale_1() -> None:
+    """Scale 1"""
     w, h = 400, 200
     img = get_img(w, h)
     assert img.resolution.width == w
@@ -62,6 +66,7 @@ def test_scale_1() -> None:
 
 
 def test_needed_frame_1() -> None:
+    """Needed frame 1"""
     w, h = 4000, 3000
     img = get_img(w, h)
     _, tot_w, tot_h = img.__compute_total_frame__(6000, 3500)
@@ -71,6 +76,7 @@ def test_needed_frame_1() -> None:
 
 
 def test_needed_frame_2() -> None:
+    """Needed frame 2"""
     w, h = 4000, 3000
     img = get_img(w, h)
     _, tot_w, tot_h = img.__compute_total_frame__(5000, 4500)
@@ -80,6 +86,7 @@ def test_needed_frame_2() -> None:
 
 
 def test_needed_frame_3() -> None:
+    """Needed frame 3"""
     w, h = 4000, 3000
     img = get_img(w, h)
     _, tot_w, tot_h = img.__compute_total_frame__(3000, 3600)
@@ -89,6 +96,7 @@ def test_needed_frame_3() -> None:
 
 
 def test_type() -> None:
+    """Type"""
     try:
         _ = image.ImageFile("it/seal.mp3")
         assert False
@@ -102,6 +110,7 @@ def test_type() -> None:
 
 
 def test_to_image_effect() -> None:
+    """To image effect"""
     w, h = 3000, 2000
     img = get_img(w, h)
     util.set_debug_level(4)
@@ -112,6 +121,7 @@ def test_to_image_effect() -> None:
 
 
 def test_to_image_still() -> None:
+    """To image still"""
     w, h = 2000, 2000
     img = get_img(w, h)
     util.set_debug_level(4)
@@ -121,6 +131,7 @@ def test_to_image_still() -> None:
 
 
 def test_widths_and_heights() -> None:
+    """Widths and heights"""
     w, h = 4000, 3000
     img = get_img(w, h)
     pt = get_img(w, h, orientation="portrait")
@@ -134,6 +145,7 @@ def test_widths_and_heights() -> None:
 
 
 def test_properties() -> None:
+    """Properties"""
     w, h = 3000, 2000
     img = get_img(w, h)
     props = img.get_properties()
@@ -146,6 +158,7 @@ def test_properties() -> None:
 
 
 def test_dimensions_2() -> None:
+    """Dimensions 2"""
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
     w, h = img.dimensions(ignore_orientation=False)
@@ -155,6 +168,7 @@ def test_dimensions_2() -> None:
 
 
 def test_crop() -> None:
+    """Crop"""
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
     f = image.ImageFile(img.crop(position="center-top", width=3500, height=2000))
@@ -163,6 +177,7 @@ def test_crop() -> None:
 
 
 def test_scale() -> None:
+    """Scale"""
     w, h = 4000, 3000
     img = get_img(w, h)
     f = image.ImageFile(img.scale(w=2000))
@@ -173,6 +188,7 @@ def test_scale() -> None:
 
 
 def test_no_scale() -> None:
+    """No scale"""
     w, h = 4000, 3000
     img = get_img(w, h)
     f = image.ImageFile(img.scale())
@@ -181,6 +197,7 @@ def test_no_scale() -> None:
 
 
 def test_blindify() -> None:
+    """Blindify"""
     w, h = 4000, 3000
     img = get_img(w, h)
     f = image.ImageFile(img.blindify(blinds=5, direction="vertical", blinds_size=50))
@@ -191,6 +208,7 @@ def test_blindify() -> None:
 
 
 def test_shake_1() -> None:
+    """Shake 1"""
     w, h = 1000, 200
     img = get_img(w, h)
     # util.set_debug_level(4)
@@ -200,6 +218,7 @@ def test_shake_1() -> None:
 
 
 def test_shake_2() -> None:
+    """Shake 2"""
     w, h = 1000, 200
     img = get_img(w, h)
     f = image.ImageFile(img.shake(nbr_slices=20, direction="horizontal", shake_pct=10))
@@ -208,6 +227,7 @@ def test_shake_2() -> None:
 
 
 def test_rotate() -> None:
+    """Rotate"""
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
     f = image.ImageFile(img.rotate())
@@ -233,6 +253,7 @@ def test_to_video_zoom_keeps_duration() -> None:
 
 
 def test_crop_any(tmp_path: Path) -> None:
+    """Crop any"""
     src = str(tmp_path / "wide.jpg")
     util.run_ffmpeg(f'-f lavfi -i testsrc=size=400x200:rate=1:duration=1 -frames:v 1 -update 1 "{src}"')
     for ratio, expected in (("1", (200, 200)), ("2", (400, 200)), ("1:2", (100, 200)), (4.0, (400, 100))):

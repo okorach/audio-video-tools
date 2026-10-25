@@ -37,30 +37,36 @@ from collections.abc import Iterator
 
 
 def completed(stdout: str = "", stderr: str = "") -> mock.Mock:
+    """Returns a mock of the result of a command"""
     return mock.Mock(stdout=stdout, stderr=stderr)
 
 
 def test_has_vidstab() -> None:
+    """Has vidstab"""
     with mock.patch("subprocess.run", return_value=completed(stdout=" ... vidstabdetect  V->V ...")):
         assert stab.has_vidstab()
 
 
 def test_has_vidstab_in_stderr() -> None:
+    """Has vidstab in stderr"""
     with mock.patch("subprocess.run", return_value=completed(stderr="vidstabdetect")):
         assert stab.has_vidstab()
 
 
 def test_has_no_vidstab() -> None:
+    """Has no vidstab"""
     with mock.patch("subprocess.run", return_value=completed(stdout="scale  V->V")):
         assert not stab.has_vidstab()
 
 
 def test_has_vidstab_without_ffmpeg() -> None:
+    """Has vidstab without ffmpeg"""
     with mock.patch("subprocess.run", side_effect=FileNotFoundError):
         assert not stab.has_vidstab()
 
 
 def test_run_vidstabdetect() -> None:
+    """Run vidstabdetect"""
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
         trf = stab.run_vidstabdetect("clip.mp4", shakiness=5)
     try:
@@ -74,6 +80,7 @@ def test_run_vidstabdetect() -> None:
 
 
 def test_stabilize_two_passes() -> None:
+    """Stabilize two passes"""
     with mock.patch.object(stab, "has_vidstab", return_value=True), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = stab.stabilize("dir/clip.mp4", smoothing=10, zoom=5, optzoom=2)
     assert output == os.path.join("dir", "clip.stabilized.mp4") or output.endswith("clip.stabilized.mp4")
@@ -88,6 +95,7 @@ def test_stabilize_two_passes() -> None:
 
 
 def test_stabilize_without_sharpening_to_the_given_output() -> None:
+    """Stabilize without sharpening to the given output"""
     with mock.patch.object(stab, "has_vidstab", return_value=True), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = stab.stabilize("clip.mp4", output="out.mp4", sharpen=False)
     assert output == "out.mp4"
@@ -95,6 +103,7 @@ def test_stabilize_without_sharpening_to_the_given_output() -> None:
 
 
 def test_stabilize_removes_the_transforms_file_on_failure() -> None:
+    """Stabilize removes the transforms file on failure"""
     with (
         mock.patch.object(stab, "has_vidstab", return_value=True),
         mock.patch("mediatools.utilities.run_ffmpeg", side_effect=[None, RuntimeError("boom")]) as run,
@@ -106,6 +115,7 @@ def test_stabilize_removes_the_transforms_file_on_failure() -> None:
 
 
 def test_stabilize_falls_back_to_deshake_without_vidstab() -> None:
+    """Stabilize falls back to deshake without vidstab"""
     with mock.patch.object(stab, "has_vidstab", return_value=False), mock.patch.object(stab.video, "VideoFile") as video_file:
         video_file.return_value.encode.return_value = "deshaken.mp4"
         assert stab.stabilize("clip.mp4", output="out.mp4") == "deshaken.mp4"
@@ -119,6 +129,7 @@ def test_stabilize_falls_back_to_deshake_without_vidstab() -> None:
 # Command line
 @pytest.fixture
 def cli() -> Iterator[mock.MagicMock]:
+    """Replaces the stabilization of a video. Returns the mock of the stabilization"""
     with (
         mock.patch.object(stab, "stabilize", side_effect=lambda f, output=None, **_kw: output or f + ".stabilized") as stabilize,
         mock.patch("mediatools.utilities.generated_file"),
@@ -127,16 +138,19 @@ def cli() -> Iterator[mock.MagicMock]:
 
 
 def run_main(*args: str) -> None:
+    """Runs the command with the arguments given"""
     with mock.patch.object(sys, "argv", ["videotool", "stabilize", *args]):
         tools.videotool()
 
 
 def test_main_defaults(cli: mock.MagicMock) -> None:
+    """Main defaults"""
     run_main("-i", "a.mp4")
     cli.assert_called_once_with("a.mp4", output=None, shakiness=8, smoothing=30, zoom=0, optzoom=1, sharpen=True)
 
 
 def test_main_options(cli: mock.MagicMock) -> None:
+    """Main options"""
     run_main("-i", "a.mp4", "-o", "out.mp4", "--shakiness", "3", "--smoothing", "12", "--zoom", "4", "--optzoom", "0", "--no-sharpen")
     cli.assert_called_once_with("a.mp4", output="out.mp4", shakiness=3, smoothing=12, zoom=4, optzoom=0, sharpen=False)
 

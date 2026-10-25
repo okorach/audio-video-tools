@@ -75,7 +75,7 @@ Profile keys follow the pattern: `<profilename>.cmdline` (FFmpeg args), `<profil
 ### CLI Pattern
 
 Each CLI tool follows this pattern:
-1. `util.get_common_args(name, description)` — creates argparse parser with standard `-i`/`-o`/`-g`/`-s` flags
+1. `util.get_common_args(name, description)` — creates argparse parser with standard `-i`/`-o`/`-v`/`-s` flags
 2. Tool-specific arguments are added to the parser
 3. `util.parse_media_args(parser, input_type=...)` — parses args, resolves resolution, detects hardware acceleration, and expands the directories given to `-i` into the (recursive) list of files of the `input_type` FileType(s)
 4. Core logic runs via the media file classes or utility functions, once per input file with `util.process_input_files(kwargs, process)` (tools combining all the files, like concat, use `kwargs["inputfiles"]` as a whole)

@@ -33,29 +33,34 @@ FILE_SIZE = 2001067
 
 
 def test_file_std() -> None:
+    """File std"""
     f = fil.File(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
 
 def test_file_video() -> None:
+    """File video"""
     f = video.VideoFile(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
 
 def test_file_unexisting() -> None:
+    """File unexisting"""
     f = fil.File("nonexist.txt")
     assert not f.stat()
 
 
 def test_extension() -> None:
+    """Extension"""
     assert fil.extension(FILE) == "mp4"
     f = fil.File(FILE)
     assert f.extension() == "mp4"
 
 
 def test_basename() -> None:
+    """Basename"""
     assert fil.basename(FILE, strip_ext=False) == BASE
     assert fil.basename(FILE) == "video-720p"
     assert fil.basename(FILE, strip_dir=False, strip_ext=False) == os.path.abspath(FILE)
@@ -65,6 +70,7 @@ def test_basename() -> None:
 
 
 def test_dirname() -> None:
+    """Dirname"""
     # The directory of a file is returned as an absolute path (with the drive letter on Windows)
     dirname = os.path.abspath(os.sep.join(["", "usr", "local", "bin"]))
     filename = dirname + os.sep + "python3"
@@ -74,6 +80,7 @@ def test_dirname() -> None:
 
 
 def test_link(tmp_path: Path) -> None:
+    """Link"""
     assert not fil.is_link(FILE)
     assert not fil.is_shortcut(FILE)
     f = fil.File(FILE)
@@ -95,6 +102,7 @@ def test_link(tmp_path: Path) -> None:
 
 
 def test_hash() -> None:
+    """Hash"""
     f = fil.File("nonexisting")
     assert f.hash() is None
     f = fil.File(FILE)
@@ -102,6 +110,7 @@ def test_hash() -> None:
 
 
 def test_hash_list() -> None:
+    """Hash list"""
     hashes = fil.get_hash_list([FILE, FILE_2, FILE])
     h = next(iter(hashes))
     assert h is not None
@@ -112,4 +121,5 @@ def test_hash_list() -> None:
 
 
 def test_version() -> None:
+    """Version"""
     assert re.match(r"^[0-9.]+$", version.MEDIA_TOOLS_VERSION)

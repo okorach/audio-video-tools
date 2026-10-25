@@ -50,6 +50,7 @@ mediatools/baz.py:7:9: RUF012 [*] Mutable class attributes should be annotated w
 
 
 def run(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], report: str, *args: object) -> str:
+    """Runs ruff2sonar on a ruff report with the arguments given, and returns its output"""
     monkeypatch.setattr(sys, "argv", ["ruff2sonar.py", *args])
     monkeypatch.setattr(sys, "stdin", io.StringIO(report))
     ruff2sonar.main()
@@ -57,6 +58,7 @@ def run(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], rep
 
 
 def test_issues(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Issues"""
     result = json.loads(run(monkeypatch, capsys, REPORT))
     issues = result["issues"]
     assert [i["ruleId"] for i in issues] == ["B904", "I001", "RUF012"]
@@ -66,6 +68,7 @@ def test_issues(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[s
 
 
 def test_inline_range_marker(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Inline range marker"""
     text_range = json.loads(run(monkeypatch, capsys, REPORT))["issues"][0]["primaryLocation"]["textRange"]
     assert text_range["startLine"] == 10
     assert text_range["endLine"] == 10
@@ -82,28 +85,33 @@ def test_multi_line_range_of_the_imports(monkeypatch: pytest.MonkeyPatch, capsys
 
 
 def test_rules(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Rules"""
     rules = json.loads(run(monkeypatch, capsys, REPORT))["rules"]
     assert sorted(r["id"] for r in rules) == ["B904", "I001", "RUF012"]
     assert all(r["engineId"] == "ruff" and r["impacts"] == [{"softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM"}] for r in rules)
 
 
 def test_v1_format(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """V1 format"""
     result = json.loads(run(monkeypatch, capsys, REPORT, "v1"))
     assert "rules" not in result
     assert all(i["severity"] == "MAJOR" and i["type"] == "CODE_SMELL" for i in result["issues"])
 
 
 def test_no_issue(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """No issue"""
     assert run(monkeypatch, capsys, "All checks passed!\n") == ""
 
 
 def test_range_marker_with_an_end_line() -> None:
+    """Range marker with an end line"""
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
     ruff2sonar.apply_range_marker(issue_range, "RUF012", 5, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5, "startColumn": 2, "endColumn": 9}
 
 
 def test_range_marker_of_the_imports() -> None:
+    """Range marker of the imports"""
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
     ruff2sonar.apply_range_marker(issue_range, "I001", 6, 2, 9)
     assert issue_range == {"startLine": 3, "endLine": 5}
@@ -111,6 +119,7 @@ def test_range_marker_of_the_imports() -> None:
 
 @pytest.mark.parametrize("columns", [(None, None), (4, None), (None, 8)])
 def test_range_marker_with_missing_columns(columns: tuple) -> None:
+    """Range marker with missing columns"""
     issue_range = {"startLine": 3, "endLine": 3, "startColumn": 0, "endColumn": 1}
     ruff2sonar.apply_range_marker(issue_range, "B904", None, *columns)
     assert issue_range["endLine"] == 3

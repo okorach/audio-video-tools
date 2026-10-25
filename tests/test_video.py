@@ -36,6 +36,7 @@ TMP2 = util.get_tmp_file() + ".mp4"
 
 
 def test_type() -> None:
+    """Type"""
     try:
         _ = video.VideoFile("it" + os.sep + "seal.mp3")
         assert False
@@ -53,6 +54,7 @@ def test_type() -> None:
 
 
 def test_video_specs() -> None:
+    """Video specs"""
     v = video.VideoFile(FILE)
     v.probe()
     specs = v.get_video_specs()
@@ -61,6 +63,7 @@ def test_video_specs() -> None:
 
 
 def test_ffmpeg_cmdline() -> None:
+    """Ffmpeg cmdline"""
     cmd1 = "-c:a libmp3lame -vn -b:a 192k -map_metadata 0 -id3v2_version 3 -write_id3v1 1"
     cmd2 = "-f mp4 -acodec aac -deinterlace -vcodec libx265 -r 60 -aspect 16:10 -b:v 1536k -s 720x400"
     assert video.get_size_option(cmd1) == ""
@@ -82,12 +85,14 @@ def test_ffmpeg_cmdline() -> None:
 
 
 def test_video_props() -> None:
+    """Video props"""
     f = video.VideoFile(FILE)
     h = f.get_video_properties()
     assert isinstance(h["file_size"], int)
 
 
 def test_attributes() -> None:
+    """Attributes"""
     v = video.VideoFile(FILE)
     assert v.get_aspect_ratio() == "16:9"
     assert v.get_pixel_aspect_ratio() == "1:1"
@@ -103,6 +108,7 @@ def test_attributes() -> None:
 
 
 def test_crop(short_video: str) -> None:
+    """Crop"""
     v = video.VideoFile(short_video)
     # util.set_debug_level(4)
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position="center"))
@@ -112,6 +118,7 @@ def test_crop(short_video: str) -> None:
 
 
 def test_crop_box_position(short_video: str) -> None:
+    """Crop box position"""
     v = video.VideoFile(short_video)
     cropv = video.VideoFile(v.crop(out_file=TMP1, box="160x120", position="top left"))
     cropv.probe()
@@ -120,6 +127,7 @@ def test_crop_box_position(short_video: str) -> None:
 
 
 def test_crop_too_big() -> None:
+    """Crop too big"""
     v = video.VideoFile(FILE)
     w, h = v.dimensions()
     with pytest.raises(ValueError, match="bigger than source video"):
@@ -220,6 +228,7 @@ def test_crop_keeps_creation_date() -> None:
     calls = []
 
     def fake_encode(*args: object, **kwargs: object) -> None:
+        """Replaces the encoding: creates the output file"""
         shutil.copy(FILE, TMP1)
         calls.append("encode")
 
@@ -248,6 +257,7 @@ def test_crop_hw_accel_codec() -> None:
 
 
 def test_add_metadata() -> None:
+    """Add metadata"""
     shutil.copy(FILE, TMP1)
     v = video.VideoFile(TMP1)
     outf = v.add_metadata(author="John Doe", year="2027", copyright="JDoe Corp", default_track=0, language=["0:fr:Croatian"])
@@ -261,6 +271,7 @@ def test_add_metadata() -> None:
 
 
 def test_speed() -> None:
+    """Speed"""
     v1 = video.VideoFile(FILE)
     v2 = video.VideoFile(video.speed(FILE, 2, output=TMP1))
     # Twice as fast: half the duration, to the precision of 2 frames
@@ -269,6 +280,7 @@ def test_speed() -> None:
 
 
 def test_volume(short_video: str) -> None:
+    """Volume"""
     v1 = video.VideoFile(short_video)
     v2 = video.VideoFile(video.volume(short_video, 2, output=TMP1))
     assert abs(v1.duration - v2.duration) < 0.1
@@ -276,6 +288,7 @@ def test_volume(short_video: str) -> None:
 
 
 def test_reverse(short_video: str) -> None:
+    """Reverse"""
     v1 = video.VideoFile(short_video)
     v2 = video.VideoFile(video.reverse(short_video, output=TMP1))
     assert abs(v1.duration - v2.duration) < 0.1
@@ -283,6 +296,7 @@ def test_reverse(short_video: str) -> None:
 
 
 def test_cut() -> None:
+    """Cut"""
     start, stop = 0.5, 1.5
     v = video.VideoFile(av.cut(FILE, output=TMP1, start=start, stop=stop))
     assert abs(stop - start - v.duration) <= 0.06
@@ -290,6 +304,7 @@ def test_cut() -> None:
 
 
 def test_cut2() -> None:
+    """Cut2"""
     dur = 1.5
     v = video.VideoFile(av.cut(FILE, output=TMP1, stop=dur))
     assert abs(dur - v.duration) <= 0.06
@@ -297,12 +312,14 @@ def test_cut2() -> None:
 
 
 def test_cut3() -> None:
+    """Cut3"""
     v = video.VideoFile(av.cut(FILE, output=TMP1, timeranges="00:00-00:02"))
     assert abs(2 - v.duration) <= 0.06
     os.remove(v.filename)
 
 
 def test_specs2() -> None:
+    """Specs2"""
     v = video.VideoFile(FILE)
     assert v.get_video_codec(None) == "h264"
     assert v.get_audio_codec() == "aac"
@@ -311,6 +328,7 @@ def test_specs2() -> None:
 
 
 def test_metadata() -> None:
+    """Metadata"""
     v = video.VideoFile(FILE)
     a = "John"
     v.set_author(a)
@@ -396,6 +414,7 @@ def test_profile_deinterlace_uses_yadif() -> None:
 
 
 def test_no_deinterlace_by_default() -> None:
+    """No deinterlace by default"""
     v = video.VideoFile(FILE)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
         v.encode(target_file=TMP1, hw_accel=False, vcodec="x264")
@@ -421,6 +440,7 @@ def test_fade_in_and_out(options: dict, fade_out_start: str, duration: float | N
 
 
 def test_set_creation_date_method_formats_the_date() -> None:
+    """Set creation date method formats the date"""
     with mock.patch.object(video, "ExifToolHelper") as helper:
         video.VideoFile(FILE).set_creation_date(dt.datetime(2020, 5, 17, 10, 30, 0))
     tags = helper.return_value.__enter__.return_value.set_tags.call_args_list[0].kwargs["tags"]

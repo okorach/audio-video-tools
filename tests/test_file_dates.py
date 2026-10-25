@@ -64,6 +64,7 @@ def dates(path: str) -> tuple[datetime, datetime | None]:
 
 
 def assert_old_dates(path: str) -> None:
+    """Checks that a file has the old modification date and, on Windows, the old creation date"""
     modified, created = dates(path)
     assert abs((modified - OLD_DATE).total_seconds()) < 2, f"{path} modified {modified}"
     if created is not None:
@@ -72,11 +73,13 @@ def assert_old_dates(path: str) -> None:
 
 @pytest.fixture
 def old_video(short_video: str, tmp_path: Path) -> str:
+    """Returns a copy of the short video that has the old dates"""
     return set_dates(shutil.copy(short_video, tmp_path / "old.mp4"))
 
 
 @pytest.fixture
 def old_audio(short_audio: str, tmp_path: Path) -> str:
+    """Returns a copy of the short audio that has the old dates"""
     return set_dates(shutil.copy(short_audio, tmp_path / "old.mp3"))
 
 
@@ -84,6 +87,7 @@ def old_audio(short_audio: str, tmp_path: Path) -> str:
 
 
 def test_preserve_dates(old_video: str) -> None:
+    """Preserve dates"""
     time_before = datetime.now()
     with metacopy.preserve_dates(old_video):
         Path(old_video).write_bytes(Path(old_video).read_bytes() + b"x")
@@ -92,6 +96,7 @@ def test_preserve_dates(old_video: str) -> None:
 
 
 def test_preserve_dates_of_a_file_deleted_or_missing(tmp_path: Path) -> None:
+    """Preserve dates of a file deleted or missing"""
     gone = tmp_path / "gone.txt"
     gone.write_text("x")
     with metacopy.preserve_dates(str(gone)):
@@ -101,8 +106,11 @@ def test_preserve_dates_of_a_file_deleted_or_missing(tmp_path: Path) -> None:
 
 
 def test_keeps_dates_decorator(old_video: str) -> None:
+    """Keeps dates decorator"""
+
     @metacopy.keeps_dates
     def modify(filename: str, content: bytes) -> str:
+        """Replaces the content of a file"""
         Path(filename).write_bytes(content)
         return "done"
 
@@ -112,6 +120,7 @@ def test_keeps_dates_decorator(old_video: str) -> None:
 
 
 def test_copy_dates_to_any_file(old_video: str, tmp_path: Path) -> None:
+    """Copy dates to any file"""
     other = tmp_path / "other.txt"
     other.write_text("not a media file")
     metacopy.copy_date_and_geotag(old_video, str(other))
@@ -133,12 +142,14 @@ def test_copy_dates_to_any_file(old_video: str, tmp_path: Path) -> None:
     ids=["rotate", "reverse", "speed", "volume", "encode"],
 )
 def test_ffmpeg_tools_keep_the_dates(old_video: str, generate: Callable[[str], str]) -> None:
+    """Ffmpeg tools keep the dates"""
     out = generate(old_video)
     assert out != old_video
     assert_old_dates(out)
 
 
 def test_rotate_keep_name_keeps_the_dates(old_video: str) -> None:
+    """Rotate keep name keeps the dates"""
     out = video.rotate(old_video, keep_name=True)
     assert out == old_video
     assert_old_dates(old_video)
@@ -146,6 +157,7 @@ def test_rotate_keep_name_keeps_the_dates(old_video: str) -> None:
 
 
 def test_scale_image_keeps_the_dates(tmp_path: Path) -> None:
+    """Scale image keeps the dates"""
     # An image without EXIF date: the dates of the file are the ones of the image
     photo = str(tmp_path / "photo.jpg")
     subprocess.run([util.get_ffmpeg(), "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc=size=640x480", "-frames:v", "1", photo], check=True)
@@ -158,18 +170,21 @@ def test_scale_image_keeps_the_dates(tmp_path: Path) -> None:
 
 
 def test_audio_set_tag_keeps_the_dates(old_audio: str) -> None:
+    """Audio set tag keeps the dates"""
     audio.AudioFile(old_audio).set_tag("title", "A new title")
     assert audio.AudioFile(old_audio).get_a_tag("title").first == "A new title"
     assert_old_dates(old_audio)
 
 
 def test_fix_mp3_meta_keeps_the_dates(old_audio: str) -> None:
+    """Fix mp3 meta keeps the dates"""
     fix_mp3_meta.write_tags(old_audio, artist="Artist", title="Title", album="Album", track=1, year=2020)
     assert fix_mp3_meta.read_existing_tags(old_audio)[:2] == ("Artist", "Title")
     assert_old_dates(old_audio)
 
 
 def test_audio_normalize_keeps_the_dates(old_audio: str) -> None:
+    """Audio normalize keeps the dates"""
     tags = audio_normalize.AudioTags(artist="Artist", title="Title", album="Album")
     audio_normalize.write_tags(old_audio, tags)
     assert_old_dates(old_audio)
@@ -180,6 +195,7 @@ def test_audio_normalize_keeps_the_dates(old_audio: str) -> None:
 
 @pytest.fixture
 def old_pdfs(tmp_path: Path) -> list[str]:
+    """Returns 2 PDF files that have the old dates"""
     pdfs = []
     for name in ("a.pdf", "b.pdf"):
         (tmp_path / name).write_bytes(b"%PDF-1.4 " + name.encode())
@@ -199,6 +215,7 @@ def fake_ghostscript(cmd: str, **_: object) -> subprocess.CompletedProcess:
 
 
 def test_pdf_compress_keeps_the_dates(old_pdfs: list[str], tmp_path: Path) -> None:
+    """Pdf compress keeps the dates"""
     with patch.object(subprocess, "run", side_effect=fake_ghostscript), patch.object(pdf_compress, "find_ghostscript", return_value="gs"):
         out = pdf_compress.compress(old_pdfs[0], str(tmp_path / "compressed.pdf"))
         assert_old_dates(out)
@@ -209,12 +226,14 @@ def test_pdf_compress_keeps_the_dates(old_pdfs: list[str], tmp_path: Path) -> No
 
 
 def test_pdf_merge_keeps_the_dates(old_pdfs: list[str], tmp_path: Path) -> None:
+    """Pdf merge keeps the dates"""
     with patch.object(subprocess, "run", side_effect=fake_ghostscript), patch.object(pdf_merge, "find_ghostscript", return_value="gs"):
         out = pdf_merge.merge(old_pdfs, str(tmp_path / "merged.pdf"))
     assert_old_dates(out)
 
 
 def test_pdf_split_keeps_the_dates(old_pdfs: list[str]) -> None:
+    """Pdf split keeps the dates"""
     with (
         patch.object(subprocess, "run", side_effect=fake_ghostscript),
         patch.object(pdf_split, "find_ghostscript", return_value="gs"),

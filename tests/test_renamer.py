@@ -30,6 +30,7 @@ from pathlib import Path
 
 
 def _make(tmp_path: Path, **files: object) -> dict[str, str]:
+    """Creates text files with a content in a folder and returns their paths by name"""
     paths = {}
     for name, content in files.items():
         p = tmp_path / f"{name}.txt"
@@ -39,34 +40,40 @@ def _make(tmp_path: Path, **files: object) -> dict[str, str]:
 
 
 def _content(tmp_path: Path) -> dict[str, str]:
+    """Returns the content of the files of a folder by file name"""
     return {f.name: f.read_text() for f in tmp_path.iterdir()}
 
 
 def test_simple_rename(tmp_path: Path) -> None:
+    """Simple rename"""
     p = _make(tmp_path, a="A")
     assert renamer.rename_files([(p["a"], str(tmp_path / "z.txt"))])
     assert _content(tmp_path) == {"z.txt": "A"}
 
 
 def test_swap(tmp_path: Path) -> None:
+    """Swap"""
     p = _make(tmp_path, a="A", b="B")
     assert renamer.rename_files([(p["a"], p["b"]), (p["b"], p["a"])])
     assert _content(tmp_path) == {"a.txt": "B", "b.txt": "A"}
 
 
 def test_chain_conflict(tmp_path: Path) -> None:
+    """Chain conflict"""
     p = _make(tmp_path, a="A", b="B", c="C")
     assert renamer.rename_files([(p["a"], p["b"]), (p["b"], p["c"]), (p["c"], str(tmp_path / "d.txt"))])
     assert _content(tmp_path) == {"b.txt": "A", "c.txt": "B", "d.txt": "C"}
 
 
 def test_no_op_rename(tmp_path: Path) -> None:
+    """No op rename"""
     p = _make(tmp_path, a="A")
     assert renamer.rename_files([(p["a"], p["a"])])
     assert _content(tmp_path) == {"a.txt": "A"}
 
 
 def test_duplicate_targets_get_suffix(tmp_path: Path) -> None:
+    """Duplicate targets get suffix"""
     p = _make(tmp_path, a="A", b="B")
     target = str(tmp_path / "x.txt")
     assert renamer.rename_files([(p["a"], target), (p["b"], target)])
@@ -74,17 +81,20 @@ def test_duplicate_targets_get_suffix(tmp_path: Path) -> None:
 
 
 def test_existing_file_outside_batch_not_overwritten(tmp_path: Path) -> None:
+    """Existing file outside batch not overwritten"""
     p = _make(tmp_path, a="A", other="O")
     assert renamer.rename_files([(p["a"], p["other"])])
     assert _content(tmp_path) == {"other.txt": "O", "other 2.txt": "A"}
 
 
 def test_failure_restores_original_names(tmp_path: Path) -> None:
+    """Failure restores original names"""
     p = _make(tmp_path, a="A", b="B", c="C")
     real_rename = os.rename
     calls = []
 
     def flaky(src: str, dst: str) -> None:
+        """Replaces the renaming of a file: fails at the 5th call, during the second phase"""
         calls.append((src, dst))
         if len(calls) == 5:  # fails during the second phase
             raise OSError("boom")
@@ -96,11 +106,13 @@ def test_failure_restores_original_names(tmp_path: Path) -> None:
 
 
 def test_failure_in_first_phase_restores_original_names(tmp_path: Path) -> None:
+    """Failure in first phase restores original names"""
     p = _make(tmp_path, a="A", b="B")
     real_rename = os.rename
     calls = []
 
     def flaky(src: str, dst: str) -> None:
+        """Replaces the renaming of a file: fails at the 2nd call, during the first phase"""
         calls.append((src, dst))
         if len(calls) == 2:
             raise OSError("boom")
@@ -147,6 +159,7 @@ def test_time_placeholder_has_no_sequence_prefix() -> None:
 
 
 def _file_data(path: Path, creation_date: dt.datetime) -> dict:
+    """Returns the data of a file as read by the renamer, for a creation date"""
     return {
         "file": str(path),
         "filename": os.path.basename(str(path)),
@@ -159,6 +172,7 @@ def _file_data(path: Path, creation_date: dt.datetime) -> dict:
 
 
 def _run_main(tmp_path: Path, names: list[str], dates: list[dt.datetime], *args: str) -> list[tuple[str, str]]:
+    """Runs the renamer on files created with names and creation dates, and returns the renamings that were done"""
     files = []
     data = {}
     for i, (name, date) in enumerate(zip(names, dates, strict=True)):

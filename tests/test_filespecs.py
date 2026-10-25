@@ -26,6 +26,7 @@ FILE = "it/seal.mp3"
 
 
 def test_1() -> None:
+    """1"""
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
     specs = audio.AudioFile(FILE).get_properties()
     csv = spec.__to_csv__(specs, allp).split(",")
@@ -37,6 +38,7 @@ def test_1() -> None:
 
 
 def test_2() -> None:
+    """2"""
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
     specs = audio.AudioFile(FILE).get_properties()
     std = spec.__to_std__(specs, allp)

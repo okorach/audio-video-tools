@@ -34,6 +34,7 @@ TMP3 = util.get_tmp_file() + ".mp4"
 
 
 def test_main_with_output(short_video: str, tmp_path: Path) -> None:
+    """Main with output"""
     util.HW_ACCEL = False
     output = str(tmp_path / "concat.mp4")
     with patch.object(sys, "argv", ["videotool", "concat", "-g", "3", "-i", short_video, short_video, "-o", output]):
@@ -45,6 +46,7 @@ def test_main_with_output(short_video: str, tmp_path: Path) -> None:
 
 
 def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
         try:
             tools.videotool()
@@ -54,6 +56,7 @@ def test_main_help() -> None:
 
 
 def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -63,6 +66,7 @@ def test_main_bad_option() -> None:
 
 
 def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
         try:
             tools.videotool()

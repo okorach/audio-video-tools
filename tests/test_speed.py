@@ -39,12 +39,14 @@ def assert_duration(speed_factor: float) -> None:
 
 
 def test_main() -> None:
+    """Main"""
     with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "--speed", "2"]):
         tools.videotool()
         assert True
 
 
 def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "200%"]):
         tools.videotool()
         assert_duration(2)
@@ -53,6 +55,7 @@ def test_main_with_output() -> None:
 
 
 def test_slowmo() -> None:
+    """Slowmo"""
     with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "--speed", "50%"]):
         tools.videotool()
         assert_duration(0.5)
@@ -61,6 +64,7 @@ def test_slowmo() -> None:
 
 
 def test_keep_audio() -> None:
+    """Keep audio"""
     with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "-o", TMP1, "-k", "--speed", "4"]):
         tools.videotool()
         # TODO - Truncate audio when video is shorter, and adjust tests
@@ -70,6 +74,7 @@ def test_keep_audio() -> None:
 
 
 def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "speed", "-h"]):
         try:
             tools.videotool()
@@ -79,6 +84,7 @@ def test_main_help() -> None:
 
 
 def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -88,6 +94,7 @@ def test_main_bad_option() -> None:
 
 
 def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "speed", "-o", TMP1]):
         try:
             tools.videotool()
@@ -97,6 +104,7 @@ def test_main_no_file() -> None:
 
 
 def test_bad_speed() -> None:
+    """Bad speed"""
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--speed", "212%"]):
         try:
             tools.videotool()
@@ -106,18 +114,21 @@ def test_bad_speed() -> None:
 
 
 def test_speed_api_removes_audio() -> None:
+    """Speed api removes audio"""
     output = video.speed(VIDEO, "2", output=TMP1)
     assert video.VideoFile(output).audio_codec is None
     os.remove(output)
 
 
 def test_speed_api_keep_audio() -> None:
+    """Speed api keep audio"""
     output = video.speed(VIDEO, "2", output=TMP1, mute=False)
     assert video.VideoFile(output).audio_codec is not None
     os.remove(output)
 
 
 def test_speed_api_keeps_source_size_and_bitrate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Speed api keeps source size and bitrate"""
     encode = MagicMock(return_value="out.mp4")
     monkeypatch.setattr(video.VideoFile, "encode", encode)
     monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", 1234567))
@@ -131,6 +142,7 @@ def test_speed_api_keeps_source_size_and_bitrate(monkeypatch: pytest.MonkeyPatch
 
 
 def test_speed_real_video_same_size_and_bitrate(short_video: str, tmp_path: Path) -> None:
+    """Speed real video same size and bitrate"""
     source = video.VideoFile(short_video)
     output = video.VideoFile(video.speed(short_video, "2", output=str(tmp_path / "fast.mp4")))
     assert output.get_width() == source.get_width()
@@ -138,6 +150,7 @@ def test_speed_real_video_same_size_and_bitrate(short_video: str, tmp_path: Path
 
 
 def test_speed_default_output_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Speed default output name"""
     encode = MagicMock(return_value="out.mp4")
     monkeypatch.setattr(video.VideoFile, "encode", encode)
     monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", None))
@@ -147,6 +160,7 @@ def test_speed_default_output_name(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.parametrize(("target_speed", "expected"), [("4x", "foo.4x.mp4"), ("200%", "foo.200%.mp4"), (3, "foo.3x.mp4")])
 def test_speed_default_output_name_suffix(monkeypatch: pytest.MonkeyPatch, target_speed: str | int, expected: str) -> None:
+    """Speed default output name suffix"""
     encode = MagicMock(return_value="out.mp4")
     monkeypatch.setattr(video.VideoFile, "encode", encode)
     monkeypatch.setattr(video.VideoFile, "__init__", lambda self, _filename, **_k: setattr(self, "video_bitrate", None))

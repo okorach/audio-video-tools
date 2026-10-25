@@ -34,10 +34,12 @@ TMP_AUDIO = util.get_tmp_file() + ".mp3"
 
 
 def get_video() -> str:
+    """Returns the path of the video file of the tests"""
     return "it" + os.sep + "video-1920x1080.mp4"
 
 
 def test_encode_size() -> None:
+    """Encode size"""
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="1280x720", start=1, stop=2))
@@ -47,6 +49,7 @@ def test_encode_size() -> None:
 
 
 def test_encode_bitrate() -> None:
+    """Encode bitrate"""
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vbitrate="1000k", abitrate="64k", start=1, stop=4))
@@ -56,6 +59,7 @@ def test_encode_bitrate() -> None:
 
 
 def test_encode_acodec() -> None:
+    """Encode acodec"""
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", acodec="mp3", deinterlace=True, start=1, stop=2))
@@ -64,6 +68,7 @@ def test_encode_acodec() -> None:
 
 
 def test_encode_vcodec() -> None:
+    """Encode vcodec"""
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vcodec="h265", deinterlace=True, start=1, stop=2))
@@ -82,6 +87,7 @@ def test_hw_accel_2(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_main_file(short_video: str) -> None:
+    """Main file"""
     file1 = short_video
     try:
         with patch.object(
@@ -95,7 +101,7 @@ def test_main_file(short_video: str) -> None:
 
 
 def test_main_file_audio() -> None:
-
+    """Main file audio"""
     file1 = "it" + os.sep + "seal.mp3"
     with patch.object(sys, "argv", ["videotool", "profile-encode", "-p", "mp3_128k", "-i", file1, "--outputfile", TMP_AUDIO, "--hw_accel", "off"]):
         tools.videotool()
@@ -109,6 +115,7 @@ def test_main_file_audio() -> None:
 
 
 def test_main_dir_timeranges_1(video_5s: str) -> None:
+    """Main dir timeranges 1"""
     file1 = video_5s
     try:
         with patch.object(
@@ -139,6 +146,7 @@ def test_main_dir_timeranges_1(video_5s: str) -> None:
 
 
 def test_main_dir_timeranges_2(video_5s: str) -> None:
+    """Main dir timeranges 2"""
     log.set_logger("tests")
     log.logger.setLevel(log.get_logging_level(4))
     file1 = video_5s

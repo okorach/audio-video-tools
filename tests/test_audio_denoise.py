@@ -175,6 +175,7 @@ def _fake_ffmpeg(cmd: str, _duration: float | None = None) -> None:
 
 
 def _media() -> mock.Mock:
+    """Returns a mock of a media file of 1 second without audio bitrate"""
     return mock.Mock(duration=1, abitrate=None)
 
 

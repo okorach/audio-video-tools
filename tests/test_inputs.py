@@ -93,6 +93,7 @@ def _main_exit_ok(module: ModuleType) -> None:
 
 
 def _names(files: list[str], root: Path) -> list[str]:
+    """Returns the paths of the files relative to a root, with / separators"""
     return [Path(f).relative_to(root).as_posix() for f in files]
 
 
@@ -172,6 +173,7 @@ def test_process_input_files() -> None:
     calls = []
 
     def process(input_file: str, options: dict) -> None:
+        """Records the file and the options it is called with"""
         options["modified"] = True
         calls.append((input_file, sorted(options)))
 
@@ -202,6 +204,7 @@ def test_process_input_files_failure() -> None:
     seen = []
 
     def process(input_file: str, options: dict) -> None:
+        """Records the file and fails for the file b"""
         seen.append(input_file)
         if input_file == "b":
             raise ValueError("boom")
@@ -229,6 +232,7 @@ IMAGE_TOOLS = [
 
 
 def _run_tool(module: ModuleType, argv: list[str]) -> None:
+    """Runs the main function of a tool with the arguments given"""
     with mock.patch.object(sys, "argv", _argv(module, *argv)):
         try:
             _call_main(module)
@@ -272,6 +276,7 @@ def test_metadata_processes_all_inputs(tmp_path: Path) -> None:
     instances = []
 
     def new_video(filename: str) -> mock.Mock:
+        """Records the file and returns a mock of the video"""
         instances.append(filename)
         return mock.Mock()
 
@@ -321,6 +326,7 @@ def test_tool_continues_after_failure(tmp_path: Path) -> None:
     files = _tree(tmp_path)
 
     def fail_on_b(filename: str, *args: str) -> str:
+        """Fails for the file b.mp4, succeeds for the other files"""
         if filename.endswith("b.mp4"):
             raise ValueError("boom")
         return "out.mp4"

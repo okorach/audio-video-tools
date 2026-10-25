@@ -40,6 +40,7 @@ pytestmark = pytest.mark.skipif(shutil.which(util.get_exiftool()) is None, reaso
 
 
 def ffmpeg(*args: str) -> None:
+    """Runs ffmpeg with the arguments given, quietly, and fails if ffmpeg fails"""
     subprocess.run([util.get_ffmpeg(), "-v", "error", "-y", *args], check=True)
 
 
@@ -56,11 +57,13 @@ def geotagged_video(tmp_path_factory: pytest.TempPathFactory) -> str:
 
 
 def exif(path: str) -> dict:
+    """Returns the EXIF data of a file, with numeric values"""
     with ExifToolHelper(executable=util.get_exiftool()) as et:
         return et.get_metadata(path, params=["-n"])[0]
 
 
 def assert_same_date_and_place(path: str) -> None:
+    """Checks that a file has the date and the GPS coordinates of the test source video"""
     data = exif(path)
     assert data["File:FileModifyDate"].startswith(DATE)
     assert float(data["Composite:GPSLatitude"]) == pytest.approx(10.5, abs=1e-3)
@@ -68,6 +71,7 @@ def assert_same_date_and_place(path: str) -> None:
 
 
 def test_find_source_and_target(geotagged_video: str, tmp_path: Path) -> None:
+    """Find source and target"""
     target = tmp_path / "out.mp4"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-i "{geotagged_video}" -vf scale=80:-2 "{target}"') == (geotagged_video, str(target))
@@ -75,6 +79,7 @@ def test_find_source_and_target(geotagged_video: str, tmp_path: Path) -> None:
 
 
 def test_find_source_and_target_ignores_commands_without_media_output(geotagged_video: str, tmp_path: Path) -> None:
+    """Find source and target ignores commands without media output"""
     target = tmp_path / "result.trf"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-i "{geotagged_video}" -f null -') == (None, None)
@@ -83,6 +88,7 @@ def test_find_source_and_target_ignores_commands_without_media_output(geotagged_
 
 
 def test_find_source_skips_inputs_that_are_not_media_files(geotagged_video: str, tmp_path: Path) -> None:
+    """Find source skips inputs that are not media files"""
     target = tmp_path / "out.mp4"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-f lavfi -i color=c=black -i "{geotagged_video}" "{target}"')[0] == geotagged_video
@@ -90,18 +96,21 @@ def test_find_source_skips_inputs_that_are_not_media_files(geotagged_video: str,
 
 @pytest.mark.parametrize(("extra", "extension"), [(["-vf", "scale=80:-2"], "mp4"), (["-frames:v", "1", "-update", "1"], "jpg"), (["-vn"], "m4a")])
 def test_run_ffmpeg_copies_date_and_geotag(geotagged_video: str, tmp_path: Path, extra: str, extension: str) -> None:
+    """Run ffmpeg copies date and geotag"""
     target = str(tmp_path / f"out.{extension}")
     util.run_ffmpeg(f'-i "{geotagged_video}" {" ".join(extra)} "{target}"')
     assert_same_date_and_place(target)
 
 
 def test_run_ffmpeg_copies_the_date_to_formats_without_geotagging(geotagged_video: str, tmp_path: Path) -> None:
+    """Run ffmpeg copies the date to formats without geotagging"""
     target = str(tmp_path / "out.mp3")
     util.run_ffmpeg(f'-i "{geotagged_video}" -vn "{target}"')
     assert exif(target)["File:FileModifyDate"].startswith(DATE)
 
 
 def test_run_ffmpeg_without_gps_copies_only_the_date(short_video: str, tmp_path: Path) -> None:
+    """Run ffmpeg without gps copies only the date"""
     source = str(tmp_path / "nogps.mp4")
     ffmpeg("-i", short_video, "-c", "copy", "-metadata", "creation_time=2018-03-02T08:09:10Z", source)
     target = str(tmp_path / "out.mp4")
@@ -112,6 +121,7 @@ def test_run_ffmpeg_without_gps_copies_only_the_date(short_video: str, tmp_path:
 
 
 def test_copy_never_fails(geotagged_video: str, tmp_path: Path) -> None:
+    """Copy never fails"""
     with mock.patch.object(metacopy, "ExifToolHelper", side_effect=FileNotFoundError):
         metacopy.copy_date_and_geotag(geotagged_video, str(tmp_path / "x.mp4"))
     with mock.patch.object(metacopy, "ExifToolHelper", side_effect=RuntimeError("boom")):
@@ -119,12 +129,14 @@ def test_copy_never_fails(geotagged_video: str, tmp_path: Path) -> None:
 
 
 def test_copy_after_ffmpeg_does_nothing_without_target(tmp_path: Path) -> None:
+    """Copy after ffmpeg does nothing without target"""
     with mock.patch.object(metacopy, "copy_date_and_geotag") as copy:
         metacopy.copy_after_ffmpeg("-i nothing -f null -")
     copy.assert_not_called()
 
 
 def test_tools_keep_the_date_and_geotag(geotagged_video: str, tmp_path: Path) -> None:
+    """Tools keep the date and geotag"""
     out = video.speed(geotagged_video, "2", output=str(tmp_path / "fast.mp4"))
     assert_same_date_and_place(out)
     out = video.VideoFile(geotagged_video).encode(target_file=str(tmp_path / "enc.mp4"), vcodec="h265", width=80, hw_accel="off")

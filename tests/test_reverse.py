@@ -37,6 +37,7 @@ def use_short_video(short_video: str, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_main() -> None:
+    """Main"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO]):
         try:
             tools.videotool()
@@ -46,6 +47,7 @@ def test_main() -> None:
 
 
 def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1]):
         try:
             tools.videotool()
@@ -60,6 +62,7 @@ def test_main_with_output() -> None:
 
 
 def test_keep_audio() -> None:
+    """Keep audio"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1, "-k"]):
         try:
             tools.videotool()
@@ -74,6 +77,7 @@ def test_keep_audio() -> None:
 
 
 def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
         try:
             tools.videotool()
@@ -83,6 +87,7 @@ def test_main_help() -> None:
 
 
 def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -92,6 +97,7 @@ def test_main_bad_option() -> None:
 
 
 def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
         try:
             tools.videotool()
@@ -101,12 +107,14 @@ def test_main_no_file() -> None:
 
 
 def test_reverse_api_removes_audio() -> None:
+    """Reverse api removes audio"""
     output = video.reverse(VIDEO, output=TMP1)
     assert video.VideoFile(output).audio_codec is None
     os.remove(output)
 
 
 def test_reverse_api_keep_audio() -> None:
+    """Reverse api keep audio"""
     output = video.reverse(VIDEO, output=TMP1, mute=False)
     assert video.VideoFile(output).audio_codec is not None
     os.remove(output)

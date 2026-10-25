@@ -43,32 +43,38 @@ def clip(short_video: str, tmp_path: Path) -> str:
 
 
 def size(file: str) -> tuple[int, int]:
+    """Returns the width and the height of a video"""
     v = video.VideoFile(file)
     return (v.resolution.width, v.resolution.height)
 
 
 def run(*args: str) -> None:
+    """Runs the command with the arguments given"""
     with patch.object(sys, "argv", ["videotool", "rotate", *args]):
         tools.videotool()
 
 
 @pytest.mark.parametrize("angle,expected", [(90, 90), ("90", 90), (180, 180), (270, 270), (-90, 270), ("-90", 270), (None, 90)])
 def test_normalize_angle(angle: int | str | None, expected: int) -> None:
+    """Normalize angle"""
     assert video.normalize_rotation_angle(angle) == expected
 
 
 @pytest.mark.parametrize("angle", [0, 45, 360, -180, 91, "abc", ""])
 def test_invalid_angle(angle: int | str) -> None:
+    """Invalid angle"""
     with pytest.raises(ex.InputError):
         video.normalize_rotation_angle(angle)
 
 
 @pytest.mark.parametrize("angle,expected", [(90, "transpose=1"), (-90, "transpose=2"), (270, "transpose=2"), (180, "hflip,vflip")])
 def test_rotation_filter(angle: int, expected: str) -> None:
+    """Rotation filter"""
     assert video.get_rotation_filter(angle) == expected
 
 
 def test_rotate_90_default_name(clip: str) -> None:
+    """Rotate 90 default name"""
     out = video.rotate(clip)
     assert out == clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (180, 320)
@@ -77,12 +83,14 @@ def test_rotate_90_default_name(clip: str) -> None:
 
 @pytest.mark.parametrize("angle,postfix,expected", [(180, "r180", (320, 180)), (270, "r270", (180, 320)), (-90, "r270", (180, 320))])
 def test_rotate_angles(clip: str, angle: int, postfix: str, expected: tuple) -> None:
+    """Rotate angles"""
     out = video.rotate(clip, angle=angle)
     assert out == clip.replace("clip.mp4", f"clip.{postfix}.mp4")
     assert size(out) == expected
 
 
 def test_rotate_keeps_audio_fps_and_extension(clip: str) -> None:
+    """Rotate keeps audio fps and extension"""
     out = video.rotate(clip)
     original, rotated = video.VideoFile(clip), video.VideoFile(out)
     assert rotated.get_fps() == original.get_fps()
@@ -91,18 +99,21 @@ def test_rotate_keeps_audio_fps_and_extension(clip: str) -> None:
 
 
 def test_rotate_fps_and_resolution(clip: str) -> None:
+    """Rotate fps and resolution"""
     out = video.rotate(clip, fps="10", resolution="90x160")
     assert float(video.VideoFile(out).get_fps()) == 10
     assert size(out) == (90, 160)
 
 
 def test_rotate_output_file(clip: str, tmp_path: Path) -> None:
+    """Rotate output file"""
     target = str(tmp_path / "rotated.mp4")
     assert video.rotate(clip, target, 90) == target
     assert size(target) == (180, 320)
 
 
 def test_rotate_keep_name(clip: str) -> None:
+    """Rotate keep name"""
     out = video.rotate(clip, angle=90, keep_name=True)
     assert out == clip
     assert size(clip) == (180, 320)  # The rotated video has the name of the original
@@ -112,11 +123,13 @@ def test_rotate_keep_name(clip: str) -> None:
 
 
 def test_rotate_keep_name_with_output_is_rejected(clip: str, tmp_path: Path) -> None:
+    """Rotate keep name with output is rejected"""
     with pytest.raises(ex.InputError):
         video.rotate(clip, str(tmp_path / "out.mp4"), 90, keep_name=True)
 
 
 def test_rotate_quality_is_high_by_default(clip: str, tmp_path: Path) -> None:
+    """Rotate quality is high by default"""
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
@@ -128,6 +141,7 @@ def test_rotate_quality_is_high_by_default(clip: str, tmp_path: Path) -> None:
 
 
 def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip: str) -> None:
+    """Rotate is encoded by the gpu and filtered by the cpu"""
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="on", resolution="90x160")
     cmd = run_ffmpeg.call_args.args[0]
@@ -141,15 +155,18 @@ def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip: str) -> None
 
 
 def test_rotate_is_not_encoded_by_the_gpu_when_off(clip: str) -> None:
+    """Rotate is not encoded by the gpu when off"""
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="off")
     assert "nvenc" not in run_ffmpeg.call_args.args[0]
 
 
 def test_rotate_runs_again_on_the_cpu_when_the_gpu_fails(clip: str, tmp_path: Path) -> None:
+    """Rotate runs again on the cpu when the gpu fails"""
     attempts = []
 
     def run_os_cmd(cmd: str, duration: float | None = None) -> None:
+        """Replaces the execution of the commands: records them and fails for the ones using the GPU encoder"""
         attempts.append(cmd)
         if "nvenc" in cmd:
             raise subprocess.CalledProcessError(1, cmd)
@@ -163,7 +180,10 @@ def test_rotate_runs_again_on_the_cpu_when_the_gpu_fails(clip: str, tmp_path: Pa
 
 
 def test_rotate_failure_with_the_gpu_forced_is_raised(clip: str, tmp_path: Path) -> None:
+    """Rotate failure with the gpu forced is raised"""
+
     def run_os_cmd(cmd: str, duration: float | None = None) -> None:
+        """Replaces the execution of the commands: they all fail"""
         raise subprocess.CalledProcessError(1, cmd)
 
     with patch("mediatools.utilities.run_os_cmd", side_effect=run_os_cmd), pytest.raises(subprocess.CalledProcessError):
@@ -171,6 +191,7 @@ def test_rotate_failure_with_the_gpu_forced_is_raised(clip: str, tmp_path: Path)
 
 
 def test_command_default_angle(clip: str) -> None:
+    """Command default angle"""
     run("-i", clip)
     out = clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (180, 320)
@@ -178,12 +199,14 @@ def test_command_default_angle(clip: str) -> None:
 
 @pytest.mark.parametrize("angle,postfix", [("-90", "r270"), ("270", "r270"), ("180", "r180")])
 def test_command_angles(clip: str, angle: str, postfix: str) -> None:
+    """Command angles"""
     run("-i", clip, "--angle", angle)
     assert Path(clip.replace("clip.mp4", f"clip.{postfix}.mp4")).exists()
 
 
 @pytest.mark.parametrize("angle", ["0", "45", "360", "abc"])
 def test_command_rejects_invalid_angles(clip: str, angle: str) -> None:
+    """Command rejects invalid angles"""
     with pytest.raises(SystemExit) as e:
         run("-i", clip, "--angle", angle)
     assert e.value.code == 2
@@ -191,12 +214,14 @@ def test_command_rejects_invalid_angles(clip: str, angle: str) -> None:
 
 
 def test_command_keep_name(clip: str) -> None:
+    """Command keep name"""
     run("-i", clip, "--keepName")
     assert size(clip) == (180, 320)
     assert Path(clip.replace("clip.mp4", "clip.before_r90.mp4")).exists()
 
 
 def test_command_several_files_and_directories(short_video: str, tmp_path: Path) -> None:
+    """Command several files and directories"""
     folder = tmp_path / "videos"
     (folder / "sub").mkdir(parents=True)
     first = shutil.copy(short_video, folder / "a.mp4")
@@ -208,6 +233,7 @@ def test_command_several_files_and_directories(short_video: str, tmp_path: Path)
 
 
 def test_command_output_file_with_several_files_is_rejected(short_video: str, tmp_path: Path) -> None:
+    """Command output file with several files is rejected"""
     first = shutil.copy(short_video, tmp_path / "a.mp4")
     second = shutil.copy(short_video, tmp_path / "b.mp4")
     with pytest.raises(SystemExit) as e:
@@ -216,6 +242,7 @@ def test_command_output_file_with_several_files_is_rejected(short_video: str, tm
 
 
 def test_command_resolution_alias_and_fps(clip: str) -> None:
+    """Command resolution alias and fps"""
     run("-i", clip, "--fps", "12", "--resolution", "90x160")
     out = clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (90, 160)
@@ -223,10 +250,12 @@ def test_command_resolution_alias_and_fps(clip: str) -> None:
 
 
 def test_rotate_is_a_videotool_action() -> None:
+    """Rotate is a videotool action"""
     assert "rotate" in tools.VIDEO_ACTIONS
 
 
 def test_hw_accel_option_is_available(capsys: pytest.CaptureFixture[str]) -> None:
+    """Hw accel option is available"""
     with pytest.raises(SystemExit) as e:
         run("-h")
     assert e.value.code == 0
@@ -235,18 +264,21 @@ def test_hw_accel_option_is_available(capsys: pytest.CaptureFixture[str]) -> Non
 
 @pytest.mark.parametrize("mode", ["auto", "on", "off"])
 def test_hw_accel_option_is_passed_to_the_rotation(clip: str, mode: str) -> None:
+    """Hw accel option is passed to the rotation"""
     with patch.object(video, "rotate", return_value=clip) as rotate:
         run("-i", clip, "--hw_accel", mode)
     assert rotate.call_args.kwargs["hw_accel"] == mode
 
 
 def test_hw_accel_is_auto_by_default(clip: str) -> None:
+    """Hw accel is auto by default"""
     with patch.object(video, "rotate", return_value=clip) as rotate:
         run("-i", clip)
     assert rotate.call_args.kwargs["hw_accel"] == "auto"
 
 
 def test_invalid_hw_accel_option(clip: str) -> None:
+    """Invalid hw accel option"""
     with pytest.raises(SystemExit) as e:
         run("-i", clip, "--hw_accel", "maybe")
     assert e.value.code == 2
@@ -267,10 +299,12 @@ def codec_clips(tmp_path_factory: pytest.TempPathFactory) -> dict:
 
 
 def video_codec(file: str) -> str:
+    """Returns the video codec of a video file"""
     return video.VideoFile(file).get_video_codec()
 
 
 def test_rotate_keeps_the_codec_of_the_original_video(codec_clips: dict, tmp_path: Path) -> None:
+    """Rotate keeps the codec of the original video"""
     for name, expected in (("h265", "hevc"), ("mpeg4", "h264")):  # mpeg4 is not supported: default codec (h264)
         src = shutil.copy(codec_clips[name], tmp_path / f"{name}.mp4")
         out = video.rotate(str(src), hw_accel="off")
@@ -278,15 +312,18 @@ def test_rotate_keeps_the_codec_of_the_original_video(codec_clips: dict, tmp_pat
 
 
 def test_rotate_h264_by_default(clip: str) -> None:
+    """Rotate h264 by default"""
     assert video_codec(video.rotate(clip, hw_accel="off")) == "h264"
 
 
 def test_rotate_vcodec_option(codec_clips: dict, clip: str) -> None:
+    """Rotate vcodec option"""
     assert video_codec(video.rotate(clip, vcodec="h265", hw_accel="off")) == "hevc"
     assert video_codec(video.rotate(codec_clips["h265"], vcodec="h264", hw_accel="off")) == "h264"
 
 
 def test_rotate_commands_use_the_original_codec_and_quality(codec_clips: dict) -> None:
+    """Rotate commands use the original codec and quality"""
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(codec_clips["h265"], hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
@@ -300,5 +337,6 @@ def test_rotate_commands_use_the_original_codec_and_quality(codec_clips: dict) -
 
 
 def test_command_vcodec_option(clip: str) -> None:
+    """Command vcodec option"""
     run("-i", clip, "--vcodec", "x265", "--hw_accel", "off")
     assert video_codec(clip.replace("clip.mp4", "clip.r90.mp4")) == "hevc"

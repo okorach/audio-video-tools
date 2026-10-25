@@ -67,6 +67,7 @@ def tmp_mp3(tmp_path: Path) -> str:
     ],
 )
 def test_title_case(text: str, expected: str) -> None:
+    """Title case"""
     assert fix.title_case(text) == expected
 
 
@@ -81,6 +82,7 @@ def test_title_case(text: str, expected: str) -> None:
     ],
 )
 def test_sentence_case(text: str, expected: str) -> None:
+    """Sentence case"""
     assert fix.sentence_case(text) == expected
 
 
@@ -100,6 +102,7 @@ def test_sentence_case(text: str, expected: str) -> None:
     ],
 )
 def test_parse_dir_name(dir_name: str, exp_artist: str, exp_album: str | None, exp_year: int | None) -> None:
+    """Parse dir name"""
     artist, album, year = fix.parse_dir_name(dir_name)
     assert artist == exp_artist
     assert album == exp_album
@@ -129,6 +132,7 @@ def test_parse_dir_name(dir_name: str, exp_artist: str, exp_album: str | None, e
     ],
 )
 def test_parse_file_name(base_name: str, exp_track: int | None, exp_artist: str | None, exp_title: str) -> None:
+    """Parse file name"""
     track, artist, title = fix.parse_file_name(base_name)
     assert track == exp_track
     assert artist == exp_artist
@@ -141,6 +145,7 @@ def test_parse_file_name(base_name: str, exp_track: int | None, exp_artist: str 
 
 
 def test_write_tags_creates_id3_header(tmp_mp3: str) -> None:
+    """Write tags creates id3 header"""
     fix.write_tags(tmp_mp3, artist="Test Artist", title="Test title", album="Test Album", track=3, year=2001)
     tags = ID3(tmp_mp3)
     assert str(tags["TPE1"]) == "Test Artist"
@@ -170,6 +175,7 @@ def test_write_tags_id3v1_present(tmp_mp3: str) -> None:
 
 
 def test_set_file_date(tmp_mp3: str) -> None:
+    """Set file date"""
     fix.set_file_date(tmp_mp3, 1991)
     mtime = os.path.getmtime(tmp_mp3)
     file_time = dt.datetime.fromtimestamp(mtime)
@@ -185,6 +191,7 @@ def test_set_file_date(tmp_mp3: str) -> None:
 
 
 def test_mb_lookup_release_returns_year_and_tracks() -> None:
+    """Mb lookup release returns year and tracks"""
     mock_result = {"release-list": [{"id": "abc-123", "date": "1991-05-06"}]}
     mock_full = {
         "release": {
@@ -205,6 +212,7 @@ def test_mb_lookup_release_returns_year_and_tracks() -> None:
 
 
 def test_mb_lookup_release_empty_result() -> None:
+    """Mb lookup release empty result"""
     with patch("musicbrainzngs.search_releases", return_value={"release-list": []}):
         year, tracks = fix.mb_lookup_release("Unknown", "Unknown Album")
     assert year is None
@@ -212,6 +220,7 @@ def test_mb_lookup_release_empty_result() -> None:
 
 
 def test_mb_lookup_release_network_error() -> None:
+    """Mb lookup release network error"""
     with patch("musicbrainzngs.search_releases", side_effect=Exception("network error")):
         year, tracks = fix.mb_lookup_release("Artist", "Album")
     assert year is None
@@ -219,6 +228,7 @@ def test_mb_lookup_release_network_error() -> None:
 
 
 def test_mb_lookup_track_returns_year() -> None:
+    """Mb lookup track returns year"""
     mock_result = {"recording-list": [{"release-list": [{"date": "1991-05-06"}]}]}
     with patch("musicbrainzngs.search_recordings", return_value=mock_result):
         year = fix.mb_lookup_track("Seal", "Crazy")
@@ -226,12 +236,14 @@ def test_mb_lookup_track_returns_year() -> None:
 
 
 def test_mb_lookup_track_no_result() -> None:
+    """Mb lookup track no result"""
     with patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}):
         year = fix.mb_lookup_track("Unknown", "Unknown Track")
     assert year is None
 
 
 def test_mb_lookup_track_network_error() -> None:
+    """Mb lookup track network error"""
     with patch("musicbrainzngs.search_recordings", side_effect=Exception("timeout")):
         year = fix.mb_lookup_track("Artist", "Track")
     assert year is None
@@ -243,6 +255,7 @@ def test_mb_lookup_track_network_error() -> None:
 
 
 def test_process_file_dry_run_does_not_modify_file(tmp_mp3: str) -> None:
+    """Process file dry run does not modify file"""
     mtime_before = os.path.getmtime(tmp_mp3)
     with (
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
@@ -254,6 +267,7 @@ def test_process_file_dry_run_does_not_modify_file(tmp_mp3: str) -> None:
 
 
 def test_process_file_writes_tags_and_date(tmp_mp3: str) -> None:
+    """Process file writes tags and date"""
     with (
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
@@ -316,22 +330,26 @@ def test_process_directory(tmp_path: Path) -> None:
 
 
 def test_mb_lookup_release_no_artist() -> None:
+    """Mb lookup release no artist"""
     year, tracks = fix.mb_lookup_release("", "Album")
     assert year is None
     assert not tracks
 
 
 def test_mb_lookup_release_no_album() -> None:
+    """Mb lookup release no album"""
     year, tracks = fix.mb_lookup_release("Artist", "")
     assert year is None
     assert not tracks
 
 
 def test_mb_lookup_track_no_artist() -> None:
+    """Mb lookup track no artist"""
     assert fix.mb_lookup_track("", "Track") is None
 
 
 def test_mb_lookup_track_no_title() -> None:
+    """Mb lookup track no title"""
     assert fix.mb_lookup_track("Artist", "") is None
 
 
@@ -383,6 +401,7 @@ def test_write_tags_exception_is_swallowed(tmp_path: Path) -> None:
 
 
 def test_set_file_date_exception_is_swallowed(tmp_mp3: str) -> None:
+    """Set file date exception is swallowed"""
     with patch("os.utime", side_effect=OSError("permission denied")):
         fix.set_file_date(tmp_mp3, 2000)  # must not raise
 
@@ -611,6 +630,7 @@ def test_main_skips_non_audio_file(tmp_path: Path) -> None:
 
 
 def test_is_m4a() -> None:
+    """Is m4a"""
     assert fix.is_m4a("song.m4a") is True
     assert fix.is_m4a("song.aac") is True
     assert fix.is_m4a("song.mp3") is False

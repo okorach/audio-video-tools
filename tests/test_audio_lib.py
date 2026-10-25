@@ -31,6 +31,7 @@ ARTIST = "Sade"
 
 
 def test_changed_drive() -> None:
+    """Changed drive"""
     if platform.system() != "Windows":
         pytest.skip("The drives are a Windows feature")
     original_file = os.path.abspath(SONG)
@@ -41,6 +42,7 @@ def test_changed_drive() -> None:
 
 
 def test_fix_symlink(tmp_path: Path) -> None:
+    """Fix symlink"""
     if platform.system() != "Windows":
         pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")
@@ -55,6 +57,7 @@ def test_fix_symlink(tmp_path: Path) -> None:
 
 
 def test_fix_symlink_2(tmp_path: Path) -> None:
+    """Fix symlink 2"""
     if platform.system() != "Windows":
         pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")

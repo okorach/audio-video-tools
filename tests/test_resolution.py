@@ -26,18 +26,22 @@ import mediatools.exceptions as ex
 
 
 def test_canonical_1() -> None:
+    """Canonical 1"""
     assert res.canonical("720p") == "1280x720"
 
 
 def test_canonical_2() -> None:
+    """Canonical 2"""
     assert res.canonical("1080p") == "1920x1080"
 
 
 def test_canonical_3() -> None:
+    """Canonical 3"""
     assert res.canonical("4k") == "3840x2160"
 
 
 def test_multiply() -> None:
+    """Multiply"""
     x, y = 1000, 200
     r = res.Resolution(width=x, height=y)
     r2 = r * 2
@@ -46,6 +50,7 @@ def test_multiply() -> None:
 
 
 def test_multiply_by_0() -> None:
+    """Multiply by 0"""
     r = res.Resolution(width=300, height=17)
     try:
         _ = r * 0
@@ -54,6 +59,7 @@ def test_multiply_by_0() -> None:
 
 
 def test_multiply_by_negative() -> None:
+    """Multiply by negative"""
     r = res.Resolution(width=100, height=100)
     try:
         _ = r * -1
@@ -85,11 +91,13 @@ def test_multiply_by_negative() -> None:
     ],
 )
 def test_aliases(alias: str, expected: str) -> None:
+    """Aliases"""
     assert res.canonical(alias) == expected
     assert str(res.Resolution(resolution=alias)) == expected
 
 
 def test_not_an_alias() -> None:
+    """Not an alias"""
     assert res.canonical("1280x720") == "1280x720"
     assert res.canonical("unknown") == "unknown"
     assert res.canonical(None) is None
@@ -97,6 +105,7 @@ def test_not_an_alias() -> None:
 
 @pytest.mark.parametrize("alias,expected", [("4K", "3840x2160"), ("2.7k", "2704x1520"), ("FHD", "1920x1080"), ("720P", "1280x720")])
 def test_resolution_option_aliases(alias: str, expected: str) -> None:
+    """Resolution option aliases"""
     parser = util.get_common_args("test-resolution", "test")
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "--resolution", alias])["resolution"] == expected
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "-s", alias])["resolution"] == expected
@@ -108,4 +117,5 @@ def test_resolution_option_aliases(alias: str, expected: str) -> None:
     "alias,expected", [("2.7k", ("2704", "1520")), ("4K", ("3840", "2160")), ("1k", ("1920", "1080")), ("1280x720", ("1280", "720"))]
 )
 def test_crop_box_aliases(alias: str, expected: tuple) -> None:
+    """Crop box aliases"""
     assert video.parse_crop_box(alias) == expected

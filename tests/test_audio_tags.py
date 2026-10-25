@@ -26,6 +26,7 @@ ARTIST = "Sade"
 
 
 def test_tags_all() -> None:
+    """Tags all"""
     aud = audio.AudioFile(SONG)
     aud.get_specs()
     tags = aud.get_tags()
@@ -34,6 +35,7 @@ def test_tags_all() -> None:
 
 
 def test_tags_v1() -> None:
+    """Tags v1"""
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(1)
     assert tags["title"] == TITLE
@@ -41,6 +43,7 @@ def test_tags_v1() -> None:
 
 
 def test_tags_v2() -> None:
+    """Tags v2"""
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(2)
     assert tags["title"] == TITLE
@@ -48,6 +51,7 @@ def test_tags_v2() -> None:
 
 
 def test_tags_vall() -> None:
+    """Tags vall"""
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version()
     assert tags["title"] == TITLE

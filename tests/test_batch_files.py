@@ -44,6 +44,7 @@ CONVERTED = (
 
 
 def lines(path: Path) -> list[str]:
+    """Returns the lines of a batch file"""
     return path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
@@ -53,15 +54,18 @@ def commands(path: Path) -> list[str]:
 
 
 def batch_id(path: Path) -> str:
+    """Returns the id of the test of a batch file: its directory and its name"""
     return f"{path.parent.name}/{path.name}"
 
 
 def test_batch_files_are_found() -> None:
+    """Batch files are found"""
     assert len(BATCH_FILES) > 40
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
 def test_batch_files_dont_pause_at_the_end(batch_file: Path) -> None:
+    """Batch files dont pause at the end"""
     non_empty = [line for line in lines(batch_file) if line.strip()]
     assert non_empty, f"{batch_file.name} is empty"
     assert not PAUSE.match(non_empty[-1]), f"{batch_file.name} ends with a pause"
@@ -69,6 +73,7 @@ def test_batch_files_dont_pause_at_the_end(batch_file: Path) -> None:
 
 @pytest.mark.parametrize("name", CONVERTED)
 def test_converted_batch_files_pass_all_the_files(name: str) -> None:
+    """Converted batch files pass all the files"""
     batch_file = ROOT / f"{name}.bat"
     tool_commands = [line for line in commands(batch_file) if TOOLS_COMMANDS.search(line)]
     assert len(tool_commands) == 1
@@ -78,6 +83,7 @@ def test_converted_batch_files_pass_all_the_files(name: str) -> None:
 
 
 def test_removed_and_renamed_batch_files() -> None:
+    """Removed and renamed batch files"""
     names = {p.name for p in BATCH_FILES}
     assert "crop ffmpeg.bat" not in names
     assert "flip-h.bat" not in names

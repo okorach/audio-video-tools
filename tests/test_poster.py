@@ -36,6 +36,7 @@ TMP1 = util.get_tmp_file() + ".jpg"
 
 
 def test_main() -> None:
+    """Main"""
     with patch.object(
         sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]
     ):
@@ -47,6 +48,7 @@ def test_main() -> None:
 
 
 def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-h"]):
         try:
             tools.imagetool()
@@ -56,6 +58,7 @@ def test_main_help() -> None:
 
 
 def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "-i", IMG1, IMG2, "--badoption", "yes"]):
         try:
             tools.imagetool()
@@ -65,6 +68,7 @@ def test_main_bad_option() -> None:
 
 
 def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10"]):
         try:
             tools.imagetool()
@@ -74,6 +78,7 @@ def test_main_no_file() -> None:
 
 
 def test_main_other_options() -> None:
+    """Main other options"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "-m", "50", "-i", IMG1, IMG2]):
         try:
             tools.imagetool()
@@ -83,6 +88,7 @@ def test_main_other_options() -> None:
 
 
 def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-o", TMP1, "-g", "4"]):
         try:
             tools.imagetool()
@@ -94,6 +100,7 @@ def test_main_with_output() -> None:
 
 
 def test_main_with_output2() -> None:
+    """Main with output2"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-o", TMP1, "-g", "4"]):
         try:
             tools.imagetool()
