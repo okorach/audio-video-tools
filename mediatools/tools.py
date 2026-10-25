@@ -35,7 +35,7 @@ VIDEO_ACTIONS: dict[str, tuple[str, str]] = {
     "encodeauto": ("mediatools.encodeauto:main", "Encodes automatically with the best settings"),
     "enhance": ("mediatools.video_enhance:main", "Enhances the colors"),
     "metadata": ("mediatools.metadata:main", "Adds metadata"),
-    "mirror": ("mediatools.mirror:main", "Mirrors a video (swaps left and right, or top and bottom)"),
+    "flip": ("mediatools.flip:main", "Flips a video (swaps left and right, or top and bottom)"),
     "mux": ("mediatools.mux:main", "Muxes a video and audio tracks"),
     "profile-encode": ("mediatools.encode:main", "Encodes with an encoding profile"),
     "reverse": ("mediatools.reverse:main", "Reverses a video"),

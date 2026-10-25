@@ -18,7 +18,7 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""This script mirrors videos: it swaps their left and right (default), or their top and bottom"""
+"""This script flips videos: it swaps their left and right (default), or their top and bottom"""
 
 import mediatools.options as opt
 import mediatools.utilities as util
@@ -27,22 +27,22 @@ import utilities.file as fil
 
 
 def main() -> None:
-    parser = util.get_common_args("video-mirror", "Mirrors videos (swaps the left and the right, or the top and the bottom)")
+    parser = util.get_common_args("video-flip", "Flips videos (swaps the left and the right, or the top and the bottom)")
     parser.add_argument(
         "--direction",
         required=False,
         type=str.lower,
-        choices=opt.MIRROR_DIRECTIONS,
-        default=opt.DEFAULT_MIRROR_DIRECTION,
-        help=f"Direction of the mirror: {' or '.join(opt.MIRROR_DIRECTIONS)} (swaps the left and the right, or the top and the bottom), "
-        f"{opt.DEFAULT_MIRROR_DIRECTION} by default",
+        choices=opt.FLIP_DIRECTIONS,
+        default=opt.DEFAULT_FLIP_DIRECTION,
+        help=f"Direction of the flip: {' or '.join(opt.FLIP_DIRECTIONS)} (swaps the left and the right, or the top and the bottom), "
+        f"{opt.DEFAULT_FLIP_DIRECTION} by default",
     )
     video.add_reencode_args(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
         keep_name = options.pop("keepName", False)
-        util.generated_file(video.mirror(input_file, options.pop(util.OUTPUT_FILE, None), options.pop("direction"), keep_name, **options))
+        util.generated_file(video.flip(input_file, options.pop(util.OUTPUT_FILE, None), options.pop("direction"), keep_name, **options))
 
     util.process_input_files(kwargs, process)
 

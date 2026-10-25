@@ -312,9 +312,9 @@ def get_audio_filters(**kwargs) -> filters.Simple:
 
 
 def use_gpu_filters(**kwargs) -> bool:
-    """True if the video is decoded and filtered by the GPU. The rotation and the mirror are CPU filters only: with them only the encoding
+    """True if the video is decoded and filtered by the GPU. The rotation and the flip are CPU filters only: with them only the encoding
     is done by the GPU (the frames are decoded and filtered on the CPU)"""
-    return util.use_hardware_accel(**kwargs) and not kwargs.get("rotate") and not kwargs.get("mirror")
+    return util.use_hardware_accel(**kwargs) and not kwargs.get("rotate") and not kwargs.get("flip")
 
 
 def get_input_settings(**kwargs) -> list[str]:
@@ -397,7 +397,7 @@ def _must_encode_video(**kwargs) -> bool:
     for k, v in kwargs.items():
         if k == opt.Option.QUALITY and kwargs.get(opt.Option.VCODEC) != "copy":
             return True
-        if k in (opt.Option.RESOLUTION, "speed", opt.Option.VBITRATE, "width", "height", "aspect", "reverse", "deshake", "rotate", "mirror"):
+        if k in (opt.Option.RESOLUTION, "speed", opt.Option.VBITRATE, "width", "height", "aspect", "reverse", "deshake", "rotate", "flip"):
             return True
         if k == opt.Option.VCODEC and v != "copy":
             return True

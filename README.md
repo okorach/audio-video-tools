@@ -17,4 +17,4 @@ Videos can be rotated with `videotool rotate`: see [docs/videotool-rotate.md](do
 
 Slideshows are created with `videotool slideshow` (50 fps by default): see [docs/videotool-slideshow.md](docs/videotool-slideshow.md).
 
-Videos can be mirrored (left/right or top/bottom) with `videotool mirror`: see [docs/videotool-mirror.md](docs/videotool-mirror.md).
+Videos can be flipped (left/right or top/bottom) with `videotool flip`: see [docs/videotool-flip.md](docs/videotool-flip.md).

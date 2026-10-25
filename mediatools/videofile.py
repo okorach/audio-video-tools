@@ -594,8 +594,8 @@ class VideoFile(media.MediaFile):
             vfilters.append(filter.Reverse())
         if kwargs.get("rotate"):
             vfilters.append(get_rotation_filter(kwargs["rotate"]))
-        if kwargs.get("mirror"):
-            vfilters.append(get_mirror_filter(kwargs["mirror"]))
+        if kwargs.get("flip"):
+            vfilters.append(get_flip_filter(kwargs["flip"]))
         if "deshake" in kwargs:
             rx, ry = [int(x) for x in kwargs["deshake"].split("x")]
             vfilters.append(filter.deshake(rx=rx, ry=ry))
@@ -639,17 +639,17 @@ def get_rotation_filter(angle: int | str | None) -> str:
     return {90: "transpose=1", 180: "hflip,vflip", 270: "transpose=2"}[normalize_rotation_angle(angle)]
 
 
-def normalize_mirror_direction(direction: str | None) -> str:
-    """Returns the direction of a mirror: leftright (default) or topbottom, case insensitive. Raises an InputError for any other value"""
-    value = opt.DEFAULT_MIRROR_DIRECTION if direction is None else str(direction).strip().lower()
-    if value not in opt.MIRROR_DIRECTIONS:
-        raise ex.InputError(f"Invalid mirror direction '{direction}', must be one of {', '.join(opt.MIRROR_DIRECTIONS)}", "mirror")
+def normalize_flip_direction(direction: str | None) -> str:
+    """Returns the direction of a flip: leftright (default) or topbottom, case insensitive. Raises an InputError for any other value"""
+    value = opt.DEFAULT_FLIP_DIRECTION if direction is None else str(direction).strip().lower()
+    if value not in opt.FLIP_DIRECTIONS:
+        raise ex.InputError(f"Invalid flip direction '{direction}', must be one of {', '.join(opt.FLIP_DIRECTIONS)}", "flip")
     return value
 
 
-def get_mirror_filter(direction: str | None) -> str:
-    """Returns the ffmpeg filter that mirrors a video: hflip swaps the left and the right (leftright), vflip the top and the bottom (topbottom)"""
-    return {"leftright": "hflip", "topbottom": "vflip"}[normalize_mirror_direction(direction)]
+def get_flip_filter(direction: str | None) -> str:
+    """Returns the ffmpeg filter that flips a video: hflip swaps the left and the right (leftright), vflip the top and the bottom (topbottom)"""
+    return {"leftright": "hflip", "topbottom": "vflip"}[normalize_flip_direction(direction)]
 
 
 def get_size_option(cmdline: str) -> str:
@@ -992,7 +992,7 @@ def __get_source_vcodec__(source: VideoFile) -> str | None:
 
 
 def __filter_video__(filename: str, output: str | None, postfix: str, keep_name: bool, **kwargs) -> str:
-    """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or mirror) and returns the generated file.
+    """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or flip) and returns the generated file.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
     The output file is <original>.<postfix>.<ext> by default. With keep_name, the output has the name of the original, which is
     renamed <original>.before_<postfix>.<ext>"""
@@ -1026,17 +1026,17 @@ def rotate(filename: str, output: str | None = None, angle: int | str | None = N
     return __filter_video__(filename, output, f"r{rotation}", keep_name, rotate=rotation, **kwargs)
 
 
-def mirror(filename: str, output: str | None = None, direction: str | None = None, keep_name: bool = False, **kwargs) -> str:
-    """Mirrors a video and returns the mirrored file: the left and the right of the video are swapped (direction leftright, default)
+def flip(filename: str, output: str | None = None, direction: str | None = None, keep_name: bool = False, **kwargs) -> str:
+    """Flips a video and returns the flipped file: the left and the right of the video are swapped (direction leftright, default)
     or its top and bottom (direction topbottom).
     The video is re-encoded (quality high by default) with the original fps and resolution, unless fps and resolution are given.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
     The GPU encodes the video if hw_accel is on or auto (and available), with a fallback to the CPU in auto mode if the command fails.
-    The frames are decoded and flipped on the CPU: the mirror is not available as a GPU filter.
-    The output file is <original>.mirror_<direction>.<ext> by default. With keep_name, the output has the name of the original, which is
-    renamed <original>.before_mirror_<direction>.<ext>"""
-    mirror_direction = normalize_mirror_direction(direction)
-    return __filter_video__(filename, output, f"mirror_{mirror_direction}", keep_name, mirror=mirror_direction, **kwargs)
+    The frames are decoded and flipped on the CPU: the flip is not available as a GPU filter.
+    The output file is <original>.flip_<direction>.<ext> by default. With keep_name, the output has the name of the original, which is
+    renamed <original>.before_flip_<direction>.<ext>"""
+    flip_direction = normalize_flip_direction(direction)
+    return __filter_video__(filename, output, f"flip_{flip_direction}", keep_name, flip=flip_direction, **kwargs)
 
 
 def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs) -> str:
