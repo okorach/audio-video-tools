@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -21,9 +21,12 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import tools
+
+import pytest
+
 import mediatools.utilities as util
 import mediatools.videofile as video
+from mediatools import tools
 
 VIDEO = "it" + os.sep + "video-720p.mp4"
 AUDIO1 = "it" + os.sep + "seal.mp3"
@@ -31,11 +34,11 @@ AUDIO2 = "it" + os.sep + "ub40.mp3"
 TMP1 = util.get_tmp_file() + ".mp4"
 
 
-def test_main():
+def test_main() -> None:
+    """Main"""
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", VIDEO, AUDIO1, AUDIO2]):
         try:
-            tools.videotool()
-            assert True
+            assert tools.videotool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
             v = video.VideoFile(TMP1)
@@ -43,7 +46,8 @@ def test_main():
             assert v.duration > 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", AUDIO1, VIDEO, AUDIO2, "-o", TMP1]):
         try:
             tools.videotool()
@@ -59,28 +63,25 @@ def test_main_with_output():
             os.remove(TMP1)
 
 
-def test_main_help():
+def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "4", "-b", "black", "-m", "10"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2

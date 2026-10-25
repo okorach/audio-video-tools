@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Rotates videos clockwise"""
     parser = util.get_common_args("video-rotate", "Rotates videos clockwise")
     parser.add_argument(
         "--angle",
@@ -41,6 +42,7 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Rotates one video"""
         keep_name = options.pop("keepName", False)
         util.generated_file(video.rotate(input_file, options.pop(util.OUTPUT_FILE, None), options.pop("angle"), keep_name, **options))
 

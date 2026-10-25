@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2022 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that lists the audio files of a directory with their tags in CSV format"""
+
 from __future__ import annotations
 
 import os
@@ -29,6 +31,7 @@ from utilities import file as fil
 
 
 def get_csv_values(file: str) -> list[str] | None:
+    """Returns the values (tags and properties) of an audio file as a CSV line, None if the file is not an audio file"""
     if not fil.is_audio_file(file):
         return None
     log.logger.info("Getting file '%s' metadata", file)
@@ -39,6 +42,7 @@ def get_csv_values(file: str) -> list[str] | None:
 
 
 def main() -> None:
+    """Lists the audio files of a directory, with their tags and properties, in CSV format"""
     util.init("audio-list")
     me = sys.argv.pop(0)
     directory = None

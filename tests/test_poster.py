@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -21,9 +21,12 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import tools
-import mediatools.utilities as util
+
+import pytest
+
 import mediatools.imagefile as img
+import mediatools.utilities as util
+from mediatools import tools
 
 DIR = "it" + os.sep
 IMG1 = DIR + "img-640x480.jpg"
@@ -35,54 +38,52 @@ IMG6 = DIR + "img-4000x3000.jpg"
 TMP1 = util.get_tmp_file() + ".jpg"
 
 
-def test_main():
+def test_main() -> None:
+    """Main"""
     with patch.object(
         sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]
     ):
         try:
-            tools.imagetool()
-            assert True
+            assert tools.imagetool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
-def test_main_help():
+def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.imagetool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "-i", IMG1, IMG2, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.imagetool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.imagetool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_other_options():
+def test_main_other_options() -> None:
+    """Main other options"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "-m", "50", "-i", IMG1, IMG2]):
         try:
-            tools.imagetool()
-            assert True
+            assert tools.imagetool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-o", TMP1, "-g", "4"]):
         try:
             tools.imagetool()
@@ -93,7 +94,8 @@ def test_main_with_output():
     os.remove(TMP1)
 
 
-def test_main_with_output2():
+def test_main_with_output2() -> None:
+    """Main with output2"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-o", TMP1, "-g", "4"]):
         try:
             tools.imagetool()

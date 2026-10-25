@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -20,10 +20,14 @@
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import patch
-from mediatools import tools
+
+import pytest
+
 import mediatools.utilities as util
 import mediatools.videofile as video
+from mediatools import tools
 
 VIDEO1 = "it" + os.sep + "video-720p.mp4"
 VIDEO2 = "it" + os.sep + "video-720p.mp4"
@@ -32,8 +36,9 @@ TMP2 = util.get_tmp_file() + ".mp4"
 TMP3 = util.get_tmp_file() + ".mp4"
 
 
-def test_main_with_output(short_video, tmp_path):
-    util.HW_ACCEL = False
+def test_main_with_output(short_video: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Main with output"""
+    monkeypatch.setattr(util, "HW_ACCEL", False)
     output = str(tmp_path / "concat.mp4")
     with patch.object(sys, "argv", ["videotool", "concat", "-g", "3", "-i", short_video, short_video, "-o", output]):
         try:
@@ -43,28 +48,25 @@ def test_main_with_output(short_video, tmp_path):
     assert abs(2 * video.VideoFile(short_video).duration - video.VideoFile(output).duration) < 0.1
 
 
-def test_main_help():
+def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2

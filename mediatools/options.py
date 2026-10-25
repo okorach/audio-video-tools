@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -152,6 +152,7 @@ F2M_MAPPING[OptionFfmpeg.VCODEC3] = Option.VCODEC
 
 
 def media2ffmpeg(options: dict | None) -> dict:
+    """Returns the ffmpeg options for the options of the tools, an empty dictionary if there are none"""
     # Returns ffmpeg cmd options dict from media options dict
     import mediatools.utilities as util
 
@@ -165,6 +166,7 @@ def media2ffmpeg(options: dict | None) -> dict:
 
 
 def ffmpeg2media(options: dict | None) -> dict:
+    """Returns the options of the tools for the ffmpeg options, an empty dictionary if there are none"""
     # Returns ffmpeg cmd options dict from media options dict
     import mediatools.utilities as util
 

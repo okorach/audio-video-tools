@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2025 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -35,12 +35,14 @@ NB_PAGES_TOTAL = 6
 
 
 def _make_pdf(path: Path, nb_pages: int) -> None:
+    """Creates a PDF file of a number of pages with Ghostscript"""
     ps_code = f"/Helvetica findfont 20 scalefont setfont 1 1 {nb_pages} {{pop 50 50 moveto (x) show showpage}} for"
     cmd = [pdf_split.find_ghostscript(), "-q", "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", f"-sOutputFile={path}", "-c", ps_code]
     subprocess.run(cmd, check=True)
 
 
 def _touch(path: Path) -> str:
+    """Creates a file with a content and returns its path"""
     path.write_bytes(b"x")
     return str(path)
 

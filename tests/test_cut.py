@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -33,19 +33,20 @@ TMPV = util.get_tmp_file() + ".mp4"
 TMPA = util.get_tmp_file() + ".mp3"
 
 
-def test_main_v():
+def test_main_v() -> None:
+    """Main v"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", VIDEO]):
-        tools.videotool()
-        assert True
+        assert tools.videotool() is None
 
 
-def test_main_a():
+def test_main_a() -> None:
+    """Main a"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", AUDIO]):
-        tools.videotool()
-        assert True
+        assert tools.videotool() is None
 
 
-def test_main_v_with_output():
+def test_main_v_with_output() -> None:
+    """Main v with output"""
     start, stop = 3, 7
     with patch.object(sys, "argv", ["videotool", "cut", "--start", str(start), "--stop", str(stop), "-i", VIDEO, "-o", TMPV]):
         tools.videotool()
@@ -55,7 +56,8 @@ def test_main_v_with_output():
         os.remove(TMPV)
 
 
-def test_main_a_with_output():
+def test_main_a_with_output() -> None:
+    """Main a with output"""
     start, stop = 30, 60
     with patch.object(sys, "argv", ["videotool", "cut", "--start", str(start), "--stop", str(stop), "-i", AUDIO, "-o", TMPA]):
         tools.videotool()
@@ -65,34 +67,31 @@ def test_main_a_with_output():
         os.remove(TMPA)
 
 
-def test_main_help():
+def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "cut", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "cut", "-i", VIDEO, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "cut", "-o", TMPA]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_output_file_is_used_for_a_single_range():
+def test_output_file_is_used_for_a_single_range() -> None:
     """-o is the name of the file generated with --start and --stop"""
     with (
         patch.object(sys, "argv", ["videotool", "cut", "--start", "1", "--stop", "2", "-i", VIDEO, "-o", "out.mp4"]),
@@ -105,7 +104,7 @@ def test_output_file_is_used_for_a_single_range():
     assert av_cut.call_args.kwargs["stop"] == "2"
 
 
-def test_time_ranges():
+def test_time_ranges() -> None:
     """All the time ranges are cut by one call per file"""
     with patch.object(sys, "argv", ["videotool", "cut", "--timeranges", "0-1,2-3", "-i", VIDEO, AUDIO]), patch("mediatools.avfile.cut") as av_cut:
         tools.videotool()
@@ -117,14 +116,14 @@ def test_time_ranges():
         assert call.kwargs["output"] is None
 
 
-def test_output_file_with_several_ranges():
+def test_output_file_with_several_ranges() -> None:
     """-o can't be used with several time ranges"""
     with patch.object(sys, "argv", ["videotool", "cut", "--timeranges", "0-1,2-3", "-i", VIDEO, "-o", "out.mp4"]), pytest.raises(SystemExit) as e:
         tools.videotool()
     assert e.value.code == 2
 
 
-def test_missing_range():
+def test_missing_range() -> None:
     """--start and --stop or --timeranges is mandatory"""
     with patch.object(sys, "argv", ["videotool", "cut", "-i", VIDEO]), pytest.raises(SystemExit) as e:
         tools.videotool()

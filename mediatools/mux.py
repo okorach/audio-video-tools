@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -21,6 +21,8 @@
 # This script multiplexes an extra audio track
 # in a video file with already one audio track
 
+"""Tool that adds audio tracks to a video file"""
+
 import sys
 import argparse
 from mediatools import log
@@ -29,7 +31,8 @@ import mediatools.videofile as video
 import mediatools.utilities as util
 
 
-def main():
+def main() -> None:
+    """Adds audio tracks to a video file"""
     util.init("video-mux")
     parser = argparse.ArgumentParser(description="Multiplexes a video file with several audio tracks")
     util.add_input_args(parser, "List of files to mux", required=False)

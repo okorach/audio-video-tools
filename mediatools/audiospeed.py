@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -62,7 +62,8 @@ def speed(input_file: str, output_file: str | None, size_percent: float) -> str:
     return output_file
 
 
-def main():
+def main() -> None:
+    """Changes the speed of audio files"""
     parser = util.get_common_args("audio-speed", "Accelerates or slows down an audio file")
     parser.add_argument(
         "--size",
@@ -77,6 +78,7 @@ def main():
         sys.exit(1)
 
     def process(input_file: str, options: dict) -> None:
+        """Changes the speed of one audio file"""
         util.generated_file(speed(input_file, options.get(util.OUTPUT_FILE), size_percent))
 
     util.process_input_files(kwargs, process)

@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that converts images to videos with a panorama or a zoom effect"""
+
 import sys
 from mediatools import log
 import mediatools.utilities as util
@@ -27,7 +29,8 @@ import mediatools.media_config as conf
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Converts images to videos with a panorama or a zoom effect"""
     parser = util.get_common_args("image2video", "Converts an image to a video")
     parser.add_argument("--style", required=True, choices=["zoom", "panorama"], default="zoom", help="Effect to generate")
     parser.add_argument("--bounds", required=False, help="bounds of the panorama or zoom")
@@ -44,6 +47,7 @@ def main():
     style = kwargs.pop("style", "zoom")
 
     def process(inputfile: str, options: dict) -> None:
+        """Converts one image to a video"""
         try:
             if style == "panorama":
                 output = image.ImageFile(inputfile).panorama(resolution=resolution, **options)
@@ -52,7 +56,7 @@ def main():
         except ex.InputError as e:
             log.logger.critical(e.message)
             print("ERROR: {}", e.message)
-            sys.exit(ex.InputError("Missing args", "image2video"))
+            sys.exit(1)
         util.generated_file(output)
 
     util.process_input_files(kwargs, process)

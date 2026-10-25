@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -22,16 +22,17 @@
 
 from __future__ import annotations
 
-import sys
 import argparse
-import re
 import concurrent.futures
+import re
+import sys
 from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
+
 import mediatools.utilities as util
-from mediatools import log
 import utilities.file as fil
-from mediatools import videofile
+from mediatools import log, videofile
 
 DATETIME_FORMATS: tuple[str, ...] = (
     r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})",
@@ -65,6 +66,7 @@ def guess_date(string: str) -> datetime | None:
 
 
 def guess_offset(string: str) -> relativedelta | None:
+    """Returns the date offset (relativedelta) of a string such as +0001-02-03 04:05:06, +01:02:03 or -0001-02-03, None if it is not valid"""
     sign = int(f"{string[0]}1")
     rest = string[1:]
     year, month, day, hour, minute, sec = (0, 0, 0, 0, 0, 0)
@@ -106,6 +108,7 @@ def change_file_date(file: str, change_mode: str = "filename", offset: str = "")
 
 
 def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
+    """Changes the creation date of the files, in parallel, by setting it or shifting it by an offset. Returns the number of files changed"""
     nb_success = 0
     nb_files = len(file_list)
     seq = 1
@@ -127,6 +130,7 @@ def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
 
 
 def main() -> None:
+    """Fixes the creation date of photos and videos: sets it from the name of the file, from a date, or shifts it by an offset"""
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
     util.add_input_args(parser, "Files and/or directories to process (-f/--files is a deprecated alias)", aliases=("-f", "--files"))

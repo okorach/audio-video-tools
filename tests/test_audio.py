@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -19,10 +19,13 @@
 #
 
 import os
+
+import pytest
+
+import mediatools.audiofile as audio
+import mediatools.avfile as av
 import mediatools.exceptions as ex
 import mediatools.utilities as util
-import mediatools.avfile as av
-import mediatools.audiofile as audio
 import utilities.file as fil
 
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
@@ -32,13 +35,15 @@ H2 = "UB40-I got you babe-The best of UB40-1987-14-190.119184-mp3"
 TMP = util.get_tmp_file() + ".mp3"
 
 
-def test_hash():
+def test_hash() -> None:
+    """Hash"""
     f = audio.AudioFile(AUDIO_FILE)
     f.get_specs()
     assert f.hash() == H1
 
 
-def test_hash_list():
+def test_hash_list() -> None:
+    """Hash list"""
     file_list = [AUDIO_FILE, AUDIO_FILE_2, AUDIO_FILE]
     hashes = audio.get_hash_list(file_list)
     assert next(iter(hashes.keys())) == H1
@@ -47,14 +52,16 @@ def test_hash_list():
     assert len(hashes.keys()) == 2
 
 
-def test_read_hash_list():
+def test_read_hash_list() -> None:
+    """Read hash list"""
     hashes = audio.read_hash_list("/tmp/nonexist.tser")
     assert hashes["hashes"] == {}
     assert hashes["datetime"] == "1970-01-01 00:00:00"
     assert hashes["files"] == {}
 
 
-def test_tags():
+def test_tags() -> None:
+    """Tags"""
     f = audio.AudioFile(AUDIO_FILE)
     f.get_specs()
     assert f.artist == "Seal"
@@ -64,7 +71,8 @@ def test_tags():
     assert f.genre == "Pop"
 
 
-def test_tags_2():
+def test_tags_2() -> None:
+    """Tags 2"""
     util.set_debug_level(4)
     f = audio.AudioFile(AUDIO_FILE)
     assert f.get_title() == "Crazy"
@@ -74,7 +82,8 @@ def test_tags_2():
     assert f.get_genre() == "Pop"
 
 
-def test_set_tag():
+def test_set_tag() -> None:
+    """Set tag"""
     start, stop = 12, 19
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
     v.set_tag("title", "Soul")
@@ -87,21 +96,17 @@ def test_set_tag():
     assert v.get_genre() == "Folk"
 
 
-def test_type():
-    try:
+def test_type() -> None:
+    """Type"""
+    with pytest.raises(ex.FileTypeError):
         _ = audio.AudioFile("it/img-2320x4000.jpg")
-        assert False
-    except ex.FileTypeError:
-        pass
 
-    try:
+    with pytest.raises(ex.FileTypeError):
         _ = audio.AudioFile("it/video-720p.mp4")
-        assert False
-    except ex.FileTypeError:
-        pass
 
 
-def test_cut():
+def test_cut() -> None:
+    """Cut"""
     util.set_debug_level(4)
     start, stop = 12, 19
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, start=start, stop=stop))
@@ -110,7 +115,8 @@ def test_cut():
     os.remove(v.filename)
 
 
-def test_cut2():
+def test_cut2() -> None:
+    """Cut2"""
     util.set_debug_level(4)
     dur = 10
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, stop=dur))
@@ -119,7 +125,8 @@ def test_cut2():
     os.remove(v.filename)
 
 
-def test_cut3():
+def test_cut3() -> None:
+    """Cut3"""
     util.set_debug_level(4)
     v = audio.AudioFile(av.cut(AUDIO_FILE, output=TMP, timeranges="00:10-00:20"))
     v.get_specs()
@@ -127,7 +134,8 @@ def test_cut3():
     os.remove(v.filename)
 
 
-def test_hash_list_2():
+def test_hash_list_2() -> None:
+    """Hash list 2"""
     h_file = "h.json"
     filelist = fil.dir_list("it", recurse=True)
     f_hash = audio.get_hash_list(filelist)
@@ -137,29 +145,35 @@ def test_hash_list_2():
     assert new_hash == f_hash
 
 
-def test_clean_file_name_strips_bitrate_codec_postfix():
+def test_clean_file_name_strips_bitrate_codec_postfix() -> None:
+    """Clean file name strips bitrate codec postfix"""
     assert os.path.basename(audio.clean_file_name("Song Title (128kbit_AAC).m4a")) == "Song Title"
     assert os.path.basename(audio.clean_file_name("Song Title [320kbps MP3].mp3")) == "Song Title"
     assert os.path.basename(audio.clean_file_name("Song Title (64kb).mp3")) == "Song Title"
 
 
-def test_clean_file_name_strips_exotic_unicode_chars():
+def test_clean_file_name_strips_exotic_unicode_chars() -> None:
+    """Clean file name strips exotic unicode chars"""
     assert os.path.basename(audio.clean_file_name("Sébastien Ïtem.mp3")) == "Sebastien Item"
 
 
-def test_clean_file_name_combines_both_cleanups():
+def test_clean_file_name_combines_both_cleanups() -> None:
+    """Clean file name combines both cleanups"""
     assert os.path.basename(audio.clean_file_name("Sébastien Ïtem (128kbit_AAC).m4a")) == "Sebastien Item"
 
 
-def test_clean_file_name_leaves_plain_name_untouched():
+def test_clean_file_name_leaves_plain_name_untouched() -> None:
+    """Clean file name leaves plain name untouched"""
     assert os.path.basename(audio.clean_file_name("Song Title.mp3")) == "Song Title"
 
 
-def test_build_target_file_replaces_extension_when_format_differs():
+def test_build_target_file_replaces_extension_when_format_differs() -> None:
+    """Build target file replaces extension when format differs"""
     target = audio.build_target_file("Song Title (128kbit_AAC).m4a", "mp3_128k")
     assert os.path.basename(target) == "Song Title.mp3"
 
 
-def test_build_target_file_keeps_profile_postfix_when_format_unchanged():
+def test_build_target_file_keeps_profile_postfix_when_format_unchanged() -> None:
+    """Build target file keeps profile postfix when format unchanged"""
     target = audio.build_target_file("Song Title.mp3", "mp3_128k")
     assert os.path.basename(target) == "Song Title.mp3_128k.mp3"

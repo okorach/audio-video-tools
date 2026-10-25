@@ -1,6 +1,6 @@
 #
 # sonar-tools
-# Copyright (C) 2019-2022 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Loading of the configuration (properties files) of the tools"""
+
 from __future__ import annotations
 
 import os
@@ -30,6 +32,7 @@ _CONFIG_SETTINGS: dict | None = None
 
 
 def load_properties_file(file: str | pathlib.Path) -> dict:
+    """Returns the properties of a properties file as a dictionary, an empty dictionary if the file can't be read"""
     settings: dict = {}
     try:
         with open(file, encoding="utf-8") as fp:
@@ -43,6 +46,8 @@ def load_properties_file(file: str | pathlib.Path) -> dict:
 
 
 def load(config_name: str | None = None, settings: dict | None = None) -> dict:
+    """Loads the configuration of a tool: the default one, then the one of the home directory, then the one of the current directory, then the
+    settings given"""
     global _CONFIG_SETTINGS
 
     if settings is None:
@@ -79,12 +84,14 @@ def load(config_name: str | None = None, settings: dict | None = None) -> dict:
 
 
 def get_property(name: str, settings: dict | None = None) -> object:
+    """Returns a property of the configuration, an empty string if it is not set"""
     if settings is None:
         settings = _CONFIG_SETTINGS
     return settings.get(name, "")
 
 
 def configure(seed: str) -> None:
+    """Creates the configuration file of a tool in the home directory from its default configuration"""
     template_file = pathlib.Path(__file__).parent / f"{seed}.properties"
     with open(template_file, encoding="utf-8") as fh:
         text = fh.read()

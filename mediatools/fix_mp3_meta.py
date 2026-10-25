@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2024 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -97,12 +97,9 @@ def mb_lookup_track(artist: str, title: str) -> int | None:
         recordings = result.get("recording-list", [])
         for rec in recordings:
             for release in rec.get("release-list", []):
-                date_str = release.get("date", "")
-                if date_str:
-                    try:
-                        return int(date_str[:4])
-                    except ValueError:
-                        pass
+                year = _to_int(release.get("date", ""), 4)
+                if year is not None:
+                    return year
     except Exception as e:
         log.logger.warning("MusicBrainz recording lookup failed for '%s' / '%s': %s", artist, title, str(e))
     return None
@@ -114,52 +111,59 @@ def mb_lookup_track(artist: str, title: str) -> int | None:
 
 
 def is_m4a(filepath: str) -> bool:
+    """Returns True if the file is an m4a or aac file"""
     return fil.extension(filepath).lower() in ("m4a", "aac")
+
+
+def _to_int(text: str, length: int | None = None) -> int | None:
+    """Converts the beginning of a text (its first characters) to an integer, None if it is not one"""
+    try:
+        return int(text[:length])
+    except ValueError:
+        return None
+
+
+def _read_m4a_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
+    """Returns (artist, title, album, track, year) from the tags of an m4a file."""
+    tags = MP4(filepath).tags or {}
+
+    def text(key: str) -> str:
+        """Returns the stripped text of a tag, an empty string if it is not set"""
+        return (tags.get(_M4A_TAG_MAP[key], [None])[0] or "").strip()
+
+    track = None
+    trkn = tags.get(_M4A_TAG_MAP["track"], None)
+    if trkn:
+        try:
+            track = int(trkn[0][0])
+        except (ValueError, IndexError, TypeError):
+            pass
+    year = _to_int(text("year"), 4) if text("year") else None
+    return text("artist") or None, text("title") or None, text("album") or None, track, year
+
+
+def _read_mp3_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
+    """Returns (artist, title, album, track, year) from the ID3 tags of an mp3 file."""
+    audio = MP3(filepath)
+    if not audio.tags:
+        return None, None, None, None, None
+
+    def text(frame: str) -> str:
+        """Returns the stripped text of a frame, an empty string if it is not set"""
+        return str(audio.tags.get(frame, "")).strip()
+
+    track = _to_int(text("TRCK").split("/", maxsplit=1)[0]) if text("TRCK") else None
+    year = _to_int(text("TDRC"), 4) if text("TDRC") else None
+    return text("TPE1") or None, text("TIT2") or None, text("TALB") or None, track, year
 
 
 def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | None, int | None, int | None]:
     """Returns (artist, title, album, track, year) from existing file tags."""
-    artist = title = album = None
-    track = year = None
     try:
-        if is_m4a(filepath):
-            tags = MP4(filepath).tags or {}
-            artist = (tags.get(_M4A_TAG_MAP["artist"], [None])[0] or "").strip() or None
-            title = (tags.get(_M4A_TAG_MAP["title"], [None])[0] or "").strip() or None
-            album = (tags.get(_M4A_TAG_MAP["album"], [None])[0] or "").strip() or None
-            trkn = tags.get(_M4A_TAG_MAP["track"], None)
-            if trkn:
-                try:
-                    track = int(trkn[0][0])
-                except (ValueError, IndexError, TypeError):
-                    pass
-            day = (tags.get(_M4A_TAG_MAP["year"], [None])[0] or "").strip()
-            if day:
-                try:
-                    year = int(day[:4])
-                except ValueError:
-                    pass
-        else:
-            audio = MP3(filepath)
-            if audio.tags:
-                artist = str(audio.tags.get("TPE1", "")).strip() or None
-                title = str(audio.tags.get("TIT2", "")).strip() or None
-                album = str(audio.tags.get("TALB", "")).strip() or None
-                trk_raw = str(audio.tags.get("TRCK", "")).strip()
-                if trk_raw:
-                    try:
-                        track = int(trk_raw.split("/")[0])
-                    except ValueError:
-                        pass
-                yr_raw = str(audio.tags.get("TDRC", "")).strip()
-                if yr_raw:
-                    try:
-                        year = int(yr_raw[:4])
-                    except ValueError:
-                        pass
+        return _read_m4a_tags(filepath) if is_m4a(filepath) else _read_mp3_tags(filepath)
     except Exception as e:
         log.logger.warning("Could not read tags from %s: %s", filepath, str(e))
-    return artist, title, album, track, year
+    return None, None, None, None, None
 
 
 @metacopy.keeps_dates
@@ -307,6 +311,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
 
 
 def main() -> None:
+    """Fixes the tags of the mp3 and m4a files of a music library from the names of the files and directories"""
     util.init("fix-mp3-meta")
     parser = argparse.ArgumentParser(description="Fix MP3 metadata tags for a music library")
     util.add_input_args(

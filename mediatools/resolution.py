@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Resolutions of videos and images: dimensions, aspect ratio and aliases (4k, fhd...)"""
+
 import re
 from typing import ClassVar
 import mediatools.options as opt
@@ -32,6 +34,8 @@ def canonical(res: str) -> str:
 
 
 class Resolution:
+    """Resolution of a video or an image: its width, its height and its aspect ratio"""
+
     RES_8K: str = "7680x4320"
     RES_4K: str = "3840x2160"
     RES_1080P: str = "1920x1080"
@@ -71,7 +75,8 @@ class Resolution:
     RATIO_15_10: float = 15 / 10
     RATIO_4_3: float = 4 / 3
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: object) -> None:
+        """Creates a resolution from a width and a height, or from a resolution given as WxH or as an alias (4k, fhd, hd...)"""
         self.width: int = 0
         self.height: int = 0
         self.pixels: int = 0
@@ -81,8 +86,11 @@ class Resolution:
             h = kwargs["height"]
         elif "resolution" in kwargs or opt.Option.RESOLUTION in kwargs:
             r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION)))
-            if re.search(r"[x:]", r):
-                w, h = re.split(r"[x:]", r, maxsplit=2)
+            if not re.search(r"[x:]", r):
+                raise ex.DimensionError(f"invalid resolution '{r}': it must be <width>x<height> or an alias")
+            w, h = re.split(r"[x:]", r, maxsplit=2)
+        else:
+            raise ex.DimensionError("a width and a height, or a resolution, are required")
         if int(w) <= 0 or int(h) <= 0:
             raise ex.DimensionError("width and height must be strictly positive")
         self.width = int(w)
@@ -91,18 +99,19 @@ class Resolution:
         self.pixels = self.width * self.height
 
     def __str__(self) -> str:
+        """Returns the resolution as WxH"""
         return f"{self.width}x{self.height}"
 
     def __mul__(self, factor: float) -> "Resolution":
+        """Returns the resolution multiplied by a factor"""
         return Resolution(width=self.width * factor, height=self.height * factor)
 
-    # def __str__(self):
-    #     return str(vars(self))
-
     def is_ratio(self, ratio: float) -> bool:
+        """Returns True if the aspect ratio of the resolution is the given one, within a small tolerance"""
         return abs(ratio - self.ratio) < 0.02
 
     def calc_resolution(self, width: int | str, height: int | str, orientation: str = "landscape") -> tuple[int, int]:
+        """Returns the width and the height in pixels from a width and a height given in pixels or in percent of the resolution"""
         iw, ih = self.width, self.height
         if orientation == "portrait":
             width, height = height, width
@@ -114,12 +123,15 @@ class Resolution:
         return (w, h)
 
     def as_string(self, separator: str = "x") -> str:
+        """Returns the resolution as a string, with a separator between the width and the height"""
         return f"{self.width}{separator}{self.height}"
 
     def as_list(self) -> list[int]:
+        """Returns the resolution as a list [width, height]"""
         return [self.width, self.height]
 
     def as_tuple(self) -> tuple[int, int]:
+        """Returns the resolution as a tuple (width, height)"""
         return (self.width, self.height)
 
 

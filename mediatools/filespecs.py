@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -17,6 +17,8 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
+"""Tool that displays the specs of media files"""
 
 from __future__ import annotations
 
@@ -89,6 +91,7 @@ UNITS: dict[str, str] = {
 
 
 def __to_csv__(specs: dict, all_props: list[str]) -> str:
+    """Returns the values of the properties of a media file as a CSV line (the duration is also given as hh:mm:ss)"""
     s = ""
     for prop in all_props:
         if prop not in specs:
@@ -101,6 +104,7 @@ def __to_csv__(specs: dict, all_props: list[str]) -> str:
 
 
 def __to_std__(specs: dict, all_props: list[str]) -> str:
+    """Returns the properties of a media file, one property per line with its unit"""
     s = ""
     for prop in sorted(all_props):
         if prop not in specs:
@@ -133,6 +137,7 @@ def __to_std__(specs: dict, all_props: list[str]) -> str:
 
 
 def main() -> None:
+    """Displays the specs of media files: as a list of properties, or in CSV format"""
     util.init("file-specs")
     parser = argparse.ArgumentParser(description="Audio/Video/Image file specs extractor")
     util.add_input_args(parser, "Input files and/or directories to probe")
@@ -152,7 +157,7 @@ def main() -> None:
         for prop in all_props:
             print(f"{prop},", end="")
             if prop == "duration":
-                print("{},".format("Duration HH:MM:SS.x"), end="")
+                print("Duration HH:MM:SS.x,", end="")
         print()
 
     for file in filelist:

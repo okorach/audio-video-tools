@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -57,7 +57,7 @@ fi
 
 if [[ "$dolint" != "false" ]]; then
   ruff check --output-format=concise . | tee "$buildDir/ruff-report.txt" | python3 ruff2sonar.py >"$buildDir/ruff-report.json"
-  pylint ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" >"$buildDir/pylint-report.out"
+  pylint --rcfile conf/pylintrc ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" >"$buildDir/pylint-report.out"
   flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391,F401,E722 --max-line-length=150 . >"$buildDir/flake8-report.out"
   bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests >"$buildDir/bandit-report.json"
 fi

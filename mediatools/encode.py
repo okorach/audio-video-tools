@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -23,18 +23,19 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
+"""Tool that encodes audio and video files with an encoding profile"""
+
 from __future__ import annotations
 
-from mediatools import log
-import utilities.file as fil
-import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.utilities as util
 import mediatools.options as opt
-import utilities.file as fileutil
+import mediatools.utilities as util
+import mediatools.videofile as video
+import utilities.file as fil
+from mediatools import log
 
 
-def encode_file(file: str, file_type: str, **kwargs) -> str:
+def encode_file(file: str, file_type: str, **kwargs: object) -> str:
     """Encodes a single file"""
     if file_type == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
@@ -76,6 +77,7 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
 
 
 def main() -> None:
+    """Encodes audio and video files with an encoding profile"""
     parser = util.get_common_args("video-encode", "Audio and Video file (re)encoder")
     parser = video.add_video_args(parser)
 
@@ -91,8 +93,8 @@ def main() -> None:
             splits = file_list[i].split(".")
             ext = splits.pop()
             base = ".".join(splits)
-            fileutil.rename(file_list[i], f"{base}.original.{ext}", False)
-            fileutil.rename(ofile, file_list[i])
+            fil.rename(file_list[i], f"{base}.original.{ext}", False)
+            fil.rename(ofile, file_list[i])
         progress.done()
 
 

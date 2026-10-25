@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2025 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -31,12 +31,14 @@ from mediatools import tools
 from mediatools import pdf_compress, pdf_split
 
 
-def test_original_file():
+def test_original_file() -> None:
+    """Original file"""
     assert pdf_compress.original_file("foo.pdf") == "foo_original.pdf"
     assert pdf_compress.original_file(os.path.join("a.b", "foo.bar.pdf")) == os.path.join("a.b", "foo.bar_original.pdf")
 
 
-def _make_pdf(path):
+def _make_pdf(path: Path) -> None:
+    """Creates a PDF file of 3 pages with Ghostscript"""
     gs = pdf_split.find_ghostscript()
     ps_code = "/Helvetica findfont 20 scalefont setfont 1 1 3 {pop 50 50 moveto (x) show showpage} for"
     subprocess.run([gs, "-q", "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", f"-sOutputFile={path}", "-c", ps_code], check=True)
@@ -44,7 +46,8 @@ def _make_pdf(path):
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
 @pytest.mark.parametrize("ppp", [150, 300, 600])
-def test_compress(tmp_path, ppp):
+def test_compress(tmp_path: Path, ppp: int) -> None:
+    """Compress"""
     src = str(tmp_path / "foo.pdf")
     _make_pdf(src)
     orig_size = Path(src).stat().st_size
@@ -55,7 +58,8 @@ def test_compress(tmp_path, ppp):
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_compress_explicit_output(tmp_path):
+def test_compress_explicit_output(tmp_path: Path) -> None:
+    """Compress explicit output"""
     src = str(tmp_path / "foo.pdf")
     out = str(tmp_path / "small.pdf")
     _make_pdf(src)
@@ -64,7 +68,8 @@ def test_compress_explicit_output(tmp_path):
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_compress_does_not_overwrite_original(tmp_path):
+def test_compress_does_not_overwrite_original(tmp_path: Path) -> None:
+    """Compress does not overwrite original"""
     src = tmp_path / "foo.pdf"
     _make_pdf(str(src))
     backup = tmp_path / "foo_original.pdf"
@@ -81,6 +86,7 @@ def test_compress_mocked(tmp_path: Path) -> None:
     src.write_bytes(b"original")
 
     def fake_gs(cmd: list, check: bool) -> None:
+        """Replaces Ghostscript: creates a small output file"""
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"small")
 
@@ -169,6 +175,7 @@ def test_compress_failure_removes_temporary_file(tmp_path: Path) -> None:
     src.write_bytes(b"original")
 
     def failing_gs(cmd: list, check: bool) -> None:
+        """Replaces Ghostscript: creates a partial output file and fails"""
         out = next(a for a in cmd if a.startswith("-sOutputFile=")).split("=", 1)[1]
         Path(out).write_bytes(b"partial")
         raise subprocess.CalledProcessError(1, "gs")

@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -22,6 +22,8 @@
 # --box <width>x<height> or 4k, fhd, 1k, hd : The size of the region to crop (default 1920x1080)
 # --top, --center, --bottom, --left, --right: Where in the source video the region is taken (default centered)
 # --topleft, --topright, --bottomleft, --bottomright: Shortcuts for --top --left, --top --right, --bottom --left, --bottom --right
+
+"""Tool that crops a region of videos"""
 
 import re
 import sys
@@ -73,6 +75,7 @@ def main() -> None:
     log.logger.debug("KW=%s", str(kwargs))
 
     def process(input_file: str, options: dict) -> None:
+        """Crops one video"""
         try:
             outputfile = creator.file(input_file).crop(out_file=options.pop(util.OUTPUT_FILE, None), **options)
         except (ValueError, subprocess.CalledProcessError) as e:

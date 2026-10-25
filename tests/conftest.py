@@ -49,6 +49,7 @@ def clean_it_directory() -> Iterator[None]:
 
 
 def _ffmpeg(*args: str) -> None:
+    """Runs ffmpeg with the arguments given, quietly, and fails if ffmpeg fails"""
     subprocess.run([util.get_ffmpeg(), "-v", "error", "-y", *args], check=True)
 
 

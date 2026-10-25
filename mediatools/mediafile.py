@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,20 +18,24 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Media file abstraction (audio, video, image): specs, EXIF data and encoding settings common to all the media files"""
+
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING
-import re
-from exiftool import ExifToolHelper
+
 import ffmpeg
-from mediatools import log
-import utilities.file as fil
+from exiftool import ExifToolHelper
+
 import mediatools.exceptions as ex
-import mediatools.utilities as util
-from filters import filters
-import mediatools.options as opt
 import mediatools.media_config as conf
+import mediatools.options as opt
+import mediatools.utilities as util
+import utilities.file as fil
+from filters import filters
+from mediatools import log
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -45,7 +49,9 @@ EXIF_DATE_FMT: str = "%Y:%m:%d %H:%M:%S"
 ISO_DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
 TIME_FMT: str = "%H:%M:%S"
 DATE_FORMATS: tuple[str, ...] = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS: tuple[str, ...] = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
+EXIF_ORIGINAL_DATE_TAG: str = "EXIF:DateTimeOriginal"
+FILE_MODIFY_DATE_TAG: str = "File:FileModifyDate"
+CREATION_DATE_TAGS: tuple[str, ...] = ("QuickTime:CreateDate", EXIF_ORIGINAL_DATE_TAG, FILE_MODIFY_DATE_TAG)
 
 
 class MediaFile(fil.File):
@@ -59,6 +65,7 @@ class MediaFile(fil.File):
     dimensions: Callable[..., tuple[int, int]]
 
     def __init__(self, filename: str) -> None:
+        """Creates a media file object (audio, video or image). Raises a FileTypeError if the file is not a media file"""
         if not fil.is_media_file(filename):
             raise ex.FileTypeError(file=filename)
         super().__init__(filename)
@@ -74,12 +81,13 @@ class MediaFile(fil.File):
         self.bitrate: int | None = None
         self.comment: str | None = None
         self._exif_data: dict | None = None
-        # self.probe()
 
     def __str__(self) -> str:
+        """Returns the name of the file"""
         return self.filename
 
     def __format__(self, format_spec: str) -> str:
+        """Returns the name of the file, whatever the format specification"""
         return self.filename
 
     def probe(self, force: bool = False) -> dict:
@@ -90,7 +98,6 @@ class MediaFile(fil.File):
         try:
             log.logger.debug("%s(%s)", util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            # log.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
             log.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
             raise
@@ -124,6 +131,7 @@ class MediaFile(fil.File):
         return d
 
     def __get_first_video_stream__(self) -> dict | None:
+        """Returns the first video stream of the file (a gif is not a video stream), None if there is none"""
         log.logger.debug("Searching first video stream")
         for stream in self.specs["streams"]:
             log.logger.debug("Found codec %s / %s", stream["codec_type"], stream["codec_name"])
@@ -132,10 +140,12 @@ class MediaFile(fil.File):
         return None
 
     def __get_first_audio_stream__(self) -> dict | None:
+        """Returns the first audio stream of the file, None if there is none"""
         log.logger.debug("Searching first audio stream")
         return self.__get_stream_by_codec__("codec_type", ("audio"))
 
-    def __get_audio_stream_attribute__(self, attr: str, stream: dict | None = None):
+    def __get_audio_stream_attribute__(self, attr: str, stream: dict | None = None) -> object | None:
+        """Returns an attribute of an audio stream (the first one by default), None if the stream does not have it"""
         if stream is None:
             stream = self.__get_first_audio_stream__()
         try:
@@ -144,7 +154,8 @@ class MediaFile(fil.File):
             log.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
             return None
 
-    def __get_video_stream_attribute__(self, attr: str, stream: dict | None = None):
+    def __get_video_stream_attribute__(self, attr: str, stream: dict | None = None) -> object | None:
+        """Returns an attribute of a video stream (the first one by default), None if the stream does not have it"""
         if stream is None:
             stream = self.__get_first_video_stream__()
         try:
@@ -154,6 +165,7 @@ class MediaFile(fil.File):
             return None
 
     def __get_stream_by_codec__(self, field: str, codec_list: tuple | list | str) -> dict | None:
+        """Returns the first stream whose field (eg codec_type) is one of the values of the list, None if there is none"""
         log.logger.debug("Searching stream for codec %s = %s", field, codec_list)
         for stream in self.specs["streams"]:
             log.logger.debug("Found codec %s", stream[field])
@@ -162,9 +174,12 @@ class MediaFile(fil.File):
         return None
 
     def get_properties(self) -> dict:
+        """Returns the properties of the file"""
         return self.get_file_properties()
 
-    def __get_top_left__(self, width: int, height: int, **kwargs) -> tuple[int, int, str]:
+    def __get_top_left__(self, width: int, height: int, **kwargs: object) -> tuple[int, int, str]:
+        """Returns the top and left positions, and the name of the position, of a region of a given size in the media: from the top, left and position
+        options, centered by default"""
         # The caller may give the dimensions of the frame (eg the displayed size of a rotated video)
         iw, ih = kwargs.get("dimensions") or self.dimensions(ignore_orientation=True)
         top: int | None = kwargs.get("top")
@@ -174,9 +189,9 @@ class MediaFile(fil.File):
             if pos is None:
                 pos = "center"
                 top = (ih - height) // 2
-            elif re.search(".*top.*", pos):
+            elif "top" in pos:
                 top = 0
-            elif re.search(".*bottom.*", pos):
+            elif "bottom" in pos:
                 top = ih - height
             else:
                 top = (ih - height) // 2
@@ -184,21 +199,23 @@ class MediaFile(fil.File):
             if pos is None:
                 pos = "center"
                 left = (iw - width) // 2
-            elif re.search(".*left.*", pos):
+            elif "left" in pos:
                 left = 0
-            elif re.search(".*right.*", pos):
+            elif "right" in pos:
                 left = iw - width
             else:
                 left = (iw - width) // 2
         return (top, left, pos)
 
     def get_exif_data(self, force: bool = False) -> dict[str, str]:
+        """Returns the EXIF data of the file as a dictionary. They are read only once, unless force is set"""
         if self._exif_data is None or force:
             with ExifToolHelper(executable=util.get_exiftool()) as et:
                 self._exif_data = et.get_metadata(self.filename)[0]
         return self._exif_data
 
     def set_exif_creation_date(self, some_datetime: datetime | str) -> None:
+        """Sets the EXIF creation date of the file to a date"""
         if isinstance(some_datetime, datetime):
             time_to_set = datetime.strftime(some_datetime, EXIF_DATE_FMT)
         else:
@@ -207,11 +224,12 @@ class MediaFile(fil.File):
             et.set_tags([self.filename], tags={"DateTimeOriginal": time_to_set}, params=["-P", "-overwrite_original"])
 
     def get_exif_creation_date(self) -> datetime | None:
+        """Returns the EXIF creation date of the file (or the modification date of the file when there is none)"""
         exif_data = self.get_exif_data()
-        if "EXIF:DateTimeOriginal" in exif_data:
-            str_date = exif_data["EXIF:DateTimeOriginal"]
-        elif "File:FileModifyDate" in exif_data:
-            str_date = exif_data["File:FileModifyDate"]
+        if EXIF_ORIGINAL_DATE_TAG in exif_data:
+            str_date = exif_data[EXIF_ORIGINAL_DATE_TAG]
+        elif FILE_MODIFY_DATE_TAG in exif_data:
+            str_date = exif_data[FILE_MODIFY_DATE_TAG]
         else:
             log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
             return None
@@ -239,6 +257,7 @@ class MediaFile(fil.File):
         return creation_date
 
     def get_exif_device(self) -> str:
+        """Returns the device (eg the camera) that generated the file, from its EXIF data"""
         exif_data = self.get_exif_data()
         device = ""
         for key in "EXIF:Make", "QuickTime:Author", "QuickTime:CompressorName":
@@ -250,6 +269,7 @@ class MediaFile(fil.File):
         return device
 
     def get_exif_dimensions(self) -> str:
+        """Returns the dimensions of the media from its EXIF data, as WxH"""
         exif_data = self.get_exif_data()
         dimensions = ""
         for w_key, h_key in (
@@ -266,6 +286,7 @@ class MediaFile(fil.File):
         return dimensions
 
     def get_exif_gps_coordinates(self) -> tuple[float, float]:
+        """Returns the latitude and the longitude of the media from its EXIF data"""
         lat: str | None = None
         long: str | None = None
         exif_data = self.get_exif_data()
@@ -280,6 +301,7 @@ class MediaFile(fil.File):
         return (float(lat), float(long))
 
     def set_exif_gps_coordinates(self, latitude: float, longitude: float) -> None:
+        """Sets the GPS coordinates (latitude and longitude in degrees) in the EXIF data of the file"""
         lat_ref: str = "N"
         long_ref: str = "E"
         if latitude < 0:
@@ -299,7 +321,8 @@ class MediaFile(fil.File):
 # ---------------- Class methods ---------------------------------
 
 
-def get_audio_filters(**kwargs) -> filters.Simple:
+def get_audio_filters(**kwargs: object) -> filters.Simple:
+    """Returns the audio filters to apply according to the encoding options: volume, reverse"""
     log.logger.debug("Afilters options = %s", str(kwargs))
     afilters = filters.Simple(filters.AUDIO_TYPE)
     if kwargs.get("volume") is not None:
@@ -311,13 +334,14 @@ def get_audio_filters(**kwargs) -> filters.Simple:
     return afilters
 
 
-def use_gpu_filters(**kwargs) -> bool:
+def use_gpu_filters(**kwargs: object) -> bool:
     """True if the video is decoded and filtered by the GPU. The rotation and the flip are CPU filters only: with them only the encoding
     is done by the GPU (the frames are decoded and filtered on the CPU)"""
     return util.use_hardware_accel(**kwargs) and not kwargs.get("rotate") and not kwargs.get("flip")
 
 
-def get_input_settings(**kwargs) -> list[str]:
+def get_input_settings(**kwargs: object) -> list[str]:
+    """Returns the ffmpeg options that apply to the input: start time, hardware accelerated decoding"""
     log.logger.debug("get_input_setting(%s)", str(kwargs))
     settings: list[str] = []
     if kwargs.get(opt.Option.START, "") != "":
@@ -329,12 +353,14 @@ def get_input_settings(**kwargs) -> list[str]:
     return settings
 
 
-def get_prefilter_settings(**kwargs) -> list[str]:
+def get_prefilter_settings(**kwargs: object) -> list[str]:
+    """Returns the ffmpeg options that apply before the filters (none)"""
     settings: list[str] = []
     return settings
 
 
-def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> dict:
+def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs: object) -> dict:
+    """Returns the ffmpeg output options for the encoding options: codecs, resolution, bitrates, stop time, mute, fps"""
     settings: dict = {}
     log.logger.debug("get_output_setting(%s)", str(kwargs))
 
@@ -350,7 +376,6 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     start: float = 0
     if kwargs.get(opt.Option.START) not in ("", None):
         start = util.to_seconds(kwargs[opt.Option.START])
-        # settings[opt.OptionFfmpeg.START] = start
     if kwargs.get(opt.Option.STOP) not in ("", None):
         settings[opt.OptionFfmpeg.STOP] = util.to_seconds(kwargs[opt.Option.STOP]) - start
 
@@ -370,7 +395,7 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     return settings
 
 
-def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs) -> dict:
+def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs: object) -> dict:
     """Returns the ffmpeg constant quality setting (-crf, or -cq for the hardware accelerated encoders) of the video quality
     (--quality high, medium or low, high by default), according to the ffmpeg video codec (ffmpeg_codec):
     h264: 18, 23 and 28 - h265: 23, 28 and 33.
@@ -393,7 +418,8 @@ def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwar
     return {(opt.OptionFfmpeg.CQ if ffmpeg_codec.endswith("_nvenc") else opt.OptionFfmpeg.CRF): table[quality]}
 
 
-def _must_encode_video(**kwargs) -> bool:
+def _must_encode_video(**kwargs: object) -> bool:
+    """Returns True if an option requires the video to be encoded, False if it can be copied"""
     for k, v in kwargs.items():
         if k == opt.Option.QUALITY and kwargs.get(opt.Option.VCODEC) != "copy":
             return True
@@ -404,7 +430,9 @@ def _must_encode_video(**kwargs) -> bool:
     return False
 
 
-def _get_vcodec(**kwargs) -> str:
+def _get_vcodec(**kwargs: object) -> str:
+    """Returns the ffmpeg video codec to use: copy if the video must not be encoded, otherwise the requested or default one (the hardware accelerated
+    one if requested)"""
     if _must_encode_video(**kwargs):
         vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property("default.video.codec"))
         if util.use_hardware_accel(**kwargs):
@@ -416,7 +444,8 @@ def _get_vcodec(**kwargs) -> str:
     return vcodec
 
 
-def _get_acodec(**kwargs) -> str:
+def _get_acodec(**kwargs: object) -> str:
+    """Returns the audio codec to use: copy if the audio must not be encoded, otherwise the requested or default one"""
     acodec: str
     if not _must_encode_audio(**kwargs):
         acodec = "copy"
@@ -425,7 +454,8 @@ def _get_acodec(**kwargs) -> str:
     return acodec
 
 
-def _must_encode_audio(**kwargs) -> bool:
+def _must_encode_audio(**kwargs: object) -> bool:
+    """Returns True if an option requires the audio to be encoded, False if it can be copied"""
     for k, v in kwargs.items():
         if k in (opt.Option.ABITRATE, "volume"):
             return True
@@ -435,6 +465,8 @@ def _must_encode_audio(**kwargs) -> bool:
 
 
 def build_target_file(source_file: str, profile: str | None) -> str:
+    """Returns the name of the file generated from a source file with a profile: the name of the source with the profile as postfix and its extension
+    Returns the name of the file generated from a source file with a profile: the name of the source with the profile as postfix and its extension"""
     extension = util.get_profile_extension(profile)
     if extension is None:
         extension = conf.get_property(f"default.{fil.get_type(source_file)}.format")
@@ -444,11 +476,13 @@ def build_target_file(source_file: str, profile: str | None) -> str:
 
 
 def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str:
+    """Returns the ffmpeg option that crops a video to a width and a height from a position"""
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
     return f'-filter:v "crop={width}:{height}:{top}:{left}"'
 
 
 def get_deshake_filter_options(width: int, height: int) -> str:
+    """Returns the ffmpeg option that removes the shakiness of a video within a search range of width and height pixels"""
     # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
     return f"-vf deshake=x=-1:y=-1:w=-1:h=-1:rx={width}:ry={height}"
 
@@ -463,18 +497,22 @@ def compute_fps(rate: str) -> str:
 
 
 def get_exif_creation_date(filename: str) -> datetime | None:
+    """Returns the EXIF creation date of a file"""
     return MediaFile(filename).get_exif_creation_date()
 
 
 def set_exif_creation_date(filename: str, some_datetime: datetime | str) -> None:
+    """Sets the EXIF creation date of a file to a date"""
     MediaFile(filename).set_exif_creation_date(some_datetime)
 
 
 def get_exif_gps_coordinates(filename: str) -> tuple[float, float]:
+    """Returns the latitude and the longitude of a file from its EXIF data"""
     return MediaFile(filename).get_exif_gps_coordinates()
 
 
 def set_exif_gps_coordinates(filename: str, latitude: float, longitude: float) -> None:
+    """Sets the GPS coordinates (latitude and longitude in degrees) in the EXIF data of a file"""
     MediaFile(filename).set_exif_gps_coordinates(latitude, longitude)
 
 
@@ -493,6 +531,7 @@ def reduce_aspect_ratio(aspect_ratio: int | str, height: int | None = None) -> s
 
 
 def concat(target_file: str, file_list: list[str]) -> None:
+    """Concatenates audio and video files into a target file"""
     #  ffmpeg -i opening.mkv -i episode.mkv -i ending.mkv \
     #  -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" \
     #  -map "[v]" -map "[a]" output.mkv
@@ -506,18 +545,22 @@ def concat(target_file: str, file_list: list[str]) -> None:
 
 
 def strip_media_options(options: dict) -> dict:
+    """Returns the options of a dictionary without the ones that are encoding options of the tool"""
     strip = {k: v for k, v in options.items() if k not in opt.M2F_MAPPING}
     log.logger.debug("stripped media options = %s", str(strip))
     return strip
 
 
 def strip_ffmpeg_options(options: dict) -> dict:
+    """Returns the options of a dictionary without the ones that are ffmpeg options"""
     strip = {k: v for k, v in options.items() if k not in opt.F2M_MAPPING}
     log.logger.debug("stripped ffmpeg options = %s", str(strip))
     return strip
 
 
 def build_ffmpeg_options(options: dict, with_mapping: bool = False) -> str:
+    """Returns the options of a dictionary as the options of an ffmpeg command line, optionally mapping the options of the tool to the ones of ffmpeg
+    Returns the options of a dictionary as the options of an ffmpeg command line, optionally mapping the options of the tool to the ones of ffmpeg"""
     cmd = ""
     for k, v in options.items():
         if with_mapping:

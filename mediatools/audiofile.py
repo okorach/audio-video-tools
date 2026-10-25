@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,26 +18,29 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Audio file abstraction: tags, audio specs, hashes and album art of the audio files"""
+
 from __future__ import annotations
 
-import re
+import json
 import os
+import re
 import shutil
 import unicodedata
 from datetime import datetime
-import json
-from mp3_tagger import MP3File
+
 import music_tag
-from mediatools import log
-import mediatools.exceptions as ex
-import utilities.file as fil
-import mediatools.mediafile as media
-import mediatools.imagefile as image
-from mediatools import metacopy
-import mediatools.utilities as util
-import mediatools.options as opt
-import mediatools.media_config as conf
+from mp3_tagger import MP3File
+
 import filters.filter as filters
+import mediatools.exceptions as ex
+import mediatools.imagefile as image
+import mediatools.media_config as conf
+import mediatools.mediafile as media
+import mediatools.options as opt
+import mediatools.utilities as util
+import utilities.file as fil
+from mediatools import log, metacopy
 
 _CSV_KEYS: tuple[str, ...] = (
     "filename",
@@ -91,8 +94,11 @@ def build_target_file(source_file: str, profile: str | None) -> str:
 
 
 class AudioFile(media.MediaFile):
+    """Audio file: its audio specs, its tags and its hash"""
+
     # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename: str) -> None:
+        """Creates an audio file object. Raises a FileTypeError if the file is not an audio file"""
         if not fil.is_audio_file(filename):
             raise ex.FileTypeError(file=filename, expected_type="audio")
         self.abitrate: int | None = None
@@ -114,15 +120,16 @@ class AudioFile(media.MediaFile):
         self._hash: str | None = None
 
         super().__init__(filename)
-        # self.get_specs()
 
     def csv_values(self) -> list[str]:
+        """Returns the properties of the audio file as a list of strings, in the order of the CSV headers"""
         self.get_specs()
         d = vars(self)
         log.logger.debug("File = %s", json.dumps(d, separators=(",", ": "), indent=3))
         return [str(d.get(k, "") if d.get(k, "") is not None else "") for k in _CSV_KEYS]
 
     def get_specs(self) -> dict:
+        """Returns the specs of the audio stream of the file. The file is probed if needed"""
         if self.specs is None:
             self.probe()
         for stream in self.specs["streams"]:
@@ -141,6 +148,7 @@ class AudioFile(media.MediaFile):
         return self.specs
 
     def hash(self, algo: str = "audio", force: bool = False) -> str | None:
+        """Returns the hash of the audio file: by default made of its tags, duration and codec, otherwise the hash of its content"""
         if algo != "audio":
             return super().hash(algo=algo, force=force)
         if self._hash is None or force:
@@ -178,7 +186,8 @@ class AudioFile(media.MediaFile):
             self.comment = tags.get("comment", None)
         return vars(self)
 
-    def get_tags(self, version: int | None = None) -> dict | None:
+    def get_tags(self) -> dict | None:
+        """Returns the tags of the audio file (artist, title, album, year, track, genre...)"""
         log.logger.debug("Getting tags of %s", self.filename)
         self.probe()
         try:
@@ -195,56 +204,64 @@ class AudioFile(media.MediaFile):
         self.track = tags.get("track", None)
         self.album = tags.get("album", None)
         self.genre = tags.get("genre", None)
-        # self.comment = tags.get('comment', None)
         log.logger.debug("self.title = %s", str(self.title))
         return tags
 
     def get_title(self) -> str | None:
+        """Returns the title of the audio file"""
         log.logger.debug("get_title(%s)", str(self.title))
         if self.title is None:
             self.get_tags()
         return self.title
 
     def get_album(self) -> str | None:
+        """Returns the album of the audio file"""
         if self.album is None:
             self.get_tags()
         return self.album
 
     def get_author(self) -> str | None:
+        """Returns the author (artist) of the audio file"""
         return self.get_artist()
 
     def get_artist(self) -> str | None:
+        """Returns the artist of the audio file"""
         if self.artist is None:
             self.get_tags()
         return self.artist
 
     def get_track(self) -> str | None:
+        """Returns the track number of the audio file"""
         if self.track is None:
             self.get_tags()
         return self.track
 
     def get_year(self) -> int | None:
+        """Returns the year of the audio file"""
         if self.year is None:
             self.get_tags()
         return self.year
 
     def get_genre(self) -> str | None:
+        """Returns the genre of the audio file"""
         if self.genre is None:
             self.get_tags()
         return self.genre
 
     def get_audio_properties(self) -> dict:
+        """Returns the audio properties of the file: bitrate, codec, sample rate..."""
         if self.acodec is None:
             self.get_specs()
         return {opt.Option.ABITRATE: self.abitrate, opt.Option.ACODEC: self.acodec, "audio_sample_rate": self.audio_sample_rate}
 
     def get_properties(self) -> dict:
+        """Returns all the properties of the audio file: the ones of the file and of its audio stream"""
         audio_props = self.get_audio_properties()  # Loads the specs of the file: before the file properties are read
         all_props = self.get_file_properties()
         all_props.update(audio_props)
         return all_props
 
-    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:
+    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs: object) -> str:
         """Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
@@ -295,6 +312,7 @@ class AudioFile(media.MediaFile):
         os.remove(target_file)
 
     def set_tag(self, tag: str, value: object) -> None:
+        """Sets a tag of the audio file, keeping the dates of the file"""
         f = music_tag.load_file(self.filename)
         # dict access returns a MetadataItem
         log.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
@@ -303,6 +321,7 @@ class AudioFile(media.MediaFile):
             f.save()
 
     def get_a_tag(self, tag: str) -> object:
+        """Returns the value of a tag of the audio file, an empty string if the tags can't be read"""
         try:
             f = music_tag.load_file(self.filename)
         except Exception:
@@ -312,6 +331,7 @@ class AudioFile(media.MediaFile):
 
 
 def album_art(*file_list: str, scale: str | None = None) -> bool:
+    """Adds an image as the album art of the audio files. Returns False if there is not exactly one image"""
     log.logger.debug("Album art(%s)", str(file_list))
     album_cover = fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)
     if len(album_cover) != 1:
@@ -332,7 +352,8 @@ def album_art(*file_list: str, scale: str | None = None) -> bool:
     return True
 
 
-def get_hash_list(filelist: list[str], algo: str = "audio", old_hash: dict | None = None) -> dict:
+def get_hash_list(filelist: list[str], algo: str = "audio") -> dict:
+    """Returns the audio files grouped by hash: a dictionary of the hash to the list of the files that have this hash"""
     log.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes: dict = {}
     i = 0
@@ -356,6 +377,7 @@ def get_hash_list(filelist: list[str], algo: str = "audio", old_hash: dict | Non
 
 
 def update_hash_list(master_dir: str, hash_file_name: str | None = None) -> dict:
+    """Updates the file of the hashes of the audio files of a directory with the files that are new or modified. Returns the hashes"""
     log.logger.info("Updating file hash")
     filelist = fil.dir_list(master_dir, recurse=True)
     if hash_file_name is None:
@@ -406,6 +428,7 @@ def save_hash_list(h_file: str, hash_data: dict) -> None:
 
 
 def read_hash_list(file: str) -> dict:
+    """Reads the file of the hashes of the audio files. Returns an empty one if the file does not exist"""
     try:
         with open(file, encoding="utf-8") as fh:
             data = json.loads(fh.read())
@@ -415,6 +438,7 @@ def read_hash_list(file: str) -> dict:
 
 
 def csv_headers() -> list[str]:
+    """Returns the headers of the CSV file that lists audio files"""
     return list(_CSV_KEYS)
 
 

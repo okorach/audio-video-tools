@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,13 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that concatenates audio files"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.audiofile as audio
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Concatenates audio files into a single audio file"""
     util.init("audio-concat")
     parser = argparse.ArgumentParser(description="Concatenates several audio files of the same type")
     util.add_input_args(parser, "List of audio files to concatenate")

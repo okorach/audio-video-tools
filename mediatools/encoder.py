@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -17,6 +17,8 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
+
+"""Settings of an ffmpeg encoding: codecs, bitrates, resolution, filters..."""
 
 from __future__ import annotations
 
@@ -47,7 +49,8 @@ class Encoder:
         "stop",
     ]
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: object) -> None:
+        """Creates an encoder with the settings given (codecs, bitrates, resolution, aspect, format, start, stop...). Streams are copied by default"""
         self.format: str | None = None
         self.aspect: str | None = None
         self.resolution: str | None = None
@@ -64,7 +67,8 @@ class Encoder:
         self.add_settings(**kwargs)
         self.others: dict = {}
 
-    def add_settings(self, **kwargs) -> None:
+    def add_settings(self, **kwargs: object) -> None:
+        """Sets the settings of the encoder from the options given. The options that are not settings or are None are ignored"""
         kwsettings = {k: v for k, v in kwargs.items() if k in Encoder.SETTINGS and v is not None}
         if "vcodec" in kwsettings:
             self.vcodec = kwsettings[opt.Option.VCODEC]
@@ -86,25 +90,31 @@ class Encoder:
             self.format = kwsettings[opt.Option.FORMAT]
 
     def set_format(self, fmt: str) -> None:
+        """Sets the output format"""
         self.format = fmt
 
     def add_vfilter(self, vfilter: str) -> None:
+        """Adds a video filter"""
         self.vfilters.append(vfilter)
 
     def get_vfilters_string(self) -> str:
+        """Returns the video filters as -filter:v options"""
         cmd = ""
         for f in self.vfilters:
             cmd = cmd + f'-filter:v "{f}" '
         return cmd.strip()
 
     def add_crop_filter(self, width: int, height: int, top: int, left: int) -> None:
+        """Adds a filter that crops the video to a width and a height from a position"""
         self.add_vfilter(f"crop={width}:{height}:{top}:{left}")
 
     def add_deshake_filter(self, width: int, height: int) -> None:
+        """Adds a filter that removes the shakiness of the video within a search range of width and height pixels"""
         # ffmpeg -i <in> -f mp4 -vf deshake=x=-1:y=-1:w=-1:h=-1:rx=16:ry=16 -b:v 2048k <out>
         self.add_vfilter(f"deshake=x=-1:y=-1:w=-1:h=-1:rx={width}:ry={height}")
 
     def add_fade_filter(self, fade_d: float, start: float | None = None, stop: float | None = None) -> None:
+        """Adds the filters that fade in at the start and fade out at the end of the video, for a fade duration"""
         if start is None:
             start = self.start
         if start is None:

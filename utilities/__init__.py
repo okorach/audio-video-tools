@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -19,4 +19,6 @@
 #
 
 # Importing the mediatools package first avoids a circular import when utilities.file is the first module imported
+"""Utilities that don't depend on the media tools"""
+
 import mediatools  # noqa: F401

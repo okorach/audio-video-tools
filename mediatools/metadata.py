@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -25,12 +25,15 @@
 # - Languages of audio tracks
 # - Author of video
 
+"""Tool that adds metadata to video files"""
+
 import mediatools.utilities as util
-import utilities.file as fil
 import mediatools.videofile as video
+import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Adds metadata (author, year, copyright, language of the audio tracks...) to video files"""
     parser = util.get_common_args("video-metadata", "Tool to add metadata to media files")
     parser.add_argument("--copyright", required=False, help="Copyright string without (c) sign")
     parser.add_argument("--author", required=False, help="Author of the media file")
@@ -42,6 +45,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(inputfile: str, options: dict) -> None:
+        """Adds metadata to one video file"""
         if fil.is_video_file(inputfile):
             output = video.VideoFile(inputfile).add_metadata(**options)
             util.generated_file(output)

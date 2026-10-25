@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -31,21 +31,22 @@ TMP1 = util.get_tmp_file() + ".mp4"
 
 
 @pytest.fixture(autouse=True)
-def use_short_video(short_video, monkeypatch):
+def use_short_video(short_video: str, monkeypatch: pytest.MonkeyPatch) -> None:
     """The tests don't depend on a specific video: reversing a short video is much faster"""
     monkeypatch.setattr(sys.modules[__name__], "VIDEO", short_video)
 
 
-def test_main():
+def test_main() -> None:
+    """Main"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO]):
         try:
-            tools.videotool()
-            assert True
+            assert tools.videotool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
+    """Main with output"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1]):
         try:
             tools.videotool()
@@ -59,7 +60,8 @@ def test_main_with_output():
             os.remove(TMP1)
 
 
-def test_keep_audio():
+def test_keep_audio() -> None:
+    """Keep audio"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1, "-k"]):
         try:
             tools.videotool()
@@ -73,40 +75,39 @@ def test_keep_audio():
             os.remove(TMP1)
 
 
-def test_main_help():
+def test_main_help() -> None:
+    """Main help"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
+    """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
+    """Main no file"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            assert False
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
-def test_reverse_api_removes_audio():
+def test_reverse_api_removes_audio() -> None:
+    """Reverse api removes audio"""
     output = video.reverse(VIDEO, output=TMP1)
     assert video.VideoFile(output).audio_codec is None
     os.remove(output)
 
 
-def test_reverse_api_keep_audio():
+def test_reverse_api_keep_audio() -> None:
+    """Reverse api keep audio"""
     output = video.reverse(VIDEO, output=TMP1, mute=False)
     assert video.VideoFile(output).audio_codec is not None
     os.remove(output)

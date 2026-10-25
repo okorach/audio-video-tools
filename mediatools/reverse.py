@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -18,13 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that reverses videos"""
+
 import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Reverses videos"""
     parser = util.get_common_args("video-reverse", "Reverse a video")
     parser.add_argument(
         "-k", "--keep_audio", required=False, dest=opt.Option.MUTE, action="store_false", default=True, help="Keep audio track after reverse"
@@ -32,6 +35,7 @@ def main():
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Reverses one video"""
         util.generated_file(video.reverse(input_file, options.pop(util.OUTPUT_FILE, None), **options))
 
     util.process_input_files(kwargs, process)

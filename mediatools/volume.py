@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -25,12 +25,14 @@ import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Changes the volume of audio and video files"""
     parser = util.get_common_args("media-volume", "Change volume of a video or audio file")
     parser.add_argument("--volume", required=True, help="Change volume like 400%% (relative change) or 6dB (absolute)")
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE))
 
     def process(input_file: str, options: dict) -> None:
+        """Changes the volume of one audio or video file"""
         util.generated_file(video.volume(input_file, options["volume"]))
 
     util.process_input_files(kwargs, process)

@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -23,6 +23,8 @@
 # libvidstab is significantly more effective for action-cam footage because it analyses
 # the full clip's motion trajectory before applying smoothing, whereas deshake works
 # frame-by-frame with no global look-ahead.
+
+"""Tool that stabilizes shaky videos in 2 passes with libvidstab"""
 
 from __future__ import annotations
 
@@ -70,7 +72,7 @@ def stabilize(
     zoom: int = 0,
     optzoom: int = 1,
     sharpen: bool = True,
-    **kwargs,
+    **kwargs: object,
 ) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
 
@@ -108,6 +110,7 @@ def stabilize(
 
 
 def main() -> None:
+    """Stabilizes shaky videos (action cam, handheld) in 2 passes with libvidstab"""
     parser = util.get_common_args("video-stabilize", "Stabilize shaky video footage (action cam, handheld) using two-pass libvidstab")
     parser.add_argument(
         "--shakiness",

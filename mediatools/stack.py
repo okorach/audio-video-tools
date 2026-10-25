@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -22,6 +22,8 @@
 # 2 input images that can be glued
 # horizontally or vertically
 
+"""Tool that stacks images vertically or horizontally"""
+
 import sys
 import argparse
 import mediatools.imagefile as image
@@ -32,7 +34,8 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 [--stretch] [-g 0-4] file1 file2 ... filen"
 
 
-def main():
+def main() -> None:
+    """Stacks images vertically or horizontally in a single image"""
     files = []
     util.init("image-stack")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")

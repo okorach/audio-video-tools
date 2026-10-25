@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -28,17 +28,20 @@ import mediatools.utilities as util
 import utilities.file as fil
 
 
-def __int_or_empty(x):
+def __int_or_empty(x: str) -> int:
+    """Returns an integer, -1 (unchanged dimension) for an empty string"""
     if x == "":
         return -1
     return int(x)
 
 
-def main():
+def main() -> None:
+    """Rescales images"""
     parser = util.get_common_args("image-scale", "Rescale image dimensions of a file or directory")
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Rescales one image"""
         outputfile = image.ImageFile(input_file).scale(options.get("width", -1), options.get("height", -1), out_file=options.get(util.OUTPUT_FILE))
         print("Generated", outputfile)
 
