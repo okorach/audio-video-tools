@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -36,6 +36,7 @@ CONVERTED = (
     "batch-files/encode with choices",
     "batch-files/stabilize",
     "batch-files/volume",
+    "batch-files/_Pinnacle 1080p ",
     "batch-files-images/image-panorama",
     "batch-files-images/image-zoom",
     "batch-files-audio/aac",
@@ -90,6 +91,9 @@ def test_removed_and_renamed_batch_files() -> None:
     assert "mirror.bat" not in names
     assert "video-stabilize.bat" not in names
     assert "img-zoom.bat" not in names
+    assert not {"flex-encode.bat", "720p x265 25fps.bat"} & names
+    assert not {"_Pinnacle 1080p CPU.bat", "_Pinnacle 1080p GPU.bat"} & names
+    assert "_Pinnacle 1080p .bat" in names
     assert not {"aac 128.bat", "mp3 128.bat", "mp3 192.bat"} & names
     assert {"flip.bat", "stabilize.bat", "crop.bat", "image-zoom.bat", "image-panorama.bat", "aac.bat", "mp3.bat"} <= names
 
@@ -103,3 +107,27 @@ def test_audio_batch_files_ask_for_the_bitrate(name: str, profile: str) -> None:
     assert any(line.startswith("set /p bitrate=") for line in content)
     assert "set bitrate=!bitrate:k=!" in content
     assert f"audiotool profile-encode -i %* -p {profile} --abitrate !bitrate!k" in content
+
+
+def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality():
+    content = [line.strip() for line in lines(ROOT / "batch-files" / "_Pinnacle 1080p .bat")]
+    assert "set hwaccel=auto" in content
+    assert "set quality=high" in content
+    assert any("--hw_accel !hwaccel!" in line and "--quality !quality!" in line for line in content)
+
+
+@pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
+def test_delayed_expansion_is_enabled_when_used(batch_file):
+    """!variable! is only expanded after setlocal enabledelayedexpansion (and not when this line is a comment)"""
+    if any(re.search(r"![A-Za-z_]\w*!", line) for line in commands(batch_file)):
+        assert any(re.match(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in commands(batch_file)), batch_file.name
+
+
+def test_custom_encode_asks_the_resolution_and_not_the_width():
+    content = [line.strip() for line in lines(ROOT / "batch-files" / "_Custom Encode.bat")]
+    assert "set resolution=1920x1080" in content
+    assert any(line.startswith('set /p "resolution=') for line in content)
+    encode = next(line for line in content if line.startswith("videotool encode"))
+    assert '--resolution "%resolution%"' in encode
+    assert "--width" not in encode
+    assert not any("width" in line.lower() for line in content if not line.startswith("::"))

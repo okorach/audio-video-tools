@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -185,9 +185,9 @@ class MediaFile(fil.File):
             if pos is None:
                 pos = "center"
                 top = (ih - height) // 2
-            elif re.search(".*top.*", pos):
+            elif "top" in pos:
                 top = 0
-            elif re.search(".*bottom.*", pos):
+            elif "bottom" in pos:
                 top = ih - height
             else:
                 top = (ih - height) // 2
@@ -195,9 +195,9 @@ class MediaFile(fil.File):
             if pos is None:
                 pos = "center"
                 left = (iw - width) // 2
-            elif re.search(".*left.*", pos):
+            elif "left" in pos:
                 left = 0
-            elif re.search(".*right.*", pos):
+            elif "right" in pos:
                 left = iw - width
             else:
                 left = (iw - width) // 2
