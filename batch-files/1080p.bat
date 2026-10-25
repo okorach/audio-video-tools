@@ -29,9 +29,9 @@ set fps=50fps
 set /p fps=Frame rate [25fps, 30fps, 50fps, 60fps...] (default 50fps) ? 
 :: The frame rate can be given with or without the fps suffix: 50 or 50fps
 set fps=!fps:fps=!
-set bitrate=10000k
-set /p bitrate=Video bitrate (default 10000k) ? 
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
 
-videotool encode -i %* --hw_accel on --vcodec !codec! --width 1920 --vbitrate !bitrate! --acodec aac --abitrate 128k --fps !fps! --keepName
+videotool encode -i %* --hw_accel on --vcodec !codec! --width 1920 --quality !quality! --acodec aac --abitrate 128k --fps !fps! --keepName
 
 pause

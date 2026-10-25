@@ -450,6 +450,13 @@ class VideoFile(media.MediaFile):
         video_filters = self.__get_video_filters(**kwargs)
         audio_filters = media.get_audio_filters(**kwargs)
         output_settings = media.get_output_settings(**kwargs)
+        # The video quality (constant quality) is used instead of the bitrate, unless a bitrate is given and no quality is requested
+        has_bitrate = bool(output_settings.get(opt.OptionFfmpeg.VBITRATE) or raw_settings.get(opt.OptionFfmpeg.VBITRATE))
+        quality_settings = media.get_quality_settings(output_settings.get(opt.Option.VCODEC, "copy"), has_bitrate, **kwargs)
+        if quality_settings and kwargs.get(opt.Option.QUALITY) is not None:
+            raw_settings.pop(opt.OptionFfmpeg.VBITRATE, None)
+            output_settings.pop(opt.OptionFfmpeg.VBITRATE, None)
+        output_settings.update(quality_settings)
         ext = target_file.split(".")[-1].lower()
         log.logger.debug("Output file extension = %s", ext)
         if ext == "mp3" and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
@@ -710,6 +717,14 @@ def add_video_args(parser) -> object:
     parser.add_argument("--" + opt.Option.ACODEC, required=False, help="Audio codec (mp3, aac, ac3...)")
 
     parser.add_argument("--" + opt.Option.VBITRATE, required=False, help="Video bitrate eg 1024k")
+    parser.add_argument(
+        "--" + opt.Option.QUALITY,
+        required=False,
+        type=str.lower,
+        choices=opt.QUALITY_LEVELS,
+        help=f"Video quality (constant quality, better than a bitrate to keep the quality), {opt.DEFAULT_QUALITY} by default "
+        "when no video bitrate is given: x264 crf 18/23/28, x265 crf 23/28/33",
+    )
     parser.add_argument("--" + opt.Option.ABITRATE, required=False, help="Audio bitrate eg 128k")
 
     parser.add_argument("--fade", required=False, help="Fade in/out duration")

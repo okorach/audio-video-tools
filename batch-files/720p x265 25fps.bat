@@ -20,6 +20,9 @@
 
 :: setlocal enabledelayedexpansion
 
-videotool encode -i %* --hw_accel on --vcodec x265 --width 1280 --vbitrate 2500k --acodec aac --abitrate 128k --fps 25 --keepName
+setlocal enabledelayedexpansion
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
+videotool encode -i %* --hw_accel on --vcodec x265 --width 1280 --quality !quality! --acodec aac --abitrate 128k --fps 25 --keepName
 
 pause

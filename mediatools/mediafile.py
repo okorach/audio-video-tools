@@ -364,8 +364,33 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     return settings
 
 
+def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs) -> dict:
+    """Returns the ffmpeg constant quality setting (-crf, or -cq for the hardware accelerated encoders) of the video quality
+    (--quality high, medium or low, high by default), according to the ffmpeg video codec (ffmpeg_codec):
+    h264: 18, 23 and 28 - h265: 23, 28 and 33.
+    The quality is not applied (empty settings) when the video is copied, for the codecs without constant quality mode, and by default when
+    a video bitrate is given (has_bitrate): a quality explicitly requested takes precedence over a bitrate"""
+    quality = kwargs.get(opt.Option.QUALITY)
+    if ffmpeg_codec == "copy" or (quality is None and has_bitrate):
+        return {}
+    quality = (quality or opt.DEFAULT_QUALITY).lower()
+    if quality not in opt.QUALITY_LEVELS:
+        raise ex.InputError(f"Invalid quality '{quality}', must be one of {', '.join(opt.QUALITY_LEVELS)}", "quality")
+    if ffmpeg_codec in ("libx264", "h264_nvenc"):
+        table = opt.CRF_H264
+    elif ffmpeg_codec in ("libx265", "hevc_nvenc"):
+        table = opt.CRF_H265
+    else:
+        if kwargs.get(opt.Option.QUALITY) is not None:
+            log.logger.warning("The quality is not supported by the video codec %s, ignored", ffmpeg_codec)
+        return {}
+    return {(opt.OptionFfmpeg.CQ if ffmpeg_codec.endswith("_nvenc") else opt.OptionFfmpeg.CRF): table[quality]}
+
+
 def _must_encode_video(**kwargs) -> bool:
     for k, v in kwargs.items():
+        if k == opt.Option.QUALITY and kwargs.get(opt.Option.VCODEC) != "copy":
+            return True
         if k in (opt.Option.RESOLUTION, "speed", opt.Option.VBITRATE, "width", "height", "aspect", "reverse", "deshake"):
             return True
         if k == opt.Option.VCODEC and v != "copy":

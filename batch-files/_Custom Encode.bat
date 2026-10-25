@@ -21,18 +21,18 @@
 :: setlocal enabledelayedexpansion
 
 set vcodec=h265
-set vbitrate=12000k
+set quality=high
 set acodec=aac
 set abitrate=128k
 set width=1920
 set hwaccel=on
 
 set /p "width=Video width [%width%] ? "
-set /p "vbitrate=Video bitrate [%vbitrate%] ? "
+set /p "quality=Quality [high, medium, low] (default %quality%) ? "
 set /p "vcodec=Video codec [%vcodec%] ? "
 set /p "hwaccel=Hardware acceleration [%hwaccel%] ? "
 set /p "fps=FPS ? "
 
-videotool encode -i %* --hw_accel "%hwaccel%" --width "%width%" --vbitrate "%vbitrate%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
+videotool encode -i %* --hw_accel "%hwaccel%" --width "%width%" --quality "%quality%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
 
 pause

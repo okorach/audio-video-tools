@@ -19,7 +19,9 @@
 ::
 
 setlocal enabledelayedexpansion
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
 for %%F in (%*) do (
-    videotool profile-encode -i "%%~F" -p 2mbps --width 720 --vcodec h265 --vbitrate 700k -o "%%~F.series.mp4"
+    videotool profile-encode -i "%%~F" -p 2mbps --width 720 --vcodec h265 --quality !quality! -o "%%~F.series.mp4"
 )
 pause

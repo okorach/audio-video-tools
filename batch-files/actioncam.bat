@@ -18,6 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-videotool profile-encode -i %1 -p 100fps
+setlocal enabledelayedexpansion
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
+videotool profile-encode -i %1 -p 100fps --quality !quality!
 
 pause
