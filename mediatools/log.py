@@ -49,18 +49,10 @@ class Utf8StreamHandler(logging.StreamHandler):
 
 logger: logging.Logger = logging.getLogger("mediatools")
 formatter: logging.Formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)-7s | %(threadName)-15s | %(message)s")
-try:
-    fh: logging.FileHandler = logging.FileHandler("mediatools.log", encoding="utf-8")
-except PermissionError:
-    fallback_log = pathlib.Path(os.getenv("TMP", "/")) / "mediatools.log"
-    fh = logging.FileHandler(fallback_log, encoding="utf-8")
 
-# fh.setLevel(logging.DEBUG)
+# Until set_logger() is called by the tool, logs only go to the console: no log file (an empty mediatools.log) is created
 ch: logging.StreamHandler = Utf8StreamHandler()
-# ch.setLevel(logging.DEBUG)
-logger.addHandler(fh)
 logger.addHandler(ch)
-fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 
 

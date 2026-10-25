@@ -269,11 +269,45 @@ def json_fmt(json_data: object) -> str:
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(",", ": "))
 
 
+VERBOSITY_LEVELS: tuple[str, ...] = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")  # Index = integer debug level
+DEFAULT_VERBOSITY = "INFO"
+
+
+def parse_verbosity(level: int | str | None) -> int:
+    """Converts a verbosity (CRITICAL, ERROR, WARNING, INFO, DEBUG - case insensitive, or the equivalent integer 0 to 4) to its integer level.
+    INFO (3) is the default"""
+    if level is None or str(level).strip() == "":
+        return VERBOSITY_LEVELS.index(DEFAULT_VERBOSITY)
+    text = str(level).strip().upper()
+    if text in VERBOSITY_LEVELS:
+        return VERBOSITY_LEVELS.index(text)
+    return int(text)
+
+
+def get_verbosity(kwargs: dict) -> int:
+    """Returns the integer verbosity level from the parsed arguments (-v/--verbosity, or the deprecated -g/--debug)"""
+    return parse_verbosity(kwargs.get("verbosity") or kwargs.get("debug"))
+
+
+def add_verbosity_arg(parser: argparse.ArgumentParser) -> None:
+    """Adds the -v/--verbosity option to the parser of a tool (and the deprecated -g/--debug alias, that accepts the same values)"""
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        required=False,
+        metavar="|".join(VERBOSITY_LEVELS),
+        type=str.upper,
+        choices=VERBOSITY_LEVELS,
+        help=f"Verbosity of the logs, {DEFAULT_VERBOSITY} by default",
+    )
+    parser.add_argument("-g", "--debug", required=False, help=argparse.SUPPRESS)
+
+
 def set_debug_level(level: int | str | None) -> None:
     global DEBUG_LEVEL
-    DEBUG_LEVEL = 3 if level is None else int(level)
+    DEBUG_LEVEL = parse_verbosity(level)
     log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
-    log.logger.info("Set debug level to %d", DEBUG_LEVEL)
+    log.logger.info("Set verbosity to %s", VERBOSITY_LEVELS[min(max(DEBUG_LEVEL, 0), 4)])
 
 
 def init(logger_name: str) -> None:
@@ -302,7 +336,7 @@ def get_common_args(executable: str, desc: str, inputs_required: bool = True) ->
 
     parser.add_argument("--aspect", required=False, help="Aspect Ratio eg 16:9, 4:3, 1.5 ...")
 
-    parser.add_argument("-g", "--debug", required=False, help="Debug level")
+    add_verbosity_arg(parser)
     parser.add_argument("--keepName", required=False, default=False, action="store_true", help="Generate new file with same name as old")
     add_hw_accel_arg(parser)
 
@@ -410,10 +444,11 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     else:
         kwargs = vars(parser.parse_args(args))
     # Default debug level is 3 = INFO (0 = CRITICAL, 1 = ERROR, 2 = WARNING, 3 = INFO, 4 = DEBUG)
-    set_debug_level(kwargs.get("debug", 3))
+    set_debug_level(get_verbosity(kwargs))
     log.logger.debug("Raw args = %s", str(kwargs))
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
+    kwargs.pop("verbosity", None)
     if isinstance(kwargs.get("inputfiles"), list):
         kwargs["inputfiles"] = expand_input_files(kwargs["inputfiles"], input_type)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)

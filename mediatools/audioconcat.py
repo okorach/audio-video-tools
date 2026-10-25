@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description="Concatenates several audio files of the same type")
     parser.add_argument("-i", "--inputfiles", nargs="+", help="List of audio files to concatenate", required=True)
     parser.add_argument("-o", "--outputfile", help="Output file to generate", required=True)
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.AUDIO_FILE)
     output = audio.concat(kwargs["outputfile"], kwargs["inputfiles"])

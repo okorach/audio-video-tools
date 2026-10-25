@@ -317,11 +317,10 @@ def main() -> None:
         help="Files and/or directories to process (default: E:\\Musique). -f/--files is a deprecated alias",
     )
     parser.add_argument("--dry-run", action="store_true", help="Parse and log actions without writing tags or changing timestamps")
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     args = parser.parse_args()
 
-    if args.debug:
-        util.set_debug_level(args.debug)
+    util.set_debug_level(util.get_verbosity(vars(args)))
 
     inputs = args.files or [r"E:\Musique"]
     dry_run = args.dry_run

@@ -142,7 +142,7 @@ def main() -> None:
     parser.add_argument("--mode", help="filename or offset or absolute or year", required=True)
     parser.add_argument("--offset", help="Time to add or remove, prefix with - to remove", required=False)
     parser.add_argument("--year", help="Proper year of the file", required=False)
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
     file_list = kwargs["inputfiles"]

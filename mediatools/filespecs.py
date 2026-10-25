@@ -138,7 +138,7 @@ def main() -> None:
     parser.add_argument("-i", "--inputfiles", required=True, nargs="+", help="Input files and/or directories to probe")
     parser.add_argument("-f", "--format", required=False, default="txt", help="Output file format (txt or csv)")
     parser.add_argument("-t", "--types", required=False, default="", help="Types of files to include [audio,video,image]")
-    parser.add_argument("-g", "--debug", required=False, default=0, help="Debug level")
+    util.add_verbosity_arg(parser)
     parser.add_argument("--dry_run", required=False, default=0, help="Dry run mode")
     kwargs = util.parse_media_args(parser)
 

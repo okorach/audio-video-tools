@@ -286,7 +286,7 @@ def main() -> None:
     parser.add_argument("--seqstart", help="Sequence number start for the renamed files", required=False, default=1)
     parser.add_argument("-r", "--root", help="Root name", required=False)
     parser.add_argument("--sortby", help="How to sort sequence numbers", required=False, default="timestamp")
-    parser.add_argument("-g", "--debug", required=False, type=int, help="Debug level")
+    util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
     file_list = kwargs["inputfiles"]
