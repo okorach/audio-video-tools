@@ -24,20 +24,9 @@ import mediatools.exceptions as ex
 
 
 def canonical(res: str) -> str:
-    if res == "720p":
-        res = Resolution.RES_720P
-    elif res == "540p":
-        res = Resolution.RES_540P
-    elif res == "400p":
-        res = Resolution.RES_400P
-    elif res in ("vga", "VGA"):
-        res = Resolution.RES_VGA
-    elif res in ("xga", "XGA"):
-        res = Resolution.RES_XGA
-    elif res == "1080p":
-        res = Resolution.RES_1080P
-    elif res in ("4k", "4K", "2160p"):
-        res = Resolution.RES_4K
+    """Returns the WxH resolution of an alias (case insensitive), see Resolution.ALIASES. Other values are returned unchanged"""
+    if isinstance(res, str):
+        return Resolution.ALIASES.get(res.strip().lower(), res)
     return res
 
 
@@ -53,7 +42,29 @@ class Resolution:
     RES_VGA: str = "640x480"
     RES_XGA: str = "1024x768"
 
+    RES_2_5K: str = "2560x1440"
+    RES_2_7K: str = "2704x1520"
+
     DEFAULT_VIDEO: str = RES_4K
+
+    # Aliases of the resolutions, in lower case: the aliases are case insensitive
+    ALIASES: dict[str, str] = {
+        "4k": RES_4K,
+        "2160p": RES_4K,
+        "2.5k": RES_2_5K,
+        "1440p": RES_2_5K,
+        "2.7k": RES_2_7K,
+        "1520p": RES_2_7K,
+        "fhd": RES_1080P,
+        "1080p": RES_1080P,
+        "hd": RES_720P,
+        "720p": RES_720P,
+        "540p": RES_540P,
+        "400p": RES_400P,
+        "360p": RES_360P,
+        "vga": RES_VGA,
+        "xga": RES_XGA,
+    }
 
     RATIO_16_9: float = 16 / 9
     RATIO_15_10: float = 15 / 10

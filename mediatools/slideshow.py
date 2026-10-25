@@ -23,6 +23,7 @@ import sys
 import yaml
 from mediatools import log
 import mediatools.media_config as conf
+import mediatools.resolution as res
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
@@ -82,7 +83,7 @@ def main():
     elif not kwargs.get(util.INPUT_FILES):
         parser.error("-i or -y is required")
 
-    resolution = resolution or conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY)
+    resolution = res.canonical(resolution or conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY))
 
     output, operations = video.slideshow(
         *kwargs[util.INPUT_FILES], outfile=outfile, resolution=resolution, hw_accel=kwargs.get("hw_accel", "auto"), descriptions=descriptions
