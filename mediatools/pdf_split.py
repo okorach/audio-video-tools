@@ -104,7 +104,7 @@ def main():
     )
     args = parser.parse_args()
     failed = 0
-    input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
+    input_files = util.expand_input_files(vars(args)[util.INPUT_FILES], extensions=PDF_EXTENSIONS)
     progress = util.GlobalProgress(len(input_files))
     for input_file in input_files:
         try:

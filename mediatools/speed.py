@@ -71,7 +71,7 @@ def main():
         sys.exit(1)
 
     def process(input_file: str, options: dict) -> None:
-        output = video.speed(filename=input_file, target_speed=speed, output=options.pop("outputfile", None), **options)
+        output = video.speed(filename=input_file, target_speed=speed, output=options.pop(util.OUTPUT_FILE, None), **options)
         util.generated_file(output)
 
     util.process_input_files(kwargs, process)

@@ -45,6 +45,10 @@ import mediatools.media_config as conf
 from mediatools import metacopy
 
 DEBUG_LEVEL: int = 0
+
+# Names of the input and output files options (--inputfiles/--outputfile) and of the corresponding keys of the parsed arguments
+INPUT_FILES: str = "inputfiles"
+OUTPUT_FILE: str = "outputfile"
 DRY_RUN: bool = False
 # Result of the check of the availability of the hardware acceleration (None = not checked yet)
 HW_ACCEL: bool | None = None
@@ -326,19 +330,19 @@ def add_input_args(
     parser: argparse.ArgumentParser,
     help: str = "List of files to process",
     required: bool = True,
-    dest: str = "inputfiles",
+    dest: str = INPUT_FILES,
     aliases: tuple[str, ...] = (),
 ) -> None:  # pylint: disable=redefined-builtin
     """Adds the -i/--inputfiles option (files and/or directories) to the parser of a tool.
     aliases are other (deprecated) names of the option, dest is the name of the parsed argument"""
-    parser.add_argument("-i", "--inputfiles", *aliases, dest=dest, required=required, nargs="+", help=help)
+    parser.add_argument("-i", "--" + INPUT_FILES, *aliases, dest=dest, required=required, nargs="+", help=help)
 
 
 def add_output_args(
     parser: argparse.ArgumentParser, help: str = "Output file or directory", required: bool = False
 ) -> None:  # pylint: disable=redefined-builtin
     """Adds the -o/--outputfile option to the parser of a tool"""
-    parser.add_argument("-o", "--outputfile", required=required, help=help)
+    parser.add_argument("-o", "--" + OUTPUT_FILE, required=required, help=help)
 
 
 def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
@@ -431,8 +435,8 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
     An error on a file doesn't prevent the next files from being processed, but the program exits with code 1 at the end.
     Exits with code 2 if an output file is given with several input files"""
     options = dict(kwargs)
-    inputs = options.pop("inputfiles")
-    if len(inputs) > 1 and options.get("outputfile"):
+    inputs = options.pop(INPUT_FILES)
+    if len(inputs) > 1 and options.get(OUTPUT_FILE):
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
     failed = 0
@@ -468,8 +472,8 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
     kwargs.pop("verbosity", None)
-    if isinstance(kwargs.get("inputfiles"), list):
-        kwargs["inputfiles"] = expand_input_files(kwargs["inputfiles"], input_type)
+    if isinstance(kwargs.get(INPUT_FILES), list):
+        kwargs[INPUT_FILES] = expand_input_files(kwargs[INPUT_FILES], input_type)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get("timeranges")
     if timerange:
@@ -484,7 +488,7 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
 
 def cleanup_options(kwargs: dict) -> dict:
     new_options = remove_nones(kwargs)
-    for key in ["inputfiles", "outputfile", "profile"]:
+    for key in [INPUT_FILES, OUTPUT_FILE, "profile"]:
         new_options.pop(key, None)
     return new_options
 

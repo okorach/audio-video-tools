@@ -81,12 +81,12 @@ def main():
     kwargs = vars(parser.parse_args())
     util.set_debug_level(util.get_verbosity(kwargs))
 
-    inputpath = ", ".join(kwargs["inputfiles"])
+    inputpath = ", ".join(kwargs[util.INPUT_FILES])
     before = " ".join(kwargs["before"])
     after = " ".join(kwargs["after"])
     force = not kwargs["nooverwrite"]
 
-    files = [f for f in fileutil.expand_inputs(kwargs["inputfiles"], fileutil.FileType.VIDEO_FILE) if fileutil.is_video_file(f)]
+    files = [f for f in fileutil.expand_inputs(kwargs[util.INPUT_FILES], fileutil.FileType.VIDEO_FILE) if fileutil.is_video_file(f)]
     if not files:
         logger.error("No video files found in %s", inputpath)
         return

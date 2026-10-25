@@ -92,8 +92,8 @@ def main():
         help="Compression level in pixels per inch: 150 (/ebook, default), 300 (/printer) or 600 (/prepress)",
     )
     args = parser.parse_args()
-    input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
-    if len(input_files) > 1 and args.outputfile:
+    input_files = util.expand_input_files(vars(args)[util.INPUT_FILES], extensions=PDF_EXTENSIONS)
+    if len(input_files) > 1 and vars(args)[util.OUTPUT_FILE]:
         print("ERROR: -o can't be used with several input files")
         sys.exit(2)
     failed = 0
@@ -105,7 +105,7 @@ def main():
                 failed += 1
                 continue
             try:
-                out = compress(input_file, args.outputfile, args.ppp)
+                out = compress(input_file, vars(args)[util.OUTPUT_FILE], args.ppp)
             except (RuntimeError, subprocess.CalledProcessError) as e:
                 print(f"ERROR: {e}")
                 failed += 1

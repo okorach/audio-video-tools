@@ -280,7 +280,7 @@ def main() -> None:
     util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
-    file_list = kwargs["inputfiles"]
+    file_list = kwargs[util.INPUT_FILES]
     nb_photo_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.IMAGE_FILE])
     nb_video_files = sum(1 for f in file_list if fil.extension(f).lower() in fil.FileType.FILE_EXTENSIONS[fil.FileType.VIDEO_FILE])
     nb_other_files = len(file_list) - nb_photo_files - nb_video_files

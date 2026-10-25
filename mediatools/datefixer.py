@@ -136,7 +136,7 @@ def main() -> None:
     util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.IMAGE_FILE, fil.FileType.VIDEO_FILE))
 
-    file_list = kwargs["inputfiles"]
+    file_list = kwargs[util.INPUT_FILES]
     file_list = [f for f in file_list if fil.extension(f).lower() in fil.IMAGE_AND_VIDEO_EXTENSIONS]
     mode = kwargs["mode"]
     if mode == "filename":

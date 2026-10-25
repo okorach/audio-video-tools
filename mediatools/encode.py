@@ -44,7 +44,7 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
         raise ValueError(f"File {file} is not an audio or video file")
 
     if kwargs.get("timeranges") is None:
-        outfile = file_object.encode(kwargs.get("outputfile"), **kwargs)
+        outfile = file_object.encode(kwargs.get(util.OUTPUT_FILE), **kwargs)
         video.set_creation_date(outfile, video.get_creation_date(file))
         return outfile
 
@@ -65,7 +65,7 @@ def encode_file(file: str, file_type: str, **kwargs) -> str:
 
     if len(timeranges) > 1:
         # If more than 1 file generated, concatenate all generated files
-        target_file = kwargs.get("outputfile")
+        target_file = kwargs.get(util.OUTPUT_FILE)
         if target_file is None:
             target_file = util.automatic_output_file_name(target_file, file, "combined", ext)
         video.concat(target_file, filelist)
@@ -81,7 +81,7 @@ def main() -> None:
 
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
 
-    file_list = kwargs["inputfiles"]
+    file_list = kwargs[util.INPUT_FILES]
     nb_files = len(file_list)
     progress = util.GlobalProgress(nb_files)
     for i in range(nb_files):

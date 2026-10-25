@@ -71,8 +71,8 @@ def main() -> None:
     util.add_output_args(parser, "Output PDF file (default: first input file with a _merged postfix)")
     args = parser.parse_args()
     try:
-        input_files = util.expand_input_files(args.inputfiles, extensions=PDF_EXTENSIONS)
-        out = merge(input_files, args.outputfile)
+        input_files = util.expand_input_files(vars(args)[util.INPUT_FILES], extensions=PDF_EXTENSIONS)
+        out = merge(input_files, vars(args)[util.OUTPUT_FILE])
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as e:
         log.logger.error("%s", e)
         sys.exit(1)

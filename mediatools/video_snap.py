@@ -76,7 +76,7 @@ def main():
         sys.exit(2)
 
     def process(input_file: str, options: dict) -> None:
-        snap_file(input_file, nbr_photos, every, options.get("outputfile"))
+        snap_file(input_file, nbr_photos, every, options.get(util.OUTPUT_FILE))
 
     util.process_input_files(kwargs, process)
 

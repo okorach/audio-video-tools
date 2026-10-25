@@ -38,7 +38,7 @@ def main():
     util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser)
 
-    afiles = kwargs.pop("inputfiles")
+    afiles = kwargs.pop(util.INPUT_FILES)
     vfile = None
     for f in afiles.copy():
         if fil.is_video_file(f):
@@ -50,7 +50,7 @@ def main():
         sys.exit(2)
     log.logger.info("Muxing audio files %s in video file %s", str(afiles), vfile)
     videofile = video.VideoFile(vfile)
-    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.get("outputfile", None))
+    output = videofile.add_audio_tracks(*afiles, out_file=kwargs.get(util.OUTPUT_FILE, None))
     util.generated_file(output)
 
 

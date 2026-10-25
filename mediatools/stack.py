@@ -52,8 +52,8 @@ def main():
         help="Stretch images so that they have the same width or height",
     )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
-    files = kwargs["inputfiles"]
-    output = image.stack(*files, out_file=kwargs.get("outputfile", None), **kwargs)
+    files = kwargs[util.INPUT_FILES]
+    output = image.stack(*files, out_file=kwargs.get(util.OUTPUT_FILE, None), **kwargs)
     util.generated_file(output)
     sys.exit(0)
 

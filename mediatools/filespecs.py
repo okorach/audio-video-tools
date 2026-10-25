@@ -142,7 +142,7 @@ def main() -> None:
     parser.add_argument("--dry_run", required=False, default=0, help="Dry run mode")
     kwargs = util.parse_media_args(parser)
 
-    filelist = kwargs["inputfiles"]
+    filelist = kwargs[util.INPUT_FILES]
 
     all_props = list(set(VIDEO_PROPS + AUDIO_PROPS + IMAGE_PROPS))
 

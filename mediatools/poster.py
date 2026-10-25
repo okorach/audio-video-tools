@@ -53,9 +53,9 @@ def main():
         help="Stretch images so that they have the same width and height",
     )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
-    file_list = kwargs["inputfiles"]
+    file_list = kwargs[util.INPUT_FILES]
 
-    posterfile = image.posterize(*file_list, out_file=kwargs.get("outputfile", None), **kwargs)
+    posterfile = image.posterize(*file_list, out_file=kwargs.get(util.OUTPUT_FILE, None), **kwargs)
     util.generated_file(posterfile)
 
 

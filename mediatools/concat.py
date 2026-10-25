@@ -35,7 +35,7 @@ def main():
     util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
-    output = video.concat(kwargs.get("outputfile"), kwargs.pop("inputfiles"), hw_accel=kwargs["hw_accel"])
+    output = video.concat(kwargs.get(util.OUTPUT_FILE), kwargs.pop(util.INPUT_FILES), hw_accel=kwargs["hw_accel"])
     util.generated_file(output)
 
 

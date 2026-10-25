@@ -177,3 +177,14 @@ def test_tools_document_the_input_option(module, capsys):
     with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit):
         importlib.import_module(module).main()
     assert "--inputfiles" in capsys.readouterr().out
+
+
+def test_input_and_output_options_names_are_constants():
+    p = argparse.ArgumentParser()
+    util.add_input_args(p, "inputs")
+    util.add_output_args(p, "output")
+    assert {a.dest for a in p._actions} >= {util.INPUT_FILES, util.OUTPUT_FILE}  # pylint: disable=protected-access
+    assert (util.INPUT_FILES, util.OUTPUT_FILE) == ("inputfiles", "outputfile")
+    parsed = util.parse_media_args(p, ["-i", "it/song.mp3", "-o", "out.mp3"])
+    assert parsed[util.INPUT_FILES] == ["it/song.mp3"]
+    assert parsed[util.OUTPUT_FILE] == "out.mp3"

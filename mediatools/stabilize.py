@@ -150,7 +150,7 @@ def main() -> None:
     )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
-    input_files = kwargs["inputfiles"]
+    input_files = kwargs[util.INPUT_FILES]
     stab_kwargs = {
         "shakiness": kwargs.get("shakiness", 8),
         "smoothing": kwargs.get("smoothing", 30),
@@ -163,7 +163,7 @@ def main() -> None:
     single = len(input_files) == 1
     progress = util.GlobalProgress(len(input_files))
     for f in input_files:
-        outputfile = stabilize(f, output=kwargs.get("outputfile") if single else None, **stab_kwargs)
+        outputfile = stabilize(f, output=kwargs.get(util.OUTPUT_FILE) if single else None, **stab_kwargs)
         util.generated_file(outputfile)
         progress.done()
 

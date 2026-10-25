@@ -159,12 +159,12 @@ def main() -> None:
     parser.add_argument("--model", required=False, help="arnndn: path of the RNN model file (eg std.rnnn)")
     parser.add_argument("--mix", required=False, type=float, default=DEFAULT_MIX, help="arnndn: mix of denoised signal, -1 to 1 (default 0.8)")
     kwargs = util.parse_media_args(parser, input_type=(fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
-    inputs = kwargs["inputfiles"]
-    if len(inputs) > 1 and kwargs.get("outputfile"):
+    inputs = kwargs[util.INPUT_FILES]
+    if len(inputs) > 1 and kwargs.get(util.OUTPUT_FILE):
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
     keep_name = kwargs.get("keepName", False)
-    if keep_name and kwargs.get("outputfile"):
+    if keep_name and kwargs.get(util.OUTPUT_FILE):
         log.logger.error("-o can't be used with --keepName")
         sys.exit(2)
     options = {
@@ -183,7 +183,7 @@ def main() -> None:
         sys.exit(2)
 
     def process(input_file: str, file_options: dict) -> None:
-        util.generated_file(denoise(input_file, file_options.get("outputfile"), keep_name=keep_name, **options))
+        util.generated_file(denoise(input_file, file_options.get(util.OUTPUT_FILE), keep_name=keep_name, **options))
 
     util.process_input_files(kwargs, process)
     sys.exit(0)

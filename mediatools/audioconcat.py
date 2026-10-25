@@ -32,7 +32,7 @@ def main():
     util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.AUDIO_FILE)
-    output = audio.concat(kwargs["outputfile"], kwargs["inputfiles"])
+    output = audio.concat(kwargs[util.OUTPUT_FILE], kwargs[util.INPUT_FILES])
     util.generated_file(output)
 
 

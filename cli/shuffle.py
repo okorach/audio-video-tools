@@ -34,7 +34,7 @@ def main():
     util.add_input_args(parser, "List of files to shuffle", required=False)
     util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser)
-    files_to_shuffle = list(kwargs["inputfiles"])
+    files_to_shuffle = list(kwargs[util.INPUT_FILES])
 
     log.logger.info("Unfiltered files (%d)", len(files_to_shuffle))
     files_to_shuffle = [f for f in files_to_shuffle if fil.is_media_file(f)]
