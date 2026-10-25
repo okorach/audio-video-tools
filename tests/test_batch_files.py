@@ -38,6 +38,9 @@ CONVERTED = (
     "batch-files/volume",
     "batch-files-images/image-panorama",
     "batch-files-images/image-zoom",
+    "batch-files-audio/aac 128",
+    "batch-files-audio/mp3 128",
+    "batch-files-audio/mp3 192",
 )
 
 
