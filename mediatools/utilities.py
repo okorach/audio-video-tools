@@ -282,12 +282,12 @@ def delete_files(*args: str) -> None:
         os.remove(f)
 
 
-def get_common_args(executable: str, desc: str) -> argparse.ArgumentParser:
+def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("-i", "--inputfiles", required=True, metavar="N", type=str, nargs="+", help="List of files to encode")
+    parser.add_argument("-i", "--inputfiles", required=inputs_required, metavar="N", type=str, nargs="+", help="List of files to encode")
     parser.add_argument("-o", "--outputfile", required=False, help="Output file or directory")
 
     parser.add_argument("--" + opt.Option.WIDTH, required=False, type=int, help="width of video/image")

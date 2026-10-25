@@ -781,14 +781,22 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
 
 
 @util.hw_accel_fallback
-def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto") -> tuple[str, list]:
+def slideshow(
+    *inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto", descriptions: list[dict] | None = None
+) -> tuple[str, list]:
     """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
     with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
     start/end. outfile defaults to the basename of the first input photo with the video extension.
+    descriptions replaces the inputs: it is the list of the photos (as generated in the YAML file by a previous slideshow),
+    with the effect and duration to apply to each of them.
     Returns the (output file, list of per-photo operations) tuple"""
-    log.logger.info("slideshow(%s)", str(inputs))
+    log.logger.info("slideshow(%s)", str(descriptions or inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
-    slideshow_files = fil.file_list(*inputs)
+    if descriptions:
+        slides = [(d["photo"], d) for d in descriptions]
+    else:
+        slides = [(f, None) for f in fil.file_list(*inputs)]
+    slideshow_files = [f for f, _ in slides]
     video_files: list[str] = []
     all_video_files: list[list[str]] = []
     slideshows: list[str] = []
@@ -799,10 +807,14 @@ def slideshow(*inputs: str, outfile: str | None = None, resolution: str | None =
     outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
     log.logger.info("Final slideshow file will be %s", outfile)
 
-    for slide_file in slideshow_files:
+    for slide_file, description in slides:
         if fil.is_image_file(slide_file):
             try:
-                out_file, details = image.ImageFile(slide_file).to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
+                img = image.ImageFile(slide_file)
+                if description is None:
+                    out_file, details = img.to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
+                else:
+                    out_file, details = img.from_description(description, resolution=resolution, hw_accel=hw_accel)
                 video_files.append(out_file)
                 operations.append(details)
             except OSError:
