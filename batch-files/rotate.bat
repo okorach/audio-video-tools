@@ -19,6 +19,11 @@
 ::
 
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    D:\Tools\ffmpeg\bin\ffmpeg -i "%%~F" -f mp4 -acodec aac -b:a 128k -vcodec libx264 -b:v 15000k -vf "transpose=2" "%%~F".rotate-90.mp4"
-)
+set angle=90
+set /p angle=Clockwise rotation angle [90, 180, 270 or -90] (default 90) ? 
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
+
+videotool rotate -i %* --angle !angle! --quality !quality!
+
+pause

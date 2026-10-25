@@ -311,13 +311,19 @@ def get_audio_filters(**kwargs) -> filters.Simple:
     return afilters
 
 
+def use_gpu_filters(**kwargs) -> bool:
+    """True if the video is decoded and filtered by the GPU. The rotation is only available as a CPU filter: with it only the encoding
+    is done by the GPU (the frames are decoded and filtered on the CPU)"""
+    return util.use_hardware_accel(**kwargs) and not kwargs.get("rotate")
+
+
 def get_input_settings(**kwargs) -> list[str]:
     log.logger.debug("get_input_setting(%s)", str(kwargs))
     settings: list[str] = []
     if kwargs.get(opt.Option.START, "") != "":
         log.logger.debug("Adding start = %s", str(kwargs[opt.Option.START]))
         settings.append(opt.OPT_FMT.format(opt.OptionFfmpeg.START, kwargs[opt.Option.START]))
-    if _must_encode_video(**kwargs) and util.use_hardware_accel(**kwargs):
+    if _must_encode_video(**kwargs) and use_gpu_filters(**kwargs):
         settings.append(util.HW_ACCEL_PREFIX)
     log.logger.debug("get_input_settings returns %s", str(settings))
     return settings
@@ -335,7 +341,7 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     if file_type == fil.FileType.VIDEO_FILE:
         settings[opt.Option.VCODEC] = _get_vcodec(**kwargs)
 
-        if kwargs.get(opt.Option.RESOLUTION) is not None and not util.use_hardware_accel(**kwargs):
+        if kwargs.get(opt.Option.RESOLUTION) is not None and not use_gpu_filters(**kwargs):
             settings[opt.OptionFfmpeg.RESOLUTION] = kwargs[opt.Option.RESOLUTION]
 
         if kwargs.get(opt.Option.VBITRATE) is not None:
@@ -391,7 +397,7 @@ def _must_encode_video(**kwargs) -> bool:
     for k, v in kwargs.items():
         if k == opt.Option.QUALITY and kwargs.get(opt.Option.VCODEC) != "copy":
             return True
-        if k in (opt.Option.RESOLUTION, "speed", opt.Option.VBITRATE, "width", "height", "aspect", "reverse", "deshake"):
+        if k in (opt.Option.RESOLUTION, "speed", opt.Option.VBITRATE, "width", "height", "aspect", "reverse", "deshake", "rotate"):
             return True
         if k == opt.Option.VCODEC and v != "copy":
             return True

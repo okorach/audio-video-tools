@@ -38,6 +38,7 @@ VIDEO_ACTIONS: dict[str, tuple[str, str]] = {
     "mux": ("mediatools.mux:main", "Muxes a video and audio tracks"),
     "profile-encode": ("mediatools.encode:main", "Encodes with an encoding profile"),
     "reverse": ("mediatools.reverse:main", "Reverses a video"),
+    "rotate": ("mediatools.rotate:main", "Rotates a video"),
     "slideshow": ("mediatools.slideshow:main", "Creates a slideshow video from images"),
     "snap": ("mediatools.video_snap:main", "Snaps photos from a video"),
     "specs": ("mediatools.filespecs:main", "Displays the specs of media files"),

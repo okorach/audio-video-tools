@@ -49,6 +49,9 @@ HW_ACCEL_CODECS: dict[str, str] = {
 }
 
 
+ROTATION_ANGLES: tuple[int, ...] = (-90, 90, 180, 270)  # Clockwise angles in degrees: -90 is the same as 270
+DEFAULT_ROTATION_ANGLE: int = 90
+
 QUALITY_LEVELS: tuple[str, ...] = ("high", "medium", "low")
 DEFAULT_QUALITY: str = "high"
 
