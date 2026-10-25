@@ -29,7 +29,7 @@ import exifread
 
 from mediatools import log
 import utilities.file as fil
-from mediatools import resolution as res, exceptions as ex, media_config as conf, mediafile as media, utilities as util
+from mediatools import resolution as res, exceptions as ex, media_config as conf, mediafile as media, utilities as util, metacopy
 from filters import filters
 
 INPUT_FILE_FMT: str = ' -i "%s"'
@@ -130,6 +130,7 @@ class ImageFile(media.MediaFile):
         out_file = util.automatic_output_file_name(out_file, self.filename, f"scale-{w}x{h}")
         if w == -1 and h == -1:
             shutil.copy2(self.filename, out_file)
+            metacopy.copy_date_and_geotag(self.filename, out_file)
             return out_file
         log.logger.debug("Rescaling %s to %d x %d into %s", self.filename, w, h, out_file)
         util.run_ffmpeg(f'-i "{self.filename}" -vf "{filters.scale(w, h)}" "{out_file}"')

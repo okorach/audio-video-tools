@@ -47,7 +47,7 @@ def test_global_progress_single_file_is_silent():
 
 def test_process_input_files_logs_progress():
     with patch.object(log.logger, "info") as info, patch.object(log.logger, "error"), pytest.raises(SystemExit):
-        util.process_input_files({"inputfiles": ["a", "b", "c"]}, lambda f, o: 1 / 0 if f == "b" else None)
+        util.process_input_files({"inputfiles": ["a", "b", "c"]}, lambda f, _: 1 / 0 if f == "b" else None)
     messages = progress_messages(info)
     assert len(messages) == 3
     assert messages[0].startswith("GLOBAL progress 1/3 - 33%")

@@ -328,21 +328,19 @@ def delete_files(*args: str) -> None:
 
 def add_input_args(
     parser: argparse.ArgumentParser,
-    help: str = "List of files to process",
+    help_text: str = "List of files to process",
     required: bool = True,
     dest: str = INPUT_FILES,
     aliases: tuple[str, ...] = (),
-) -> None:  # pylint: disable=redefined-builtin
+) -> None:
     """Adds the -i/--inputfiles option (files and/or directories) to the parser of a tool.
     aliases are other (deprecated) names of the option, dest is the name of the parsed argument"""
-    parser.add_argument("-i", "--" + INPUT_FILES, *aliases, dest=dest, required=required, nargs="+", help=help)
+    parser.add_argument("-i", "--" + INPUT_FILES, *aliases, dest=dest, required=required, nargs="+", help=help_text)
 
 
-def add_output_args(
-    parser: argparse.ArgumentParser, help: str = "Output file or directory", required: bool = False
-) -> None:  # pylint: disable=redefined-builtin
+def add_output_args(parser: argparse.ArgumentParser, help_text: str = "Output file or directory", required: bool = False) -> None:
     """Adds the -o/--outputfile option to the parser of a tool"""
-    parser.add_argument("-o", "--" + OUTPUT_FILE, required=required, help=help)
+    parser.add_argument("-o", "--" + OUTPUT_FILE, required=required, help=help_text)
 
 
 def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
@@ -359,7 +357,8 @@ def get_common_args(executable: str, desc: str, inputs_required: bool = True) ->
         "-s",
         "--" + opt.Option.RESOLUTION,
         required=False,
-        help="Media size WxH for videos and images, or an alias: 4k (3840x2160), 2.7k (2704x1520), 2.5k (2560x1440), fhd (1920x1080), hd (1280x720)...",
+        help="Media size WxH for videos and images, or an alias: 4k (3840x2160), 2.7k (2704x1520), 2.5k (2560x1440), "
+        "fhd (1920x1080), hd (1280x720)...",
     )
 
     parser.add_argument("--aspect", required=False, help="Aspect Ratio eg 16:9, 4:3, 1.5 ...")

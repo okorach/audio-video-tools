@@ -42,7 +42,7 @@ def test_parse_verbosity(value, expected):
 
 
 def test_parse_verbosity_invalid():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="LOUD"):
         util.parse_verbosity("LOUD")
 
 
@@ -129,8 +129,8 @@ def test_tools_reject_an_invalid_verbosity(module):
     assert e.value.code == 2
 
 
-@pytest.mark.parametrize("module", ("mediatools.audio_lib", "mediatools.audio_list"))
-@pytest.mark.parametrize("option", ("-v", "--verbosity", "-g"))
+@pytest.mark.parametrize("module", ["mediatools.audio_lib", "mediatools.audio_list"])
+@pytest.mark.parametrize("option", ["-v", "--verbosity", "-g"])
 def test_directory_tools_verbosity(module, option, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)  # audio-list writes music.csv in the current folder
     with patch.object(sys, "argv", [module, option, "DEBUG", str(tmp_path)]), contextlib.suppress(SystemExit):

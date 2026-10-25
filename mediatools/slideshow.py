@@ -20,6 +20,7 @@
 
 import os
 import sys
+from pathlib import Path
 import yaml
 from mediatools import log
 import mediatools.media_config as conf
@@ -43,14 +44,14 @@ def read_yaml(yaml_file: str) -> tuple[dict, list[dict]]:
         photo = {"photo": entry} if isinstance(entry, str) else dict(entry)
         if not photo.get("photo"):
             raise ValueError(f"Missing 'photo' in an entry of {yaml_file}")
-        if not os.path.isabs(photo["photo"]) and not os.path.exists(photo["photo"]):
+        if not Path(photo["photo"]).is_absolute() and not os.path.exists(photo["photo"]):
             photo["photo"] = os.path.join(folder, photo["photo"])
         photos.append(photo)
     params = content.get("slideshow") or {}
     if not isinstance(params, dict):
-        raise ValueError(f"'slideshow' must be a section of parameters in {yaml_file}")
+        raise TypeError(f"'slideshow' must be a section of parameters in {yaml_file}")
     params = {"output": content.get("output"), **params}
-    if params["output"] and not os.path.isabs(params["output"]):
+    if params["output"] and not Path(params["output"]).is_absolute():
         params["output"] = os.path.join(folder, params["output"])
     return params, photos
 
@@ -74,7 +75,7 @@ def main():
     if kwargs.get("yaml"):
         try:
             params, descriptions = read_yaml(kwargs["yaml"])
-        except (OSError, ValueError, yaml.YAMLError) as e:
+        except (OSError, ValueError, TypeError, yaml.YAMLError) as e:
             log.logger.error("Can't read %s: %s", kwargs["yaml"], e)
             sys.exit(1)
         outfile = outfile or params.get("output")

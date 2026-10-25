@@ -17,10 +17,15 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-"""Copies the creation date and the geotagging (GPS coordinates) of a source media file to a file generated from it"""
+"""Copies the creation date and the geotagging (GPS coordinates) of a source media file to a file generated from it,
+and keeps the dates of the files modified in place"""
 
+import contextlib
+import functools
 import os
 import re
+from collections.abc import Callable, Iterator
+from datetime import datetime
 from exiftool import ExifToolHelper
 import mediatools.utilities as util
 import utilities.file as fil
@@ -119,6 +124,46 @@ def copy_date_and_geotag(source: str, target: str) -> None:
         log.logger.warning("exiftool not found, cannot copy the creation date and geotagging of %s to %s", source, target)
     except Exception as e:
         log.logger.warning("Could not copy the creation date and geotagging of %s to %s: %s", source, target, e)
+
+
+@contextlib.contextmanager
+def preserve_dates(filename: str) -> Iterator[None]:
+    """Keeps the dates of a file (creation, modification and access) when it is modified in place within the context"""
+    try:
+        stat = os.stat(filename)
+    except OSError:
+        yield
+        return
+    try:
+        yield
+    finally:
+        restore_dates(filename, stat)
+
+
+def restore_dates(filename: str, stat: os.stat_result) -> None:
+    """Gives back to a file the dates (creation, modification and access) of a previous os.stat() of it. This never fails"""
+    if not os.path.isfile(filename):
+        return
+    try:
+        created = getattr(stat, "st_birthtime", stat.st_ctime)
+        if abs(os.stat(filename).st_ctime - created) > 1 and os.name == "nt":
+            # The creation date of a file can only be set with exiftool (the file system dates are set last as modifying the file changes them)
+            with ExifToolHelper(executable=util.get_exiftool(), encoding="utf-8") as et:
+                _set_tags(et, filename, {"File:FileCreateDate": datetime.fromtimestamp(created).strftime(util.EXIF_DATE_FMT)})
+        os.utime(filename, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+    except Exception as e:
+        log.logger.warning("Could not keep the dates of %s: %s", filename, e)
+
+
+def keeps_dates(func: Callable) -> Callable:
+    """Decorator of the functions that modify in place the file given as first argument: the dates of the file are kept"""
+
+    @functools.wraps(func)
+    def wrapper(filename: str, *args: object, **kwargs: object) -> object:
+        with preserve_dates(filename):
+            return func(filename, *args, **kwargs)
+
+    return wrapper
 
 
 def copy_after_ffmpeg(ffmpeg_params: str) -> None:

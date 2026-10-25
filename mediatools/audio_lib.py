@@ -23,6 +23,7 @@ import sys
 import shutil
 from pathlib import Path
 from mediatools import log
+from mediatools import metacopy
 import mediatools.utilities as util
 import utilities.file as fil
 import mediatools.audiofile as audio
@@ -97,7 +98,9 @@ def main():
         if f.title is None or f.artist is None:
             log.logger.warning("Can't copy file because %s has empty title or artist", tgt)
         else:
-            shutil.copy(tgt, directory + os.path.sep + f.title + " - " + f.artist + ".mp3")
+            copy = directory + os.path.sep + f.title + " - " + f.artist + ".mp3"
+            shutil.copy(tgt, copy)
+            metacopy.copy_date_and_geotag(tgt, copy)
     sys.exit(0)
 
 

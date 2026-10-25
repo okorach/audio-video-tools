@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import argparse
+from mediatools import metacopy
 import mediatools.utilities as util
 
 GS_BINARIES = ("gswin64c", "gswin32c", "gs")
@@ -88,6 +89,10 @@ def split(pdf_file, ppp=DEFAULT_PPP):
         pdf_file,
     ]
     subprocess.run(cmd, check=True)
+    for page in range(1, nb_pages + 1):
+        page_file = output_pattern(pdf_file, nb_pages) % page
+        if os.path.isfile(page_file):
+            metacopy.copy_date_and_geotag(pdf_file, page_file)
     return nb_pages
 
 

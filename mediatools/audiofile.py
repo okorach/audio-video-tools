@@ -33,6 +33,7 @@ import mediatools.exceptions as ex
 import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
+from mediatools import metacopy
 import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.media_config as conf
@@ -289,7 +290,8 @@ class AudioFile(media.MediaFile):
         util.run_ffmpeg(
             f'-i "{self.filename}" -i "{album_art_file}"  -map 0:0 -map 1:0 -c copy -id3v2_version 3 {album_art_std_settings} "{target_file}"'
         )
-        shutil.copy(target_file, self.filename)
+        with metacopy.preserve_dates(self.filename):
+            shutil.copy(target_file, self.filename)
         os.remove(target_file)
 
     def set_tag(self, tag: str, value: object) -> None:
@@ -297,7 +299,8 @@ class AudioFile(media.MediaFile):
         # dict access returns a MetadataItem
         log.logger.info("Setting tag %s of %s to %s", tag, self.filename, value)
         f[tag] = value
-        f.save()
+        with metacopy.preserve_dates(self.filename):
+            f.save()
 
     def get_a_tag(self, tag: str) -> object:
         try:

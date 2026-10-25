@@ -32,6 +32,7 @@ import sys
 from pathlib import Path
 
 from mediatools import log
+from mediatools import metacopy
 import mediatools.utilities as util
 from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PDF_EXTENSIONS
 
@@ -61,6 +62,7 @@ def merge(pdf_files: list, out_file: str | None = None) -> str:
         raise RuntimeError("Ghostscript not found on PATH (looked for " + ", ".join(GS_BINARIES) + ")")
     cmd = [gs, "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", "-dQUIET", f"-sOutputFile={out_file}", *pdf_files]
     subprocess.run(cmd, check=True)
+    metacopy.copy_date_and_geotag(pdf_files[0], out_file)
     return out_file
 
 

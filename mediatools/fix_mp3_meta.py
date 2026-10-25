@@ -43,6 +43,7 @@ from mutagen.mp4 import MP4
 
 from mediatools import log
 from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
+from mediatools import metacopy
 import mediatools.utilities as util
 import utilities.file as fil
 
@@ -161,6 +162,7 @@ def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | Non
     return artist, title, album, track, year
 
 
+@metacopy.keeps_dates
 def write_tags(filepath: str, *, artist: str | None, title: str | None, album: str | None, track: int | None, year: int | None) -> None:
     """Writes tags to an audio file — ID3v1+v2 for MP3, iTunes atoms for M4A."""
     try:

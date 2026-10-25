@@ -31,6 +31,7 @@ import subprocess
 import sys
 import argparse
 
+from mediatools import metacopy
 import mediatools.utilities as util
 from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PPP_PRESETS, DEFAULT_PPP, PDF_EXTENSIONS
 
@@ -63,6 +64,7 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
     Without out_file, the compressed file takes the name of the original, which is renamed with an _original postfix"""
     if out_file:
         _run_gs(pdf_file, out_file, ppp)
+        metacopy.copy_date_and_geotag(pdf_file, out_file)
         return out_file
     backup = original_file(pdf_file)
     if os.path.exists(backup):
@@ -71,6 +73,7 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
     tmp_file = f"{os.path.splitext(pdf_file)[0]}.compressing.pdf"
     try:
         _run_gs(pdf_file, tmp_file, ppp)
+        metacopy.copy_date_and_geotag(pdf_file, tmp_file)
         Path(pdf_file).replace(backup)
         Path(tmp_file).replace(pdf_file)
     finally:

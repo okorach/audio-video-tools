@@ -59,6 +59,7 @@ except ImportError:
 
 from mediatools import log
 from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
+from mediatools import metacopy
 import mediatools.utilities as util
 import utilities.file as fil
 
@@ -565,6 +566,7 @@ def read_existing_tags(filepath: str) -> tuple[str | None, str | None, str | Non
 # ---------------------------------------------------------------------------
 
 
+@metacopy.keeps_dates
 def write_tags(filepath: str, audio_tags: AudioTags) -> None:
     """Write tags to an audio file across all supported formats."""
     try:
