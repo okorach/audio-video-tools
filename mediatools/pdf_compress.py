@@ -81,16 +81,8 @@ def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP):
 
 def main():
     parser = argparse.ArgumentParser(description="Compresses PDF files (requires Ghostscript)")
-    parser.add_argument(
-        "-i", "--inputfiles", required=True, nargs="+", help="Input PDF files and/or directories (all the PDF files they contain are processed)"
-    )
-    parser.add_argument(
-        "-o",
-        "--outputfile",
-        required=False,
-        default=None,
-        help="Output PDF file (default: replaces the input file, which is renamed with an _original postfix)",
-    )
+    util.add_input_args(parser, "Input PDF files and/or directories (all the PDF files they contain are processed)")
+    util.add_output_args(parser, "Output PDF file (default: replaces the input file, which is renamed with an _original postfix)")
     parser.add_argument(
         "--ppp",
         required=False,

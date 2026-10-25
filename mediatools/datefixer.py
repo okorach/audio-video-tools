@@ -129,16 +129,7 @@ def change_files_date(change_mode: str, offset: str, *file_list: str) -> int:
 def main() -> None:
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
-    parser.add_argument(
-        "-i",
-        "--inputfiles",
-        "-f",
-        "--files",
-        dest="inputfiles",
-        nargs="+",
-        help="Files and/or directories to process (-f/--files is a deprecated alias)",
-        required=True,
-    )
+    util.add_input_args(parser, "Files and/or directories to process (-f/--files is a deprecated alias)", aliases=("-f", "--files"))
     parser.add_argument("--mode", help="filename or offset or absolute or year", required=True)
     parser.add_argument("--offset", help="Time to add or remove, prefix with - to remove", required=False)
     parser.add_argument("--year", help="Proper year of the file", required=False)

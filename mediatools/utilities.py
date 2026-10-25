@@ -322,13 +322,32 @@ def delete_files(*args: str) -> None:
         os.remove(f)
 
 
+def add_input_args(
+    parser: argparse.ArgumentParser,
+    help: str = "List of files to process",
+    required: bool = True,
+    dest: str = "inputfiles",
+    aliases: tuple[str, ...] = (),
+) -> None:  # pylint: disable=redefined-builtin
+    """Adds the -i/--inputfiles option (files and/or directories) to the parser of a tool.
+    aliases are other (deprecated) names of the option, dest is the name of the parsed argument"""
+    parser.add_argument("-i", "--inputfiles", *aliases, dest=dest, required=required, nargs="+", help=help)
+
+
+def add_output_args(
+    parser: argparse.ArgumentParser, help: str = "Output file or directory", required: bool = False
+) -> None:  # pylint: disable=redefined-builtin
+    """Adds the -o/--outputfile option to the parser of a tool"""
+    parser.add_argument("-o", "--outputfile", required=required, help=help)
+
+
 def get_common_args(executable: str, desc: str, inputs_required: bool = True) -> argparse.ArgumentParser:
     """Parses options common to all media encoding scripts"""
     init(executable)
 
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument("-i", "--inputfiles", required=inputs_required, metavar="N", type=str, nargs="+", help="List of files to encode")
-    parser.add_argument("-o", "--outputfile", required=False, help="Output file or directory")
+    add_input_args(parser, "List of files to encode", required=inputs_required)
+    add_output_args(parser, "Output file or directory")
 
     parser.add_argument("--" + opt.Option.WIDTH, required=False, type=int, help="width of video/image")
     parser.add_argument("--" + opt.Option.HEIGHT, required=False, type=int, help="height of video/image")

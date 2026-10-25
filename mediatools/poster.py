@@ -37,8 +37,8 @@ def main():
     file_list = []
     util.init("image-poster")
     parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")
-    parser.add_argument("-i", "--inputfiles", nargs="+", help="List of files to posterize", required=True)
-    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
+    util.add_input_args(parser, "List of files to posterize")
+    util.add_output_args(parser, "Output file to generate")
     util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], default="black", help="Background color of frame")

@@ -31,7 +31,7 @@ import utilities.file as fil
 def main():
     util.init("audio-shuffle")
     parser = argparse.ArgumentParser(description="Shuffle audio files with random numeric prefix")
-    parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to shuffle")
+    util.add_input_args(parser, "List of files to shuffle", required=False)
     util.add_verbosity_arg(parser)
     kwargs = util.parse_media_args(parser)
     files_to_shuffle = list(kwargs["inputfiles"])

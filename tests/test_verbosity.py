@@ -144,3 +144,36 @@ def test_normalize_sets_the_verbosity(tmp_path):
         importlib.import_module("mediatools.audio_normalize").main()
     assert util.DEBUG_LEVEL == 2
     util.set_debug_level(None)
+
+
+def test_add_input_and_output_args():
+    p = argparse.ArgumentParser()
+    util.add_input_args(p, "inputs")
+    util.add_output_args(p, "output")
+    assert vars(p.parse_args(["-i", "a", "b", "-o", "c"])) == {"inputfiles": ["a", "b"], "outputfile": "c"}
+    assert vars(p.parse_args(["--inputfiles", "a"])) == {"inputfiles": ["a"], "outputfile": None}
+    with pytest.raises(SystemExit):
+        p.parse_args(["-o", "c"])  # -i is required by default
+
+
+def test_add_input_args_optional_with_aliases():
+    p = argparse.ArgumentParser()
+    util.add_input_args(p, "inputs", required=False, dest="files", aliases=("-f", "--files"))
+    assert vars(p.parse_args([])) == {"files": None}
+    assert vars(p.parse_args(["-f", "a"])) == {"files": ["a"]}
+    assert vars(p.parse_args(["--files", "a", "b"])) == {"files": ["a", "b"]}
+
+
+def test_add_output_args_required():
+    p = argparse.ArgumentParser()
+    util.add_output_args(p, "output", required=True)
+    with pytest.raises(SystemExit):
+        p.parse_args([])
+
+
+# album_art has positional inputs and linker works on a directory (-d)
+@pytest.mark.parametrize("module", [m for m in TOOLS if m not in ("mediatools.album_art", "mediatools.linker")])
+def test_tools_document_the_input_option(module, capsys):
+    with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit):
+        importlib.import_module(module).main()
+    assert "--inputfiles" in capsys.readouterr().out

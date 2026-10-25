@@ -32,8 +32,8 @@ import mediatools.utilities as util
 def main():
     util.init("video-mux")
     parser = argparse.ArgumentParser(description="Multiplexes a video file with several audio tracks")
-    parser.add_argument("-i", "--inputfiles", metavar="N", type=str, nargs="+", help="List of files to mux")
-    parser.add_argument("-o", "--outputfile", help="Output file to generate", required=False)
+    util.add_input_args(parser, "List of files to mux", required=False)
+    util.add_output_args(parser, "Output file to generate")
     util.add_verbosity_arg(parser)
     util.add_hw_accel_arg(parser)
     kwargs = util.parse_media_args(parser)

@@ -93,9 +93,7 @@ def split(pdf_file, ppp=DEFAULT_PPP):
 
 def main():
     parser = argparse.ArgumentParser(description="Splits PDF files into 1 PDF file per page (requires Ghostscript)")
-    parser.add_argument(
-        "-i", "--inputfiles", required=True, nargs="+", help="Input PDF files and/or directories (all the PDF files they contain are processed)"
-    )
+    util.add_input_args(parser, "Input PDF files and/or directories (all the PDF files they contain are processed)")
     parser.add_argument(
         "--ppp",
         required=False,

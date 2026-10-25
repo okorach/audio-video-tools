@@ -264,16 +264,7 @@ def __restore(renames: list[tuple[str, str]], temps: list[str], current: list[st
 def main() -> None:
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
-    parser.add_argument(
-        "-i",
-        "--inputfiles",
-        "-f",
-        "--files",
-        dest="inputfiles",
-        nargs="+",
-        help="Files and/or directories to rename (-f/--files is a deprecated alias)",
-        required=True,
-    )
+    util.add_input_args(parser, "Files and/or directories to rename (-f/--files is a deprecated alias)", aliases=("-f", "--files"))
     parser.add_argument("--prefix", help="Prefix for files", required=False)
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
     parser.add_argument(

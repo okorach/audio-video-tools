@@ -72,7 +72,7 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
 
 def main():
     parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
-    parser.add_argument("-i", "--inputfiles", type=str, nargs="+", required=True, help="Video files and/or directories to encode")
+    util.add_input_args(parser, "Video files and/or directories to encode")
     util.add_verbosity_arg(parser)
     parser.add_argument("--nooverwrite", required=False, default=False, action="store_true")
     parser.add_argument("--keepName", required=False, default=False, action="store_true")
