@@ -926,16 +926,13 @@ def slideshow(
     """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
     with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
     start/end. outfile defaults to the basename of the first input photo with the video extension.
-    descriptions replaces the inputs: it is the list of the photos (as generated in the YAML file by a previous slideshow),
-    with the effect and duration to apply to each of them.
+    descriptions is the list of the photos (as generated in the YAML file by a previous slideshow), with the effect and duration
+    to apply to each of them. The inputs are added at the end of the slideshow, after the described photos.
     fps is the frame rate of the video (default.slideshow.fps, 50 by default), quality is the video quality: high (default), medium or low.
     Returns the (output file, list of per-photo operations) tuple"""
     log.logger.info("slideshow(%s)", str(descriptions or inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
-    if descriptions:
-        slides = [(d["photo"], d) for d in descriptions]
-    else:
-        slides = [(f, None) for f in fil.file_list(*inputs)]
+    slides = [(d["photo"], d) for d in descriptions or []] + [(f, None) for f in fil.file_list(*inputs)]
     slideshow_files = [f for f, _ in slides]
     video_files: list[str] = []
     all_video_files: list[list[str]] = []

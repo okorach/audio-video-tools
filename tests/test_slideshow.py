@@ -37,7 +37,7 @@ import mediatools.media_config as conf
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
-from mediatools import tools
+from mediatools import slideshow, tools
 
 large_img = None
 portrait_img = None
@@ -112,11 +112,65 @@ def test_main_yaml_input(images: tuple[str, ...], tmp_path: Path) -> None:
     with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in)]):
         tools.videotool()
     assert os.path.isfile(out_file)
-    with open(fil.strip_extension(out_file) + ".yaml", encoding="utf-8") as f:
-        written = yaml.safe_load(f)["photos"]
+    assert not os.path.exists(fil.strip_extension(out_file) + ".yaml")
+    written = yaml.safe_load(yaml_in.read_text(encoding="utf-8"))["photos"]
     assert [p["effect"] for p in written] == ["pan-left", "zoom-in"]
     assert [p["duration"] for p in written] == [3.0, 3.0]
     assert written[0]["vertical_drift_pct"] == pytest.approx(2.5, abs=0.2)
+
+
+def test_main_yaml_in_inputs_with_photos(images: tuple[str, ...], tmp_path: Path) -> None:
+    """A YAML file and photos in -i: the photos are added at the end of the slideshow and of the YAML file, which gets the video name"""
+    yaml_in = tmp_path / "trip.yaml"
+    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom-in", "duration": 3.0}]
+    yaml_in.write_text(yaml.safe_dump({"slideshow": {"resolution": "320x180"}, "photos": photos, "title": "Trip"}), encoding="utf-8")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-i", str(yaml_in), images[2]]):
+        tools.videotool()
+    content = yaml.safe_load(yaml_in.read_text(encoding="utf-8"))
+    video_name = content["slideshow"]["output"]
+    assert video_name == "trip." + conf.get_property("default.video.format")
+    assert os.path.isfile(tmp_path / video_name)
+    assert content["slideshow"]["resolution"] == "320x180"
+    assert content["title"] == "Trip"
+    assert [os.path.basename(p["photo"]) for p in content["photos"]] == [os.path.basename(images[0]), os.path.basename(images[2])]
+    assert content["photos"][0]["effect"] == "zoom-in"
+
+
+def test_main_two_yaml_files(tmp_path: Path) -> None:
+    """Only one YAML file is accepted"""
+    files = [tmp_path / "a.yaml", tmp_path / "b.yml"]
+    for f in files:
+        f.write_text("photos: [x.jpg]", encoding="utf-8")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-i", *map(str, files)]), pytest.raises(SystemExit) as e:
+        tools.videotool()
+    assert e.value.code == 2
+
+
+def test_is_yaml() -> None:
+    """The YAML files are detected by their extension"""
+    assert slideshow.is_yaml("a.yaml")
+    assert slideshow.is_yaml("a.YML")
+    assert not slideshow.is_yaml("a.jpg")
+
+
+def test_write_yaml_keeps_other_items(tmp_path: Path) -> None:
+    """The items of the YAML file that are not the slideshow are kept, the paths are relative to the file"""
+    yaml_file = str(tmp_path / "s.yaml")
+    ops = [{"photo": str(tmp_path / "p.jpg"), "effect": "zoom-in", "duration": 3.0}]
+    slideshow.write_yaml(yaml_file, str(tmp_path / "s.mp4"), {"fps": 25}, ops, {"title": "T", "photos": [], "output": "x"})
+    assert yaml.safe_load(Path(yaml_file).read_text(encoding="utf-8")) == {
+        "slideshow": {"output": "s.mp4", "fps": 25},
+        "photos": [{"photo": "p.jpg", "effect": "zoom-in", "duration": 3.0}],
+        "title": "T",
+    }
+
+
+def test_load_yaml_not_a_dict(tmp_path: Path) -> None:
+    """A YAML file that is not a dictionary is rejected"""
+    yaml_file = tmp_path / "list.yaml"
+    yaml_file.write_text("- a\n- b\n", encoding="utf-8")
+    with pytest.raises(TypeError):
+        slideshow.load_yaml(str(yaml_file))
 
 
 def test_main_yaml_invalid(tmp_path: Path) -> None:
@@ -257,7 +311,9 @@ def run_slideshow_command(out_file: str, *args: str) -> dict:
     """Runs the slideshow command in 320x180 with the hardware acceleration off and the arguments given. Returns the YAML file that it generates"""
     with patch.object(sys, "argv", ["videotool", "slideshow", "-o", out_file, "--resolution", "320x180", "--hw_accel", "off", *args]):
         tools.videotool()
-    with open(fil.strip_extension(out_file) + ".yaml", encoding="utf-8") as f:
+    # The description is written in the input YAML file if there is one, or else next to the video
+    yaml_file = next((a for a in args if a.endswith((".yaml", ".yml"))), fil.strip_extension(out_file) + ".yaml")
+    with open(yaml_file, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -300,7 +356,7 @@ def test_slideshow_fps_and_quality_from_the_yaml(images: tuple[str, ...], tmp_pa
     # The options of the command line take precedence over the YAML file
     content = run_slideshow_command(out_file, "-y", str(yaml_in), "--fps", "10", "--quality", "high")
     assert float(video.VideoFile(out_file).get_fps()) == 10
-    assert content["slideshow"]["quality"] == "high"
+    assert content["slideshow"]["quality"] == "medium"
 
 
 @pytest.mark.parametrize("fps", ["0", "-5", "abc"])
@@ -353,3 +409,14 @@ def test_slideshow_default_fps_when_the_property_is_missing(commands: mock.Magic
     ):
         video.slideshow(images_full[0], outfile="out.mp4")
     assert to_video.call_args.kwargs["framerate"] == 50
+
+
+def test_main_cli_overrides_are_not_written_in_the_yaml(images: tuple[str, ...], tmp_path: Path) -> None:
+    """The options of the command line override the settings of the YAML file, which is not modified for them"""
+    yaml_in = tmp_path / "trip.yml"
+    settings = {"output": "trip.mp4", "resolution": "320x180", "fps": 20, "quality": "medium"}
+    yaml_in.write_text(yaml.safe_dump({"slideshow": settings, "photos": [{"photo": os.path.abspath(images[0]), "duration": 2.0}]}), encoding="utf-8")
+    other = str(tmp_path / "other.mp4")
+    content = run_slideshow_command(other, "-i", str(yaml_in), "--fps", "10", "--quality", "high")
+    assert float(video.VideoFile(other).get_fps()) == 10
+    assert content["slideshow"] == settings
