@@ -219,3 +219,102 @@ def test_assembly_weight_grows_with_the_resolution():
     assert full_hd == pytest.approx(0.8)
     assert 1.5 < video.__assembly_weight__("3840x2160", 10) < 2.5
     assert video.__assembly_weight__("invalid", 10) == pytest.approx(full_hd)
+
+
+# Frame rate (50 by default) and quality of the slideshow
+def run_slideshow(tmp_path, *args: str) -> tuple[str, dict]:
+    """Runs videotool slideshow in 320x180 on the 2 first small images and returns the video and the generated YAML"""
+    out_file = str(tmp_path / "fps.mp4")
+    return out_file, run_slideshow_command(out_file, *args)
+
+
+def run_slideshow_command(out_file: str, *args: str) -> dict:
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-o", out_file, "--resolution", "320x180", "--hw_accel", "off", *args]):
+        tools.videotool()
+    with open(fil.strip_extension(out_file) + ".yaml", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def test_slideshow_is_50fps_and_high_quality_by_default(images, tmp_path):
+    out_file, content = run_slideshow(tmp_path, "-i", images[0], images[2])
+    assert float(video.VideoFile(out_file).get_fps()) == 50
+    assert content["slideshow"]["fps"] == 50
+    assert content["slideshow"]["quality"] == "high"
+
+
+def test_slideshow_fps_and_quality_options(images, tmp_path):
+    out_file, content = run_slideshow(tmp_path, "-i", images[0], images[2], "--fps", "30", "--quality", "low")
+    assert float(video.VideoFile(out_file).get_fps()) == 30
+    assert content["slideshow"]["fps"] == 30
+    assert content["slideshow"]["quality"] == "low"
+
+
+def test_slideshow_low_quality_is_smaller(images, tmp_path):
+    sizes = {}
+    for quality in ("high", "low"):
+        out_file = str(tmp_path / f"{quality}.mp4")
+        run_slideshow_command(out_file, "-i", images[0], images[2], "--fps", "25", "--quality", quality)
+        sizes[quality] = video.VideoFile(out_file).size()
+    assert 0 < sizes["low"] < sizes["high"]
+
+
+def test_slideshow_fps_and_quality_from_the_yaml(images, tmp_path):
+    out_file = str(tmp_path / "from-yaml.mp4")
+    yaml_in = tmp_path / "in.yaml"
+    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom-in", "duration": 2.0}]
+    yaml_in.write_text(yaml.safe_dump({"slideshow": {"output": out_file, "resolution": "320x180", "fps": 20, "quality": "medium"}, "photos": photos}))
+    content = run_slideshow_command(out_file, "-y", str(yaml_in))
+    assert float(video.VideoFile(out_file).get_fps()) == 20
+    assert content["slideshow"]["fps"] == 20
+    assert content["slideshow"]["quality"] == "medium"
+    # The options of the command line take precedence over the YAML file
+    content = run_slideshow_command(out_file, "-y", str(yaml_in), "--fps", "10", "--quality", "high")
+    assert float(video.VideoFile(out_file).get_fps()) == 10
+    assert content["slideshow"]["quality"] == "high"
+
+
+@pytest.mark.parametrize("fps", ["0", "-5", "abc"])
+def test_slideshow_invalid_fps(images, fps):
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-i", images[0], "--fps", fps]), pytest.raises(SystemExit) as e:
+        tools.videotool()
+    assert e.value.code == 2
+
+
+def test_slideshow_invalid_quality(images):
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-i", images[0], "--quality", "ultra"]), pytest.raises(SystemExit) as e:
+        tools.videotool()
+    assert e.value.code == 2
+
+
+def test_slideshow_clips_use_the_fps_and_quality(commands):
+    for effect in ("zoom", "panorama"):
+        getattr(image.ImageFile(images_full[0]), effect)(hw_accel="off", framerate=50, quality="low")
+    for cmd in run_commands(commands):
+        assert "-crf 28" in cmd
+        assert "-framerate 50" in cmd or '-framerate "50"' in cmd
+    commands.reset_mock()
+    image.ImageFile(images_full[0]).panorama(hw_accel="on")
+    (cmd,) = run_commands(commands)
+    assert "-c:v h264_nvenc -cq 18" in cmd  # High quality by default
+
+
+def test_slideshow_assembly_uses_the_fps_and_quality(commands, short_video, tmp_path):
+    video.__build_slideshow__(
+        [short_video, short_video], outfile=str(tmp_path / "out.mp4"), resolution="320x180", hw_accel="off", fps=50, quality="medium"
+    )
+    (cmd,) = run_commands(commands)
+    assert "-crf 23" in cmd
+    assert "-r 50" in cmd
+
+
+def test_slideshow_default_fps_when_the_property_is_missing(commands, monkeypatch, short_video):
+    real_get_property = conf.get_property
+    monkeypatch.setattr(
+        conf, "get_property", lambda name, settings=None: None if name == conf.SLIDESHOW_FPS_KEY else real_get_property(name, settings)
+    )
+    with (
+        patch.object(image.ImageFile, "to_video", return_value=(short_video, {})) as to_video,
+        patch.object(video, "__build_slideshow__", return_value="out.mp4"),
+    ):
+        video.slideshow(images_full[0], outfile="out.mp4")
+    assert to_video.call_args.kwargs["framerate"] == 50

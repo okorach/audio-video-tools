@@ -595,8 +595,11 @@ def zoom(file: str, zoom_level: float, **kwargs) -> tuple[str, dict]:
 
 
 def _encoder_options(**kwargs) -> str:
-    """The video encoder of the clips generated from a photo: the GPU one (the filters of the effects run on the CPU), the default one on the CPU"""
-    return "-c:v h264_nvenc -cq 18" if util.use_hardware_accel(**kwargs) else ""
+    """The video encoder of the clips generated from a photo, with the constant quality of the quality option (high by default):
+    the GPU one (the filters of the effects run on the CPU) or the CPU one"""
+    hw_accel = util.use_hardware_accel(**kwargs)
+    ((_, value),) = media.get_quality_settings("h264_nvenc" if hw_accel else "libx264", False, **kwargs).items()
+    return f"-c:v h264_nvenc -cq {value}" if hw_accel else f"-c:v libx264 -crf {value}"
 
 
 def _compute_duration(ratio: float) -> float:
