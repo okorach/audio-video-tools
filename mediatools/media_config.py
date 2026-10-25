@@ -28,6 +28,8 @@ CONFIG_FILE: str = ".mediatools.properties"
 VIDEO_RESOLUTION_KEY: str = "default.video.resolution"
 VIDEO_FPS_KEY: str = "default.video.fps"
 SLIDESHOW_RESOLUTION_KEY: str = "default.slideshow.resolution"
+SLIDESHOW_FPS_KEY: str = "default.slideshow.fps"
+DEFAULT_SLIDESHOW_FPS: int = 50  # Used when the property is missing of the user configuration file
 
 
 def load() -> dict:

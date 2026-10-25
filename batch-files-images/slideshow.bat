@@ -22,5 +22,12 @@ set RESOLUTION=
 set /p RESOLUTION="Resolution [1920x1080]: "
 if "%RESOLUTION%"=="" set RESOLUTION=1920x1080
 
-videotool slideshow -i %* --resolution %RESOLUTION%
+set FPS=
+set /p FPS="Frame rate [50]: "
+if "%FPS%"=="" set FPS=50
+set QUALITY=
+set /p QUALITY="Quality [high, medium, low] (default high): "
+if "%QUALITY%"=="" set QUALITY=high
+
+videotool slideshow -i %* --resolution %RESOLUTION% --fps %FPS% --quality %QUALITY%
 :: pause

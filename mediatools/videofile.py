@@ -811,7 +811,10 @@ def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", 
     last_out = fcomp.add_filtergraph(last_out, f"{fade_in},{fade_out}")
     last_out = fcomp.add_filtergraph(last_out, filters.setsar("1:1"))
 
-    encoder = "-c:v h264_nvenc -cq 18" if hw_accel else "-crf 18 -preset slow"
+    ((_, quality),) = media.get_quality_settings("h264_nvenc" if hw_accel else "libx264", False, **kwargs).items()
+    encoder = f"-c:v h264_nvenc -cq {quality}" if hw_accel else f"-crf {quality} -preset slow"
+    if kwargs.get(opt.Option.FPS):
+        encoder += f" -r {kwargs[opt.Option.FPS]}"
     util.run_ffmpeg(
         f'{fcomp.format_inputs()} {fcomp!s} {encoder} -s "{resolution}" -map "[{last_out}]" "{outfile}"',
         total_duration,
@@ -834,13 +837,20 @@ def __assembly_weight__(resolution: str, nb_clips: int) -> float:
 
 @util.hw_accel_fallback
 def slideshow(
-    *inputs: str, outfile: str | None = None, resolution: str | None = None, hw_accel: bool | str = "auto", descriptions: list[dict] | None = None
+    *inputs: str,
+    outfile: str | None = None,
+    resolution: str | None = None,
+    hw_accel: bool | str = "auto",
+    descriptions: list[dict] | None = None,
+    fps: float | str | None = None,
+    quality: str | None = None,
 ) -> tuple[str, list]:
     """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
     with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
     start/end. outfile defaults to the basename of the first input photo with the video extension.
     descriptions replaces the inputs: it is the list of the photos (as generated in the YAML file by a previous slideshow),
     with the effect and duration to apply to each of them.
+    fps is the frame rate of the video (default.slideshow.fps, 50 by default), quality is the video quality: high (default), medium or low.
     Returns the (output file, list of per-photo operations) tuple"""
     log.logger.info("slideshow(%s)", str(descriptions or inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
@@ -855,6 +865,8 @@ def slideshow(
     operations: list = []
     if resolution is None:
         resolution = conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY)
+    fps = float(fps or conf.get_property(conf.SLIDESHOW_FPS_KEY) or conf.DEFAULT_SLIDESHOW_FPS)
+    fps = int(fps) if fps == int(fps) else fps
     fmt = conf.get_property("default.video.format")
     outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
     log.logger.info("Final slideshow file will be %s", outfile)
@@ -870,9 +882,9 @@ def slideshow(
             try:
                 img = image.ImageFile(slide_file)
                 if description is None:
-                    out_file, details = img.to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel)
+                    out_file, details = img.to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel, framerate=fps, quality=quality)
                 else:
-                    out_file, details = img.from_description(description, resolution=resolution, hw_accel=hw_accel)
+                    out_file, details = img.from_description(description, resolution=resolution, hw_accel=hw_accel, framerate=fps, quality=quality)
                 video_files.append(out_file)
                 operations.append(details)
             except OSError:
@@ -895,6 +907,8 @@ def slideshow(
                     resolution=resolution,
                     outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
                     hw_accel=hw_accel,
+                    fps=fps,
+                    quality=quality,
                 )
             )
             progress.done(part_weight)
@@ -902,7 +916,7 @@ def slideshow(
             video_files = []
     if len(all_video_files) == 0:
         progress.next_weight = assembly_weight
-        final = __build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel)
+        final = __build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel, fps=fps, quality=quality)
         progress.done(assembly_weight)
         return (final, operations)
     part_weight = __assembly_weight__(resolution, len(video_files))
@@ -913,6 +927,8 @@ def slideshow(
             resolution=resolution,
             outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
             hw_accel=hw_accel,
+            fps=fps,
+            quality=quality,
         )
     )
     progress.done(part_weight)
