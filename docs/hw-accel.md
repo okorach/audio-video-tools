@@ -29,8 +29,8 @@ The default can be changed with the `default.hw_accel` property of `~/.mediatool
 (zoom, pan, cross-fades) run on the CPU, and so does the decoding of the clips, as decoding some of them on the GPU and the others on
 the CPU fails. If a command fails with the GPU in auto mode, the whole slideshow is made again on the CPU.
 
-`videotool rotate` and `mirror` use the GPU to encode the rotated or mirrored video (`h264_nvenc` or `hevc_nvenc`, like the codec of the original video). The
-rotation and the mirror are CPU filters, so the video is decoded on the CPU. If the command fails with the GPU in auto mode, it is run again on the CPU.
+`videotool rotate` and `flip` use the GPU to encode the rotated or flipped video (`h264_nvenc` or `hevc_nvenc`, like the codec of the original video). The
+rotation and the flip are CPU filters, so the video is decoded on the CPU. If the command fails with the GPU in auto mode, it is run again on the CPU.
 
 The operations that always use the CPU don't use the hardware acceleration whatever the option: video filters that run on the
 CPU only (`videotool reverse`, `speed`, `stabilize` and the `enhance` color filters), the copy of streams

@@ -1,9 +1,9 @@
-# videotool mirror
+# videotool flip
 
-Mirrors videos: swaps their left and right (default), or their top and bottom.
+Flips videos: swaps their left and right (default), or their top and bottom.
 
 ```
-videotool mirror -i <files and/or directories> [--direction leftright|topbottom] [--quality high|medium|low] [--fps <fps>] [--resolution <WxH>] [--vcodec <codec>] [--hw_accel auto|on|off] [--keepName] [-o <output>]
+videotool flip -i <files and/or directories> [--direction leftright|topbottom] [--quality high|medium|low] [--fps <fps>] [--resolution <WxH>] [--vcodec <codec>] [--hw_accel auto|on|off] [--keepName] [-o <output>]
 ```
 
 | Option | Description |
@@ -14,10 +14,10 @@ videotool mirror -i <files and/or directories> [--direction leftright|topbottom]
 | `--fps` | Frame rate of the output. Default: the one of the original video |
 | `--resolution` | Resolution of the output (aliases accepted, see [resolutions.md](resolutions.md)). Default: the one of the original video |
 | `--vcodec` | Video codec. Default: the codec of the original video |
-| `--hw_accel` | `auto` (default), `on` or `off`, see [hw-accel.md](hw-accel.md). The GPU encodes the video, the mirror itself is done by the CPU. In `auto` mode, the CPU is used if the command fails with the GPU |
-| `--keepName` | The output has the name of the original video, which is renamed `<original>.before_mirror_<direction>.<ext>` |
+| `--hw_accel` | `auto` (default), `on` or `off`, see [hw-accel.md](hw-accel.md). The GPU encodes the video, the flip itself is done by the CPU. In `auto` mode, the CPU is used if the command fails with the GPU |
+| `--keepName` | The output has the name of the original video, which is renamed `<original>.before_flip_<direction>.<ext>` |
 | `-o` | Output file (a single input file only, not with `--keepName`) |
 | `-v` | Verbosity of the logs, see [verbosity.md](verbosity.md) |
 
-By default the output file is `<original>.mirror_<direction>.<ext>`, for instance `video.mirror_leftright.mp4` or `video.mirror_topbottom.mp4`.
+By default the output file is `<original>.flip_<direction>.<ext>`, for instance `video.flip_leftright.mp4` or `video.flip_topbottom.mp4`.
 The audio tracks are kept and the output file gets the dates of the original video, see [metadata-preservation.md](metadata-preservation.md).
