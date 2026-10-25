@@ -105,18 +105,22 @@ def main():
         print("ERROR: -o can't be used with several input files")
         sys.exit(2)
     failed = 0
+    progress = util.GlobalProgress(len(input_files))
     for input_file in input_files:
-        if not os.path.isfile(input_file):
-            print(f"File {input_file} not found")
-            failed += 1
-            continue
         try:
-            out = compress(input_file, args.outputfile, args.ppp)
-        except (RuntimeError, subprocess.CalledProcessError) as e:
-            print(f"ERROR: {e}")
-            failed += 1
-            continue
-        print(f"Compressed {input_file} into {out}")
+            if not os.path.isfile(input_file):
+                print(f"File {input_file} not found")
+                failed += 1
+                continue
+            try:
+                out = compress(input_file, args.outputfile, args.ppp)
+            except (RuntimeError, subprocess.CalledProcessError) as e:
+                print(f"ERROR: {e}")
+                failed += 1
+                continue
+            print(f"Compressed {input_file} into {out}")
+        finally:
+            progress.done()
     if failed:
         sys.exit(1)
 

@@ -807,6 +807,7 @@ def slideshow(
     outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
     log.logger.info("Final slideshow file will be %s", outfile)
 
+    progress = util.GlobalProgress(len(slides))
     for slide_file, description in slides:
         if fil.is_image_file(slide_file):
             try:
@@ -819,11 +820,14 @@ def slideshow(
                 operations.append(details)
             except OSError:
                 log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
+            progress.done()
         elif fil.is_video_file(slide_file):
             # video_files.append(slide_file)
             log.logger.info("File %s is a video, skipped", slide_file)
+            progress.done()
         else:
             log.logger.info("File %s is neither an image not a video, skipped", slide_file)
+            progress.done()
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             slideshows.append(

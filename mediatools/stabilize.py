@@ -161,9 +161,11 @@ def main() -> None:
     # Only pass an explicit output path when processing a single file; for multiple
     # files (or a directory) each output is derived automatically from the input name.
     single = len(input_files) == 1
+    progress = util.GlobalProgress(len(input_files))
     for f in input_files:
         outputfile = stabilize(f, output=kwargs.get("outputfile") if single else None, **stab_kwargs)
         util.generated_file(outputfile)
+        progress.done()
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ import contextvars
 import json
 import logging
 import re
+import time
 import argparse
 import pathlib
 import tempfile
@@ -324,6 +325,24 @@ def expand_input_files(inputs: list[str], input_type: str | tuple[str, ...] | No
     return files
 
 
+class GlobalProgress:
+    """Logs the global progress and ETA of a tool processing a collection of files, based on the number of files processed.
+    The remaining files are assumed to be processed at the same speed as the ones already processed.
+    Nothing is logged when there is a single file. Call done() each time a file has been processed"""
+
+    def __init__(self, total: int) -> None:
+        self.total = total
+        self.count = 0
+        self.start = time.time()
+
+    def done(self) -> None:
+        self.count += 1
+        if self.total <= 1:
+            return
+        remaining = (time.time() - self.start) / self.count * (self.total - self.count)
+        log.logger.info("=====> GLOBAL PROGRESS %d/%d - %d%%, ETA %s <=====", self.count, self.total, self.count * 100 // self.total, to_hms_str(remaining))
+
+
 def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> None:
     """Calls process(input_file, options) on each of the input files, options being a copy of kwargs without the input files.
     An error on a file doesn't prevent the next files from being processed, but the program exits with code 1 at the end.
@@ -334,6 +353,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)
     failed = 0
+    progress = GlobalProgress(len(inputs))
     for i, input_file in enumerate(inputs, start=1):
         if len(inputs) > 1:
             log.logger.info("%3d/%3d : %s", i, len(inputs), input_file)
@@ -342,6 +362,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
         except Exception as e:
             log.logger.error("Could not process %s: %s", input_file, e)
             failed += 1
+        progress.done()
     if failed:
         sys.exit(1)
 
