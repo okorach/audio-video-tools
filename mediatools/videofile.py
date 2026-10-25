@@ -49,7 +49,7 @@ def parse_crop_box(box: str | None) -> tuple[str, str]:
     """Parses a crop box given as WxH or as an alias (4k, fhd, 1k, hd, case insensitive).
     Returns (width, height) as strings. Raises ValueError if the box is malformed"""
     value = str(box or DEFAULT_CROP_BOX).strip().lower()
-    value = CROP_BOX_ALIASES.get(value, value)
+    value = CROP_BOX_ALIASES.get(value, res.canonical(value))
     parts = value.split("x")
     if len(parts) != 2 or not all(p.strip().isdigit() for p in parts):
         raise ValueError(f"Invalid crop box '{box}', expected <width>x<height> or one of {', '.join(CROP_BOX_ALIASES)}")

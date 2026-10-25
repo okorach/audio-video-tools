@@ -355,7 +355,12 @@ def get_common_args(executable: str, desc: str, inputs_required: bool = True) ->
 
     parser.add_argument("--" + opt.Option.WIDTH, required=False, type=int, help="width of video/image")
     parser.add_argument("--" + opt.Option.HEIGHT, required=False, type=int, help="height of video/image")
-    parser.add_argument("-s", "--" + opt.Option.RESOLUTION, required=False, help="Media size HxW for videos and images")
+    parser.add_argument(
+        "-s",
+        "--" + opt.Option.RESOLUTION,
+        required=False,
+        help="Media size WxH for videos and images, or an alias: 4k (3840x2160), 2.7k (2704x1520), 2.5k (2560x1440), fhd (1920x1080), hd (1280x720)...",
+    )
 
     parser.add_argument("--aspect", required=False, help="Aspect Ratio eg 16:9, 4:3, 1.5 ...")
 
@@ -472,6 +477,9 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, str) or v.strip() != ""}
     kwargs.pop("debug", None)
     kwargs.pop("verbosity", None)
+    if kwargs.get(opt.Option.RESOLUTION):
+        # The aliases (4k, 2.7k, fhd, hd, 2160p, 1520p, 1080p, 720p...) are converted to WxH: ffmpeg has its own, different, meaning for some of them
+        kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
     if isinstance(kwargs.get(INPUT_FILES), list):
         kwargs[INPUT_FILES] = expand_input_files(kwargs[INPUT_FILES], input_type)
     # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
