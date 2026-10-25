@@ -33,6 +33,7 @@ DEFAULT_SLIDESHOW_FPS: int = 50  # Used when the property is missing of the user
 
 
 def load() -> dict:
+    """Loads the configuration from the file of the home directory, created from the default one if it does not exist. Returns the settings"""
     import mediatools.utilities as util
 
     global CONFIG_SETTINGS
@@ -76,6 +77,7 @@ def load() -> dict:
 
 
 def get_property(name: str, settings: dict | None = None) -> str | int | float | bool | None:
+    """Returns a property of the configuration, None if it is not set"""
     if settings is None:
         settings = CONFIG_SETTINGS
     return settings.get(name, None)

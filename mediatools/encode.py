@@ -76,6 +76,7 @@ def encode_file(file: str, file_type: str, **kwargs: object) -> str:
 
 
 def main() -> None:
+    """Encodes audio and video files with an encoding profile"""
     parser = util.get_common_args("video-encode", "Audio and Video file (re)encoder")
     parser = video.add_video_args(parser)
 

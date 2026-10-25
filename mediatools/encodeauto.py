@@ -71,6 +71,7 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
 
 
 def main() -> None:
+    """Encodes video files automatically with the ffmpeg options given, replacing the originals, and logs the global progress"""
     parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
     util.add_input_args(parser, "Video files and/or directories to encode")
     util.add_verbosity_arg(parser)

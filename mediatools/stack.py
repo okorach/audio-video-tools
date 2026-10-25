@@ -33,6 +33,7 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 
 
 def main() -> None:
+    """Stacks images vertically or horizontally in a single image"""
     files = []
     util.init("image-stack")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")

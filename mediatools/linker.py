@@ -31,6 +31,8 @@ import mediatools.exceptions as exc
 
 
 def link_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str | None:
+    """Creates, in a directory, a link to the file of the master collection that has the same audio hash as an audio file. Returns the link, None if
+    the file is a link or not an audio file, or has no master file"""
     hashes = hash_data["hashes"]
     if fil.is_link(file) or not fil.is_audio_file(file):
         return None
@@ -50,6 +52,7 @@ def link_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str
 
 
 def copy_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str | None:
+    """Copies the audio file that a link points to in a directory. Returns the copy, None if the file is not a link to an audio file"""
     if not fil.is_link(file):
         return None
     shortcut = fil.File(file)
@@ -66,6 +69,8 @@ def copy_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str
 
 
 def main() -> None:
+    """Manages audio collections: updates the hashes of the master directory, replaces the files of a collection by links to the master files, and
+    copies the files that the links point to"""
     util.init("audio-linker")
     directory = None
     master_dir = None

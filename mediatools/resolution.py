@@ -72,6 +72,7 @@ class Resolution:
     RATIO_4_3: float = 4 / 3
 
     def __init__(self, **kwargs: object) -> None:
+        """Creates a resolution from a width and a height, or from a resolution given as WxH or as an alias (4k, fhd, hd...)"""
         self.width: int = 0
         self.height: int = 0
         self.pixels: int = 0
@@ -91,18 +92,22 @@ class Resolution:
         self.pixels = self.width * self.height
 
     def __str__(self) -> str:
+        """Returns the resolution as WxH"""
         return f"{self.width}x{self.height}"
 
     def __mul__(self, factor: float) -> "Resolution":
+        """Returns the resolution multiplied by a factor"""
         return Resolution(width=self.width * factor, height=self.height * factor)
 
     # def __str__(self):
     #     return str(vars(self))
 
     def is_ratio(self, ratio: float) -> bool:
+        """Returns True if the aspect ratio of the resolution is the given one, within a small tolerance"""
         return abs(ratio - self.ratio) < 0.02
 
     def calc_resolution(self, width: int | str, height: int | str, orientation: str = "landscape") -> tuple[int, int]:
+        """Returns the width and the height in pixels from a width and a height given in pixels or in percent of the resolution"""
         iw, ih = self.width, self.height
         if orientation == "portrait":
             width, height = height, width
@@ -114,12 +119,15 @@ class Resolution:
         return (w, h)
 
     def as_string(self, separator: str = "x") -> str:
+        """Returns the resolution as a string, with a separator between the width and the height"""
         return f"{self.width}{separator}{self.height}"
 
     def as_list(self) -> list[int]:
+        """Returns the resolution as a list [width, height]"""
         return [self.width, self.height]
 
     def as_tuple(self) -> tuple[int, int]:
+        """Returns the resolution as a tuple (width, height)"""
         return (self.width, self.height)
 
 

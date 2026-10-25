@@ -108,6 +108,7 @@ def stabilize(
 
 
 def main() -> None:
+    """Stabilizes shaky videos (action cam, handheld) in 2 passes with libvidstab"""
     parser = util.get_common_args("video-stabilize", "Stabilize shaky video footage (action cam, handheld) using two-pass libvidstab")
     parser.add_argument(
         "--shakiness",

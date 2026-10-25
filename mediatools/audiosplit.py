@@ -40,6 +40,7 @@ try:
         # machinery (which checks __file__ etc.) still gets AttributeError as expected.
         class _FakeCoverageTypes(_types_mod.ModuleType):
             def __getattr__(self, name: str) -> type:
+                """Returns a placeholder class for the names that are not private, so that the coverage types can be stubbed"""
                 if name.startswith("_"):
                     raise AttributeError(name)
                 return object
@@ -319,6 +320,7 @@ def split_audio_at_boundaries(input_file: str, boundaries: list[float], fade_dur
 
 
 def main() -> None:
+    """Splits audio files at the tune changes that are detected"""
     parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     parser.add_argument("--fade-duration", required=False, type=float, default=1.0, help="Fade in/out duration in seconds (default: 1.0)")
     parser.add_argument("--min-segment", required=False, type=float, default=120.0, help="Minimum segment duration in seconds (default: 120)")
@@ -338,6 +340,7 @@ def main() -> None:
         sys.exit(1)
 
     def process(input_file: str, options: dict) -> None:
+        """Splits one audio file at the tune changes"""
         boundaries = detect_tune_changes(input_file, sensitivity=sensitivity, min_segment=min_segment)
 
         if not boundaries:

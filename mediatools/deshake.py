@@ -27,6 +27,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Removes the shakiness of videos"""
     parser = util.get_common_args("video-stabilize", "Apply deshake filter")
     parser = video.add_video_args(parser)
     parser.add_argument("--rx", required=False, type=int, default=32, choices=range(65), help="Deshake rx", metavar="[0-64]")
@@ -39,6 +40,7 @@ def main() -> None:
     kwargs["deshake"] = "{}x{}".format(kwargs.pop("rx"), kwargs.pop("ry"))
 
     def process(input_file: str, options: dict) -> None:
+        """Removes the shakiness of one video"""
         outputfile = video.deshake(input_file, out_file=options.get(util.OUTPUT_FILE), **options)
         print(f"Generated {outputfile}")
 

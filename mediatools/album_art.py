@@ -31,6 +31,7 @@ DEFAULT_RESCALING = "512x512"
 
 
 def main() -> None:
+    """Adds an image as the album art of audio files"""
     util.init("album-art")
     parser = argparse.ArgumentParser(description="Adds album art to audio files")
     parser.add_argument(util.INPUT_FILES, metavar="N", type=str, nargs="+", help="List of files to mux")

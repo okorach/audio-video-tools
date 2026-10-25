@@ -436,6 +436,7 @@ def save_cover_to_folder(dirpath: str, image_bytes: bytes) -> None:
 
 
 def _make_flac_picture(image_bytes: bytes) -> FlacPicture:
+    """Returns the FLAC picture (front cover) for the bytes of a JPEG image"""
     pic = FlacPicture()
     pic.type = 3  # Front cover
     pic.mime = "image/jpeg"
@@ -451,18 +452,22 @@ _VORBIS_COMMENT_FORMATS = ("ogg", "opus", "flac", "oga")
 
 
 def _audio_format(filepath: str) -> str:
+    """Returns the format of an audio file: its extension in lower case"""
     return fil.extension(filepath).lower()
 
 
 def is_m4a(filepath: str) -> bool:
+    """Returns True if the file is an m4a or aac file"""
     return _audio_format(filepath) in ("m4a", "aac")
 
 
 def _is_mp3(filepath: str) -> bool:
+    """Returns True if the file is an mp3 file"""
     return _audio_format(filepath) == "mp3"
 
 
 def _is_vorbis(filepath: str) -> bool:
+    """Returns True if the file has Vorbis comments (ogg, flac, opus...)"""
     return _audio_format(filepath) in _VORBIS_COMMENT_FORMATS
 
 
@@ -591,6 +596,7 @@ def write_tags(filepath: str, audio_tags: AudioTags) -> None:
 
 
 def _write_tags_mp3(filepath: str, audio_tags: AudioTags) -> None:
+    """Writes the tags of an mp3 file (ID3 tags)"""
     try:
         id3 = ID3(filepath)
     except ID3NoHeaderError:
@@ -613,6 +619,7 @@ def _write_tags_mp3(filepath: str, audio_tags: AudioTags) -> None:
 
 
 def _write_tags_m4a(filepath: str, audio_tags: AudioTags) -> None:
+    """Writes the tags of an m4a file"""
     audio = MP4(filepath)
     if audio.tags is None:
         audio.add_tags()
@@ -634,6 +641,7 @@ def _write_tags_m4a(filepath: str, audio_tags: AudioTags) -> None:
 
 
 def _write_tags_vorbis(filepath: str, audio_tags: AudioTags) -> None:
+    """Writes the tags of a file with Vorbis comments (ogg, flac, opus...)"""
     audio = mutagen.File(filepath)
     if audio is None:
         log.logger.error("mutagen.File() returned None for %s", filepath)
@@ -852,6 +860,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
 
 
 def main() -> None:
+    """Normalizes the tags, the cover art and the names of the audio files and directories given on the command line"""
     util.init("audio-normalize")
     parser = argparse.ArgumentParser(description="Normalize audio metadata, cover art, and filenames")
     util.add_input_args(

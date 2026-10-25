@@ -63,6 +63,7 @@ def _filter_path(path: str) -> str:
 
 
 def _check_range(name: str, value: float, limits: tuple[float, float], unit: str = "") -> None:
+    """Raises a ValueError if a value is not within the limits of an option"""
     if not limits[0] <= value <= limits[1]:
         raise ValueError(f"--{name} must be between {limits[0]:g} and {limits[1]:g}{unit}, got {value:g}")
 
@@ -183,6 +184,7 @@ def main() -> None:
         sys.exit(2)
 
     def process(input_file: str, file_options: dict) -> None:
+        """Reduces the noise of one audio file"""
         util.generated_file(denoise(input_file, file_options.get(util.OUTPUT_FILE), keep_name=keep_name, **options))
 
     util.process_input_files(kwargs, process)

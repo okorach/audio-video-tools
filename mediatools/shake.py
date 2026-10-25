@@ -30,6 +30,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Creates a shake effect on images"""
     parser = util.get_common_args("image-shake", "Image shake effect")
     parser.add_argument("-n", "--slices", required=False, type=int, default=10, help="Number of slices")
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")
@@ -38,6 +39,7 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Creates a shake effect on one image"""
         output = image.ImageFile(input_file).shake(options["slices"], options["shake_ratio"], options["color"], options["direction"])
         log.logger.info("Generated %s", output)
         print("Generated", output)

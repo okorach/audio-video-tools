@@ -29,6 +29,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Renames the audio files given on the command line with a random numeric prefix"""
     util.init("audio-shuffle")
     parser = argparse.ArgumentParser(description="Shuffle audio files with random numeric prefix")
     util.add_input_args(parser, "List of files to shuffle", required=False)

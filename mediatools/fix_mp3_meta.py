@@ -114,6 +114,7 @@ def mb_lookup_track(artist: str, title: str) -> int | None:
 
 
 def is_m4a(filepath: str) -> bool:
+    """Returns True if the file is an m4a or aac file"""
     return fil.extension(filepath).lower() in ("m4a", "aac")
 
 
@@ -307,6 +308,7 @@ def process_directory(dirpath: str, dry_run: bool) -> None:
 
 
 def main() -> None:
+    """Fixes the tags of the mp3 and m4a files of a music library from the names of the files and directories"""
     util.init("fix-mp3-meta")
     parser = argparse.ArgumentParser(description="Fix MP3 metadata tags for a music library")
     util.add_input_args(

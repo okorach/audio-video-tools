@@ -28,6 +28,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Creates a window blinds effect on images"""
     parser = util.get_common_args("image-blinds", "Creates a window blinds effect on an image")
     parser.add_argument("-n", "--blinds", required=False, default=10, help="Number of blinds")
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")
@@ -36,6 +37,7 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Creates a window blinds effect on one image"""
         output = image.ImageFile(input_file).blindify(**options)
         log.logger.info("Generated file %s", output)
         print(f"Generated file {output}")

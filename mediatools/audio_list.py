@@ -29,6 +29,7 @@ from utilities import file as fil
 
 
 def get_csv_values(file: str) -> list[str] | None:
+    """Returns the values (tags and properties) of an audio file as a CSV line, None if the file is not an audio file"""
     if not fil.is_audio_file(file):
         return None
     log.logger.info("Getting file '%s' metadata", file)
@@ -39,6 +40,7 @@ def get_csv_values(file: str) -> list[str] | None:
 
 
 def main() -> None:
+    """Lists the audio files of a directory, with their tags and properties, in CSV format"""
     util.init("audio-list")
     me = sys.argv.pop(0)
     directory = None

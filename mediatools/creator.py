@@ -29,6 +29,7 @@ import mediatools.mediafile as media
 
 
 def file(filename: str) -> media.MediaFile:
+    """Returns the media file object (audio, video or image) for a file. Raises a FileTypeError for any other file"""
     if fil.is_audio_file(filename):
         return audio.AudioFile(filename)
     if fil.is_video_file(filename):

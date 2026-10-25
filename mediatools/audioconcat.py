@@ -25,6 +25,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Concatenates audio files into a single audio file"""
     util.init("audio-concat")
     parser = argparse.ArgumentParser(description="Concatenates several audio files of the same type")
     util.add_input_args(parser, "List of audio files to concatenate")

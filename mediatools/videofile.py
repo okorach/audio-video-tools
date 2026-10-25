@@ -69,6 +69,7 @@ class VideoFile(media.MediaFile):
     """Video file abstraction"""
 
     def __init__(self, filename: str) -> None:
+        """Creates a video file object. Raises a FileTypeError if the file is not a video file"""
         if not fil.is_video_file(filename):
             raise ex.FileTypeError(file=filename, expected_type="video")
 
@@ -94,6 +95,7 @@ class VideoFile(media.MediaFile):
         self.decode_specs()
 
     def decode_specs(self) -> None:
+        """Decodes the specs of the file, of its video and of its audio from the ffprobe output"""
         self.get_file_specs()
         self.get_video_specs()
         self.get_audio_specs()
@@ -172,6 +174,7 @@ class VideoFile(media.MediaFile):
         return self.video_codec
 
     def get_video_duration(self) -> float | None:
+        """Returns the duration of the video stream in seconds"""
         if self.duration is None:
             self.duration = round(float(self.__get_video_stream_attribute__("duration")), 3)
         return self.duration
@@ -204,6 +207,7 @@ class VideoFile(media.MediaFile):
         return not too_big and stream.get("pix_fmt", "yuv420p") in H264_HW_DECODE_PIX_FMTS
 
     def get_fps(self, stream: dict | None = None) -> float | None:
+        """Returns the frame rate of the video"""
         if self.video_fps is None:
             if stream is None:
                 stream = self.__get_first_video_stream__()
@@ -215,6 +219,7 @@ class VideoFile(media.MediaFile):
         return self.video_fps
 
     def dimensions(self, stream: dict | None = None, ignore_orientation: bool = True) -> tuple[int, int]:
+        """Returns the width and the height of the video. The rotation of the video is ignored unless ignore_orientation is False"""
         log.logger.debug("Getting video dimensions")
         if self.resolution is None:
             if stream is None:
@@ -253,24 +258,29 @@ class VideoFile(media.MediaFile):
         return (h, w) if abs(self.get_rotation()) % 180 == 90 else (w, h)
 
     def get_height(self) -> int:
+        """Returns the height of the video in pixels"""
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution.height
 
     def get_width(self) -> int:
+        """Returns the width of the video in pixels"""
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution.width
 
     def get_resolution(self) -> res.Resolution | None:
+        """Returns the resolution of the video"""
         if self.resolution is None:
             _, _ = self.dimensions()
         return self.resolution
 
     def calc_resolution(self, w: int | str, h: int | str) -> tuple[int, int]:
+        """Returns the width and the height in pixels from a width and a height given in pixels or in percent of the video"""
         return self.resolution.calc_resolution(w, h)
 
     def get_audio_properties(self) -> dict:
+        """Returns the audio properties of the video: codec, bitrate, sample rate..."""
         if self.audio_codec is None:
             self.get_specs()
         return {
@@ -281,6 +291,7 @@ class VideoFile(media.MediaFile):
         }
 
     def get_video_properties(self) -> dict:
+        """Returns the video properties of the video: format, codec, bitrate, frame rate, dimensions, author..."""
         if self.video_codec is None:
             self.get_specs()
         return {
@@ -299,6 +310,7 @@ class VideoFile(media.MediaFile):
         }
 
     def get_properties(self) -> dict:
+        """Returns all the properties of the video: the ones of the file, of its video and of its audio"""
         audio_props = self.get_audio_properties()  # Loads the specs of the file: before the file properties are read
         video_props = self.get_video_properties()
         all_props = self.get_file_properties()
@@ -358,6 +370,7 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def add_metadata(self, **metadatas: object) -> str:
+        """Adds metadata (author, year, copyright, title, language...) to the video, in a new file. Returns the name of the new file"""
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
@@ -393,6 +406,7 @@ class VideoFile(media.MediaFile):
         return output_file
 
     def add_stream_property(self, stream_index: int | str, prop: str, value: str | None = None) -> str:
+        """Sets a property of a stream (eg its language or its title) in a new file. Returns the name of the new file"""
         direct_copy = "-vcodec copy -c:a copy -map 0"
         output_file = util.add_postfix(self.filename, "meta")
         if value is None:
@@ -401,18 +415,23 @@ class VideoFile(media.MediaFile):
         return output_file
 
     def add_stream_language(self, stream_index: int | str, language: str | None = None) -> str:
+        """Sets the language of a stream, in a new file. Returns the name of the new file"""
         return self.add_stream_property(stream_index, "language", language)
 
     def add_stream_title(self, stream_index: int | str, title: str | None = None) -> str:
+        """Sets the title of a stream, in a new file. Returns the name of the new file"""
         return self.add_stream_property(stream_index, "title", title)
 
     def add_author(self, author: str) -> str:
+        """Sets the author of the video, in a new file. Returns the name of the new file"""
         return self.add_metadata(author=author)
 
     def add_year(self, year: int | str) -> str:
+        """Sets the year of the video, in a new file. Returns the name of the new file"""
         return self.add_metadata(year=year)
 
     def add_audio_tracks(self, *audio_files: str, out_file: str | None = None) -> str:
+        """Adds audio tracks from audio files to the video, without re-encoding. Returns the name of the new file"""
         maps = " ".join([f"-map {i}" for i in range(len(audio_files) + 1)])
         inputs = " ".join([f'-i "{file}"' for file in [self.filename, *audio_files]])
         out_file = util.automatic_output_file_name(outfile=out_file, infile=self.filename, postfix="muxed")
@@ -420,15 +439,19 @@ class VideoFile(media.MediaFile):
         return out_file
 
     def set_author(self, author: str) -> None:
+        """Sets the author of the video object (the file is not modified)"""
         self.author = author
 
     def get_author(self) -> str | None:
+        """Returns the author of the video"""
         return self.author
 
     def set_copyright(self, copyr: str) -> None:
+        """Sets the copyright of the video object (the file is not modified)"""
         self.copyright = copyr
 
     def get_copyright(self) -> str | None:
+        """Returns the copyright of the video"""
         return self.copyright
 
     @util.hw_accel_fallback
@@ -494,6 +517,7 @@ class VideoFile(media.MediaFile):
         return target_file
 
     def set_creation_date(self, some_datetime: datetime.datetime | str) -> None:
+        """Sets the creation dates of the video file (QuickTime and EXIF tags) to a date"""
         if isinstance(some_datetime, datetime.datetime):
             time_to_set = some_datetime.strftime(media.EXIF_DATE_FMT)
         else:
@@ -523,6 +547,7 @@ class VideoFile(media.MediaFile):
             )
 
     def get_exif_bitrate(self) -> int | None:
+        """Returns the bitrate of the video from its EXIF data"""
         exif_data = self.get_exif_data()
         bitrate = None
         if "Composite:AvgBitrate" in exif_data:
@@ -530,6 +555,7 @@ class VideoFile(media.MediaFile):
         return bitrate
 
     def get_exif_codec(self) -> str:
+        """Returns the codec of the video from its EXIF data"""
         exif_data = self.get_exif_data()
         codec = ""
         if "QuickTime:CompressorID" in exif_data:
@@ -541,6 +567,7 @@ class VideoFile(media.MediaFile):
         return codec
 
     def get_exif_fps(self) -> float | None:
+        """Returns the frame rate of the video from its EXIF data"""
         exif_data = self.get_exif_data()
         fps = None
         if "QuickTime:VideoFrameRate" in exif_data:
@@ -550,6 +577,7 @@ class VideoFile(media.MediaFile):
     # ----------------- Private methods ------------------------------------------
 
     def __get_number_of_audio_tracks(self) -> int:
+        """Returns the number of streams of the file whose type is not audio"""
         n = 0
         for stream in self.specs["streams"]:
             if stream["codec_type"] != "audio":
@@ -588,6 +616,7 @@ class VideoFile(media.MediaFile):
         return f"scale={width}:{height}"
 
     def __get_video_filters(self, **kwargs: object) -> filter.Simple:
+        """Returns the video filters to apply according to the encoding options: deinterlace, speed, reverse, rotate, flip, deshake, fade, scale..."""
         log.logger.debug("Vfilters options = %s", str(kwargs))
         vfilters = filter.Simple(filters.VIDEO_TYPE)
         if kwargs.get(opt.Option.DEINTERLACE, False):
@@ -657,11 +686,13 @@ def get_flip_filter(direction: str | None) -> str:
 
 
 def get_size_option(cmdline: str) -> str:
+    """Returns the size (-s) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-s\s+(\S+)", cmdline)
     return m.group(1) if m else ""
 
 
 def get_video_codec_option(cmdline: str) -> str:
+    """Returns the video codec (-vcodec or -c:v) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-vcodec\s+(\S+)", cmdline)
     if m:
         return m.group(1)
@@ -670,6 +701,7 @@ def get_video_codec_option(cmdline: str) -> str:
 
 
 def get_audio_codec_option(cmdline: str) -> str:
+    """Returns the audio codec (-acodec or -c:a) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-acodec\s+(\S+)", cmdline)
     if m:
         return m.group(1)
@@ -678,11 +710,13 @@ def get_audio_codec_option(cmdline: str) -> str:
 
 
 def get_format_option(cmdline: str) -> str:
+    """Returns the format (-f) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-f\s+(\S+)", cmdline)
     return m.group(1) if m else ""
 
 
 def get_audio_bitrate_option(cmdline: str) -> str:
+    """Returns the audio bitrate (-ab or -b:a) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-ab\s+(\S+)", cmdline)
     if m:
         return m.group(1)
@@ -691,6 +725,7 @@ def get_audio_bitrate_option(cmdline: str) -> str:
 
 
 def get_video_bitrate_option(cmdline: str) -> str:
+    """Returns the video bitrate (-vb or -b:v) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-vb\s+(\S+)", cmdline)
     if m:
         return m.group(1)
@@ -699,16 +734,19 @@ def get_video_bitrate_option(cmdline: str) -> str:
 
 
 def get_aspect_ratio_option(cmdline: str) -> str:
+    """Returns the aspect ratio (-aspect) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-aspect\s+(\S+)", cmdline)
     return m.group(1) if m else ""
 
 
 def get_frame_rate_option(cmdline: str) -> str:
+    """Returns the frame rate (-r) of an ffmpeg command line, an empty string if there is none"""
     m = re.search(r"-r\s+(\S+)", cmdline)
     return m.group(1) if m else ""
 
 
 def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str:
+    """Returns the ffmpeg option that crops a video to a width and a height from a position"""
     # ffmpeg -i in.mp4 -filter:v "crop=out_w:out_h:x:y" out.mp4
     return f"-filter:v crop={width}:{height}:{top}:{left}"
 
@@ -799,6 +837,7 @@ def add_video_args(parser: argparse.ArgumentParser) -> object:
 
 
 def __get_aspect_ratio__(width: int, height: int, **kwargs: object) -> str:
+    """Returns the aspect ratio (W:H) of a video: the one of the aspect option, or computed from the width and the height"""
     if kwargs.get("aspect") is None:
         aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
     else:
@@ -807,6 +846,7 @@ def __get_aspect_ratio__(width: int, height: int, **kwargs: object) -> str:
 
 
 def __get_audio_channel_mapping__(**kwargs: object) -> str:
+    """Returns the ffmpeg options that select the audio channels to keep, an empty string if no channel is requested"""
     # Hack for channels selection
     if opt.Option.ACHANNEL not in kwargs:
         return ""
@@ -816,6 +856,7 @@ def __get_audio_channel_mapping__(**kwargs: object) -> str:
 
 
 def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", resolution: str | None = None, **kwargs: object) -> str:
+    """Assembles video clips in a slideshow video with cross-fades. The filters run on the CPU, only the encoding is done by the GPU if requested"""
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     # The filters of the slideshow run on the CPU, only the encoding is done by the GPU (decoding some of the clips on the GPU
     # and the others on the CPU fails). If it fails anyway, slideshow() runs it again on the CPU
@@ -981,6 +1022,7 @@ def speed(filename: str, target_speed: str | float, output: str | None = None, m
 
 
 def volume(filename: str, vol: str | float, output: str | None = None, **kwargs: object) -> str:
+    """Changes the volume of a video, in a new file. Returns the name of the new file"""
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="volume")
     return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
 
@@ -1044,6 +1086,7 @@ def flip(filename: str, output: str | None = None, direction: str | None = None,
 
 
 def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs: object) -> str:
+    """Reverses a video, in a new file. Returns the name of the new file"""
     kwargs["hw_accel"] = False  # Reverse filter not compatible with HW accel
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="reverse")
     return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
@@ -1070,11 +1113,13 @@ def color_enhance(
 
 
 def deshake(filename: str, output: str | None = None, **kwargs: object) -> str:
+    """Removes the shakiness of a video, in a new file. Returns the name of the new file"""
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="deshake")
     return VideoFile(filename).encode(target_file=output, **kwargs)
 
 
 def set_creation_date(filename: str, new_date: datetime.datetime | None) -> bool:
+    """Sets the creation dates of a video file to a date. Returns False if there is no date"""
     if new_date is None:
         return False
     exif_date = datetime.datetime.strftime(new_date, util.EXIF_DATE_FMT)
@@ -1122,6 +1167,7 @@ def set_creation_date(filename: str, new_date: datetime.datetime | None) -> bool
 
 
 def get_creation_date(filename: str) -> datetime.datetime | None:
+    """Returns the creation date of a video file, None if it can't be read"""
     try:
         with ExifToolHelper(executable=util.get_exiftool(), encoding="utf-8") as et:
             for exif_data in et.get_metadata(filename):
@@ -1136,6 +1182,7 @@ def get_creation_date(filename: str) -> datetime.datetime | None:
 
 
 def get_exif(filename: str) -> None:
+    """Logs the EXIF data of a file"""
     with ExifToolHelper(executable=util.get_exiftool()) as et:
         for exif_data in et.get_metadata(filename):
             for k, v in exif_data.items():
@@ -1143,4 +1190,5 @@ def get_exif(filename: str) -> None:
 
 
 def get_duration(filename: str) -> float:
+    """Returns the duration of a video file in seconds"""
     return VideoFile(filename).get_duration()

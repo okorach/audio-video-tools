@@ -93,6 +93,7 @@ def add_postfix(file: str, postfix: str, extension: str | None = None) -> str:
 
 
 def automatic_output_file_name(outfile: str | None, infile: str, postfix: str, extension: str | None = None) -> str:
+    """Returns the output file name: the given one if there is one, otherwise the name of the input file with a postfix and an extension"""
     if outfile is not None:
         return outfile
     postfix.replace(":", "-")
@@ -100,6 +101,7 @@ def automatic_output_file_name(outfile: str | None, infile: str, postfix: str, e
 
 
 def get_ffbin(ffprop: str) -> str:
+    """Returns the path of an ffmpeg binary (ffmpeg, ffprobe) from its property of the configuration file"""
     props = get_media_properties()
 
     if not re.search("\\" + os.path.sep, props[ffprop]):
@@ -108,18 +110,22 @@ def get_ffbin(ffprop: str) -> str:
 
 
 def get_ffmpeg() -> str:
+    """Returns the path of ffmpeg"""
     return get_ffbin("binaries.ffmpeg")
 
 
 def get_ffprobe() -> str:
+    """Returns the path of ffprobe"""
     return get_ffbin("binaries.ffprobe")
 
 
 def get_exiftool() -> str:
+    """Returns the path of exiftool"""
     return get_media_properties().get("binaries.exiftool", "exiftool")
 
 
 def get_first_value(a_dict: dict | None, key_list: tuple | list) -> object | None:
+    """Returns the value of the first of the keys that is in a dictionary, None if there is none"""
     if a_dict is None:
         return None
     for tag in key_list:
@@ -129,6 +135,8 @@ def get_first_value(a_dict: dict | None, key_list: tuple | list) -> object | Non
 
 
 def __compute_eta__(line: str, total_time: float | str | None) -> str:
+    """Returns the progress and the ETA of an ffmpeg progress line. With several files, the progress of the file and the global progress are returned
+    Returns the progress and the ETA of an ffmpeg progress line. With several files, the progress of the file and the global progress are returned"""
     if total_time is None:
         return ""
     # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
@@ -149,6 +157,7 @@ def __compute_eta__(line: str, total_time: float | str | None) -> str:
 
 
 def __get_log_level_from_ffmpeg_log__(line: str) -> int:
+    """Returns the log level (error, info, warning or debug) of a line of the ffmpeg output"""
     if re.search(r"Picture size \d+x\d+ is invalid", line, re.IGNORECASE):
         level = logging.WARNING
     elif re.search(r"(error|invalid|failed)", line, re.IGNORECASE):
@@ -163,6 +172,8 @@ def __get_log_level_from_ffmpeg_log__(line: str) -> int:
 
 
 def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
+    """Runs a command and logs its output. The ETA is logged for the ffmpeg commands when the total time of the output is known. Raises a
+    CalledProcessError if the command fails"""
     log.logger.info("Running: %s", cmd)
     if total_time is not None and isinstance(total_time, str):
         total_time = to_seconds(total_time)
@@ -205,6 +216,7 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
 
 
 def run_ffmpeg(params: str, duration: float | None = None) -> None:
+    """Runs ffmpeg with some parameters, then copies the date and the geotagging of the source file to the generated file"""
     commands = _hw_command_run.get()
     if commands is not None and HW_ACCEL_COMMAND_REGEXP.search(params):
         commands.append(params)  # Remember that a hardware accelerated command was run, see hw_accel_fallback()
@@ -215,6 +227,7 @@ def run_ffmpeg(params: str, duration: float | None = None) -> None:
 
 
 def build_ffmpeg_complex_prep(input_file_list: list) -> str:
+    """Returns the filter graph that rescales the inputs [0] to [n] with the lanczos algorithm, as the streams [pip0] to [pipN]"""
     s = ""
     for i in range(len(input_file_list) + 1):
         s += f"[{i}]scale=iw:-1:flags=lanczos[pip{i}]; "
@@ -231,12 +244,14 @@ def get_media_properties() -> dict:
 
 
 def get_conf_property(prop: str) -> str | int | float | bool | None:
+    """Returns a property of the configuration file, loading the configuration if needed"""
     if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]
 
 
 def to_hms(seconds: float | str, fmt: str = "tuple") -> tuple[int, int, float] | str:
+    """Converts a number of seconds to hours, minutes and seconds: a tuple, or a string hh:mm:ss.sss if fmt is 'string'"""
     try:
         s = int(float(seconds))
         hours = s // 3600
@@ -252,6 +267,7 @@ def to_hms(seconds: float | str, fmt: str = "tuple") -> tuple[int, int, float] |
 
 
 def to_seconds(hms: float | str) -> float:
+    """Converts a duration in the form [hh:]mm:ss.sss, or a number of seconds, to a number of seconds"""
     a = [float(x) for x in str(hms).split(":")]
     if len(a) == 3:
         return a[0] * 3600 + a[1] * 60 + a[2]
@@ -261,15 +277,18 @@ def to_seconds(hms: float | str) -> float:
 
 
 def difftime(stop: float | str, start: float | str) -> float:
+    """Returns the number of seconds between 2 times"""
     return to_seconds(stop) - to_seconds(start)
 
 
 def to_hms_str(seconds: float) -> str:
+    """Converts a number of seconds to a string hh:mm:ss.sss"""
     hours, minutes, secs = to_hms(seconds)
     return f"{hours:02d}:{minutes:02d}:{secs:06.3f}"
 
 
 def json_fmt(json_data: object) -> str:
+    """Returns a data structure as a readable JSON string"""
     return json.dumps(json_data, sort_keys=True, indent=3, separators=(",", ": "))
 
 
@@ -308,6 +327,7 @@ def add_verbosity_arg(parser: argparse.ArgumentParser) -> None:
 
 
 def set_debug_level(level: int | str | None) -> None:
+    """Sets the verbosity of the logs: CRITICAL, ERROR, WARNING, INFO (default) or DEBUG, or the equivalent integer from 0 to 4"""
     global DEBUG_LEVEL
     DEBUG_LEVEL = parse_verbosity(level)
     log.logger.setLevel(log.get_logging_level(DEBUG_LEVEL))
@@ -315,12 +335,14 @@ def set_debug_level(level: int | str | None) -> None:
 
 
 def init(logger_name: str) -> None:
+    """Initializes the logs of a tool: they are written in the console and in the file <logger_name>.log"""
     log.set_logger(logger_name)
     log.logger.setLevel(log.get_logging_level(3))
     log.logger.info("audio-video-tools version %s", version.MEDIA_TOOLS_VERSION)
 
 
 def delete_files(*args: str) -> None:
+    """Deletes files"""
     for f in args:
         log.logger.debug("Deleting file %s", f)
         os.remove(f)
@@ -406,6 +428,7 @@ class GlobalProgress:
     current: "GlobalProgress | None" = None  # The progress being tracked, used by the ffmpeg commands to display it
 
     def __init__(self, total: float) -> None:
+        """Creates the progress of a tool processing steps whose weights sum up to total (1 for each file by default)"""
         self.total = total
         self.count: float = 0
         self.next_weight: float = 1
@@ -424,6 +447,7 @@ class GlobalProgress:
         return f"Global progress {fraction * 100:.0f}%/ETA {eta}"
 
     def done(self, weight: float = 1) -> None:
+        """Records that a step of a given weight is done, and logs the global progress and the ETA"""
         self.count += weight
         self.next_weight = 1
         if self.total <= 1:
@@ -459,6 +483,7 @@ def process_input_files(kwargs: dict, process: Callable[[str, dict], None]) -> N
 
 
 def remove_nones(d: dict) -> dict:
+    """Returns a dictionary without the items whose value is None"""
     return {k: v for k, v in d.items() if v is not None}
 
 
@@ -494,6 +519,7 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
 
 
 def cleanup_options(kwargs: dict) -> dict:
+    """Returns the options of a tool without the ones that are not for the media functions: None values, input and output files, profile"""
     new_options = remove_nones(kwargs)
     for key in [INPUT_FILES, OUTPUT_FILE, "profile"]:
         new_options.pop(key, None)
@@ -501,6 +527,7 @@ def cleanup_options(kwargs: dict) -> dict:
 
 
 def get_profile_extension(profile: str | None, properties: dict | None = None) -> str | None:
+    """Returns the extension of the output files of an encoding profile (mp4 by default)"""
     if profile is None:
         return "mp4"
     if properties is None:
@@ -512,6 +539,7 @@ def get_profile_extension(profile: str | None, properties: dict | None = None) -
 
 
 def get_profile_params(profile: str | None) -> dict:
+    """Returns the parameters of an encoding profile as a dictionary, an empty dictionary if there is no profile"""
     if profile is None:
         return {}
     props = get_media_properties()
@@ -550,6 +578,7 @@ def get_cmdline_params(cmdline: str) -> dict:
 
 
 def get_ffmpeg_cmdline_param(cmdline: str, param: str) -> str | None:
+    """Returns the value of a parameter of an ffmpeg command line (-<param> <value>), None if it is not there"""
     m = re.search(rf"-{param}\s+(\S+)", cmdline)
     if m:
         return m.group(1)
@@ -557,11 +586,13 @@ def get_ffmpeg_cmdline_param(cmdline: str, param: str) -> str | None:
 
 
 def get_ffmpeg_cmdline_switch(cmdline: str, param: str) -> bool:
+    """Returns True if an ffmpeg command line has a switch (-<param> without value)"""
     m = re.search(rf"-{param}\s", cmdline)
     return bool(m)
 
 
 def get_ffmpeg_cmdline_params(cmdline: str) -> dict:
+    """Returns the encoding parameters of an ffmpeg command line (codecs, bitrates, resolution, fps...) as a dictionary"""
     for o in [opt.OptionFfmpeg.ACODEC, opt.OptionFfmpeg.ACODEC2, opt.OptionFfmpeg.ACODEC3]:
         acodec = get_ffmpeg_cmdline_param(cmdline, o)
         if acodec is not None:
@@ -591,6 +622,7 @@ def get_ffmpeg_cmdline_params(cmdline: str) -> dict:
 
 
 def get_default_options(filetype: str = fil.FileType.VIDEO_FILE) -> dict:
+    """Returns the default encoding options of the configuration file for audio or video files"""
     audio_opts = {
         opt.Option.ACODEC: get_conf_property("default.audio.codec"),
         opt.Option.ABITRATE: get_conf_property("default.audio.bitrate"),
@@ -611,10 +643,13 @@ def get_default_options(filetype: str = fil.FileType.VIDEO_FILE) -> dict:
 
 
 def get_profile_options(profile: str) -> dict:
+    """Returns the encoding options of a profile of the configuration file"""
     return get_ffmpeg_cmdline_params(get_conf_property(profile + ".cmdline"))
 
 
 def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args: object) -> dict:
+    """Returns the encoding options with the width and the height resolved. They are returned unchanged when audio and video are copied, and the
+    bitrate of a copied stream is removed"""
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get("vcodec") == "copy" and cmdline_args.get("acodec") == "copy":
         return cmdline_args
@@ -633,10 +668,12 @@ def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args: obj
 
 
 def swap_keys_values(p: dict) -> dict:
+    """Returns a dictionary whose keys are the values of another one, and whose values are its keys"""
     return {v: k for k, v in p.items()}
 
 
 def dict2str(options: dict) -> str:
+    """Returns the options of a dictionary as the options of a command line (-key value, or -key for the switches)"""
     cmd = ""
     for k, v in options.items():
         if v is None or v is False:
@@ -651,6 +688,7 @@ def dict2str(options: dict) -> str:
 
 
 def find_key(hashlist: dict, keylist: list | tuple) -> object | None:
+    """Returns the value of the first of the keys that is in a dictionary, None if there is none"""
     for key in keylist:
         if key not in hashlist:
             continue
@@ -661,6 +699,7 @@ def find_key(hashlist: dict, keylist: list | tuple) -> object | None:
 
 
 def percent_or_absolute(x: str | float, reference: float = 1) -> float | int:
+    """Converts a number or a percentage (eg 50%) to a number. A percentage is relative to a reference value"""
     if isinstance(x, str):
         if re.match(r"-?\d+(.\d+)?%", x):
             return float(x[:-1]) * reference / 100
@@ -669,19 +708,24 @@ def percent_or_absolute(x: str | float, reference: float = 1) -> float | int:
 
 
 def generated_file(filename: str) -> None:
+    """Logs and displays the name of a file that was generated"""
     log.logger.info("Generated %s", filename)
     print(f"Generated {filename}")
 
 
 def package_home() -> pathlib.Path:
+    """Returns the directory of the package"""
     return pathlib.Path(__file__).parent
 
 
 def get_tmp_file() -> str:
+    """Returns the name of a temporary file (the file is not created)"""
     return tempfile.gettempdir() + os.sep + uuid.uuid4().hex[:8]
 
 
 def resolve_resolution(**kwargs: object) -> tuple[int | None, int | None]:
+    """Returns the width and the height requested by the width, height and resolution options. A missing dimension is -1, (None, None) means no
+    dimension"""
     log.logger.info("ARgs = %s", str(kwargs))
     if kwargs.get(opt.Option.WIDTH):
         if kwargs.get(opt.Option.HEIGHT):
@@ -774,6 +818,7 @@ def hw_accel_fallback(func: Callable) -> Callable:
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
+        """Runs the function, and runs it again on the CPU if the hardware acceleration was used and the function failed in auto mode"""
         options = _call_options(func, args, kwargs)
         if _hw_attempt_depth.get() > 0 or _hw_forced_off.get() or get_hw_accel_mode(**options) != "auto" or not use_hardware_accel(**options):
             # Nothing to retry: the CPU is used, the hardware acceleration is forced, or an outer function already handles the fallback
@@ -802,6 +847,7 @@ def hw_accel_fallback(func: Callable) -> Callable:
 
 
 def get_creation_date(exif_data: dict) -> datetime | None:
+    """Returns the creation date found in the EXIF data of a file, None if there is none"""
     str_date: str | None = None
     creation_date: datetime | None = None
     for tag in CREATION_DATE_TAGS:

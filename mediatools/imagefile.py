@@ -44,6 +44,7 @@ class ImageFile(media.MediaFile):
     SUPPORTED_IMG_CODECS: tuple[str, ...] = ("mjpeg", "png", "gif")
 
     def __init__(self, filename: str) -> None:
+        """Creates an image file object. Raises a FileTypeError if the file is not an image file"""
         if not fil.is_image_file(filename):
             raise ex.FileTypeError(file=filename, expected_type="image")
         self.resolution: res.Resolution | None = None
@@ -57,6 +58,7 @@ class ImageFile(media.MediaFile):
         self.probe()
 
     def __str__(self) -> str:
+        """Returns the attributes of the image as a string"""
         d = vars(self).copy()
         d["resolution"] = str(self.resolution)
         return str(d)
@@ -71,6 +73,7 @@ class ImageFile(media.MediaFile):
         return all_props
 
     def probe(self, force: bool = False) -> None:
+        """Reads the specs of the image with ffprobe (only once, unless force is set) and sets its format and dimensions"""
         if self.specs is not None:
             return
         super().probe(force=force)
@@ -86,6 +89,7 @@ class ImageFile(media.MediaFile):
         log.logger.debug("Image = %s", str(vars(self)))
 
     def exif_read(self) -> dict:
+        """Reads the EXIF tags of the image. The orientation of the image is set to portrait if it is rotated"""
         with open(self.filename, "rb") as f:
             tags = exifread.process_file(f)
         if re.search("Rotated 90", str(tags.get("Image Orientation", ""))):
@@ -95,14 +99,17 @@ class ImageFile(media.MediaFile):
         return tags
 
     def dimensions(self, ignore_orientation: bool = True) -> tuple[int, int]:
+        """Returns the width and the height of the image. They are swapped for a portrait image if ignore_orientation is False"""
         if not ignore_orientation and self.orientation == "portrait":
             return (self.height, self.width)
         return (self.width, self.height)
 
     def get_ratio(self) -> float:
+        """Returns the aspect ratio (width / height) of the image"""
         return self.width / self.height
 
     def get_image_properties(self) -> dict:
+        """Returns the properties of the image: format, width, height and number of pixels"""
         return {"format": self.format, "width": self.width, "height": self.height, "pixels": self.pixels}
 
     def crop_any(self, ratio: str | float, align: str = "center", out_file: str | None = None) -> str:
@@ -119,6 +126,7 @@ class ImageFile(media.MediaFile):
         return self.crop(out_file, width=width, height=height, position=align)
 
     def crop(self, out_file: str | None = None, **kwargs: object) -> str:
+        """Crops the image to a width and a height from a position (top, left, or position such as center, topleft...). Returns the cropped file"""
         w, h = kwargs.pop("width"), kwargs.pop("height")
         top, left, pos = self.__get_top_left__(w, h, **kwargs)
         out_file = util.automatic_output_file_name(out_file, self.filename, f"crop_{w}x{h}-{pos}")
@@ -127,6 +135,7 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def scale(self, w: int = -1, h: int = -1, out_file: str | None = None) -> str:
+        """Scales the image to a width and a height (-1 keeps the aspect ratio). Returns the scaled file"""
         out_file = util.automatic_output_file_name(out_file, self.filename, f"scale-{w}x{h}")
         if w == -1 and h == -1:
             shutil.copy2(self.filename, out_file)
@@ -137,23 +146,27 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def slice_vertical(self, nbr_slices: int, round_to: int = 16) -> list[str]:
+        """Returns the crop filters that slice the image in vertical slices"""
         w, h = self.dimensions()
         slice_w = max(w // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (w // slice_w) + 1)
         return [filters.crop(slice_w, h, i * slice_w, 0) for i in range(nbr_slices)]
 
     def slice_horizontal(self, nbr_slices: int, round_to: int = 16) -> list[str]:
+        """Returns the crop filters that slice the image in horizontal slices"""
         w, h = self.dimensions()
         slice_h = max(h // nbr_slices, round_to)
         nbr_slices = min(nbr_slices, (h // slice_h) + 1)
         return [filters.crop(w, slice_h, 0, i * slice_h) for i in range(nbr_slices)]
 
     def get_crop_filters(self, nbr_slices: int, direction: str = "vertical", round_to: int = 16) -> list[str]:
+        """Returns the crop filters that slice the image in vertical or horizontal slices"""
         if direction == "horizontal":
             return self.slice_horizontal(nbr_slices, round_to)
         return self.slice_vertical(nbr_slices, round_to)
 
     def blindify(self, out_file: str | None = None, **kwargs: object) -> str:
+        """Creates a window blinds effect on the image: it is sliced and each slice is moved. Returns the generated file"""
         nbr_slices = int(kwargs.pop("blinds", 10))
         files = [ImageFile(__get_background__(kwargs.pop("background_color", "black"))), self]
         fcomp = filters.Complex(*files)
@@ -211,12 +224,15 @@ class ImageFile(media.MediaFile):
         return out_file
 
     def shake_vertical(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
+        """Creates a shake effect on the image with vertical slices that are shifted randomly. Returns the generated file"""
         return self._shake("vertical", nbr_slices, shake_pct, background_color, out_file)
 
     def shake_horizontal(self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", out_file: str | None = None) -> str:
+        """Creates a shake effect on the image with horizontal slices that are shifted randomly. Returns the generated file"""
         return self._shake("horizontal", nbr_slices, shake_pct, background_color, out_file)
 
     def rotate(self, degrees: int = 90, **kwargs: object) -> str:
+        """Rotates the image by an angle in degrees. Returns the rotated file"""
         vfilters = [filters.rotate(degrees)]
         out_file = util.automatic_output_file_name(kwargs.get("out_file"), self.filename, "rotate", extension=self.extension())
         cmd = f'-i "{self.filename}" -vf {",".join(vfilters)} "{out_file}"'
@@ -226,6 +242,7 @@ class ImageFile(media.MediaFile):
     def shake(
         self, nbr_slices: int = 10, shake_pct: int = 3, background_color: str = "black", direction: str = "vertical", out_file: str | None = None
     ) -> str:
+        """Creates a shake effect on the image, with vertical or horizontal slices. Returns the generated file"""
         if direction == "horizontal":
             return self.shake_horizontal(nbr_slices, shake_pct, background_color, out_file)
         return self.shake_vertical(nbr_slices, shake_pct, background_color, out_file)
@@ -283,6 +300,7 @@ class ImageFile(media.MediaFile):
         )
 
     def __compute_total_frame__(self, needed_width: int, needed_height: int) -> tuple[str, float, float]:
+        """Returns the scale filter, the width and the height of the image enlarged to cover the area that a panorama needs"""
         if needed_width > self.resolution.width:
             if needed_height > self.resolution.height * needed_width / self.resolution.width:
                 scale_filter = filters.scale(-1, needed_height)
@@ -303,6 +321,7 @@ class ImageFile(media.MediaFile):
         return (scale_filter, total_width, total_height)
 
     def __get_panorama_params__(self, **kwargs: object) -> tuple[float, float]:
+        """Returns the speed and the duration of a panorama. By default the speed is random, to the left or to the right"""
         speed = util.percent_or_absolute(kwargs.get("speed"))
         if speed is None:
             speed = DEFAULT_PAN_SPEED
@@ -457,34 +476,41 @@ class ImageFile(media.MediaFile):
 
 
 def get_rectangle(color: str, w: int, h: int) -> str:
+    """Returns the name of a temporary image file of a color (black or white) and of a width and a height"""
     temp_name = util.get_tmp_file() + ".jpg"
     return ImageFile(__get_background__(color)).scale(w, h, out_file=temp_name)
 
 
 def __get_background__(color: str) -> str:
+    """Returns the path of the image file for a background color (white, or black for any other color)"""
     bgfile = "white.jpg" if color == "white" else "black.jpg"
     return str(util.package_home() / bgfile)
 
 
 def get_widths(files: list[str]) -> list[int]:
+    """Returns the widths of the images"""
     return [ImageFile(file).width for file in files]
 
 
 def get_heights(files: list[str]) -> list[int]:
+    """Returns the heights of the images"""
     return [ImageFile(file).height for file in files]
 
 
 def avg_height(files: list[str]) -> int:
+    """Returns the average height of the images"""
     values = get_heights(files)
     return sum(values) // len(values)
 
 
 def avg_width(files: list[str]) -> int:
+    """Returns the average width of the images"""
     values = get_widths(files)
     return sum(values) // len(values)
 
 
 def __get_layout__(nb_files: int, **kwargs: object) -> tuple[int, int]:
+    """Returns the number of rows and columns of a poster for a number of images: given by the rows and columns, or the layout (RxC) options"""
     if "rows" in kwargs and "columns" in kwargs:
         return (int(kwargs["rows"]), int(kwargs["columns"]))
     if "layout" in kwargs:
@@ -495,6 +521,8 @@ def __get_layout__(nb_files: int, **kwargs: object) -> tuple[int, int]:
 
 
 def __downsize__(full_w: int, full_h: int, max_w: int, max_h: int, gap: int) -> tuple[int, int, int, int, int, float]:
+    """Returns the dimensions of the images and of the gap of a poster reduced so that it does not exceed the maximum number of pixels, and the
+    reduction factor"""
     full_pix = (full_w * 8 + 1024) * (full_h + 128)
     log.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d", max_w, max_h, gap, full_pix)
 
@@ -575,6 +603,7 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs: object) ->
 
 
 def stack(*files: str, out_file: str | None = None, **kwargs: object) -> str:
+    """Stacks images in a single image, in a row or in a column. Returns the generated file"""
     log.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
     files_to_stack = fil.file_list(*files, file_type=fil.FileType.IMAGE_FILE)
@@ -587,6 +616,7 @@ def stack(*files: str, out_file: str | None = None, **kwargs: object) -> str:
 
 
 def zoom(file: str, zoom_level: float, **kwargs: object) -> tuple[str, dict]:
+    """Creates a video of an image with a zoom effect. A negative zoom level zooms out. Returns the video and the details of the effect"""
     if zoom_level < 0:
         z = (-zoom_level, 1)
     else:
@@ -611,6 +641,7 @@ def _compute_duration(ratio: float) -> float:
 
 
 def _get_random_zoom(zmin: float = 1, zmax: float = 1.3) -> tuple[float, float]:
+    """Returns a random zoom (start and end zoom levels, in or out) between a minimum and a maximum zoom level"""
     rmax = zmin + 0.1 + random.randint(0, round((zmax - zmin - 0.1) * 10)) / 10
     rmin = round(zmin, 2)
     rmax = round(rmax, 2)

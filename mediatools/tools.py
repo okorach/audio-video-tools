@@ -91,6 +91,7 @@ COMMANDS: dict[str, dict[str, tuple[str, str]]] = {
 
 
 def usage(command: str) -> str:
+    """Returns the usage of a unified command: its actions and their description"""
     actions = COMMANDS[command]
     width = max(len(a) for a in actions)
     lines = [f"usage: {command} <action> [action parameters]", "", "actions:"]
@@ -136,16 +137,20 @@ def run(command: str, args: list[str] | None = None) -> None:
 
 
 def videotool() -> None:
+    """Runs an action of the videotool command"""
     run("videotool")
 
 
 def audiotool() -> None:
+    """Runs an action of the audiotool command"""
     run("audiotool")
 
 
 def imagetool() -> None:
+    """Runs an action of the imagetool command"""
     run("imagetool")
 
 
 def pdftool() -> None:
+    """Runs an action of the pdftool command"""
     run("pdftool")

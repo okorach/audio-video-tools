@@ -34,6 +34,7 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 
 
 def main() -> None:
+    """Creates a poster from images"""
     file_list = []
     util.init("image-poster")
     parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")

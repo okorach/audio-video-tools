@@ -79,6 +79,7 @@ def enhance_file(
 
 
 def main() -> None:
+    """Enhances the colors of videos (saturation, contrast, brightness, gamma) and stabilizes them"""
     parser = util.get_common_args("video-enhance", "Enhance video colors (saturation, contrast, brightness, gamma)")
     parser.add_argument(
         "--saturation", required=False, type=float, default=1.3, help="Color saturation multiplier (default 1.3, neutral 1.0, range 0-3)"

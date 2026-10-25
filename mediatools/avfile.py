@@ -27,6 +27,8 @@ import mediatools.videofile as video
 
 
 def __patch_args(file_type: str, **kwargs: object) -> dict:
+    """Returns the options for a cut: the streams are copied unless they are encoded, and the options that don't apply to copied streams are removed
+    Returns the options for a cut: the streams are copied unless they are encoded, and the options that don't apply to copied streams are removed"""
     if file_type == fil.FileType.VIDEO_FILE and "vcodec" not in kwargs:
         kwargs["vcodec"] = "copy"
         kwargs["hw_accel"] = False
@@ -47,6 +49,7 @@ def cut(
     timeranges: str | None = None,
     **kwargs: object,
 ) -> str | None:
+    """Cuts an audio or video file between a start and a stop time, or in several time ranges, without re-encoding. Returns the cut file"""
     t = fil.get_type(file)
     if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
         raise ex.FileTypeError(file, "video or audio")

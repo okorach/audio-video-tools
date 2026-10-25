@@ -28,6 +28,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Converts images to videos with a panorama or a zoom effect"""
     parser = util.get_common_args("image2video", "Converts an image to a video")
     parser.add_argument("--style", required=True, choices=["zoom", "panorama"], default="zoom", help="Effect to generate")
     parser.add_argument("--bounds", required=False, help="bounds of the panorama or zoom")
@@ -44,6 +45,7 @@ def main() -> None:
     style = kwargs.pop("style", "zoom")
 
     def process(inputfile: str, options: dict) -> None:
+        """Converts one image to a video"""
         try:
             if style == "panorama":
                 output = image.ImageFile(inputfile).panorama(resolution=resolution, **options)

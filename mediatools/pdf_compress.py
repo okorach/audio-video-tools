@@ -43,6 +43,7 @@ def original_file(pdf_file: str) -> str:
 
 
 def _run_gs(pdf_file: str, out_file: str, ppp: int) -> None:
+    """Compresses a PDF file with Ghostscript at a resolution in pixels per inch"""
     gs = find_ghostscript()
     if gs is None:
         raise RuntimeError("Ghostscript not found on PATH (looked for " + ", ".join(GS_BINARIES) + ")")
@@ -83,6 +84,7 @@ def compress(pdf_file: str, out_file: str | None = None, ppp: int = DEFAULT_PPP)
 
 
 def main() -> None:
+    """Compresses PDF files"""
     parser = argparse.ArgumentParser(description="Compresses PDF files (requires Ghostscript)")
     util.add_input_args(parser, "Input PDF files and/or directories (all the PDF files they contain are processed)")
     util.add_output_args(parser, "Output PDF file (default: replaces the input file, which is renamed with an _original postfix)")

@@ -73,6 +73,7 @@ def main() -> None:
     log.logger.debug("KW=%s", str(kwargs))
 
     def process(input_file: str, options: dict) -> None:
+        """Crops one video"""
         try:
             outputfile = creator.file(input_file).crop(out_file=options.pop(util.OUTPUT_FILE, None), **options)
         except (ValueError, subprocess.CalledProcessError) as e:
