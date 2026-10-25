@@ -243,8 +243,8 @@ def rename_files(renames: list[tuple[str, str]]) -> bool:
             log.logger.info("Renaming %s into temporary %s", current[i], temp)
             os.rename(current[i], temp)
             current[i] = temp
-        for i, (_, target) in enumerate(renames):
-            log.logger.info("Renaming %s into %s", renames[i][0], target)
+        for i, (source, target) in enumerate(renames):
+            log.logger.info("Renaming %s into %s", source, target)
             os.rename(temps[i], target)
             current[i] = target
     except OSError as e:

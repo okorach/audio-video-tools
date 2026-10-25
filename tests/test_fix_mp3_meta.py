@@ -21,18 +21,18 @@
 # The fixtures are the arguments of the tests that use them
 # pylint: disable=redefined-outer-name
 
+import datetime as dt
 import os
 import shutil
-import datetime as dt
-from unittest.mock import patch, MagicMock
-import pytest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
-from mutagen.id3 import ID3, ID3NoHeaderError, TRCK, TDRC
+import pytest
+from mutagen.id3 import ID3, TDRC, TRCK, ID3NoHeaderError
 from mutagen.mp3 import MP3
 
-from mediatools import tools
 import mediatools.fix_mp3_meta as fix
-from pathlib import Path
+from mediatools import tools
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
 
@@ -670,8 +670,11 @@ def test_read_existing_tags_m4a_no_tags() -> None:
     mock_audio.tags = None
     with patch("mediatools.fix_mp3_meta.MP4", return_value=mock_audio):
         artist, title, album, track, year = fix.read_existing_tags("song.m4a")
-    assert artist is None and title is None and album is None
-    assert track is None and year is None
+    assert artist is None
+    assert title is None
+    assert album is None
+    assert track is None
+    assert year is None
 
 
 def test_read_existing_tags_m4a_invalid_track() -> None:

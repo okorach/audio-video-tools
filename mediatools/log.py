@@ -18,12 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Logging of the tools: console and log file handlers"""
+
 import os
 import logging
 import pathlib
 
 
 class Utf8StreamHandler(logging.StreamHandler):
+    """Stream handler that writes UTF-8 when the stream can't encode the characters of a message"""
+
     def emit(self, record: logging.LogRecord) -> None:
         """Writes a log record in the stream; the characters that the stream can't encode are written in UTF-8 or replaced"""
         try:

@@ -19,15 +19,16 @@
 #
 
 import os
-import sys
 import subprocess
+import sys
 from unittest.mock import patch
-from mediatools import tools
+
+import pytest
+
+import mediatools.audiofile as audio
 import mediatools.utilities as util
 import mediatools.videofile as video
-import mediatools.audiofile as audio
-from mediatools import log
-import pytest
+from mediatools import log, tools
 
 TMP_VID = util.get_tmp_file() + ".mp4"
 TMP_AUDIO = util.get_tmp_file() + ".mp3"
@@ -94,10 +95,9 @@ def test_main_file(short_video: str) -> None:
             sys, "argv", ["videotool", "profile-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]
         ):
             tools.videotool()
-        assert True
     except subprocess.CalledProcessError:
         # Encoding will fail... just to cover some source code
-        assert False
+        pytest.fail("Unexpected exception")
 
 
 def test_main_file_audio() -> None:
@@ -140,9 +140,8 @@ def test_main_dir_timeranges_1(video_5s: str) -> None:
         ):
             tools.videotool()
         # Can't delete output file, don't know the name
-        assert True
     except subprocess.CalledProcessError:
-        assert False
+        pytest.fail("Unexpected exception")
 
 
 def test_main_dir_timeranges_2(video_5s: str) -> None:
@@ -175,6 +174,5 @@ def test_main_dir_timeranges_2(video_5s: str) -> None:
             tools.videotool()
         # Output file is hardcoded for now :-(
         os.remove(file1.replace("video-5s.mp4", "video-5s.combined.mp4"))
-        assert True
     except subprocess.CalledProcessError:
-        assert False
+        pytest.fail("Unexpected exception")

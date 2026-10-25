@@ -21,6 +21,8 @@
 # This script concatenate 2 video files
 # They should have the same video and audio codecs and bitrates
 
+"""Tool that concatenates video files"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.videofile as video

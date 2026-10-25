@@ -18,19 +18,26 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Image file abstraction: specs, EXIF data, crop, scale, rotate, shake and blinds effects, panorama and zoom videos, posters"""
+
 from __future__ import annotations
 
-import os
 import math
-import re
+import os
 import random
+import re
 import shutil
+
 import exifread
 
-from mediatools import log
 import utilities.file as fil
-from mediatools import resolution as res, exceptions as ex, media_config as conf, mediafile as media, utilities as util, metacopy
 from filters import filters
+from mediatools import exceptions as ex
+from mediatools import log, metacopy
+from mediatools import media_config as conf
+from mediatools import mediafile as media
+from mediatools import resolution as res
+from mediatools import utilities as util
 
 INPUT_FILE_FMT: str = ' -i "%s"'
 
@@ -40,6 +47,7 @@ MAX_VERTICAL_DRIFT: float = 0.05  # Max vertical travel of a panorama, in propor
 
 
 class ImageFile(media.MediaFile):
+    """Image file: its specs and EXIF data, and the transformations of the image"""
 
     SUPPORTED_IMG_CODECS: tuple[str, ...] = ("mjpeg", "png", "gif")
 
@@ -466,8 +474,8 @@ class ImageFile(media.MediaFile):
         kwargs["resolution"] = kwargs.get("resolution", conf.get_property(conf.VIDEO_RESOLUTION_KEY))
         duration = float(description.get("duration") or _compute_duration(self.resolution.ratio))
         if effect in ("zoom-in", "zoom-out"):
-            zoom = (float(description.get("zoom_start_pct", 100)) / 100, float(description.get("zoom_stop_pct", 120)) / 100)
-            return self.zoom(effect=zoom, duration=duration, **kwargs)
+            zoom_levels = (float(description.get("zoom_start_pct", 100)) / 100, float(description.get("zoom_stop_pct", 120)) / 100)
+            return self.zoom(effect=zoom_levels, duration=duration, **kwargs)
         if effect not in ("pan-left", "pan-right"):
             raise ex.InputError(f"Unsupported effect '{effect}'", "slideshow")
         speed = DEFAULT_PAN_SPEED if effect == "pan-right" else -DEFAULT_PAN_SPEED
@@ -514,7 +522,8 @@ def __get_layout__(nb_files: int, **kwargs: object) -> tuple[int, int]:
     if "rows" in kwargs and "columns" in kwargs:
         return (int(kwargs["rows"]), int(kwargs["columns"]))
     if "layout" in kwargs:
-        return [int(s) for s in kwargs["layout"].split("x")]
+        rows, columns = (int(s) for s in kwargs["layout"].split("x"))
+        return (rows, columns)
     rows = math.ceil(math.sqrt(nb_files))
     cols = (nb_files + rows - 1) // rows
     return (rows, cols)
@@ -553,8 +562,8 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs: object) ->
     files = [ImageFile(f) for f in fil.file_list(*file_list, file_type=fil.FileType.IMAGE_FILE)]
     fcomplex = filters.Complex(*files)
 
-    max_w = max([f.width for f in files])
-    max_h = max([f.height for f in files])
+    max_w = max(f.width for f in files)
+    max_h = max(f.height for f in files)
 
     gap = int(util.percent_or_absolute(kwargs["margin"], max_w))
     rows, cols = __get_layout__(len(fcomplex.inputs), **kwargs)
@@ -563,14 +572,14 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs: object) ->
     full_w = (cols * max_w) + (cols + 1) * gap
     full_h = (rows * max_h) + (rows + 1) * gap
     if cols == 1:
-        full_h = sum([f.height * max_w / f.width for f in files]) + (len(files) + 1) * gap
+        full_h = sum(f.height * max_w / f.width for f in files) + (len(files) + 1) * gap
         max_h = -1
     if rows == 1:
-        full_w = sum([f.width * max_h / f.height for f in files]) + (len(files) + 1) * gap
+        full_w = sum(f.width * max_h / f.height for f in files) + (len(files) + 1) * gap
         max_w = -1
     log.logger.debug("Max W x H = %d x %d, gap = %d, row = %d, cols = %d", max_w, max_h, gap, rows, cols)
 
-    full_w, full_h, max_w, max_h, gap, red = __downsize__(full_w, full_h, max_w, max_h, gap)
+    full_w, full_h, max_w, max_h, gap, _ = __downsize__(full_w, full_h, max_w, max_h, gap)
 
     fcomplex.insert_input(0, ImageFile(__get_background__(kwargs["background_color"])))
 

@@ -21,23 +21,28 @@
 """Video file tools"""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+
 import datetime
 import math
 import os
-from exiftool import ExifToolHelper
 import re
-from mediatools import log
+from typing import TYPE_CHECKING
+
+from exiftool import ExifToolHelper
+
 import mediatools.exceptions as ex
+import mediatools.imagefile as image
+import mediatools.media_config as conf
+import mediatools.mediafile as media
+import mediatools.options as opt
 import mediatools.resolution as res
 import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.mediafile as media
-import mediatools.imagefile as image
-import mediatools.options as opt
-from filters import filter  # noqa: A004
-from filters import filters
-import mediatools.media_config as conf
+from filters import (
+    filter,  # noqa: A004
+    filters,
+)
+from mediatools import log
 
 if TYPE_CHECKING:
     import argparse
@@ -64,6 +69,8 @@ FFMPEG_CLASSIC_FMT: str = '-i "{0}" {1} "{2}"'
 
 
 class VideoFile(media.MediaFile):
+    """Video file: its video and audio specs, its metadata and its encoding"""
+
     AV_PASSTHROUGH: str = f"-{opt.OptionFfmpeg.VCODEC} copy -{opt.OptionFfmpeg.ACODEC} copy -map 0 "
 
     """Video file abstraction"""
@@ -338,7 +345,7 @@ class VideoFile(media.MediaFile):
             msg = f"Crop box {width}x{height} is bigger than source video {src_w}x{src_h}"
             log.logger.error(msg)
             raise ValueError(msg)
-        top, left, pos = self.__get_top_left__(width=width, height=height, position=kwargs.get("position"), dimensions=(src_w, src_h))
+        top, left, _ = self.__get_top_left__(width=width, height=height, position=kwargs.get("position"), dimensions=(src_w, src_h))
 
         self.get_specs()
         codec = self.get_video_codec()

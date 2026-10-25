@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Command line front-end of the ffmpeg encoder"""
+
 from __future__ import annotations
 
 import os

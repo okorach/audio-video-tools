@@ -24,6 +24,8 @@
 # And with configurable margin padding
 # It requires availability of ffmpeg
 
+"""Tool that creates a poster from images"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image

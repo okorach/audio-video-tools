@@ -19,14 +19,16 @@
 #
 
 import os
+from pathlib import Path
 from unittest.mock import patch
+
 import pytest
-import mediatools.utilities as util
-from mediatools import log
+
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
+import mediatools.utilities as util
 import mediatools.videofile as video
-from pathlib import Path
+from mediatools import log
 
 TMP_VID = util.get_tmp_file() + ".mp4"
 
@@ -100,12 +102,12 @@ def test_type() -> None:
     """Type"""
     try:
         _ = image.ImageFile("it/seal.mp3")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
     try:
         _ = image.ImageFile("it/video-720p.mp4")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
 
@@ -173,7 +175,8 @@ def test_crop() -> None:
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
     f = image.ImageFile(img.crop(position="center-top", width=3500, height=2000))
-    assert f.width == 3500 and f.height == 2000
+    assert f.width == 3500
+    assert f.height == 2000
     del_files(img, f)
 
 
@@ -182,9 +185,11 @@ def test_scale() -> None:
     w, h = 4000, 3000
     img = get_img(w, h)
     f = image.ImageFile(img.scale(w=2000))
-    assert f.width == 2000 and f.height == 1500
+    assert f.width == 2000
+    assert f.height == 1500
     f = image.ImageFile(img.scale(h=6000))
-    assert f.width == 8000 and f.height == 6000
+    assert f.width == 8000
+    assert f.height == 6000
     del_files(img, f)
 
 
@@ -193,7 +198,8 @@ def test_no_scale() -> None:
     w, h = 4000, 3000
     img = get_img(w, h)
     f = image.ImageFile(img.scale())
-    assert f.width == 4000 and f.height == 3000
+    assert f.width == 4000
+    assert f.height == 3000
     del_files(img, f)
 
 
@@ -232,7 +238,8 @@ def test_rotate() -> None:
     w, h = 4000, 3000
     img = get_img(w, h, orientation="portrait")
     f = image.ImageFile(img.rotate())
-    assert f.width == 3000 and f.height == 4000
+    assert f.width == 3000
+    assert f.height == 4000
     try:
         with pytest.raises(ex.InputError):
             image.ImageFile(img.rotate(degrees=180))

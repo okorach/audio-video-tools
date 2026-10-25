@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""ffmpeg filters as strings: functions that return the filters and the filter options of the ffmpeg commands"""
+
 from __future__ import annotations
 
 from mediatools import log
@@ -32,6 +34,8 @@ ERR_ROTATION_ARG_3: str = "incorrect value for rotation"
 
 
 class FilterError(Exception):
+    """Error in the definition of a filter"""
+
     def __init__(self, message: str) -> None:
         """Creates the error with its message"""
         super().__init__()
@@ -43,6 +47,8 @@ AUDIO_TYPE: int = 1
 
 
 class Simple(object):
+    """Chain of filters applied to a single stream (-vf or -af)"""
+
     def __init__(
         self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None
     ) -> None:
@@ -81,6 +87,8 @@ class Simple(object):
 
 
 class Complex:
+    """Complex filter graph, applied to several inputs (-filter_complex)"""
+
     def __init__(self, *inputs: object) -> None:
         """Creates a complex filter graph that applies to the given inputs"""
         self.inputs: list = list(inputs)

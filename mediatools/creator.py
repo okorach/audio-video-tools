@@ -18,14 +18,16 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Factory of the media file objects (audio, video or image)"""
+
 from __future__ import annotations
 
-import mediatools.exceptions as ex
-import utilities.file as fil
 import mediatools.audiofile as audio
-import mediatools.videofile as video
+import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.mediafile as media
+import mediatools.videofile as video
+import utilities.file as fil
 
 
 def file(filename: str) -> media.MediaFile:

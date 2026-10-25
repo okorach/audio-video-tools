@@ -28,18 +28,18 @@ import io
 import logging
 import sys
 from datetime import datetime
+from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 import pytest
 from dateutil.relativedelta import relativedelta
 
+import mediatools.exceptions as ex
+from cli import encode as cli_encode
 from filters import filter as flt
 from filters import filters as flts
-from cli import encode as cli_encode
 from mediatools import audiospeed, config, datefixer, encoder, image2video, log, tools
-import mediatools.exceptions as ex
-from types import ModuleType
-from pathlib import Path
 
 
 # ---------------------------------------------------------------- audio-speed
@@ -152,6 +152,8 @@ def test_encoder_ffmpeg_options() -> None:
 
 # ---------------------------------------------------------------- log
 class _Stream:
+    """Stream that records what is written in it"""
+
     encoding = "ascii"
 
     def __init__(self) -> None:
@@ -184,6 +186,8 @@ def test_log_handler_with_an_unencodable_message_writes_utf8_bytes() -> None:
     """Log handler with an unencodable message writes utf8 bytes"""
 
     class AsciiStream(_Stream):
+        """Stream that accepts only the text that can be encoded in ASCII"""
+
         def write(self, text: str) -> None:
             """Accepts only the text that can be encoded in ASCII"""
             text.encode("ascii")
@@ -197,6 +201,8 @@ def test_log_handler_with_an_unencodable_message_and_no_buffer() -> None:
     """Log handler with an unencodable message and no buffer"""
 
     class AsciiStreamNoBuffer:
+        """Stream without buffer that accepts only the text that can be encoded in ASCII"""
+
         encoding = "ascii"
 
         def __init__(self) -> None:
@@ -235,6 +241,8 @@ def test_log_handler_error_while_writing_the_bytes() -> None:
     """Log handler error while writing the bytes"""
 
     class BrokenStream:
+        """Stream whose buffer is closed"""
+
         encoding = "ascii"
 
         def write(self, text: str) -> None:

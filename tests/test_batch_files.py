@@ -109,7 +109,8 @@ def test_audio_batch_files_ask_for_the_bitrate(name: str, profile: str) -> None:
     assert f"audiotool profile-encode -i %* -p {profile} --abitrate !bitrate!k" in content
 
 
-def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality():
+def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality() -> None:
+    """Pinnacle 1080p asks for the hardware acceleration and the quality"""
     content = [line.strip() for line in lines(ROOT / "batch-files" / "_Pinnacle 1080p .bat")]
     assert "set hwaccel=auto" in content
     assert "set quality=high" in content
@@ -117,13 +118,14 @@ def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality():
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
-def test_delayed_expansion_is_enabled_when_used(batch_file):
+def test_delayed_expansion_is_enabled_when_used(batch_file: Path) -> None:
     """!variable! is only expanded after setlocal enabledelayedexpansion (and not when this line is a comment)"""
     if any(re.search(r"![A-Za-z_]\w*!", line) for line in commands(batch_file)):
         assert any(re.match(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in commands(batch_file)), batch_file.name
 
 
-def test_custom_encode_asks_the_resolution_and_not_the_width():
+def test_custom_encode_asks_the_resolution_and_not_the_width() -> None:
+    """Custom encode asks the resolution and not the width"""
     content = [line.strip() for line in lines(ROOT / "batch-files" / "_Custom Encode.bat")]
     assert "set resolution=1920x1080" in content
     assert any(line.startswith('set /p "resolution=') for line in content)

@@ -23,6 +23,8 @@
 # or a set of MP3 files (an album)
 # The image is rescaled to 512x512 if too big
 
+"""Tool that adds an album art to audio files"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.audiofile as audio

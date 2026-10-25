@@ -28,11 +28,13 @@ import os
 import pathlib
 import subprocess
 import sys
-from unittest.mock import patch
-import pytest
-import mediatools.utilities as util
 from pathlib import Path
 from types import ModuleType
+from unittest.mock import patch
+
+import pytest
+
+import mediatools.utilities as util
 
 
 @pytest.mark.parametrize(

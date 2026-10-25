@@ -20,15 +20,20 @@
 
 """Tests of the project version that the CI pipelines pass to the sonar-scanner"""
 
+# The fixtures are the arguments of the tests that use them
+# pylint: disable=redefined-outer-name
+
 import os
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
+
 import pytest
 import yaml
+
 from mediatools import version
-from collections.abc import Callable
 
 ROOT = Path(__file__).parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "build.yml"

@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that lists the audio files of a directory with their tags in CSV format"""
+
 from __future__ import annotations
 
 import os

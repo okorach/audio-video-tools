@@ -25,19 +25,10 @@ import mediatools.videofile as video
 import mediatools.exceptions as ex
 
 
-def test_canonical_1() -> None:
-    """Canonical 1"""
-    assert res.canonical("720p") == "1280x720"
-
-
-def test_canonical_2() -> None:
-    """Canonical 2"""
-    assert res.canonical("1080p") == "1920x1080"
-
-
-def test_canonical_3() -> None:
-    """Canonical 3"""
-    assert res.canonical("4k") == "3840x2160"
+@pytest.mark.parametrize("alias,expected", [("720p", "1280x720"), ("1080p", "1920x1080"), ("4k", "3840x2160")])
+def test_canonical(alias: str, expected: str) -> None:
+    """Canonical"""
+    assert res.canonical(alias) == expected
 
 
 def test_multiply() -> None:

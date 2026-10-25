@@ -24,6 +24,7 @@
 
 import shutil
 import subprocess
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -32,7 +33,6 @@ from exiftool import ExifToolHelper
 import mediatools.utilities as util
 from mediatools import metacopy
 from mediatools import videofile as video
-from pathlib import Path
 
 DATE = "2018:03:02 08:09:10"
 

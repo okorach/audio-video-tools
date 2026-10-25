@@ -19,6 +19,9 @@
 #
 
 
+"""Exceptions of the media tools"""
+
+
 class FileTypeError(Exception):
     """Error when passing a non media file"""
 

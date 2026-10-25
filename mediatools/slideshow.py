@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that creates a video slideshow from photos"""
+
 import os
 import sys
 from pathlib import Path

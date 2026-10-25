@@ -25,14 +25,16 @@
 
 import argparse
 import re
+from collections.abc import Callable
+from pathlib import Path
 from unittest.mock import patch
+
 import pytest
+
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
 import mediatools.utilities as util
 import mediatools.videofile as video
-from collections.abc import Callable
-from pathlib import Path
 
 
 @pytest.mark.parametrize(
@@ -62,16 +64,16 @@ def test_quality_is_high_by_default() -> None:
 
 def test_quality_is_not_used_by_default_with_a_bitrate() -> None:
     """Quality is not used by default with a bitrate"""
-    assert media.get_quality_settings("libx264", True) == {}
+    assert not media.get_quality_settings("libx264", True)
     # An explicit quality takes precedence over a bitrate
     assert media.get_quality_settings("libx264", True, quality="low") == {"crf": 28}
 
 
 def test_quality_is_not_applied_to_copied_or_unsupported_codecs() -> None:
     """Quality is not applied to copied or unsupported codecs"""
-    assert media.get_quality_settings("copy", quality="low") == {}
-    assert media.get_quality_settings("libxvid", quality="low") == {}
-    assert media.get_quality_settings("libxvid") == {}
+    assert not media.get_quality_settings("copy", quality="low")
+    assert not media.get_quality_settings("libxvid", quality="low")
+    assert not media.get_quality_settings("libxvid")
 
 
 def test_invalid_quality() -> None:

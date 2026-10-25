@@ -23,10 +23,10 @@
 import datetime as dt
 import os
 import sys
+from pathlib import Path
 from unittest import mock
 
 from mediatools import renamer
-from pathlib import Path
 
 
 def _make(tmp_path: Path, **files: object) -> dict[str, str]:

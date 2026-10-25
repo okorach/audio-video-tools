@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Configuration of the tools, read from the properties file of the home directory"""
+
 import os
 import shutil
 import jprops
@@ -37,7 +39,7 @@ def load() -> dict:
     import mediatools.utilities as util
 
     global CONFIG_SETTINGS
-    target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
+    target_file = f"{os.path.expanduser('~')}{os.sep}{CONFIG_FILE}"
     if not os.path.isfile(target_file):
         default_file = util.package_home() / "media-tools.properties"
         if not os.path.isfile(default_file):

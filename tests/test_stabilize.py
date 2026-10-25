@@ -27,13 +27,13 @@ import os
 import platform
 import re
 import sys
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
 
-from mediatools import tools
 from mediatools import stabilize as stab
-from collections.abc import Iterator
+from mediatools import tools
 
 
 def completed(stdout: str = "", stderr: str = "") -> mock.Mock:

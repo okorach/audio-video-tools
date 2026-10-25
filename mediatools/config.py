@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Loading of the configuration (properties files) of the tools"""
+
 from __future__ import annotations
 
 import os

@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""File abstraction: names, dates, hashes, links, types of files and lists of files"""
+
 import os
 import time
 import stat
@@ -31,6 +33,8 @@ if platform.system() == "Windows":
 
 
 class FileType:
+    """Types of files (audio, video, image) and their extensions"""
+
     AUDIO_FILE: str = "audio"
     VIDEO_FILE: str = "video"
     IMAGE_FILE: str = "image"
@@ -289,7 +293,7 @@ def dir_list(root_dir: str, recurse: bool = False, file_type: str | None = None)
     return files
 
 
-def file_list(*args: str, file_type: str | None = None, recurse: bool = False) -> list[str]:
+def file_list(*args: str, file_type: str | None = None) -> list[str]:
     """Returns the list of the files given as arguments: files, or the files found in directories, optionally of a type, optionally recursively"""
     log.logger.debug("Searching files in %s", str(args))
     files: list[str] = []

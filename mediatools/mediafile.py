@@ -18,20 +18,24 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Media file abstraction (audio, video, image): specs, EXIF data and encoding settings common to all the media files"""
+
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import TYPE_CHECKING
-import re
-from exiftool import ExifToolHelper
+
 import ffmpeg
-from mediatools import log
-import utilities.file as fil
+from exiftool import ExifToolHelper
+
 import mediatools.exceptions as ex
-import mediatools.utilities as util
-from filters import filters
-import mediatools.options as opt
 import mediatools.media_config as conf
+import mediatools.options as opt
+import mediatools.utilities as util
+import utilities.file as fil
+from filters import filters
+from mediatools import log
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -75,7 +79,6 @@ class MediaFile(fil.File):
         self.bitrate: int | None = None
         self.comment: str | None = None
         self._exif_data: dict | None = None
-        # self.probe()
 
     def __str__(self) -> str:
         """Returns the name of the file"""
@@ -93,7 +96,6 @@ class MediaFile(fil.File):
         try:
             log.logger.debug("%s(%s)", util.get_ffprobe(), self.filename)
             self.specs = ffmpeg.probe(self.filename, cmd=util.get_ffprobe())
-            # log.logger.debug("Specs = %s", util.json_fmt(self.specs))
         except ffmpeg.Error as e:
             log.logger.error("%s error: %s", util.get_ffprobe(), e.stderr.decode("utf-8").split("\n")[-2].rstrip())
             raise

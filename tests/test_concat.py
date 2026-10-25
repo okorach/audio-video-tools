@@ -20,11 +20,13 @@
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import patch
-from mediatools import tools
+
 import mediatools.utilities as util
 import mediatools.videofile as video
-from pathlib import Path
+from mediatools import tools
+import pytest
 
 VIDEO1 = "it" + os.sep + "video-720p.mp4"
 VIDEO2 = "it" + os.sep + "video-720p.mp4"
@@ -50,7 +52,7 @@ def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -60,7 +62,7 @@ def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -70,6 +72,6 @@ def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2

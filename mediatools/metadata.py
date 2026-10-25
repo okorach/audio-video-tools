@@ -25,9 +25,11 @@
 # - Languages of audio tracks
 # - Author of video
 
+"""Tool that adds metadata to video files"""
+
 import mediatools.utilities as util
-import utilities.file as fil
 import mediatools.videofile as video
+import utilities.file as fil
 
 
 def main() -> None:

@@ -21,6 +21,8 @@
 # This script multiplexes an extra audio track
 # in a video file with already one audio track
 
+"""Tool that adds audio tracks to a video file"""
+
 import sys
 import argparse
 from mediatools import log

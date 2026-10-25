@@ -18,16 +18,18 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
-import sys
-import shutil
+"""Tool that manages audio collections: replaces the files of a collection by links to the master files, copies the files that the links point to"""
+
 import argparse
-from mediatools import log
-from mediatools import metacopy
-import mediatools.utilities as util
-import utilities.file as fil
+import os
+import shutil
+import sys
+
 import mediatools.audiofile as audio
 import mediatools.exceptions as exc
+import mediatools.utilities as util
+import utilities.file as fil
+from mediatools import log, metacopy
 
 
 def link_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str | None:
@@ -51,7 +53,7 @@ def link_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str
     return directory + os.sep + base
 
 
-def copy_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str | None:
+def copy_file(file: str, directory: str) -> str | None:
     """Copies the audio file that a link points to in a directory. Returns the copy, None if the file is not a link to an audio file"""
     if not fil.is_link(file):
         return None
@@ -106,7 +108,7 @@ def main() -> None:
             link_file(file, directory, hashes)
     elif kwargs["copyFiles"]:
         for file in collection:
-            copy_file(file, directory, hashes)
+            copy_file(file, directory)
     elif kwargs["all"]:
         for file in collection:
             link_file(file, directory, hashes)

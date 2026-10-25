@@ -39,13 +39,13 @@ def test_type() -> None:
     """Type"""
     try:
         _ = video.VideoFile("it" + os.sep + "seal.mp3")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
 
     try:
         _ = video.VideoFile("it" + os.sep + "img-640x480.jpg")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
 

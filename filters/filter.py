@@ -17,6 +17,8 @@
 # along with this program; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+"""ffmpeg filters as objects: chains of simple filters, complex filter graphs, and functions that return filters and their options"""
+
 from __future__ import annotations
 
 from mediatools import log
@@ -25,6 +27,8 @@ import mediatools.exceptions as ex
 
 
 class FilterError(Exception):
+    """Error in the definition of a filter"""
+
     def __init__(self, message: str) -> None:
         """Creates the error with its message"""
         super().__init__()
@@ -36,6 +40,7 @@ AUDIO_TYPE: int = 1
 
 
 class Filter:
+    """Base class of the filters"""
 
     def __init__(self) -> None:
         """Creates a filter with no input and no output"""
@@ -48,6 +53,8 @@ class Filter:
 
 
 class Simple(Filter):
+    """Chain of filters applied to a single stream (-vf or -af)"""
+
     def __init__(
         self, filter_type: int = VIDEO_TYPE, stream_in: str | None = None, stream_out: str | None = None, filters: list | str | None = None
     ) -> None:
@@ -87,6 +94,8 @@ class Simple(Filter):
 
 
 class Complex(Filter):
+    """Complex filter graph, applied to several inputs (-filter_complex)"""
+
     def __init__(self, *inputs: object) -> None:
         """Creates a complex filter graph that applies to the given inputs"""
         super().__init__()
@@ -123,8 +132,11 @@ class Complex(Filter):
 
 
 class Fade(Simple):
+    """Filter that fades in or out"""
+
     def __init__(self, start: float = 0.0, direction: str = "out", duration: float = 0.5, **kwargs: object) -> None:
         """Creates a fade in or out filter, starting at a given time and lasting a given duration"""
+        super().__init__()
         self.start: float = start
         self.direction: str = "in" if direction.lower() == "in" else "out"
         self.duration: float = duration
@@ -136,6 +148,7 @@ class Fade(Simple):
 
 
 class FadeIn(Fade):
+    """Filter that fades in, from the start of the video"""
 
     def __init__(self, duration: float = 0.5, **kwargs: object) -> None:
         """Creates a fade in filter, from the start of the video"""
@@ -151,9 +164,11 @@ class FadeOut(Fade):
 
 
 class Sar(Simple):
+    """Filter that sets the sample aspect ratio"""
 
     def __init__(self, ratio: str) -> None:
         """Creates a filter that sets the sample aspect ratio (given as W:H)"""
+        super().__init__()
         self.ratio: str = "/".join(ratio.split(":"))
 
     def __str__(self) -> str:
@@ -162,9 +177,11 @@ class Sar(Simple):
 
 
 class Trim(Simple):
+    """Filter that keeps a part of the input"""
 
     def __init__(self, end: float, start: float = 0, **kwargs: object) -> None:
         """Creates a filter that keeps the part of the input between a start and an end time"""
+        super().__init__()
         self.start: float = start
         self.end: float = end
         self.params: dict = kwargs.copy()
@@ -179,6 +196,7 @@ class Scale(Simple):
 
     def __init__(self, x: int, y: int, **kwargs: object) -> None:
         """Creates a filter that scales the input to a width and a height"""
+        super().__init__()
         self.x: int = x
         self.y: int = y
         self.params: dict = kwargs.copy()
@@ -189,6 +207,7 @@ class Scale(Simple):
 
 
 class ScaleCuda(Scale):
+    """Scale filter with the parameters in the format of the GPU filters"""
 
     def __str__(self) -> str:
         """Returns the ffmpeg scale filter, with the parameters in the format of the GPU filters"""
@@ -200,6 +219,7 @@ class Crop(Simple):
 
     def __init__(self, x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> None:
         """Creates a filter that crops the input to a width and a height, from positions given by formulas"""
+        super().__init__()
         self.x: int = x
         self.y: int = y
         self.x_formula: str = x_formula
@@ -232,6 +252,7 @@ class Volume(Simple):
 
     def __init__(self, vol: str, **kwargs: object) -> None:
         """Creates a filter that changes the volume of an audio stream"""
+        super().__init__()
         self.volume: str = vol
         self.params: dict = kwargs.copy()
 
@@ -245,6 +266,7 @@ class Overlay(Complex):
 
     def __init__(self, x: str = "0", y: str = "0") -> None:
         """Creates a filter that overlays a stream on another at a position"""
+        super().__init__()
         self.x: str = x
         self.y: str = y
 
@@ -262,9 +284,11 @@ class OverlayCuda(Overlay):
 
 
 class Deshake(Simple):
+    """Filter that removes the shakiness of a video"""
 
     def __init__(self, rx: int = 32, ry: int = 32, **kwargs: object) -> None:
         """Creates a filter that removes the shakiness of a video, within a search range of rx and ry pixels"""
+        super().__init__()
         self.params: dict[str, int] = {"x": -1, "y": -1, "w": -1, "h": -1, "rx": rx, "ry": ry}
         self.params.update(kwargs.copy())
 
@@ -284,6 +308,8 @@ def crop(x: int, y: int, x_formula: str = "x", y_formula: str = "y") -> Crop:
 
 
 class Transpose(Simple):
+    """Filter that transposes (rotates or flips) a video"""
+
     TRANSPOSITIONS: tuple[str, ...] = ("clock", "cclock", "clock_flip", "cclock_flip")
     ERR_ROTATION_ARG_1: str = f"transposition must be one of {', '.join(TRANSPOSITIONS)}"
     ERR_ROTATION_ARG_2: str = "transposition must be between 0 and 7"
@@ -291,6 +317,7 @@ class Transpose(Simple):
     def __init__(self, transposition: str | int = 90) -> None:
         """Creates a filter that transposes (rotates or flips) the input: a name (clock, cclock, clock_flip or cclock_flip), a number from 0 to 7, or
         an angle (90 or -90)"""
+        super().__init__()
         if isinstance(transposition, str):
             if transposition not in Transpose.TRANSPOSITIONS:
                 raise ex.InputError(Transpose.ERR_ROTATION_ARG_1, "transpose")
@@ -313,6 +340,7 @@ class Rotate(Simple):
 
     def __init__(self, angle: str, **kwargs: object) -> None:
         """Example angle = 'PI/2'"""
+        super().__init__()
         self.angle: str = angle
         self.params: dict = kwargs.copy()
 

@@ -20,9 +20,12 @@
 
 import os
 import platform
+
+import pytest
+
+import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
-import mediatools.options as opt
 
 CMD = "test_utilities"
 VIDEO = "it" + os.sep + "video-720p.mp4"
@@ -56,10 +59,10 @@ def test_profile() -> None:
     assert util.get_profile_extension("nonexisting") == "mp4"
 
 
-def test_generated() -> None:
+def test_generated(capsys: pytest.CaptureFixture[str]) -> None:
     """Generated"""
     util.generated_file("foo.txt")
-    assert True
+    assert "Generated foo.txt" in capsys.readouterr().out
 
 
 def test_args() -> None:

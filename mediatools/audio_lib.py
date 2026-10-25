@@ -18,15 +18,17 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that checks the names of the audio files of a directory and fixes the links to the files that moved"""
+
 import os
-import sys
 import shutil
+import sys
 from pathlib import Path
-from mediatools import log
-from mediatools import metacopy
+
+import mediatools.audiofile as audio
 import mediatools.utilities as util
 import utilities.file as fil
-import mediatools.audiofile as audio
+from mediatools import log, metacopy
 
 
 def search_on_other_drives(file: str) -> str | None:
@@ -92,13 +94,6 @@ def main() -> None:
             tgt = fix_symlink(tgt, symlink)
         log.logger.info("Symlink %s --> Target = %s", symlink, tgt)
         f = audio.AudioFile(tgt)
-        # tags = f.get_tags()
-        # if 'title' in tags and 'artist' in tags:
-        #     base = "{} - {}".format(tags['title'], tags['artist'])
-        # elif 'title' in tags:
-        #     base = tags['title']
-        # else:
-        #     base = tgt.split(os.path.sep)[-1]
         if f.title is None or f.artist is None:
             log.logger.warning("Can't copy file because %s has empty title or artist", tgt)
         else:

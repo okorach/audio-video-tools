@@ -25,10 +25,14 @@
 
 import subprocess
 import sys
+from contextlib import AbstractContextManager
+from pathlib import Path
 from unittest import mock
 
 import pytest
 
+import mediatools.utilities as util
+import mediatools.videofile as video
 from cli import encode as cli_encode
 from mediatools import (
     album_art,
@@ -57,10 +61,6 @@ from mediatools import (
     video_enhance,
     volume,
 )
-import mediatools.utilities as util
-import mediatools.videofile as video
-from contextlib import AbstractContextManager
-from pathlib import Path
 
 FILE = "it/video-720p.mp4"
 HW_COMMAND = "-hwaccel cuda -i in.mp4 -c:v h264_nvenc out.mp4"
@@ -297,6 +297,8 @@ def test_fallback_in_a_method(gpu_available: None) -> None:
     attempts = []
 
     class Converter:  # pylint: disable=too-few-public-methods
+        """Class with a method that is run again on the CPU when it fails with the hardware acceleration"""
+
         @util.hw_accel_fallback
         def convert(self, target: str, **kwargs: object) -> str:
             """Function that is run with the hardware acceleration, and again on the CPU when it fails with it, as a method"""

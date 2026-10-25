@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that reverses videos"""
+
 import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.videofile as video

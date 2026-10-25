@@ -64,7 +64,8 @@ def test_arnndn(tmp_path: Path) -> None:
     model = tmp_path / "std.rnnn"
     model.write_text("x")
     flt = dn.build_filter("arnndn", model=str(model), mix=0.5)
-    assert flt.startswith("arnndn=m='") and flt.endswith("':mix=0.5")
+    assert flt.startswith("arnndn=m='")
+    assert flt.endswith("':mix=0.5")
     assert "\\" not in flt.replace(r"\:", "")
 
 

@@ -18,26 +18,29 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Audio file abstraction: tags, audio specs, hashes and album art of the audio files"""
+
 from __future__ import annotations
 
-import re
+import json
 import os
+import re
 import shutil
 import unicodedata
 from datetime import datetime
-import json
-from mp3_tagger import MP3File
+
 import music_tag
-from mediatools import log
-import mediatools.exceptions as ex
-import utilities.file as fil
-import mediatools.mediafile as media
-import mediatools.imagefile as image
-from mediatools import metacopy
-import mediatools.utilities as util
-import mediatools.options as opt
-import mediatools.media_config as conf
+from mp3_tagger import MP3File
+
 import filters.filter as filters
+import mediatools.exceptions as ex
+import mediatools.imagefile as image
+import mediatools.media_config as conf
+import mediatools.mediafile as media
+import mediatools.options as opt
+import mediatools.utilities as util
+import utilities.file as fil
+from mediatools import log, metacopy
 
 _CSV_KEYS: tuple[str, ...] = (
     "filename",
@@ -91,6 +94,8 @@ def build_target_file(source_file: str, profile: str | None) -> str:
 
 
 class AudioFile(media.MediaFile):
+    """Audio file: its audio specs, its tags and its hash"""
+
     # This class is the abstraction of an audio file (eg MP3)
     def __init__(self, filename: str) -> None:
         """Creates an audio file object. Raises a FileTypeError if the file is not an audio file"""
@@ -115,7 +120,6 @@ class AudioFile(media.MediaFile):
         self._hash: str | None = None
 
         super().__init__(filename)
-        # self.get_specs()
 
     def csv_values(self) -> list[str]:
         """Returns the properties of the audio file as a list of strings, in the order of the CSV headers"""
@@ -182,7 +186,7 @@ class AudioFile(media.MediaFile):
             self.comment = tags.get("comment", None)
         return vars(self)
 
-    def get_tags(self, version: int | None = None) -> dict | None:
+    def get_tags(self) -> dict | None:
         """Returns the tags of the audio file (artist, title, album, year, track, genre...)"""
         log.logger.debug("Getting tags of %s", self.filename)
         self.probe()
@@ -200,7 +204,6 @@ class AudioFile(media.MediaFile):
         self.track = tags.get("track", None)
         self.album = tags.get("album", None)
         self.genre = tags.get("genre", None)
-        # self.comment = tags.get('comment', None)
         log.logger.debug("self.title = %s", str(self.title))
         return tags
 
@@ -349,7 +352,7 @@ def album_art(*file_list: str, scale: str | None = None) -> bool:
     return True
 
 
-def get_hash_list(filelist: list[str], algo: str = "audio", old_hash: dict | None = None) -> dict:
+def get_hash_list(filelist: list[str], algo: str = "audio") -> dict:
     """Returns the audio files grouped by hash: a dictionary of the hash to the list of the files that have this hash"""
     log.logger.info("Getting audio hashes of %d files", len(filelist))
     hashes: dict = {}

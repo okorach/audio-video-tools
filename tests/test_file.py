@@ -19,12 +19,13 @@
 #
 
 import os
-import re
 import platform
-import utilities.file as fil
-import mediatools.videofile as video
-from mediatools import version
+import re
 from pathlib import Path
+
+import mediatools.videofile as video
+import utilities.file as fil
+from mediatools import version
 
 BASE = "video-720p.mp4"
 FILE = "it" + os.sep + BASE

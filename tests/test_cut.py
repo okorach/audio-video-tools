@@ -36,15 +36,13 @@ TMPA = util.get_tmp_file() + ".mp3"
 def test_main_v() -> None:
     """Main v"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", VIDEO]):
-        tools.videotool()
-        assert True
+        assert tools.videotool() is None
 
 
 def test_main_a() -> None:
     """Main a"""
     with patch.object(sys, "argv", ["videotool", "cut", "--start", "10", "--stop", "20", "-i", AUDIO]):
-        tools.videotool()
-        assert True
+        assert tools.videotool() is None
 
 
 def test_main_v_with_output() -> None:
@@ -74,7 +72,7 @@ def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "cut", "-h"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -84,7 +82,7 @@ def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "cut", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -94,7 +92,7 @@ def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "cut", "-o", TMPA]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 

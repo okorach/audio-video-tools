@@ -20,6 +20,8 @@
 
 # This script crops an image file
 
+"""Tool that crops images to an aspect ratio"""
+
 import mediatools.utilities as util
 import mediatools.imagefile as image
 import utilities.file as fil

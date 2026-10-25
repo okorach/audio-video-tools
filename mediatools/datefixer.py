@@ -22,16 +22,17 @@
 
 from __future__ import annotations
 
-import sys
 import argparse
-import re
 import concurrent.futures
+import re
+import sys
 from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
+
 import mediatools.utilities as util
-from mediatools import log
 import utilities.file as fil
-from mediatools import videofile
+from mediatools import log, videofile
 
 DATETIME_FORMATS: tuple[str, ...] = (
     r"(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})",

@@ -40,7 +40,7 @@ from mediatools import tools
 @pytest.fixture
 def clip(short_video: str, tmp_path: Path) -> str:
     """A copy of the 320x180 short video in a temporary folder, where the flipped videos are generated"""
-    return shutil.copy(short_video, tmp_path / "clip.mp4").__str__()
+    return str(shutil.copy(short_video, tmp_path / "clip.mp4"))
 
 
 def size(file: str) -> tuple[int, int]:

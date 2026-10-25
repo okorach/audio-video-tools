@@ -21,6 +21,8 @@
 # This script creates a venetian blinds effect on an image
 # ie interweaves slices of images and slices of black (or white)
 
+"""Tool that creates a window blinds effect on images"""
+
 from mediatools import log
 import mediatools.utilities as util
 import mediatools.imagefile as image

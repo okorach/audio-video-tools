@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Settings of an ffmpeg encoding: codecs, bitrates, resolution, filters..."""
+
 from __future__ import annotations
 
 from typing import ClassVar

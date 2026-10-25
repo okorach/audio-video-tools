@@ -39,6 +39,8 @@ try:
         # We stub the whole module, but only for non-dunder names so that inspect
         # machinery (which checks __file__ etc.) still gets AttributeError as expected.
         class _FakeCoverageTypes(_types_mod.ModuleType):
+            """Stub of the coverage types module, whose public names are placeholder classes"""
+
             def __getattr__(self, name: str) -> type:
                 """Returns a placeholder class for the names that are not private, so that the coverage types can be stubbed"""
                 if name.startswith("_"):
@@ -58,16 +60,16 @@ from filters import filters
 import utilities.file as fil
 
 
-def _checkerboard_kernel(M: int) -> object:  # noqa: N803
-    """Builds a Gaussian-tapered checkerboard kernel (Foote 2000) of size 2M x 2M."""
+def _checkerboard_kernel(half_size: int) -> object:
+    """Builds a Gaussian-tapered checkerboard kernel (Foote 2000) of size 2 * half_size."""
     import numpy as np
     import scipy.signal
 
-    g = scipy.signal.windows.gaussian(2 * M, std=M / 2.0, sym=True)
+    g = scipy.signal.windows.gaussian(2 * half_size, std=half_size / 2.0, sym=True)
     G = np.outer(g, g)
     # Negate off-diagonal quadrants to create checkerboard pattern
-    G[:M, M:] *= -1
-    G[M:, :M] *= -1
+    G[:half_size, half_size:] *= -1
+    G[half_size:, :half_size] *= -1
     return G
 
 
@@ -144,7 +146,7 @@ def _detect_structural_boundaries(y: object, sr: int, hop_length: int, min_segme
     import scipy.ndimage
 
     log.logger.info("Computing beat-synchronized features...")
-    tempo, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length, trim=False)
+    _, beats = librosa.beat.beat_track(y=y, sr=sr, hop_length=hop_length, trim=False)
 
     # Extract and beat-synchronize features
     chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)

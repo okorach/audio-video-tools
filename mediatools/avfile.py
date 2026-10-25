@@ -17,13 +17,15 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Operations on audio and video files that keep their streams, like cutting"""
+
 from __future__ import annotations
 
-import mediatools.utilities as util
-import mediatools.exceptions as ex
-import utilities.file as fil
 import mediatools.audiofile as audio
+import mediatools.exceptions as ex
+import mediatools.utilities as util
 import mediatools.videofile as video
+import utilities.file as fil
 
 
 def __patch_args(file_type: str, **kwargs: object) -> dict:
@@ -56,7 +58,7 @@ def cut(
     kwargs = __patch_args(t, **kwargs)
     if t == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
-    elif t == fil.FileType.VIDEO_FILE:
+    else:
         file_object = video.VideoFile(file)
         kwargs["vcodec"] = "copy"
         kwargs.pop("vbitrate", None)

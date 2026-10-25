@@ -23,15 +23,16 @@
 # - Profile specs (from config file)
 # - Original file specs (audio/video codec and bitrate)
 
+"""Tool that encodes audio and video files with an encoding profile"""
+
 from __future__ import annotations
 
-from mediatools import log
-import utilities.file as fil
-import mediatools.videofile as video
 import mediatools.audiofile as audio
-import mediatools.utilities as util
 import mediatools.options as opt
-import utilities.file as fileutil
+import mediatools.utilities as util
+import mediatools.videofile as video
+import utilities.file as fil
+from mediatools import log
 
 
 def encode_file(file: str, file_type: str, **kwargs: object) -> str:
@@ -92,8 +93,8 @@ def main() -> None:
             splits = file_list[i].split(".")
             ext = splits.pop()
             base = ".".join(splits)
-            fileutil.rename(file_list[i], f"{base}.original.{ext}", False)
-            fileutil.rename(ofile, file_list[i])
+            fil.rename(file_list[i], f"{base}.original.{ext}", False)
+            fil.rename(ofile, file_list[i])
         progress.done()
 
 

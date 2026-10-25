@@ -21,6 +21,8 @@
 # This script applies a configurable before/after ffmpeg command to one or more video files.
 # Accepts a single file or a directory (all video files in the directory are processed).
 
+"""Tool that encodes video files automatically with the ffmpeg options given"""
+
 import os
 import time
 import argparse

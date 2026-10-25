@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that displays the specs of media files"""
+
 from __future__ import annotations
 
 import argparse
@@ -155,7 +157,7 @@ def main() -> None:
         for prop in all_props:
             print(f"{prop},", end="")
             if prop == "duration":
-                print("{},".format("Duration HH:MM:SS.x"), end="")
+                print("Duration HH:MM:SS.x,", end="")
         print()
 
     for file in filelist:

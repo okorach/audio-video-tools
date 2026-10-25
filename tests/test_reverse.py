@@ -40,8 +40,7 @@ def test_main() -> None:
     """Main"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO]):
         try:
-            tools.videotool()
-            assert True
+            assert tools.videotool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -81,7 +80,7 @@ def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -91,7 +90,7 @@ def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -101,7 +100,7 @@ def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 

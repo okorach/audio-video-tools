@@ -23,10 +23,13 @@
 import argparse
 import sys
 from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 import pytest
 
+import mediatools.utilities as util
+import utilities.file as fil
 from mediatools import (
     audio_denoise,
     audio_normalize,
@@ -38,17 +41,14 @@ from mediatools import (
     deshake,
     fix_mp3_meta,
     metadata,
-    rescale,
     renamer,
+    rescale,
     reverse,
     shake,
     speed,
     tools,
     volume,
 )
-import mediatools.utilities as util
-import utilities.file as fil
-from types import ModuleType
 
 
 def _tree(root: Path) -> dict:

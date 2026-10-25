@@ -21,17 +21,17 @@
 """Tests for mediatools.audio_normalize"""
 
 import datetime as dt
-import pathlib
 import os
+import pathlib
 import shutil
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from mutagen.id3 import ID3
 
-from mediatools import tools
 import mediatools.audio_normalize as norm
-from pathlib import Path
+from mediatools import tools
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
 
@@ -403,7 +403,8 @@ def test_read_existing_tags_mp3(tmp_path: Path) -> None:
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     artist, title, album, track, year, genre = norm.read_existing_tags(dest)
-    assert True  # just check it doesn't crash
+    # The tags are read without error: each of them is a string, a number or None
+    assert all(isinstance(tag, (str, int, type(None))) for tag in (artist, title, album, track, year, genre))
 
 
 def test_read_existing_tags_missing_file() -> None:

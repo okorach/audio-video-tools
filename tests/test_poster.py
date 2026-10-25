@@ -24,6 +24,7 @@ from unittest.mock import patch
 from mediatools import tools
 import mediatools.utilities as util
 import mediatools.imagefile as img
+import pytest
 
 DIR = "it" + os.sep
 IMG1 = DIR + "img-640x480.jpg"
@@ -41,8 +42,7 @@ def test_main() -> None:
         sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]
     ):
         try:
-            tools.imagetool()
-            assert True
+            assert tools.imagetool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -52,7 +52,7 @@ def test_main_help() -> None:
     with patch.object(sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-h"]):
         try:
             tools.imagetool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -62,7 +62,7 @@ def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "-i", IMG1, IMG2, "--badoption", "yes"]):
         try:
             tools.imagetool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -72,7 +72,7 @@ def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10"]):
         try:
             tools.imagetool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -81,8 +81,7 @@ def test_main_other_options() -> None:
     """Main other options"""
     with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "-m", "50", "-i", IMG1, IMG2]):
         try:
-            tools.imagetool()
-            assert True
+            assert tools.imagetool() is None
         except SystemExit as e:
             assert int(str(e)) == 0
 

@@ -24,19 +24,20 @@
 import os
 import subprocess
 import sys
-from unittest.mock import patch
+from collections.abc import Iterator
+from pathlib import Path
+from unittest import mock
+from unittest.mock import MagicMock, patch
+
 import pytest
 import yaml
-from mediatools import tools
-import mediatools.videofile as video
+
 import mediatools.imagefile as image
 import mediatools.media_config as conf
 import mediatools.utilities as util
+import mediatools.videofile as video
 import utilities.file as fil
-from collections.abc import Iterator
-from unittest import mock
-from pathlib import Path
-from unittest.mock import MagicMock
+from mediatools import tools
 
 large_img = None
 portrait_img = None
@@ -181,7 +182,8 @@ def test_slideshow_assembly_encoded_by_the_gpu_only(commands: mock.MagicMock, sh
     video.__build_slideshow__([short_video, short_video], outfile=str(tmp_path / "out.mp4"), resolution="320x180", hw_accel=mode)
     (cmd,) = run_commands(commands)
     assert ("-c:v h264_nvenc" in cmd) is nvenc
-    assert "-hwaccel" not in cmd and "cuvid" not in cmd  # Decoding the clips on the GPU and the CPU can't be mixed
+    assert "-hwaccel" not in cmd
+    assert "cuvid" not in cmd  # Decoding the clips on the GPU and the CPU can't be mixed
 
 
 def test_slideshow_runs_again_on_the_cpu_when_the_gpu_fails(short_video: str, tmp_path: Path) -> None:
@@ -231,7 +233,8 @@ def test_to_video_drifts_up_or_down_by_at_most_5_percent(commands: mock.MagicMoc
             drifts.append(details["vertical_drift_pct"])
     assert drifts
     assert all(-5.0 <= d <= 5.0 for d in drifts)
-    assert any(d > 0 for d in drifts) and any(d < 0 for d in drifts)
+    assert any(d > 0 for d in drifts)
+    assert any(d < 0 for d in drifts)
     assert commands.call_count == 60
 
 

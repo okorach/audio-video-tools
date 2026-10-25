@@ -20,11 +20,12 @@
 
 """Tests of the global progress/ETA logged by the tools that process several files"""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
 import pytest
-from mediatools import log
+
 import mediatools.utilities as util
-from unittest.mock import MagicMock
+from mediatools import log
 
 
 def progress_messages(info: MagicMock) -> list[str]:

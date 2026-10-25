@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Tool that converts images to videos with a panorama or a zoom effect"""
+
 import sys
 from mediatools import log
 import mediatools.utilities as util
@@ -54,7 +56,7 @@ def main() -> None:
         except ex.InputError as e:
             log.logger.critical(e.message)
             print("ERROR: {}", e.message)
-            sys.exit(ex.InputError("Missing args", "image2video"))
+            sys.exit(1)
         util.generated_file(output)
 
     util.process_input_files(kwargs, process)

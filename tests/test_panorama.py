@@ -23,6 +23,7 @@ import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.videofile as video
 import mediatools.exceptions as ex
+import pytest
 
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
 TMP_VID = util.get_tmp_file() + ".mp4"
@@ -47,7 +48,7 @@ def test_pan_input_4() -> None:
     try:
         _ = large_img.panorama(duration=-5, speed=0.1, out_file=TMP_VID)
         os.remove(TMP_VID)
-        assert False
+        pytest.fail("An exception was expected")
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
     finally:
@@ -60,7 +61,7 @@ def test_pan_input_5() -> None:
     try:
         _ = large_img.panorama(duration=0, speed=0.1, out_file=TMP_VID)
         os.remove(TMP_VID)
-        assert False
+        pytest.fail("An exception was expected")
     except ex.InputError as e:
         assert e.message == EX_PAN_DURATION_POSITIVE
     finally:

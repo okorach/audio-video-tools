@@ -20,12 +20,14 @@
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 import pytest
-from mediatools import tools
+
 import mediatools.utilities as util
 import mediatools.videofile as video
-from pathlib import Path
+from mediatools import tools
 
 VIDEO = "it" + os.sep + "video-360p-1.mp4"
 TMP1 = util.get_tmp_file() + ".mp4"
@@ -41,8 +43,7 @@ def assert_duration(speed_factor: float) -> None:
 def test_main() -> None:
     """Main"""
     with patch.object(sys, "argv", ["videotool", "speed", "-p", "360p", "-i", VIDEO, "--speed", "2"]):
-        tools.videotool()
-        assert True
+        assert tools.videotool() is None
 
 
 def test_main_with_output() -> None:
@@ -78,7 +79,7 @@ def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "speed", "-h"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 0
 
@@ -88,7 +89,7 @@ def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -98,7 +99,7 @@ def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "speed", "-o", TMP1]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 2
 
@@ -108,7 +109,7 @@ def test_bad_speed() -> None:
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--speed", "212%"]):
         try:
             tools.videotool()
-            assert False
+            pytest.fail("An exception was expected")
         except SystemExit as e:
             assert int(str(e)) == 1
 

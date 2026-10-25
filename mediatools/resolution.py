@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Resolutions of videos and images: dimensions, aspect ratio and aliases (4k, fhd...)"""
+
 import re
 from typing import ClassVar
 import mediatools.options as opt
@@ -32,6 +34,8 @@ def canonical(res: str) -> str:
 
 
 class Resolution:
+    """Resolution of a video or an image: its width, its height and its aspect ratio"""
+
     RES_8K: str = "7680x4320"
     RES_4K: str = "3840x2160"
     RES_1080P: str = "1920x1080"
@@ -82,8 +86,11 @@ class Resolution:
             h = kwargs["height"]
         elif "resolution" in kwargs or opt.Option.RESOLUTION in kwargs:
             r = canonical(kwargs.get("resolution", kwargs.get(opt.Option.RESOLUTION)))
-            if re.search(r"[x:]", r):
-                w, h = re.split(r"[x:]", r, maxsplit=2)
+            if not re.search(r"[x:]", r):
+                raise ex.DimensionError(f"invalid resolution '{r}': it must be <width>x<height> or an alias")
+            w, h = re.split(r"[x:]", r, maxsplit=2)
+        else:
+            raise ex.DimensionError("a width and a height, or a resolution, are required")
         if int(w) <= 0 or int(h) <= 0:
             raise ex.DimensionError("width and height must be strictly positive")
         self.width = int(w)
@@ -98,9 +105,6 @@ class Resolution:
     def __mul__(self, factor: float) -> "Resolution":
         """Returns the resolution multiplied by a factor"""
         return Resolution(width=self.width * factor, height=self.height * factor)
-
-    # def __str__(self):
-    #     return str(vars(self))
 
     def is_ratio(self, ratio: float) -> bool:
         """Returns True if the aspect ratio of the resolution is the given one, within a small tolerance"""

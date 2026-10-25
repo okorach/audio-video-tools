@@ -725,7 +725,7 @@ def process_file(
     dry_run: bool,
 ) -> str:
     """Processes a single audio file. Returns (possibly updated) filepath."""
-    base, ext = os.path.splitext(os.path.basename(filepath))
+    base, _ = os.path.splitext(os.path.basename(filepath))
 
     # 1. Clean filename
     clean_base = clean_basename(base)

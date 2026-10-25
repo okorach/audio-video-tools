@@ -22,6 +22,8 @@
 # 2 input images that can be glued
 # horizontally or vertically
 
+"""Tool that stacks images vertically or horizontally"""
+
 import sys
 import argparse
 import mediatools.imagefile as image

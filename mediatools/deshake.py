@@ -21,6 +21,8 @@
 # This script applies the ffmpeg deshake filter on a video file
 # to improve image stabilization
 
+"""Tool that removes the shakiness of videos"""
+
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
@@ -37,7 +39,7 @@ def main() -> None:
     parser.set_defaults(crop=True)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
-    kwargs["deshake"] = "{}x{}".format(kwargs.pop("rx"), kwargs.pop("ry"))
+    kwargs["deshake"] = f"{kwargs.pop('rx')}x{kwargs.pop('ry')}"
 
     def process(input_file: str, options: dict) -> None:
         """Removes the shakiness of one video"""

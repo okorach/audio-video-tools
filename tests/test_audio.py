@@ -24,6 +24,7 @@ import mediatools.utilities as util
 import mediatools.avfile as av
 import mediatools.audiofile as audio
 import utilities.file as fil
+import pytest
 
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 H1 = "Seal-Crazy-Seal-1991-03-357.093878-mp3"
@@ -97,13 +98,13 @@ def test_type() -> None:
     """Type"""
     try:
         _ = audio.AudioFile("it/img-2320x4000.jpg")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
 
     try:
         _ = audio.AudioFile("it/video-720p.mp4")
-        assert False
+        pytest.fail("An exception was expected")
     except ex.FileTypeError:
         pass
 

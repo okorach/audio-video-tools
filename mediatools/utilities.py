@@ -18,31 +18,32 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
-import sys
-import platform
+"""Utilities shared by the tools: ffmpeg execution, logs, command line arguments, hardware acceleration, progress..."""
+
+import argparse
+import contextvars
 import functools
 import inspect
-import contextvars
 import json
 import logging
-import re
-import time
-import argparse
+import os
 import pathlib
-import tempfile
-import uuid
-import subprocess
+import platform
+import re
 import shlex
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
 from collections.abc import Callable
 from datetime import datetime
-from mediatools import version
-from mediatools import log
+
+import mediatools.media_config as conf
 import mediatools.options as opt
 import mediatools.resolution as res
 import utilities.file as fil
-import mediatools.media_config as conf
-from mediatools import metacopy
+from mediatools import log, metacopy, version
 
 DEBUG_LEVEL: int = 0
 
@@ -77,7 +78,6 @@ config_props.pop()
 config_props.pop()
 config_props.append("media-tools.properties")
 DEFAULT_PROPERTIES_FILE: str = os.path.sep.join(config_props)
-# log.logger.debug("Default properties file = %s", DEFAULT_PROPERTIES_FILE)
 
 PROPERTIES_FILE: str = ""
 PROPERTIES_VALUES: dict = {}
@@ -144,8 +144,6 @@ def __compute_eta__(line: str, total_time: float | str | None) -> str:
     Returns the progress and the ETA of an ffmpeg progress line. With several files, the progress of the file and the global progress are returned"""
     if total_time is None:
         return ""
-    # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
-    #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
     time_match = FFMPEG_TIME_RE.search(line) if "size=" in line else None
     speed_match = FFMPEG_SPEED_RE.search(line, time_match.end()) if time_match else None
     if not time_match or not speed_match:
@@ -512,7 +510,6 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
         kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
     if isinstance(kwargs.get(INPUT_FILES), list):
         kwargs[INPUT_FILES] = expand_input_files(kwargs[INPUT_FILES], input_type)
-    # (kwargs[opt.Option.WIDTH], kwargs[opt.Option.HEIGHT]) = resolve_resolution(**kwargs)
     timerange = kwargs.get("timeranges")
     if timerange:
         timerange = timerange.split(",")[0]
@@ -653,17 +650,12 @@ def get_profile_options(profile: str) -> dict:
     return get_ffmpeg_cmdline_params(get_conf_property(profile + ".cmdline"))
 
 
-def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args: object) -> dict:
+def get_all_options(_filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args: object) -> dict:
     """Returns the encoding options with the width and the height resolved. They are returned unchanged when audio and video are copied, and the
     bitrate of a copied stream is removed"""
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get("vcodec") == "copy" and cmdline_args.get("acodec") == "copy":
         return cmdline_args
-    # p = get_default_options(filetype)
-    # if 'profile' in cmdline_args:
-    #    q = get_profile_options(cmdline_args['profile'])
-    #    p = {**p, **q}
-    # cmdline_args = {**p, **cmdline_args}
     if cmdline_args.get("acodec") == "copy":
         cmdline_args.pop("abitrate", None)
     if cmdline_args.get("vcodec") == "copy":

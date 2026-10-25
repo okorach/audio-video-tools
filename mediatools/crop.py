@@ -23,6 +23,8 @@
 # --top, --center, --bottom, --left, --right: Where in the source video the region is taken (default centered)
 # --topleft, --topright, --bottomleft, --bottomright: Shortcuts for --top --left, --top --right, --bottom --left, --bottom --right
 
+"""Tool that crops a region of videos"""
+
 import re
 import sys
 import subprocess

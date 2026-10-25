@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Command line tool that shuffles audio files by renaming them with a random numeric prefix"""
+
 import os
 import sys
 import re

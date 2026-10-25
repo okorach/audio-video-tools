@@ -26,21 +26,18 @@
 import os
 import shutil
 import subprocess
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
-from mediatools import audio_normalize
+
 import mediatools.audiofile as audio
-from mediatools import fix_mp3_meta
 import mediatools.imagefile as image
-from mediatools import metacopy
-from mediatools import pdf_compress
-from mediatools import pdf_merge
-from mediatools import pdf_split
 import mediatools.utilities as util
 import mediatools.videofile as video
-from collections.abc import Callable
+from mediatools import audio_normalize, fix_mp3_meta, metacopy, pdf_compress, pdf_merge, pdf_split
 
 OLD_DATE = datetime(2020, 5, 17, 10, 30, 0)
 OLD_DATE_STR = OLD_DATE.strftime(util.EXIF_DATE_FMT)

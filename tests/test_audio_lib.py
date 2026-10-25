@@ -19,11 +19,13 @@
 #
 import os
 import platform
-import pytest
-import mediatools.utilities as util
-import mediatools.audio_lib as ad
-import utilities.file as fil
 from pathlib import Path
+
+import pytest
+
+import mediatools.audio_lib as ad
+import mediatools.utilities as util
+import utilities.file as fil
 
 SONG = "it/song.mp3"
 TITLE = "Love Is Stronger Than Pride"

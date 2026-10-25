@@ -24,6 +24,8 @@
 # the full clip's motion trajectory before applying smoothing, whereas deshake works
 # frame-by-frame with no global look-ahead.
 
+"""Tool that stabilizes shaky videos in 2 passes with libvidstab"""
+
 from __future__ import annotations
 
 import os
