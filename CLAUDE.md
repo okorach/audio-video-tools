@@ -17,9 +17,9 @@ coverage xml -o build/coverage.xml
 pytest tests/test_video.py
 pytest tests/test_video.py::TestClassName::test_method_name
 
-# Linting (ruff + pylint + flake8 + bandit), configuration in pyproject.toml and pylintrc
+# Linting (ruff + pylint + flake8 + bandit), configuration in pyproject.toml and conf/pylintrc
 ruff check .
-pylint ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
+pylint --rcfile conf/pylintrc ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
 flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391,F401,E722 --max-line-length=150 .
 bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests
 
