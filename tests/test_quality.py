@@ -29,7 +29,6 @@ from unittest.mock import patch
 import pytest
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
-import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
 

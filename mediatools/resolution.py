@@ -19,6 +19,7 @@
 #
 
 import re
+from typing import ClassVar
 import mediatools.options as opt
 import mediatools.exceptions as ex
 
@@ -48,7 +49,7 @@ class Resolution:
     DEFAULT_VIDEO: str = RES_4K
 
     # Aliases of the resolutions, in lower case: the aliases are case insensitive
-    ALIASES: dict[str, str] = {
+    ALIASES: ClassVar[dict[str, str]] = {
         "4k": RES_4K,
         "2160p": RES_4K,
         "2.5k": RES_2_5K,

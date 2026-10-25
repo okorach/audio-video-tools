@@ -23,6 +23,7 @@ import sys
 import shutil
 import argparse
 from mediatools import log
+from mediatools import metacopy
 import mediatools.utilities as util
 import utilities.file as fil
 import mediatools.audiofile as audio
@@ -60,6 +61,7 @@ def copy_file(file, directory, hash_data):
     srcfile.get_tags()
     targetfile = f"{directory}{os.sep}{srcfile.title} - {srcfile.artist}.{srcfile.extension()}"
     shutil.copyfile(srcfile.filename, targetfile)
+    metacopy.copy_date_and_geotag(srcfile.filename, targetfile)
     return targetfile
 
 
