@@ -29,7 +29,7 @@ import mediatools.imagefile as image
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("image-shake", "Image shake effect")
     parser.add_argument("-n", "--slices", required=False, type=int, default=10, help="Number of slices")
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")

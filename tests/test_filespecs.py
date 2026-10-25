@@ -25,7 +25,7 @@ import mediatools.filespecs as spec
 FILE = "it/seal.mp3"
 
 
-def test_1():
+def test_1() -> None:
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
     specs = audio.AudioFile(FILE).get_properties()
     csv = spec.__to_csv__(specs, allp).split(",")
@@ -36,7 +36,7 @@ def test_1():
     assert os.path.abspath(FILE) in csv
 
 
-def test_2():
+def test_2() -> None:
     allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
     specs = audio.AudioFile(FILE).get_properties()
     std = spec.__to_std__(specs, allp)

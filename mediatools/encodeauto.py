@@ -70,7 +70,7 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
         fileutil.rename(outputfile, f"{base}.{new_ext}", force)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
     util.add_input_args(parser, "Video files and/or directories to encode")
     util.add_verbosity_arg(parser)

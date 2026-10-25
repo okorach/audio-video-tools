@@ -30,7 +30,7 @@ import mediatools.audiofile as audio
 DEFAULT_RESCALING = "512x512"
 
 
-def main():
+def main() -> None:
     util.init("album-art")
     parser = argparse.ArgumentParser(description="Adds album art to audio files")
     parser.add_argument(util.INPUT_FILES, metavar="N", type=str, nargs="+", help="List of files to mux")

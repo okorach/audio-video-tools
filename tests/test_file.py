@@ -31,30 +31,30 @@ FILE_2 = "it" + os.sep + "video-1920x1080.mp4"
 FILE_SIZE = 2001067
 
 
-def test_file_std():
+def test_file_std() -> None:
     f = fil.File(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
 
-def test_file_video():
+def test_file_video() -> None:
     f = video.VideoFile(FILE)
     assert f.stat()
     assert f.size() == FILE_SIZE
 
 
-def test_file_unexisting():
+def test_file_unexisting() -> None:
     f = fil.File("nonexist.txt")
     assert not f.stat()
 
 
-def test_extension():
+def test_extension() -> None:
     assert fil.extension(FILE) == "mp4"
     f = fil.File(FILE)
     assert f.extension() == "mp4"
 
 
-def test_basename():
+def test_basename() -> None:
     assert fil.basename(FILE, strip_ext=False) == BASE
     assert fil.basename(FILE) == "video-720p"
     assert fil.basename(FILE, strip_dir=False, strip_ext=False) == os.path.abspath(FILE)
@@ -63,7 +63,7 @@ def test_basename():
     assert f.basename() == "video-720p"
 
 
-def test_dirname():
+def test_dirname() -> None:
     # The directory of a file is returned as an absolute path (with the drive letter on Windows)
     dirname = os.path.abspath(os.sep.join(["", "usr", "local", "bin"]))
     filename = dirname + os.sep + "python3"
@@ -72,7 +72,7 @@ def test_dirname():
     assert f.dirname() == dirname
 
 
-def test_link(tmp_path):
+def test_link(tmp_path) -> None:
     assert not fil.is_link(FILE)
     assert not fil.is_shortcut(FILE)
     f = fil.File(FILE)
@@ -93,14 +93,14 @@ def test_link(tmp_path):
     assert os.path.normcase(fil.read_link(lnk)) == target
 
 
-def test_hash():
+def test_hash() -> None:
     f = fil.File("nonexisting")
     assert f.hash() is None
     f = fil.File(FILE)
     assert f.hash() is not None
 
 
-def test_hash_list():
+def test_hash_list() -> None:
     hashes = fil.get_hash_list([FILE, FILE_2, FILE])
     h = next(iter(hashes))
     assert h is not None
@@ -110,5 +110,5 @@ def test_hash_list():
     assert len(hashes.keys()) == 2
 
 
-def test_version():
+def test_version() -> None:
     assert re.match(r"^[0-9.]+$", version.MEDIA_TOOLS_VERSION)

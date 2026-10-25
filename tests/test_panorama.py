@@ -33,14 +33,14 @@ TMP_IMG = util.get_tmp_file() + ".jpg"
 IMAGE_SCALE_DOWN = 5
 
 
-def get_img(w, h, orientation="landscape"):
+def get_img(w, h, orientation="landscape") -> image.ImageFile:
     small_img = image.__get_background__("black")
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w // IMAGE_SCALE_DOWN, h // IMAGE_SCALE_DOWN, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
 
 
-def test_pan_input_4():
+def test_pan_input_4() -> None:
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(duration=-5, speed=0.1, out_file=TMP_VID)
@@ -52,7 +52,7 @@ def test_pan_input_4():
         os.remove(large_img.filename)
 
 
-def test_pan_input_5():
+def test_pan_input_5() -> None:
     large_img = get_img(4000, 3000)
     try:
         _ = large_img.panorama(duration=0, speed=0.1, out_file=TMP_VID)
@@ -64,7 +64,7 @@ def test_pan_input_5():
         os.remove(large_img.filename)
 
 
-def test_pan_1():
+def test_pan_1() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.panorama(duration=5, speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -73,7 +73,7 @@ def test_pan_1():
     os.remove(img.filename)
 
 
-def test_pan_2():
+def test_pan_2() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.panorama(effect=(0, 1, 0.5, 0.5), speed="10%", resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -82,7 +82,7 @@ def test_pan_2():
     os.remove(img.filename)
 
 
-def test_pan_3():
+def test_pan_3() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.panorama(effect=(0, 1, 0.5, 0.5), duration=5, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -91,7 +91,7 @@ def test_pan_3():
     os.remove(img.filename)
 
 
-def test_pan_4():
+def test_pan_4() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.panorama(effect=(1, 0, 0.5, 0.5), speed=0.2, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -100,7 +100,7 @@ def test_pan_4():
     os.remove(img.filename)
 
 
-def test_pan_5():
+def test_pan_5() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.to_video(with_effect=False, duration=3, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -109,7 +109,7 @@ def test_pan_5():
     os.remove(img.filename)
 
 
-def test_pan_6():
+def test_pan_6() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -118,7 +118,7 @@ def test_pan_6():
     os.remove(img.filename)
 
 
-def test_pan_portrait():
+def test_pan_portrait() -> None:
     img = get_img(3000, 4000, "portrait")
     vid, _ = img.panorama(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)

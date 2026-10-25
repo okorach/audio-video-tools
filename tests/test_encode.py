@@ -32,11 +32,11 @@ TMP_VID = util.get_tmp_file() + ".mp4"
 TMP_AUDIO = util.get_tmp_file() + ".mp3"
 
 
-def get_video():
+def get_video() -> str:
     return "it" + os.sep + "video-1920x1080.mp4"
 
 
-def test_encode_size():
+def test_encode_size() -> None:
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="1280x720", start=1, stop=2))
@@ -45,7 +45,7 @@ def test_encode_size():
     os.remove(TMP_VID)
 
 
-def test_encode_bitrate():
+def test_encode_bitrate() -> None:
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vbitrate="1000k", abitrate="64k", start=1, stop=4))
@@ -54,7 +54,7 @@ def test_encode_bitrate():
     os.remove(TMP_VID)
 
 
-def test_encode_acodec():
+def test_encode_acodec() -> None:
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", acodec="mp3", deinterlace=True, start=1, stop=2))
@@ -62,7 +62,7 @@ def test_encode_acodec():
     os.remove(TMP_VID)
 
 
-def test_encode_vcodec():
+def test_encode_vcodec() -> None:
     vid_o = video.VideoFile(get_video())
     util.HW_ACCEL = None
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vcodec="h265", deinterlace=True, start=1, stop=2))
@@ -70,7 +70,7 @@ def test_encode_vcodec():
     os.remove(TMP_VID)
 
 
-def test_hw_accel_2(monkeypatch):
+def test_hw_accel_2(monkeypatch) -> None:
     """The hardware acceleration is available according to the check: the encoding succeeds in any case, on the GPU or,
     if the GPU command fails (no GPU), on the CPU"""
     monkeypatch.setattr(util, "HW_ACCEL", True)
@@ -80,7 +80,7 @@ def test_hw_accel_2(monkeypatch):
     os.remove(TMP_VID)
 
 
-def test_main_file(short_video):
+def test_main_file(short_video) -> None:
     file1 = short_video
     try:
         with patch.object(
@@ -93,7 +93,7 @@ def test_main_file(short_video):
         assert False
 
 
-def test_main_file_audio():
+def test_main_file_audio() -> None:
 
     file1 = "it" + os.sep + "seal.mp3"
     with patch.object(sys, "argv", ["videotool", "profile-encode", "-p", "mp3_128k", "-i", file1, "--outputfile", TMP_AUDIO, "--hw_accel", "off"]):
@@ -107,7 +107,7 @@ def test_main_file_audio():
     os.remove(TMP_AUDIO)
 
 
-def test_main_dir_timeranges_1(video_5s):
+def test_main_dir_timeranges_1(video_5s) -> None:
     file1 = video_5s
     try:
         with patch.object(
@@ -137,7 +137,7 @@ def test_main_dir_timeranges_1(video_5s):
         assert False
 
 
-def test_main_dir_timeranges_2(video_5s):
+def test_main_dir_timeranges_2(video_5s) -> None:
     log.set_logger("tests")
     log.logger.setLevel(log.get_logging_level(4))
     file1 = video_5s

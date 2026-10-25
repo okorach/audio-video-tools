@@ -39,7 +39,7 @@ try:
         # We stub the whole module, but only for non-dunder names so that inspect
         # machinery (which checks __file__ etc.) still gets AttributeError as expected.
         class _FakeCoverageTypes(_types_mod.ModuleType):
-            def __getattr__(self, name):
+            def __getattr__(self, name) -> type:
                 if name.startswith("_"):
                     raise AttributeError(name)
                 return object

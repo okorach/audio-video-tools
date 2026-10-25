@@ -66,14 +66,14 @@ def assert_same_date_and_place(path: str) -> None:
     assert float(data["Composite:GPSLongitude"]) == pytest.approx(-20.25, abs=1e-3)
 
 
-def test_find_source_and_target(geotagged_video, tmp_path):
+def test_find_source_and_target(geotagged_video, tmp_path) -> None:
     target = tmp_path / "out.mp4"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-i "{geotagged_video}" -vf scale=80:-2 "{target}"') == (geotagged_video, str(target))
     assert metacopy.find_source_and_target(f'-ss 1 -i "{geotagged_video}" -frames:v 1 {target}') == (geotagged_video, str(target))
 
 
-def test_find_source_and_target_ignores_commands_without_media_output(geotagged_video, tmp_path):
+def test_find_source_and_target_ignores_commands_without_media_output(geotagged_video, tmp_path) -> None:
     target = tmp_path / "result.trf"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-i "{geotagged_video}" -f null -') == (None, None)
@@ -81,26 +81,26 @@ def test_find_source_and_target_ignores_commands_without_media_output(geotagged_
     assert metacopy.find_source_and_target('-i "missing.mp4" "missing-out.mp4"') == (None, None)
 
 
-def test_find_source_skips_inputs_that_are_not_media_files(geotagged_video, tmp_path):
+def test_find_source_skips_inputs_that_are_not_media_files(geotagged_video, tmp_path) -> None:
     target = tmp_path / "out.mp4"
     target.write_bytes(b"x")
     assert metacopy.find_source_and_target(f'-f lavfi -i color=c=black -i "{geotagged_video}" "{target}"')[0] == geotagged_video
 
 
 @pytest.mark.parametrize(("extra", "extension"), [(["-vf", "scale=80:-2"], "mp4"), (["-frames:v", "1", "-update", "1"], "jpg"), (["-vn"], "m4a")])
-def test_run_ffmpeg_copies_date_and_geotag(geotagged_video, tmp_path, extra, extension):
+def test_run_ffmpeg_copies_date_and_geotag(geotagged_video, tmp_path, extra, extension) -> None:
     target = str(tmp_path / f"out.{extension}")
     util.run_ffmpeg(f'-i "{geotagged_video}" {" ".join(extra)} "{target}"')
     assert_same_date_and_place(target)
 
 
-def test_run_ffmpeg_copies_the_date_to_formats_without_geotagging(geotagged_video, tmp_path):
+def test_run_ffmpeg_copies_the_date_to_formats_without_geotagging(geotagged_video, tmp_path) -> None:
     target = str(tmp_path / "out.mp3")
     util.run_ffmpeg(f'-i "{geotagged_video}" -vn "{target}"')
     assert exif(target)["File:FileModifyDate"].startswith(DATE)
 
 
-def test_run_ffmpeg_without_gps_copies_only_the_date(short_video, tmp_path):
+def test_run_ffmpeg_without_gps_copies_only_the_date(short_video, tmp_path) -> None:
     source = str(tmp_path / "nogps.mp4")
     ffmpeg("-i", short_video, "-c", "copy", "-metadata", "creation_time=2018-03-02T08:09:10Z", source)
     target = str(tmp_path / "out.mp4")
@@ -110,20 +110,20 @@ def test_run_ffmpeg_without_gps_copies_only_the_date(short_video, tmp_path):
     assert "Composite:GPSLatitude" not in data
 
 
-def test_copy_never_fails(geotagged_video, tmp_path):
+def test_copy_never_fails(geotagged_video, tmp_path) -> None:
     with mock.patch.object(metacopy, "ExifToolHelper", side_effect=FileNotFoundError):
         metacopy.copy_date_and_geotag(geotagged_video, str(tmp_path / "x.mp4"))
     with mock.patch.object(metacopy, "ExifToolHelper", side_effect=RuntimeError("boom")):
         metacopy.copy_date_and_geotag(geotagged_video, str(tmp_path / "x.mp4"))
 
 
-def test_copy_after_ffmpeg_does_nothing_without_target(tmp_path):
+def test_copy_after_ffmpeg_does_nothing_without_target(tmp_path) -> None:
     with mock.patch.object(metacopy, "copy_date_and_geotag") as copy:
         metacopy.copy_after_ffmpeg("-i nothing -f null -")
     copy.assert_not_called()
 
 
-def test_tools_keep_the_date_and_geotag(geotagged_video, tmp_path):
+def test_tools_keep_the_date_and_geotag(geotagged_video, tmp_path) -> None:
     out = video.speed(geotagged_video, "2", output=str(tmp_path / "fast.mp4"))
     assert_same_date_and_place(out)
     out = video.VideoFile(geotagged_video).encode(target_file=str(tmp_path / "enc.mp4"), vcodec="h265", width=80, hw_accel="off")

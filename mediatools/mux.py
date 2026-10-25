@@ -29,7 +29,7 @@ import mediatools.videofile as video
 import mediatools.utilities as util
 
 
-def main():
+def main() -> None:
     util.init("video-mux")
     parser = argparse.ArgumentParser(description="Multiplexes a video file with several audio tracks")
     util.add_input_args(parser, "List of files to mux", required=False)

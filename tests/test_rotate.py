@@ -53,22 +53,22 @@ def run(*args: str) -> None:
 
 
 @pytest.mark.parametrize("angle,expected", [(90, 90), ("90", 90), (180, 180), (270, 270), (-90, 270), ("-90", 270), (None, 90)])
-def test_normalize_angle(angle, expected):
+def test_normalize_angle(angle, expected) -> None:
     assert video.normalize_rotation_angle(angle) == expected
 
 
 @pytest.mark.parametrize("angle", [0, 45, 360, -180, 91, "abc", ""])
-def test_invalid_angle(angle):
+def test_invalid_angle(angle) -> None:
     with pytest.raises(ex.InputError):
         video.normalize_rotation_angle(angle)
 
 
 @pytest.mark.parametrize("angle,expected", [(90, "transpose=1"), (-90, "transpose=2"), (270, "transpose=2"), (180, "hflip,vflip")])
-def test_rotation_filter(angle, expected):
+def test_rotation_filter(angle, expected) -> None:
     assert video.get_rotation_filter(angle) == expected
 
 
-def test_rotate_90_default_name(clip):
+def test_rotate_90_default_name(clip) -> None:
     out = video.rotate(clip)
     assert out == clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (180, 320)
@@ -76,13 +76,13 @@ def test_rotate_90_default_name(clip):
 
 
 @pytest.mark.parametrize("angle,postfix,expected", [(180, "r180", (320, 180)), (270, "r270", (180, 320)), (-90, "r270", (180, 320))])
-def test_rotate_angles(clip, angle, postfix, expected):
+def test_rotate_angles(clip, angle, postfix, expected) -> None:
     out = video.rotate(clip, angle=angle)
     assert out == clip.replace("clip.mp4", f"clip.{postfix}.mp4")
     assert size(out) == expected
 
 
-def test_rotate_keeps_audio_fps_and_extension(clip):
+def test_rotate_keeps_audio_fps_and_extension(clip) -> None:
     out = video.rotate(clip)
     original, rotated = video.VideoFile(clip), video.VideoFile(out)
     assert rotated.get_fps() == original.get_fps()
@@ -90,19 +90,19 @@ def test_rotate_keeps_audio_fps_and_extension(clip):
     assert Path(out).suffix == ".mp4"
 
 
-def test_rotate_fps_and_resolution(clip):
+def test_rotate_fps_and_resolution(clip) -> None:
     out = video.rotate(clip, fps="10", resolution="90x160")
     assert float(video.VideoFile(out).get_fps()) == 10
     assert size(out) == (90, 160)
 
 
-def test_rotate_output_file(clip, tmp_path):
+def test_rotate_output_file(clip, tmp_path) -> None:
     target = str(tmp_path / "rotated.mp4")
     assert video.rotate(clip, target, 90) == target
     assert size(target) == (180, 320)
 
 
-def test_rotate_keep_name(clip):
+def test_rotate_keep_name(clip) -> None:
     out = video.rotate(clip, angle=90, keep_name=True)
     assert out == clip
     assert size(clip) == (180, 320)  # The rotated video has the name of the original
@@ -111,12 +111,12 @@ def test_rotate_keep_name(clip):
     assert not Path(clip.replace("clip.mp4", "clip.r90.mp4")).exists()
 
 
-def test_rotate_keep_name_with_output_is_rejected(clip, tmp_path):
+def test_rotate_keep_name_with_output_is_rejected(clip, tmp_path) -> None:
     with pytest.raises(ex.InputError):
         video.rotate(clip, str(tmp_path / "out.mp4"), 90, keep_name=True)
 
 
-def test_rotate_quality_is_high_by_default(clip, tmp_path):
+def test_rotate_quality_is_high_by_default(clip, tmp_path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
@@ -127,7 +127,7 @@ def test_rotate_quality_is_high_by_default(clip, tmp_path):
     assert re.search(r'-crf "?28', run_ffmpeg.call_args.args[0])
 
 
-def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip):
+def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="on", resolution="90x160")
     cmd = run_ffmpeg.call_args.args[0]
@@ -140,16 +140,16 @@ def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip):
     assert '-s "90x160"' in cmd
 
 
-def test_rotate_is_not_encoded_by_the_gpu_when_off(clip):
+def test_rotate_is_not_encoded_by_the_gpu_when_off(clip) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, hw_accel="off")
     assert "nvenc" not in run_ffmpeg.call_args.args[0]
 
 
-def test_rotate_runs_again_on_the_cpu_when_the_gpu_fails(clip, tmp_path):
+def test_rotate_runs_again_on_the_cpu_when_the_gpu_fails(clip, tmp_path) -> None:
     attempts = []
 
-    def run_os_cmd(cmd, duration=None):
+    def run_os_cmd(cmd, duration=None) -> None:
         attempts.append(cmd)
         if "nvenc" in cmd:
             raise subprocess.CalledProcessError(1, cmd)
@@ -162,41 +162,41 @@ def test_rotate_runs_again_on_the_cpu_when_the_gpu_fails(clip, tmp_path):
     assert "transpose=1" in attempts[-1]
 
 
-def test_rotate_failure_with_the_gpu_forced_is_raised(clip, tmp_path):
-    def run_os_cmd(cmd, duration=None):
+def test_rotate_failure_with_the_gpu_forced_is_raised(clip, tmp_path) -> None:
+    def run_os_cmd(cmd, duration=None) -> None:
         raise subprocess.CalledProcessError(1, cmd)
 
     with patch("mediatools.utilities.run_os_cmd", side_effect=run_os_cmd), pytest.raises(subprocess.CalledProcessError):
         video.rotate(clip, output=str(tmp_path / "out.mp4"), hw_accel="on")
 
 
-def test_command_default_angle(clip):
+def test_command_default_angle(clip) -> None:
     run("-i", clip)
     out = clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (180, 320)
 
 
 @pytest.mark.parametrize("angle,postfix", [("-90", "r270"), ("270", "r270"), ("180", "r180")])
-def test_command_angles(clip, angle, postfix):
+def test_command_angles(clip, angle, postfix) -> None:
     run("-i", clip, "--angle", angle)
     assert Path(clip.replace("clip.mp4", f"clip.{postfix}.mp4")).exists()
 
 
 @pytest.mark.parametrize("angle", ["0", "45", "360", "abc"])
-def test_command_rejects_invalid_angles(clip, angle):
+def test_command_rejects_invalid_angles(clip, angle) -> None:
     with pytest.raises(SystemExit) as e:
         run("-i", clip, "--angle", angle)
     assert e.value.code == 2
     assert not Path(clip.replace("clip.mp4", "clip.r90.mp4")).exists()
 
 
-def test_command_keep_name(clip):
+def test_command_keep_name(clip) -> None:
     run("-i", clip, "--keepName")
     assert size(clip) == (180, 320)
     assert Path(clip.replace("clip.mp4", "clip.before_r90.mp4")).exists()
 
 
-def test_command_several_files_and_directories(short_video, tmp_path):
+def test_command_several_files_and_directories(short_video, tmp_path) -> None:
     folder = tmp_path / "videos"
     (folder / "sub").mkdir(parents=True)
     first = shutil.copy(short_video, folder / "a.mp4")
@@ -207,7 +207,7 @@ def test_command_several_files_and_directories(short_video, tmp_path):
         assert Path(str(f).replace(".mp4", ".r180.mp4")).exists()
 
 
-def test_command_output_file_with_several_files_is_rejected(short_video, tmp_path):
+def test_command_output_file_with_several_files_is_rejected(short_video, tmp_path) -> None:
     first = shutil.copy(short_video, tmp_path / "a.mp4")
     second = shutil.copy(short_video, tmp_path / "b.mp4")
     with pytest.raises(SystemExit) as e:
@@ -215,18 +215,18 @@ def test_command_output_file_with_several_files_is_rejected(short_video, tmp_pat
     assert e.value.code == 2
 
 
-def test_command_resolution_alias_and_fps(clip):
+def test_command_resolution_alias_and_fps(clip) -> None:
     run("-i", clip, "--fps", "12", "--resolution", "90x160")
     out = clip.replace("clip.mp4", "clip.r90.mp4")
     assert size(out) == (90, 160)
     assert float(video.VideoFile(out).get_fps()) == 12
 
 
-def test_rotate_is_a_videotool_action():
+def test_rotate_is_a_videotool_action() -> None:
     assert "rotate" in tools.VIDEO_ACTIONS
 
 
-def test_hw_accel_option_is_available(capsys):
+def test_hw_accel_option_is_available(capsys) -> None:
     with pytest.raises(SystemExit) as e:
         run("-h")
     assert e.value.code == 0
@@ -234,19 +234,19 @@ def test_hw_accel_option_is_available(capsys):
 
 
 @pytest.mark.parametrize("mode", ["auto", "on", "off"])
-def test_hw_accel_option_is_passed_to_the_rotation(clip, mode):
+def test_hw_accel_option_is_passed_to_the_rotation(clip, mode) -> None:
     with patch.object(video, "rotate", return_value=clip) as rotate:
         run("-i", clip, "--hw_accel", mode)
     assert rotate.call_args.kwargs["hw_accel"] == mode
 
 
-def test_hw_accel_is_auto_by_default(clip):
+def test_hw_accel_is_auto_by_default(clip) -> None:
     with patch.object(video, "rotate", return_value=clip) as rotate:
         run("-i", clip)
     assert rotate.call_args.kwargs["hw_accel"] == "auto"
 
 
-def test_invalid_hw_accel_option(clip):
+def test_invalid_hw_accel_option(clip) -> None:
     with pytest.raises(SystemExit) as e:
         run("-i", clip, "--hw_accel", "maybe")
     assert e.value.code == 2
@@ -270,23 +270,23 @@ def video_codec(file: str) -> str:
     return video.VideoFile(file).get_video_codec()
 
 
-def test_rotate_keeps_the_codec_of_the_original_video(codec_clips, tmp_path):
+def test_rotate_keeps_the_codec_of_the_original_video(codec_clips, tmp_path) -> None:
     for name, expected in (("h265", "hevc"), ("mpeg4", "h264")):  # mpeg4 is not supported: default codec (h264)
         src = shutil.copy(codec_clips[name], tmp_path / f"{name}.mp4")
         out = video.rotate(str(src), hw_accel="off")
         assert video_codec(out) == expected
 
 
-def test_rotate_h264_by_default(clip):
+def test_rotate_h264_by_default(clip) -> None:
     assert video_codec(video.rotate(clip, hw_accel="off")) == "h264"
 
 
-def test_rotate_vcodec_option(codec_clips, clip):
+def test_rotate_vcodec_option(codec_clips, clip) -> None:
     assert video_codec(video.rotate(clip, vcodec="h265", hw_accel="off")) == "hevc"
     assert video_codec(video.rotate(codec_clips["h265"], vcodec="h264", hw_accel="off")) == "h264"
 
 
-def test_rotate_commands_use_the_original_codec_and_quality(codec_clips):
+def test_rotate_commands_use_the_original_codec_and_quality(codec_clips) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(codec_clips["h265"], hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
@@ -299,6 +299,6 @@ def test_rotate_commands_use_the_original_codec_and_quality(codec_clips):
     assert re.search(r'-cq "?23', cmd)
 
 
-def test_command_vcodec_option(clip):
+def test_command_vcodec_option(clip) -> None:
     run("-i", clip, "--vcodec", "x265", "--hw_accel", "off")
     assert video_codec(clip.replace("clip.mp4", "clip.r90.mp4")) == "hevc"

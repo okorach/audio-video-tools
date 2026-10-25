@@ -59,6 +59,7 @@ from mediatools import (
 )
 import mediatools.utilities as util
 import mediatools.videofile as video
+from contextlib import AbstractContextManager
 
 FILE = "it/video-720p.mp4"
 HW_COMMAND = "-hwaccel cuda -i in.mp4 -c:v h264_nvenc out.mp4"
@@ -66,20 +67,20 @@ CPU_COMMAND = "-i in.mp4 -c:v libx264 out.mp4"
 
 
 @pytest.fixture
-def gpu_available(monkeypatch):
+def gpu_available(monkeypatch) -> None:
     """The check of the availability of the hardware acceleration says it's available"""
     monkeypatch.setattr(util, "HW_ACCEL", True)
 
 
 @pytest.fixture
-def no_gpu(monkeypatch):
+def no_gpu(monkeypatch) -> None:
     monkeypatch.setattr(util, "HW_ACCEL", False)
 
 
-def failing_gpu_commands():
+def failing_gpu_commands() -> AbstractContextManager:
     """Replaces the execution of the commands: those using the hardware acceleration fail, the others succeed"""
 
-    def run_os_cmd(cmd, duration=None):
+    def run_os_cmd(cmd, duration=None) -> None:
         if util.HW_ACCEL_COMMAND_REGEXP.search(cmd):
             raise subprocess.CalledProcessError(1, cmd, output="Conversion failed!")
 
@@ -101,32 +102,32 @@ def failing_gpu_commands():
         ("whatever", "auto"),
     ],
 )
-def test_hw_accel_mode(value, expected):
+def test_hw_accel_mode(value, expected) -> None:
     with mock.patch("mediatools.media_config.get_property", return_value=None):
         assert util.get_hw_accel_mode(hw_accel=value) == expected
 
 
-def test_hw_accel_mode_default():
+def test_hw_accel_mode_default() -> None:
     with mock.patch("mediatools.media_config.get_property", return_value="off"):
         assert util.get_hw_accel_mode() == "off"
         assert util.get_hw_accel_mode(hw_accel="on") == "on"
 
 
-def test_use_hardware_accel_explicit(no_gpu):
+def test_use_hardware_accel_explicit(no_gpu) -> None:
     assert util.use_hardware_accel(hw_accel="on")
     assert util.use_hardware_accel(hw_accel=True)
     assert not util.use_hardware_accel(hw_accel="off")
     assert not util.use_hardware_accel(hw_accel=False)
 
 
-def test_use_hardware_accel_auto(gpu_available, monkeypatch):
+def test_use_hardware_accel_auto(gpu_available, monkeypatch) -> None:
     assert util.use_hardware_accel(hw_accel="auto")
     assert not util.use_hardware_accel(hw_accel="auto", deinterlace=True)
     monkeypatch.setattr(util, "HW_ACCEL", False)
     assert not util.use_hardware_accel(hw_accel="auto")
 
 
-def test_use_hardware_accel_does_not_change_the_check(monkeypatch):
+def test_use_hardware_accel_does_not_change_the_check(monkeypatch) -> None:
     """An explicit mode doesn't alter the result of the check of the availability of the hardware acceleration"""
     monkeypatch.setattr(util, "HW_ACCEL", None)
     util.use_hardware_accel(hw_accel="off")
@@ -134,7 +135,7 @@ def test_use_hardware_accel_does_not_change_the_check(monkeypatch):
     assert util.HW_ACCEL is None
 
 
-def test_check_hardware_accel_is_done_once(monkeypatch):
+def test_check_hardware_accel_is_done_once(monkeypatch) -> None:
     monkeypatch.setattr(util, "HW_ACCEL", None)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run, mock.patch("os.remove"):
         assert util.check_hardware_accel()
@@ -142,7 +143,7 @@ def test_check_hardware_accel_is_done_once(monkeypatch):
     assert run.call_count == 1
 
 
-def test_check_hardware_accel_failure(monkeypatch):
+def test_check_hardware_accel_failure(monkeypatch) -> None:
     monkeypatch.setattr(util, "HW_ACCEL", None)
     with mock.patch("mediatools.utilities.run_ffmpeg", side_effect=subprocess.CalledProcessError(1, "ffmpeg")):
         assert not util.check_hardware_accel()
@@ -150,19 +151,19 @@ def test_check_hardware_accel_failure(monkeypatch):
 
 
 # The option of the tools
-def test_hw_accel_option_default():
+def test_hw_accel_option_default() -> None:
     parser = util.get_common_args("test", "test")
     with mock.patch("mediatools.media_config.get_property", return_value=None):
         assert util.parse_media_args(parser, ["-i", "a.mp4"])["hw_accel"] == "auto"
 
 
 @pytest.mark.parametrize("mode", ["auto", "on", "off"])
-def test_hw_accel_option_values(mode):
+def test_hw_accel_option_values(mode) -> None:
     parser = util.get_common_args("test", "test")
     assert util.parse_media_args(parser, ["-i", "a.mp4", "--hw_accel", mode])["hw_accel"] == mode
 
 
-def test_hw_accel_option_invalid():
+def test_hw_accel_option_invalid() -> None:
     parser = util.get_common_args("test", "test")
     with pytest.raises(SystemExit) as e:
         util.parse_media_args(parser, ["-i", "a.mp4", "--hw_accel", "maybe"])
@@ -199,7 +200,7 @@ TOOLS = [
 
 
 @pytest.mark.parametrize("tool", TOOLS, ids=[t.__name__ for t in TOOLS])
-def test_tools_have_the_hw_accel_option(tool, capsys):
+def test_tools_have_the_hw_accel_option(tool, capsys) -> None:
     """All the tools that decode or encode media have the --hw_accel option"""
     command, action = tools.find_action(tool.__name__)
     with mock.patch.object(sys, "argv", [command, action, "-h"]), pytest.raises(SystemExit) as e:
@@ -209,14 +210,14 @@ def test_tools_have_the_hw_accel_option(tool, capsys):
 
 
 @pytest.mark.parametrize("tool", TOOLS, ids=[t.__name__ for t in TOOLS])
-def test_tools_refuse_invalid_hw_accel(tool):
+def test_tools_refuse_invalid_hw_accel(tool) -> None:
     command, action = tools.find_action(tool.__name__)
     with mock.patch.object(sys, "argv", [command, action, "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
         tools.run(command)
     assert e.value.code == 2
 
 
-def test_slideshow_option(tmp_path):
+def test_slideshow_option(tmp_path) -> None:
     out_file = tmp_path / "o.mp4"
     with (
         mock.patch.object(sys, "argv", ["videotool", "slideshow", "-i", FILE, "--hw_accel", "off", "-o", str(out_file)]),
@@ -228,13 +229,13 @@ def test_slideshow_option(tmp_path):
     assert make_slideshow.call_args.kwargs["hw_accel"] == "off"
 
 
-def test_slideshow_invalid_option():
+def test_slideshow_invalid_option() -> None:
     with mock.patch.object(sys, "argv", ["videotool", "slideshow", "-i", FILE, "--hw_accel", "maybe"]), pytest.raises(SystemExit) as e:
         tools.videotool()
     assert e.value.code == 2
 
 
-def test_concat_passes_the_mode():
+def test_concat_passes_the_mode() -> None:
     with (
         mock.patch.object(sys, "argv", ["videotool", "concat", "-i", FILE, FILE, "-o", "o.mp4", "--hw_accel", "on"]),
         mock.patch("mediatools.videofile.concat", return_value="o.mp4") as concatenate,
@@ -244,11 +245,11 @@ def test_concat_passes_the_mode():
 
 
 # Fallback to the CPU
-def test_fallback_retries_on_the_cpu(gpu_available):
+def test_fallback_retries_on_the_cpu(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> str:
         attempts.append(util.use_hardware_accel(hw_accel=hw_accel))
         util.run_ffmpeg(HW_COMMAND if attempts[-1] else CPU_COMMAND)
         return "done"
@@ -258,11 +259,11 @@ def test_fallback_retries_on_the_cpu(gpu_available):
     assert attempts == [True, False]
 
 
-def test_fallback_with_a_keyword_argument(gpu_available):
+def test_fallback_with_a_keyword_argument(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(*, source, **kwargs):
+    def convert(*, source, **kwargs) -> None:
         attempts.append(util.use_hardware_accel(**kwargs))
         util.run_ffmpeg(HW_COMMAND if attempts[-1] else CPU_COMMAND)
 
@@ -271,12 +272,12 @@ def test_fallback_with_a_keyword_argument(gpu_available):
     assert attempts == [True, False]
 
 
-def test_fallback_in_a_method(gpu_available):
+def test_fallback_in_a_method(gpu_available) -> None:
     attempts = []
 
     class Converter:  # pylint: disable=too-few-public-methods
         @util.hw_accel_fallback
-        def convert(self, target, **kwargs):
+        def convert(self, target, **kwargs) -> str:
             attempts.append(util.use_hardware_accel(**kwargs))
             util.run_ffmpeg(HW_COMMAND if attempts[-1] else CPU_COMMAND)
             return target
@@ -286,11 +287,11 @@ def test_fallback_in_a_method(gpu_available):
     assert attempts == [True, False]
 
 
-def test_no_fallback_when_forced_on(gpu_available):
+def test_no_fallback_when_forced_on(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(util.use_hardware_accel(hw_accel=hw_accel))
         util.run_ffmpeg(HW_COMMAND)
 
@@ -299,11 +300,11 @@ def test_no_fallback_when_forced_on(gpu_available):
     assert attempts == [True]
 
 
-def test_no_hardware_acceleration_when_turned_off(gpu_available):
+def test_no_hardware_acceleration_when_turned_off(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(util.use_hardware_accel(hw_accel=hw_accel))
         util.run_ffmpeg(CPU_COMMAND)
 
@@ -312,11 +313,11 @@ def test_no_hardware_acceleration_when_turned_off(gpu_available):
     assert attempts == [False]
 
 
-def test_no_retry_without_gpu(no_gpu):
+def test_no_retry_without_gpu(no_gpu) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(util.use_hardware_accel(hw_accel=hw_accel))
         util.run_ffmpeg(CPU_COMMAND)
         raise subprocess.CalledProcessError(1, "ffmpeg")
@@ -326,12 +327,12 @@ def test_no_retry_without_gpu(no_gpu):
     assert attempts == [False]
 
 
-def test_no_retry_when_the_failed_command_is_not_hardware_accelerated(gpu_available):
+def test_no_retry_when_the_failed_command_is_not_hardware_accelerated(gpu_available) -> None:
     """A failure of a command on the CPU would fail the same way on the CPU: it's not run twice"""
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(1)
         util.run_ffmpeg(CPU_COMMAND)
         raise subprocess.CalledProcessError(1, "ffmpeg")
@@ -341,11 +342,11 @@ def test_no_retry_when_the_failed_command_is_not_hardware_accelerated(gpu_availa
     assert len(attempts) == 1
 
 
-def test_failure_on_the_cpu_is_raised(gpu_available):
+def test_failure_on_the_cpu_is_raised(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(util.use_hardware_accel(hw_accel=hw_accel))
         util.run_ffmpeg(HW_COMMAND if attempts[-1] else CPU_COMMAND)
         if not attempts[-1]:
@@ -356,11 +357,11 @@ def test_failure_on_the_cpu_is_raised(gpu_available):
     assert attempts == [True, False]
 
 
-def test_other_errors_are_not_retried(gpu_available):
+def test_other_errors_are_not_retried(gpu_available) -> None:
     attempts = []
 
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         attempts.append(1)
         raise ValueError("not an ffmpeg failure")
 
@@ -369,18 +370,18 @@ def test_other_errors_are_not_retried(gpu_available):
     assert len(attempts) == 1
 
 
-def test_nested_functions_are_retried_once_by_the_outer_one(gpu_available):
+def test_nested_functions_are_retried_once_by_the_outer_one(gpu_available) -> None:
     inner_calls = []
     outer_calls = []
 
     @util.hw_accel_fallback
-    def inner(hw_accel="auto"):
+    def inner(hw_accel="auto") -> None:
         hw = util.use_hardware_accel(hw_accel=hw_accel)
         inner_calls.append(hw)
         util.run_ffmpeg(HW_COMMAND if hw else CPU_COMMAND)
 
     @util.hw_accel_fallback
-    def outer(hw_accel="auto"):
+    def outer(hw_accel="auto") -> None:
         outer_calls.append(util.use_hardware_accel(hw_accel=hw_accel))
         inner(hw_accel=hw_accel)
 
@@ -390,9 +391,9 @@ def test_nested_functions_are_retried_once_by_the_outer_one(gpu_available):
     assert inner_calls == [True, False]
 
 
-def test_the_hardware_acceleration_is_used_again_after_a_fallback(gpu_available):
+def test_the_hardware_acceleration_is_used_again_after_a_fallback(gpu_available) -> None:
     @util.hw_accel_fallback
-    def convert(hw_accel="auto"):
+    def convert(hw_accel="auto") -> None:
         util.run_ffmpeg(HW_COMMAND if util.use_hardware_accel(hw_accel=hw_accel) else CPU_COMMAND)
 
     with failing_gpu_commands():
@@ -401,10 +402,10 @@ def test_the_hardware_acceleration_is_used_again_after_a_fallback(gpu_available)
 
 
 # Fallback of the real operations
-def test_encode_falls_back_to_the_cpu(gpu_available):
+def test_encode_falls_back_to_the_cpu(gpu_available) -> None:
     commands = []
 
-    def run_os_cmd(cmd, duration=None):
+    def run_os_cmd(cmd, duration=None) -> None:
         commands.append(cmd)
         if util.HW_ACCEL_COMMAND_REGEXP.search(cmd):
             raise subprocess.CalledProcessError(1, cmd)
@@ -418,16 +419,16 @@ def test_encode_falls_back_to_the_cpu(gpu_available):
     assert "libx265" in commands[1]
 
 
-def test_encode_does_not_fall_back_when_forced_on(gpu_available):
+def test_encode_does_not_fall_back_when_forced_on(gpu_available) -> None:
     with failing_gpu_commands() as run, pytest.raises(subprocess.CalledProcessError):
         video.VideoFile(FILE).encode(target_file="out.mp4", vcodec="h265", resolution="320x180", hw_accel="on")
     assert run.call_count == 1
 
 
-def test_crop_falls_back_to_the_cpu(gpu_available):
+def test_crop_falls_back_to_the_cpu(gpu_available) -> None:
     commands = []
 
-    def run_os_cmd(cmd, duration=None):
+    def run_os_cmd(cmd, duration=None) -> None:
         commands.append(cmd)
         if util.HW_ACCEL_COMMAND_REGEXP.search(cmd):
             raise subprocess.CalledProcessError(1, cmd)
@@ -442,10 +443,10 @@ def test_crop_falls_back_to_the_cpu(gpu_available):
     assert "-hwaccel" not in commands[1]
 
 
-def test_concat_falls_back_to_the_cpu(gpu_available, short_video, tmp_path):
+def test_concat_falls_back_to_the_cpu(gpu_available, short_video, tmp_path) -> None:
     commands = []
 
-    def run_os_cmd(cmd, duration=None):
+    def run_os_cmd(cmd, duration=None) -> None:
         commands.append(cmd)
         if util.HW_ACCEL_COMMAND_REGEXP.search(cmd):
             raise subprocess.CalledProcessError(1, cmd)
@@ -457,14 +458,14 @@ def test_concat_falls_back_to_the_cpu(gpu_available, short_video, tmp_path):
     assert "libx265" in commands[1]
 
 
-def test_concat_mode_off_uses_the_cpu(gpu_available, short_video, tmp_path):
+def test_concat_mode_off_uses_the_cpu(gpu_available, short_video, tmp_path) -> None:
     with mock.patch("mediatools.utilities.run_os_cmd") as run:
         video.concat(str(tmp_path / "out.mp4"), [short_video, short_video], hw_accel="off")
     assert run.call_count == 1
     assert "-hwaccel" not in run.call_args[0][0]
 
 
-def test_process_input_files_keeps_the_mode(gpu_available):
+def test_process_input_files_keeps_the_mode(gpu_available) -> None:
     """The tools run through process_input_files get the hw_accel option"""
     seen = []
     util.process_input_files({"inputfiles": ["a"], "hw_accel": "off"}, lambda _f, options: seen.append(options["hw_accel"]))
@@ -490,7 +491,7 @@ def video_with_stream(**stream) -> video.VideoFile:
         ({"codec_name": "hevc", "width": 5184, "height": 2916, "pix_fmt": "yuv420p10le"}, True),
     ],
 )
-def test_can_hw_decode(stream, expected):
+def test_can_hw_decode(stream, expected) -> None:
     assert video_with_stream(**stream).can_hw_decode() is expected
 
 
@@ -500,14 +501,14 @@ def encode_command(vf: video.VideoFile) -> str:
     return run.call_args.args[0]
 
 
-def test_encode_decodes_on_the_gpu_when_possible():
+def test_encode_decodes_on_the_gpu_when_possible() -> None:
     cmd = encode_command(video_with_stream())
     assert "-hwaccel cuda -hwaccel_output_format cuda" in cmd
     assert "scale_cuda=1920:-2" in cmd
     assert "hwupload_cuda" not in cmd
 
 
-def test_encode_decodes_on_the_cpu_when_the_gpu_cant():
+def test_encode_decodes_on_the_cpu_when_the_gpu_cant() -> None:
     cmd = encode_command(video_with_stream(width=5184, height=2916))
     assert "-hwaccel" not in cmd
     assert "hwupload_cuda,scale_cuda=1920:-2" in cmd

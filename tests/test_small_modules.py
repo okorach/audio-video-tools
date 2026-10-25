@@ -38,6 +38,7 @@ from filters import filters as flts
 from cli import encode as cli_encode
 from mediatools import audiospeed, config, datefixer, encoder, image2video, log, tools
 import mediatools.exceptions as ex
+from types import ModuleType
 
 
 # ---------------------------------------------------------------- audio-speed
@@ -45,7 +46,7 @@ import mediatools.exceptions as ex
     ("factor", "expected"),
     [(1.0, ["atempo=1.000000"]), (1.5, ["atempo=1.500000"]), (4.0, ["atempo=2.0", "atempo=2.000000"]), (0.25, ["atempo=0.5", "atempo=0.500000"])],
 )
-def test_atempo_filters(factor, expected):
+def test_atempo_filters(factor, expected) -> None:
     chain = audiospeed.atempo_filters(factor)
     assert chain == expected
     product = 1.0
@@ -54,11 +55,11 @@ def test_atempo_filters(factor, expected):
     assert product == pytest.approx(factor)
 
 
-def test_atempo_filters_long_chain():
+def test_atempo_filters_long_chain() -> None:
     assert len(audiospeed.atempo_filters(10.0)) == 4
 
 
-def test_audio_speed():
+def test_audio_speed() -> None:
     audio_file = mock.Mock(abitrate=192000, duration=100.0)
     with mock.patch.object(audiospeed.audio, "AudioFile", return_value=audio_file), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = audiospeed.speed("song.mp3", None, 50.0)
@@ -70,7 +71,7 @@ def test_audio_speed():
     assert duration == pytest.approx(50.0)  # 50% of the duration: twice as fast
 
 
-def test_audio_speed_without_bitrate_and_output():
+def test_audio_speed_without_bitrate_and_output() -> None:
     audio_file = mock.Mock(abitrate=None, duration=None)
     with mock.patch.object(audiospeed.audio, "AudioFile", return_value=audio_file), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         assert audiospeed.speed("song.mp3", "out.mp3", 200.0) == "out.mp3"
@@ -80,7 +81,7 @@ def test_audio_speed_without_bitrate_and_output():
     assert duration is None
 
 
-def test_audio_speed_main():
+def test_audio_speed_main() -> None:
     with (
         mock.patch.object(sys, "argv", ["audiotool", "speed", "-i", "a.mp3", "b.mp3", "--size", "90"]),
         mock.patch.object(audiospeed, "speed", return_value="o.mp3") as speed,
@@ -90,20 +91,20 @@ def test_audio_speed_main():
     assert [(c.args[0], c.args[2]) for c in speed.call_args_list] == [("a.mp3", 90.0), ("b.mp3", 90.0)]
 
 
-def test_audio_speed_main_invalid_size():
+def test_audio_speed_main_invalid_size() -> None:
     with mock.patch.object(sys, "argv", ["audiotool", "speed", "-i", "a.mp3", "--size", "0"]), pytest.raises(SystemExit) as e:
         tools.audiotool()
     assert e.value.code == 1
 
 
 # ---------------------------------------------------------------- Encoder
-def test_encoder_settings():
+def test_encoder_settings() -> None:
     enc = encoder.Encoder(vcodec="libx264", vbitrate="1000k", acodec="aac", abitrate="128k", aspect="16:9", start=2, stop=10, format="mp4", unknown=1)
     assert (enc.vcodec, enc.vbitrate, enc.acodec, enc.abitrate, enc.aspect, enc.format) == ("libx264", "1000k", "aac", "128k", "16:9", "mp4")
     assert (enc.start, enc.stop) == (2, 10)
 
 
-def test_encoder_defaults_and_ignored_settings():
+def test_encoder_defaults_and_ignored_settings() -> None:
     enc = encoder.Encoder(vcodec=None)
     assert enc.vcodec == "copy"
     assert enc.acodec == "copy"
@@ -112,7 +113,7 @@ def test_encoder_defaults_and_ignored_settings():
     assert not enc.vfilters
 
 
-def test_encoder_filters():
+def test_encoder_filters() -> None:
     enc = encoder.Encoder(start=2, stop=10)
     enc.add_crop_filter(10, 20, 1, 2)
     enc.add_deshake_filter(16, 8)
@@ -123,13 +124,13 @@ def test_encoder_filters():
     assert enc.get_vfilters_string().count("-filter:v") == 3
 
 
-def test_encoder_fade_without_start():
+def test_encoder_fade_without_start() -> None:
     enc = encoder.Encoder()
     enc.add_fade_filter(0.5, stop=5)
     assert enc.vfilters[0] == "fade=type=in:duration=0.5:start_time=0,fade=type=out:duration=0.5:start_time=4.5"
 
 
-def test_encoder_ffmpeg_options():
+def test_encoder_ffmpeg_options() -> None:
     enc = encoder.Encoder(vcodec="libx264", vbitrate="1000k", format="mp4", start=2, stop=10)
     enc.set_format("mkv")
     enc.add_vfilter("hflip")
@@ -141,31 +142,31 @@ def test_encoder_ffmpeg_options():
 class _Stream:
     encoding = "ascii"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.written = []
         self.buffer = io.BytesIO()
 
-    def write(self, text):
+    def write(self, text) -> None:
         self.written.append(text)
 
-    def flush(self):
+    def flush(self) -> None:
         pass
 
 
-def _record(message="héllo"):
+def _record(message="héllo") -> logging.LogRecord:
     return logging.LogRecord("test", logging.INFO, __file__, 1, message, None, None)
 
 
-def test_log_handler_writes_to_the_stream():
+def test_log_handler_writes_to_the_stream() -> None:
     stream = io.StringIO()
     handler = log.Utf8StreamHandler(stream)
     handler.emit(_record("hello"))
     assert stream.getvalue() == "hello\n"
 
 
-def test_log_handler_with_an_unencodable_message_writes_utf8_bytes():
+def test_log_handler_with_an_unencodable_message_writes_utf8_bytes() -> None:
     class AsciiStream(_Stream):
-        def write(self, text):
+        def write(self, text) -> None:
             text.encode("ascii")
 
     stream = AsciiStream()
@@ -173,18 +174,18 @@ def test_log_handler_with_an_unencodable_message_writes_utf8_bytes():
     assert stream.buffer.getvalue() == "héllo\n".encode()
 
 
-def test_log_handler_with_an_unencodable_message_and_no_buffer():
+def test_log_handler_with_an_unencodable_message_and_no_buffer() -> None:
     class AsciiStreamNoBuffer:
         encoding = "ascii"
 
-        def __init__(self):
+        def __init__(self) -> None:
             self.written = []
 
-        def write(self, text):
+        def write(self, text) -> None:
             text.encode("ascii")
             self.written.append(text)
 
-        def flush(self):
+        def flush(self) -> None:
             pass
 
     stream = AsciiStreamNoBuffer()
@@ -192,31 +193,31 @@ def test_log_handler_with_an_unencodable_message_and_no_buffer():
     assert stream.written == ["h?llo\n"]
 
 
-def test_log_handler_error_while_formatting():
+def test_log_handler_error_while_formatting() -> None:
     handler = log.Utf8StreamHandler(io.StringIO())
     with mock.patch.object(handler, "format", side_effect=ValueError("bad record")), mock.patch.object(handler, "handleError") as handle:
         handler.emit(_record())
     handle.assert_called_once()
 
 
-def test_log_handler_recursion_error_is_raised():
+def test_log_handler_recursion_error_is_raised() -> None:
     handler = log.Utf8StreamHandler(io.StringIO())
     with mock.patch.object(handler, "format", side_effect=RecursionError), pytest.raises(RecursionError):
         handler.emit(_record())
 
 
-def test_log_handler_error_while_writing_the_bytes():
+def test_log_handler_error_while_writing_the_bytes() -> None:
     class BrokenStream:
         encoding = "ascii"
 
-        def write(self, text):
+        def write(self, text) -> None:
             text.encode("ascii")
 
-        def flush(self):
+        def flush(self) -> None:
             pass
 
         @property
-        def buffer(self):
+        def buffer(self) -> None:
             raise OSError("closed")
 
     handler = log.Utf8StreamHandler(BrokenStream())
@@ -225,7 +226,7 @@ def test_log_handler_error_while_writing_the_bytes():
     handle.assert_called_once()
 
 
-def test_set_logger(tmp_path, monkeypatch):
+def test_set_logger(tmp_path, monkeypatch) -> None:
     previous = log.logger
     monkeypatch.chdir(tmp_path)
     try:
@@ -246,12 +247,12 @@ def test_set_logger(tmp_path, monkeypatch):
     ("level", "expected"),
     [(5, logging.DEBUG), (4, logging.DEBUG), (3, logging.INFO), (2, logging.WARNING), (1, logging.ERROR), (0, logging.CRITICAL)],
 )
-def test_get_logging_level(level, expected):
+def test_get_logging_level(level, expected) -> None:
     assert log.get_logging_level(level) == expected
 
 
 # ---------------------------------------------------------------- config
-def test_load_config(tmp_path, monkeypatch):
+def test_load_config(tmp_path, monkeypatch) -> None:
     home = tmp_path / "home"
     home.mkdir()
     work = tmp_path / "work"
@@ -272,20 +273,20 @@ def test_load_config(tmp_path, monkeypatch):
     assert settings["extra"] is True
 
 
-def test_load_config_without_files(tmp_path, monkeypatch):
+def test_load_config_without_files(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("os.path.expanduser", lambda _p: str(tmp_path))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(config, "_CONFIG_SETTINGS", None)
     assert config.load("does-not-exist") == {}
 
 
-def test_load_config_without_permission(tmp_path):
+def test_load_config_without_permission(tmp_path) -> None:
     with mock.patch("builtins.open", side_effect=PermissionError):
         assert not config.load_properties_file(tmp_path / "x.properties")
 
 
 # ---------------------------------------------------------------- filters (filters/filter.py)
-def test_simple_filter():
+def test_simple_filter() -> None:
     f = flt.Simple(flt.VIDEO_TYPE, stream_in="0:v", stream_out="out", filters=["a", "b"])
     assert str(f) == '-vf "[0:v]a,b[out]"'
     f.append("c")
@@ -296,7 +297,7 @@ def test_simple_filter():
     assert str(flt.Simple()) == ""
 
 
-def test_complex_filter():
+def test_complex_filter() -> None:
     video_a, video_b = mock.Mock(filename="a.mp4"), mock.Mock(filename="b.mp4")
     c = flt.Complex(video_a, video_b)
     first = c.add_filtergraph(0, "scale=10:20")
@@ -339,17 +340,17 @@ def test_complex_filter():
         (flt.Transpose("clock"), "transpose=clock"),
     ],
 )
-def test_filter_classes(flt_obj, expected):
+def test_filter_classes(flt_obj, expected) -> None:
     assert str(flt_obj) == expected
 
 
 @pytest.mark.parametrize("transposition", ["sideways", 9, -3])
-def test_invalid_transpose(transposition):
+def test_invalid_transpose(transposition) -> None:
     with pytest.raises(ex.InputError):
         flt.Transpose(transposition)
 
 
-def test_filter_functions():
+def test_filter_functions() -> None:
     assert flt.setpts("PTS-STARTPTS") == "setpts=PTS-STARTPTS"
     assert flt.select("gt(n,3)") == "select='gt(n,3)'"
     assert flt.fade_in(1, 2) == "fade=t=in:st=1:d=2:alpha=1"
@@ -380,7 +381,7 @@ def test_filter_functions():
     assert flt.hw_accel_output(hw_accel=False) == ""
 
 
-def test_filter_streams():
+def test_filter_streams() -> None:
     assert flt.in_out("scale=1:2", ["a", "b"], "c") == "[a][b]scale=1:2[c]"
     assert flt.wrap_in_streams(["x", "y"], "in", "out") == "[in]x,y[out]"
     assert flt.wrap_in_streams("x", "in", "out") == "[in]x[out]"
@@ -392,12 +393,12 @@ def test_filter_streams():
         flt.format(5)
 
 
-def test_filter_error_message():
+def test_filter_error_message() -> None:
     assert flt.FilterError("oops").message == "oops"
 
 
 # filters/filters.py
-def test_filters_module():
+def test_filters_module() -> None:
     assert flts.zoompan("x", "y", "z", d=1) == "zoompan=z='z':x='x':y='y':d=1"
     assert flts.trim(duration=2) == "trim=duration=2"
     assert flts.trim(start=1, stop=2) == "trim=start=1stop=2"
@@ -422,11 +423,11 @@ def test_filters_module():
         ("holidays 2017-05-07.jpg", datetime(2017, 5, 7)),
     ],
 )
-def test_guess_date(text, expected):
+def test_guess_date(text, expected) -> None:
     assert datefixer.guess_date(text) == expected
 
 
-def test_guess_date_not_found():
+def test_guess_date_not_found() -> None:
     assert datefixer.guess_date("no date here") is None
 
 
@@ -439,106 +440,106 @@ def test_guess_date_not_found():
         ("-00:30:00", relativedelta(minutes=-30)),
     ],
 )
-def test_guess_offset(text, expected):
+def test_guess_offset(text, expected) -> None:
     assert datefixer.guess_offset(text) == expected
 
 
-def test_guess_offset_invalid():
+def test_guess_offset_invalid() -> None:
     assert datefixer.guess_offset("+abc") is None
 
 
 @pytest.fixture
-def exif(monkeypatch):
+def exif(monkeypatch) -> ModuleType:
     monkeypatch.setattr(datefixer.videofile, "get_exif", mock.Mock())
     monkeypatch.setattr(datefixer.videofile, "set_creation_date", mock.Mock(return_value=True))
     monkeypatch.setattr(datefixer.videofile, "get_creation_date", mock.Mock(return_value=datetime(2020, 1, 1, 12, 0, 0)))
     return datefixer.videofile
 
 
-def test_change_file_date_from_the_file_name(exif):
+def test_change_file_date_from_the_file_name(exif) -> None:
     assert datefixer.change_file_date("dir/20170507_123422.mp4", "filename") == ("dir/20170507_123422.mp4", True)
     exif.set_creation_date.assert_called_once_with("dir/20170507_123422.mp4", datetime(2017, 5, 7, 12, 34, 22))
 
 
-def test_change_file_date_without_date_in_the_name(exif):
+def test_change_file_date_without_date_in_the_name(exif) -> None:
     assert datefixer.change_file_date("dir/clip.mp4", "filename")[1] is False
     exif.set_creation_date.assert_not_called()
 
 
-def test_change_file_date_with_an_offset(exif):
+def test_change_file_date_with_an_offset(exif) -> None:
     assert datefixer.change_file_date("clip.mp4", "offset", "+01:00:00")[1] is True
     exif.set_creation_date.assert_called_once_with("clip.mp4", datetime(2020, 1, 1, 13, 0, 0))
 
 
-def test_change_file_date_with_an_invalid_offset(exif):
+def test_change_file_date_with_an_invalid_offset(exif) -> None:
     assert datefixer.change_file_date("clip.mp4", "offset", "+nonsense")[1] is False
 
 
-def test_change_file_date_absolute(exif):
+def test_change_file_date_absolute(exif) -> None:
     assert datefixer.change_file_date("clip.mp4", "absolute", "2018-02-03 04:05:06")[1] is True
     exif.set_creation_date.assert_called_once_with("clip.mp4", datetime(2018, 2, 3, 4, 5, 6))
 
 
-def test_change_file_date_unknown_mode(exif):
+def test_change_file_date_unknown_mode(exif) -> None:
     assert datefixer.change_file_date("clip.mp4", "weird")[1] is False
 
 
-def test_change_files_date(exif):
+def test_change_files_date(exif) -> None:
     assert datefixer.change_files_date("filename", "", "20170507_123422.mp4", "no-date.mp4") == 1
 
 
-def test_change_files_date_task_failure(exif):
+def test_change_files_date_task_failure(exif) -> None:
     with mock.patch.object(datefixer, "change_file_date", side_effect=ValueError("boom")):
         assert datefixer.change_files_date("filename", "", "a.mp4") == 0
 
 
-def run_datefixer(*args):
+def run_datefixer(*args) -> int | str | None:
     with mock.patch.object(sys, "argv", ["datefixer", *args]), pytest.raises(SystemExit) as e:
         datefixer.main()
     return e.value.code
 
 
-def test_datefixer_main_filename_mode():
+def test_datefixer_main_filename_mode() -> None:
     with mock.patch.object(datefixer, "change_files_date") as change:
         assert run_datefixer("-i", "a.mp4", "b.jpg", "c.txt", "--mode", "filename") == 0
     assert change.call_args.args == ("filename", "", "a.mp4", "b.jpg")  # The text file is not an image or a video
 
 
 @pytest.mark.parametrize("mode", ["offset", "absolute"])
-def test_datefixer_main_offset_and_absolute_modes(mode):
+def test_datefixer_main_offset_and_absolute_modes(mode) -> None:
     with mock.patch.object(datefixer, "change_files_date") as change:
         assert run_datefixer("-i", "a.mp4", "--mode", mode, "--offset", "+01:00:00") == 0
     assert change.call_args.args == (mode, "+01:00:00", "a.mp4")
 
 
 @pytest.mark.parametrize("mode", ["offset", "absolute"])
-def test_datefixer_main_offset_is_required(mode):
+def test_datefixer_main_offset_is_required(mode) -> None:
     assert run_datefixer("-i", "a.mp4", "--mode", mode) == 1
 
 
-def test_datefixer_main_year_mode(exif):
+def test_datefixer_main_year_mode(exif) -> None:
     dates = {"good.mp4": datetime(2020, 1, 1), "bad.mp4": datetime(1999, 1, 1)}
     exif.get_creation_date.side_effect = lambda f: dates[f]
     assert run_datefixer("-i", "good.mp4", "bad.mp4", "--mode", "year", "--year", "2020") == 0
     exif.set_creation_date.assert_called_once_with("bad.mp4", datetime(2020, 1, 1))
 
 
-def test_datefixer_main_year_mode_needs_two_files(exif):
+def test_datefixer_main_year_mode_needs_two_files(exif) -> None:
     assert run_datefixer("-i", "a.mp4", "--mode", "year", "--year", "2020") == 1
 
 
-def test_datefixer_main_year_mode_without_a_bad_file(exif):
+def test_datefixer_main_year_mode_without_a_bad_file(exif) -> None:
     exif.get_creation_date.side_effect = lambda _f: datetime(2020, 1, 1)
     assert run_datefixer("-i", "a.mp4", "b.mp4", "--mode", "year", "--year", "2020") == 1
     exif.set_creation_date.assert_not_called()
 
 
-def test_datefixer_main_without_year_or_offset():
+def test_datefixer_main_without_year_or_offset() -> None:
     assert run_datefixer("-i", "a.mp4", "--mode", "year") == 1
 
 
 # ---------------------------------------------------------------- encode (cli)
-def test_cli_build_file_name(tmp_path):
+def test_cli_build_file_name(tmp_path) -> None:
     src = str(tmp_path / "clip.v1.mp4")
     assert cli_encode.build_file_name(src, "640px") == str(tmp_path / "clip.v1.640px.mp4")
     (tmp_path / "clip.v1.640px.mp4").write_text("x")
@@ -547,7 +548,7 @@ def test_cli_build_file_name(tmp_path):
     assert cli_encode.build_file_name(src, "x", "mkv") == str(tmp_path / "clip.v1.x.mkv")
 
 
-def run_cli_encode(*args):
+def run_cli_encode(*args) -> tuple[mock.MagicMock, mock.MagicMock, mock.MagicMock]:
     with (
         mock.patch.object(sys, "argv", ["videotool", "encode", *args]),
         mock.patch.object(cli_encode.vf, "VideoFile") as video_file,
@@ -561,7 +562,7 @@ def run_cli_encode(*args):
     return video_file, set_date, rename
 
 
-def test_cli_encode_name_of_the_output(tmp_path):
+def test_cli_encode_name_of_the_output(tmp_path) -> None:
     video, set_date, rename = run_cli_encode(
         "-i", str(tmp_path / "a.mp4"), "--width", "1920", "--vbitrate", "6000k", "--vcodec", "x265", "--fps", "50"
     )
@@ -571,13 +572,13 @@ def test_cli_encode_name_of_the_output(tmp_path):
     rename.assert_not_called()
 
 
-def test_cli_encode_default_name_and_media_files_only(tmp_path):
+def test_cli_encode_default_name_and_media_files_only(tmp_path) -> None:
     video, _, _ = run_cli_encode("-i", str(tmp_path / "a.mp4"), str(tmp_path / "notes.txt"))
     assert video.call_count == 1
     assert video.return_value.encode.call_args.kwargs["target_file"] == str(tmp_path / "a.encoded.mp4")
 
 
-def test_cli_encode_keep_name(tmp_path):
+def test_cli_encode_keep_name(tmp_path) -> None:
     src = str(tmp_path / "a.mp4")
     _, _, rename = run_cli_encode("-i", src, "--keepName")
     out = str(tmp_path / "a.encoded.mp4")
@@ -585,7 +586,7 @@ def test_cli_encode_keep_name(tmp_path):
 
 
 # ---------------------------------------------------------------- image-to-video
-def run_image2video(*args):
+def run_image2video(*args) -> int | str | None:
     with (
         mock.patch.object(sys, "argv", ["imagetool", "to-video", *args]),
         mock.patch("mediatools.utilities.generated_file"),
@@ -595,7 +596,7 @@ def run_image2video(*args):
     return e.value.code
 
 
-def test_image2video_zoom():
+def test_image2video_zoom() -> None:
     with mock.patch.object(image2video.image, "ImageFile") as image_file:
         image_file.return_value.zoom.return_value = "zoom.mp4"
         assert run_image2video("-i", "a.jpg", "--style", "zoom", "--bounds", "1,1.5", "--duration", "3", "--resolution", "640x360") == 0
@@ -607,7 +608,7 @@ def test_image2video_zoom():
     image_file.return_value.panorama.assert_not_called()
 
 
-def test_image2video_panorama():
+def test_image2video_panorama() -> None:
     with mock.patch.object(image2video.image, "ImageFile") as image_file:
         image_file.return_value.panorama.return_value = "pan.mp4"
         assert run_image2video("-i", "a.jpg", "b.jpg", "--style", "panorama") == 0
@@ -616,7 +617,7 @@ def test_image2video_panorama():
     assert "effect" not in image_file.return_value.panorama.call_args.kwargs
 
 
-def test_image2video_input_error():
+def test_image2video_input_error() -> None:
     with mock.patch.object(image2video.image, "ImageFile") as image_file:
         image_file.return_value.zoom.side_effect = ex.InputError("bad zoom", "image2video")
         assert run_image2video("-i", "a.jpg", "--style", "zoom") != 0

@@ -30,7 +30,7 @@ def progress_messages(info) -> list[str]:
     return [call.args[0] % call.args[1:] for call in info.call_args_list if call.args[0].startswith("GLOBAL progress")]
 
 
-def test_global_progress_eta():
+def test_global_progress_eta() -> None:
     with patch.object(util.time, "time", side_effect=[1000.0, 1070.0]), patch.object(log.logger, "info") as info:
         progress = util.GlobalProgress(11)
         progress.count = 6
@@ -39,13 +39,13 @@ def test_global_progress_eta():
     assert progress_messages(info) == ["GLOBAL progress 7/11 - 63%, ETA 00:00:40.000"]
 
 
-def test_global_progress_single_file_is_silent():
+def test_global_progress_single_file_is_silent() -> None:
     with patch.object(log.logger, "info") as info:
         util.GlobalProgress(1).done()
     assert not progress_messages(info)
 
 
-def test_process_input_files_logs_progress():
+def test_process_input_files_logs_progress() -> None:
     with patch.object(log.logger, "info") as info, patch.object(log.logger, "error"), pytest.raises(SystemExit):
         util.process_input_files({"inputfiles": ["a", "b", "c"]}, lambda f, _: 1 / 0 if f == "b" else None)
     messages = progress_messages(info)
@@ -57,7 +57,7 @@ def test_process_input_files_logs_progress():
 FFMPEG_LINE = "frame=30608 fps=197 q=25.0 size=  330kB time=00:00:06.000 bitrate=2261.3kbits/s speed=2x"
 
 
-def test_eta_of_a_line_combines_file_and_global_progress():
+def test_eta_of_a_line_combines_file_and_global_progress() -> None:
     # 7th file of 11 at 60%: (6 * 100 + 60) / 1100 = 60% - 660 s after the start the 40% remaining take 440 s
     with patch.object(util.time, "time", side_effect=[1000.0, 1660.0]):
         progress = util.GlobalProgress(11)
@@ -67,13 +67,13 @@ def test_eta_of_a_line_combines_file_and_global_progress():
     util.GlobalProgress.current = None
 
 
-def test_eta_of_a_line_without_global_progress():
+def test_eta_of_a_line_without_global_progress() -> None:
     util.GlobalProgress(1)
     assert util.GlobalProgress.current is None
     assert util.__compute_eta__(FFMPEG_LINE, 10) == " ETA=00:00:02.000"
 
 
-def test_global_progress_is_cleared_when_done():
+def test_global_progress_is_cleared_when_done() -> None:
     progress = util.GlobalProgress(2)
     assert util.GlobalProgress.current is progress
     with patch.object(log.logger, "info"):
@@ -83,7 +83,7 @@ def test_global_progress_is_cleared_when_done():
     assert util.GlobalProgress.current is None
 
 
-def test_weighted_steps():
+def test_weighted_steps() -> None:
     # 4 clips of weight 1 then an assembly of weight 4: at 50% of the assembly, (4 + 2) / 8 = 75% of the work is done
     with patch.object(util.time, "time", side_effect=[1000.0, 1300.0]), patch.object(log.logger, "info"):
         progress = util.GlobalProgress(8)

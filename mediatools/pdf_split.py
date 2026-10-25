@@ -43,7 +43,7 @@ PPP_PRESETS = {150: "ebook", 300: "printer", 600: "prepress"}
 DEFAULT_PPP = 150
 
 
-def find_ghostscript():
+def find_ghostscript() -> str | None:
     """Returns the path of the Ghostscript executable, or None if not found"""
     for binary in GS_BINARIES:
         path = shutil.which(binary)
@@ -52,7 +52,7 @@ def find_ghostscript():
     return None
 
 
-def page_count(gs, pdf_file):
+def page_count(gs, pdf_file) -> int:
     """Returns the number of pages of a PDF file"""
     # PostScript string: backslashes and parentheses must be escaped
     ps_path = pdf_file.replace("\\", "/").replace("(", r"\(").replace(")", r"\)")
@@ -65,14 +65,14 @@ def page_count(gs, pdf_file):
     return int(match.group())
 
 
-def output_pattern(pdf_file, nb_pages):
+def output_pattern(pdf_file, nb_pages) -> str:
     """Returns the Ghostscript output file pattern, with page number zero padded to the width of nb_pages"""
     width = len(str(nb_pages))
     base = os.path.splitext(pdf_file)[0]
     return f"{base}.page_%0{width}d.pdf"
 
 
-def split(pdf_file, ppp=DEFAULT_PPP):
+def split(pdf_file, ppp=DEFAULT_PPP) -> int:
     """Splits a PDF in 1 PDF per page. Returns the number of pages"""
     gs = find_ghostscript()
     if gs is None:
@@ -96,7 +96,7 @@ def split(pdf_file, ppp=DEFAULT_PPP):
     return nb_pages
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Splits PDF files into 1 PDF file per page (requires Ghostscript)")
     util.add_input_args(parser, "Input PDF files and/or directories (all the PDF files they contain are processed)")
     parser.add_argument(

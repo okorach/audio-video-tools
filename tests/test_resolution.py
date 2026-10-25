@@ -25,19 +25,19 @@ import mediatools.videofile as video
 import mediatools.exceptions as ex
 
 
-def test_canonical_1():
+def test_canonical_1() -> None:
     assert res.canonical("720p") == "1280x720"
 
 
-def test_canonical_2():
+def test_canonical_2() -> None:
     assert res.canonical("1080p") == "1920x1080"
 
 
-def test_canonical_3():
+def test_canonical_3() -> None:
     assert res.canonical("4k") == "3840x2160"
 
 
-def test_multiply():
+def test_multiply() -> None:
     x, y = 1000, 200
     r = res.Resolution(width=x, height=y)
     r2 = r * 2
@@ -45,7 +45,7 @@ def test_multiply():
     assert r2.height == y * 2
 
 
-def test_multiply_by_0():
+def test_multiply_by_0() -> None:
     r = res.Resolution(width=300, height=17)
     try:
         _ = r * 0
@@ -53,7 +53,7 @@ def test_multiply_by_0():
         assert e.message == "width and height must be strictly positive"
 
 
-def test_multiply_by_negative():
+def test_multiply_by_negative() -> None:
     r = res.Resolution(width=100, height=100)
     try:
         _ = r * -1
@@ -84,19 +84,19 @@ def test_multiply_by_negative():
         (" 4k ", "3840x2160"),
     ],
 )
-def test_aliases(alias, expected):
+def test_aliases(alias, expected) -> None:
     assert res.canonical(alias) == expected
     assert str(res.Resolution(resolution=alias)) == expected
 
 
-def test_not_an_alias():
+def test_not_an_alias() -> None:
     assert res.canonical("1280x720") == "1280x720"
     assert res.canonical("unknown") == "unknown"
     assert res.canonical(None) is None
 
 
 @pytest.mark.parametrize("alias,expected", [("4K", "3840x2160"), ("2.7k", "2704x1520"), ("FHD", "1920x1080"), ("720P", "1280x720")])
-def test_resolution_option_aliases(alias, expected):
+def test_resolution_option_aliases(alias, expected) -> None:
     parser = util.get_common_args("test-resolution", "test")
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "--resolution", alias])["resolution"] == expected
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "-s", alias])["resolution"] == expected
@@ -107,5 +107,5 @@ def test_resolution_option_aliases(alias, expected):
 @pytest.mark.parametrize(
     "alias,expected", [("2.7k", ("2704", "1520")), ("4K", ("3840", "2160")), ("1k", ("1920", "1080")), ("1280x720", ("1280", "720"))]
 )
-def test_crop_box_aliases(alias, expected):
+def test_crop_box_aliases(alias, expected) -> None:
     assert video.parse_crop_box(alias) == expected

@@ -35,11 +35,11 @@ from mediatools import video_enhance as ve
 
 
 @pytest.fixture
-def collab(monkeypatch, tmp_path):
+def collab(monkeypatch, tmp_path) -> types.SimpleNamespace:
     """Replaces everything enhance_file() calls: the video functions, the stabilization and the file operations"""
     trf = tmp_path / "detected.trf"
 
-    def detect(_filename):
+    def detect(_filename) -> str:
         trf.write_text("trf")
         return str(trf)
 
@@ -63,11 +63,11 @@ def collab(monkeypatch, tmp_path):
     return mocks
 
 
-def enhance(**kwargs):
+def enhance(**kwargs) -> None:
     ve.enhance_file("dir/clip.mp4", kwargs.pop("output_file", None), saturation=1.3, contrast=1.1, brightness=0.0, gamma=1.0, **kwargs)
 
 
-def test_enhance_replaces_the_file_and_keeps_the_original(collab):
+def test_enhance_replaces_the_file_and_keeps_the_original(collab) -> None:
     enhance()
     kwargs = collab.color_enhance.call_args.kwargs
     assert collab.color_enhance.call_args.args == ("dir/clip.mp4", None)
@@ -77,14 +77,14 @@ def test_enhance_replaces_the_file_and_keeps_the_original(collab):
     collab.generated_file.assert_called_once_with("dir/clip.mp4")
 
 
-def test_enhance_with_output_file_keeps_the_input(collab):
+def test_enhance_with_output_file_keeps_the_input(collab) -> None:
     enhance(output_file="out.mp4")
     assert collab.color_enhance.call_args.args == ("dir/clip.mp4", "out.mp4")
     collab.rename.assert_not_called()
     collab.generated_file.assert_called_once_with("enhanced.mp4")
 
 
-def test_enhance_stabilizes_with_vidstab(collab):
+def test_enhance_stabilizes_with_vidstab(collab) -> None:
     enhance()
     kwargs = collab.color_enhance.call_args.kwargs
     assert kwargs["vidstab_trf"] == str(collab.trf)
@@ -92,7 +92,7 @@ def test_enhance_stabilizes_with_vidstab(collab):
     assert not collab.trf.exists()  # The transforms file is removed
 
 
-def test_enhance_falls_back_to_deshake_without_vidstab(collab):
+def test_enhance_falls_back_to_deshake_without_vidstab(collab) -> None:
     collab.has_vidstab.return_value = False
     enhance()
     kwargs = collab.color_enhance.call_args.kwargs
@@ -101,7 +101,7 @@ def test_enhance_falls_back_to_deshake_without_vidstab(collab):
     collab.run_vidstabdetect.assert_not_called()
 
 
-def test_enhance_continues_if_the_motion_detection_fails(collab):
+def test_enhance_continues_if_the_motion_detection_fails(collab) -> None:
     collab.run_vidstabdetect.side_effect = RuntimeError("boom")
     enhance()
     kwargs = collab.color_enhance.call_args.kwargs
@@ -110,7 +110,7 @@ def test_enhance_continues_if_the_motion_detection_fails(collab):
     collab.generated_file.assert_called_once()
 
 
-def test_enhance_without_stabilization(collab):
+def test_enhance_without_stabilization(collab) -> None:
     enhance(stabilize=False)
     collab.has_vidstab.assert_not_called()
     collab.run_vidstabdetect.assert_not_called()
@@ -119,21 +119,21 @@ def test_enhance_without_stabilization(collab):
     assert "deshake" not in kwargs
 
 
-def test_enhance_passes_hw_accel_and_batch_remaining(collab):
+def test_enhance_passes_hw_accel_and_batch_remaining(collab) -> None:
     enhance(hw_accel=False, batch_remaining=42.5, stabilize=False)
     kwargs = collab.color_enhance.call_args.kwargs
     assert kwargs["hw_accel"] is False
     assert kwargs["batch_remaining"] == 42.5
 
 
-def test_enhance_does_not_pass_unset_options(collab):
+def test_enhance_does_not_pass_unset_options(collab) -> None:
     enhance(stabilize=False)
     kwargs = collab.color_enhance.call_args.kwargs
     assert "hw_accel" not in kwargs
     assert "batch_remaining" not in kwargs
 
 
-def test_enhance_failure_leaves_the_files_untouched(collab):
+def test_enhance_failure_leaves_the_files_untouched(collab) -> None:
     collab.color_enhance.side_effect = RuntimeError("ffmpeg failed")
     enhance()
     collab.rename.assert_not_called()
@@ -144,7 +144,7 @@ def test_enhance_failure_leaves_the_files_untouched(collab):
 
 # Command line
 @pytest.fixture
-def cli(monkeypatch):
+def cli(monkeypatch) -> mock.Mock:
     enhance_file = mock.Mock()
     monkeypatch.setattr(ve, "enhance_file", enhance_file)
     monkeypatch.setattr(ve.video, "get_duration", mock.Mock(side_effect=lambda f: 10.0 if "long" in f else 5.0))
@@ -156,7 +156,7 @@ def run_main(*args: str) -> None:
         tools.videotool()
 
 
-def test_main_defaults(cli):
+def test_main_defaults(cli) -> None:
     run_main("-i", "a.mp4")
     assert cli.call_count == 1
     assert cli.call_args.args == ("a.mp4", None)
@@ -166,7 +166,7 @@ def test_main_defaults(cli):
     assert cli.call_args.kwargs["batch_remaining"] == 5.0
 
 
-def test_main_options(cli):
+def test_main_options(cli) -> None:
     run_main(
         "-i",
         "a.mp4",
@@ -189,21 +189,21 @@ def test_main_options(cli):
     assert cli.call_args.kwargs["stabilize"] is False
 
 
-def test_main_remaining_duration_of_the_batch(cli):
+def test_main_remaining_duration_of_the_batch(cli) -> None:
     run_main("-i", "short.mp4", "long.mp4")
     assert [c.kwargs["batch_remaining"] for c in cli.call_args_list] == [15.0, 10.0]
 
 
-def test_main_skips_generated_files(cli):
+def test_main_skips_generated_files(cli) -> None:
     run_main("-i", "a.mp4", str(Path("dir") / "a.color.mp4"), "a.original.mp4")
     assert [c.args[0] for c in cli.call_args_list] == ["a.mp4"]
 
 
-def test_main_only_generated_files(cli):
+def test_main_only_generated_files(cli) -> None:
     run_main("-i", "a.color.mp4")
     cli.assert_not_called()
 
 
-def test_main_output_file_with_several_files(cli):
+def test_main_output_file_with_several_files(cli) -> None:
     run_main("-i", "a.mp4", "b.mp4", "-o", "o.mp4")
     cli.assert_not_called()

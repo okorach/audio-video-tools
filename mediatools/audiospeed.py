@@ -62,7 +62,7 @@ def speed(input_file: str, output_file: str | None, size_percent: float) -> str:
     return output_file
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("audio-speed", "Accelerates or slows down an audio file")
     parser.add_argument(
         "--size",

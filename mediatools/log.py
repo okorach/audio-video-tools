@@ -24,7 +24,7 @@ import pathlib
 
 
 class Utf8StreamHandler(logging.StreamHandler):
-    def emit(self, record):
+    def emit(self, record) -> None:
         try:
             msg = self.format(record)
             self.stream.write(msg + self.terminator)

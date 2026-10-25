@@ -32,7 +32,7 @@ TMP2 = util.get_tmp_file() + ".mp4"
 TMP3 = util.get_tmp_file() + ".mp4"
 
 
-def test_main_with_output(short_video, tmp_path):
+def test_main_with_output(short_video, tmp_path) -> None:
     util.HW_ACCEL = False
     output = str(tmp_path / "concat.mp4")
     with patch.object(sys, "argv", ["videotool", "concat", "-g", "3", "-i", short_video, short_video, "-o", output]):
@@ -43,7 +43,7 @@ def test_main_with_output(short_video, tmp_path):
     assert abs(2 * video.VideoFile(short_video).duration - video.VideoFile(output).duration) < 0.1
 
 
-def test_main_help():
+def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
         try:
             tools.videotool()
@@ -52,7 +52,7 @@ def test_main_help():
             assert int(str(e)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -61,7 +61,7 @@ def test_main_bad_option():
             assert int(str(e)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
         try:
             tools.videotool()

@@ -31,12 +31,12 @@ TMP1 = util.get_tmp_file() + ".mp4"
 
 
 @pytest.fixture(autouse=True)
-def use_short_video(short_video, monkeypatch):
+def use_short_video(short_video, monkeypatch) -> None:
     """The tests don't depend on a specific video: reversing a short video is much faster"""
     monkeypatch.setattr(sys.modules[__name__], "VIDEO", short_video)
 
 
-def test_main():
+def test_main() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO]):
         try:
             tools.videotool()
@@ -45,7 +45,7 @@ def test_main():
             assert int(str(e)) == 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1]):
         try:
             tools.videotool()
@@ -59,7 +59,7 @@ def test_main_with_output():
             os.remove(TMP1)
 
 
-def test_keep_audio():
+def test_keep_audio() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-g", "2", "-i", VIDEO, "-o", TMP1, "-k"]):
         try:
             tools.videotool()
@@ -73,7 +73,7 @@ def test_keep_audio():
             os.remove(TMP1)
 
 
-def test_main_help():
+def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
         try:
             tools.videotool()
@@ -82,7 +82,7 @@ def test_main_help():
             assert int(str(e)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -91,7 +91,7 @@ def test_main_bad_option():
             assert int(str(e)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
         try:
             tools.videotool()
@@ -100,13 +100,13 @@ def test_main_no_file():
             assert int(str(e)) == 2
 
 
-def test_reverse_api_removes_audio():
+def test_reverse_api_removes_audio() -> None:
     output = video.reverse(VIDEO, output=TMP1)
     assert video.VideoFile(output).audio_codec is None
     os.remove(output)
 
 
-def test_reverse_api_keep_audio():
+def test_reverse_api_keep_audio() -> None:
     output = video.reverse(VIDEO, output=TMP1, mute=False)
     assert video.VideoFile(output).audio_codec is not None
     os.remove(output)

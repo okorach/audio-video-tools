@@ -26,7 +26,7 @@ from mediatools import audiosplit
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 
 
-def test_help():
+def test_help() -> None:
     with pytest.raises(SystemExit) as exc_info:
         util.parse_media_args(
             util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
@@ -35,7 +35,7 @@ def test_help():
     assert exc_info.value.code == 0
 
 
-def test_bad_option():
+def test_bad_option() -> None:
     with pytest.raises(SystemExit) as exc_info:
         util.parse_media_args(
             util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
@@ -44,7 +44,7 @@ def test_bad_option():
     assert exc_info.value.code == 2
 
 
-def test_missing_input():
+def test_missing_input() -> None:
     with pytest.raises(SystemExit) as exc_info:
         util.parse_media_args(
             util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
@@ -53,7 +53,7 @@ def test_missing_input():
     assert exc_info.value.code == 2
 
 
-def test_detect_tune_changes(short_audio):
+def test_detect_tune_changes(short_audio) -> None:
     boundaries = audiosplit.detect_tune_changes(short_audio, sensitivity=0.5, min_segment=5)
     assert isinstance(boundaries, list)
     for b in boundaries:
@@ -61,7 +61,7 @@ def test_detect_tune_changes(short_audio):
         assert b > 0
 
 
-def test_dry_run(capsys, short_audio):
+def test_dry_run(capsys, short_audio) -> None:
     parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     parser.add_argument("--fade-duration", required=False, type=float, default=1.0)
     parser.add_argument("--min-segment", required=False, type=float, default=30.0)

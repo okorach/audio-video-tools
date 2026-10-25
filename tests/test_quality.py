@@ -31,6 +31,7 @@ import mediatools.exceptions as ex
 import mediatools.mediafile as media
 import mediatools.utilities as util
 import mediatools.videofile as video
+from collections.abc import Callable
 
 
 @pytest.mark.parametrize(
@@ -47,39 +48,39 @@ import mediatools.videofile as video
         ("libx264", "HIGH", {"crf": 18}),
     ],
 )
-def test_quality_settings(vcodec, quality, expected):
+def test_quality_settings(vcodec, quality, expected) -> None:
     assert media.get_quality_settings(vcodec, False, quality=quality) == expected
 
 
-def test_quality_is_high_by_default():
+def test_quality_is_high_by_default() -> None:
     assert media.get_quality_settings("libx264") == {"crf": 18}
     assert media.get_quality_settings("libx265") == {"crf": 23}
 
 
-def test_quality_is_not_used_by_default_with_a_bitrate():
+def test_quality_is_not_used_by_default_with_a_bitrate() -> None:
     assert media.get_quality_settings("libx264", True) == {}
     # An explicit quality takes precedence over a bitrate
     assert media.get_quality_settings("libx264", True, quality="low") == {"crf": 28}
 
 
-def test_quality_is_not_applied_to_copied_or_unsupported_codecs():
+def test_quality_is_not_applied_to_copied_or_unsupported_codecs() -> None:
     assert media.get_quality_settings("copy", quality="low") == {}
     assert media.get_quality_settings("libxvid", quality="low") == {}
     assert media.get_quality_settings("libxvid") == {}
 
 
-def test_invalid_quality():
+def test_invalid_quality() -> None:
     with pytest.raises(ex.InputError):
         media.get_quality_settings("libx264", quality="ultra")
 
 
-def test_quality_triggers_the_encoding():
+def test_quality_triggers_the_encoding() -> None:
     assert media._must_encode_video(quality="low")  # pylint: disable=protected-access
     assert not media._must_encode_video(quality="low", vcodec="copy")  # pylint: disable=protected-access
     assert not media._must_encode_video()  # pylint: disable=protected-access
 
 
-def test_quality_option():
+def test_quality_option() -> None:
     parser = argparse.ArgumentParser()
     video.add_video_args(parser)
     assert vars(parser.parse_args([]))["quality"] is None
@@ -89,7 +90,7 @@ def test_quality_option():
 
 
 @pytest.fixture
-def ffmpeg_cmd():
+def ffmpeg_cmd() -> Callable[..., str]:
     """Runs VideoFile.encode() without running ffmpeg, and returns the ffmpeg parameters"""
 
     def run(short_video, tmp_path, **kwargs) -> str:
@@ -105,36 +106,36 @@ def crf(cmd: str) -> str | None:
     return m.group(1) if m else None
 
 
-def test_encode_default_quality_is_high(short_video, tmp_path, ffmpeg_cmd):
+def test_encode_default_quality_is_high(short_video, tmp_path, ffmpeg_cmd) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", width=160)
     assert crf(cmd) == "18"
     assert "-b:v" not in cmd
 
 
-def test_encode_x265_qualities(short_video, tmp_path, ffmpeg_cmd):
+def test_encode_x265_qualities(short_video, tmp_path, ffmpeg_cmd) -> None:
     for quality, expected in (("high", "23"), ("medium", "28"), ("low", "33")):
         assert crf(ffmpeg_cmd(short_video, tmp_path, vcodec="x265", quality=quality)) == expected
 
 
-def test_encode_quality_alone_encodes_the_video(short_video, tmp_path, ffmpeg_cmd):
+def test_encode_quality_alone_encodes_the_video(short_video, tmp_path, ffmpeg_cmd) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, quality="low")
     assert crf(cmd) == "28"  # h264 by default
     assert "libx264" in cmd
 
 
-def test_encode_bitrate_without_quality_keeps_the_bitrate(short_video, tmp_path, ffmpeg_cmd):
+def test_encode_bitrate_without_quality_keeps_the_bitrate(short_video, tmp_path, ffmpeg_cmd) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", vbitrate="2000k")
     assert crf(cmd) is None
     assert '-b:v "2000k"' in cmd
 
 
-def test_encode_quality_replaces_the_bitrate(short_video, tmp_path, ffmpeg_cmd):
+def test_encode_quality_replaces_the_bitrate(short_video, tmp_path, ffmpeg_cmd) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", vbitrate="2000k", quality="medium")
     assert crf(cmd) == "23"
     assert "-b:v" not in cmd
 
 
-def test_encode_with_a_profile_bitrate(short_video, tmp_path):
+def test_encode_with_a_profile_bitrate(short_video, tmp_path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), profile="720p", vcodec="x264", hw_accel="off")
     assert crf(run_ffmpeg.call_args.args[0]) is None
@@ -145,7 +146,7 @@ def test_encode_with_a_profile_bitrate(short_video, tmp_path):
     assert "-b:v" not in cmd
 
 
-def test_encode_hardware_accelerated_uses_cq(short_video, tmp_path):
+def test_encode_hardware_accelerated_uses_cq(short_video, tmp_path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg, patch.object(util, "use_hardware_accel", return_value=True):
         video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), vcodec="x265", quality="medium")
     cmd = run_ffmpeg.call_args.args[0]
@@ -153,12 +154,12 @@ def test_encode_hardware_accelerated_uses_cq(short_video, tmp_path):
     assert '-cq "28"' in cmd
 
 
-def test_copy_does_not_use_the_quality(short_video, tmp_path, ffmpeg_cmd):
+def test_copy_does_not_use_the_quality(short_video, tmp_path, ffmpeg_cmd) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="copy", acodec="copy")
     assert crf(cmd) is None
 
 
-def test_encode_real_video_low_quality_is_smaller(short_video, tmp_path):
+def test_encode_real_video_low_quality_is_smaller(short_video, tmp_path) -> None:
     sizes = {}
     for quality in ("high", "low"):
         out = video.VideoFile(short_video).encode(target_file=str(tmp_path / f"{quality}.mp4"), vcodec="x264", quality=quality, hw_accel="off")

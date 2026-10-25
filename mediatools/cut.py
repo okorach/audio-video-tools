@@ -31,7 +31,7 @@ MISSING_PARAM = """--start and --stop or --timeranges options is mandatory,
 type media-cut -h for more details"""
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("media-cut", "Cuts a time window of the input video file")
     parser = video.add_video_args(parser)
     parser.add_argument("--start", required=False, help="Cut start timestamp")

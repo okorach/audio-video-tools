@@ -30,7 +30,7 @@ import mediatools.audiofile as audio
 import mediatools.exceptions as exc
 
 
-def link_file(file, directory, hash_data):
+def link_file(file, directory, hash_data) -> str | None:
     hashes = hash_data["hashes"]
     if fil.is_link(file) or not fil.is_audio_file(file):
         return None
@@ -49,7 +49,7 @@ def link_file(file, directory, hash_data):
     return directory + os.sep + base
 
 
-def copy_file(file, directory, hash_data):
+def copy_file(file, directory, hash_data) -> str | None:
     if not fil.is_link(file):
         return None
     shortcut = fil.File(file)
@@ -65,7 +65,7 @@ def copy_file(file, directory, hash_data):
     return targetfile
 
 
-def main():
+def main() -> None:
     util.init("audio-linker")
     directory = None
     master_dir = None

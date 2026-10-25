@@ -31,7 +31,7 @@ from mediatools import tools
 from mediatools import pdf_split
 
 
-def test_output_pattern_width():
+def test_output_pattern_width() -> None:
     assert pdf_split.output_pattern("foo.pdf", 1) == "foo.page_%01d.pdf"
     assert pdf_split.output_pattern("foo.pdf", 9) == "foo.page_%01d.pdf"
     assert pdf_split.output_pattern("foo.pdf", 10) == "foo.page_%02d.pdf"
@@ -41,7 +41,7 @@ def test_output_pattern_width():
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_split(tmp_path):
+def test_split(tmp_path) -> None:
     gs = pdf_split.find_ghostscript()
     src = str(tmp_path / "foo.pdf")
     # Generate a 12 pages PDF
@@ -54,7 +54,7 @@ def test_split(tmp_path):
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
 @pytest.mark.parametrize("ppp", [150, 300, 600])
-def test_split_ppp(tmp_path, ppp):
+def test_split_ppp(tmp_path, ppp) -> None:
     gs = pdf_split.find_ghostscript()
     src = str(tmp_path / "bar.pdf")
     ps_code = "/Helvetica findfont 20 scalefont setfont 1 1 2 {pop 50 50 moveto (x) show showpage} for"
@@ -63,7 +63,7 @@ def test_split_ppp(tmp_path, ppp):
     assert os.path.isfile(str(tmp_path / "bar.page_1.pdf"))
 
 
-def test_ppp_presets():
+def test_ppp_presets() -> None:
     assert pdf_split.PPP_PRESETS == {150: "ebook", 300: "printer", 600: "prepress"}
     assert pdf_split.DEFAULT_PPP == 150
 

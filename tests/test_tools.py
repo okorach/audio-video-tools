@@ -40,15 +40,15 @@ def console_scripts() -> dict[str, str]:
 
 
 @pytest.mark.parametrize(("command", "action"), [(c, a) for c, actions in tools.COMMANDS.items() for a in actions])
-def test_every_action_is_implemented(command, action):
+def test_every_action_is_implemented(command, action) -> None:
     assert callable(tools.get_action_function(command, action))
 
 
-def test_only_the_unified_commands_and_the_generic_tools_are_console_scripts():
+def test_only_the_unified_commands_and_the_generic_tools_are_console_scripts() -> None:
     assert set(console_scripts()) == set(tools.COMMANDS) | NOT_UNIFIED
 
 
-def test_commands_are_registered(request):
+def test_commands_are_registered(request) -> None:
     scripts = console_scripts()
     setup_py = (ROOT / "setup.py").read_text(encoding="utf-8")
     for command in tools.COMMANDS:
@@ -56,7 +56,7 @@ def test_commands_are_registered(request):
         assert f'"{command} = mediatools.tools:{command}"' in setup_py
 
 
-def test_run_passes_the_parameters_to_the_action(monkeypatch):
+def test_run_passes_the_parameters_to_the_action(monkeypatch) -> None:
     action = mock.Mock(side_effect=lambda: seen.extend(sys.argv))
     seen: list[str] = []
     monkeypatch.setattr(tools, "get_action_function", lambda _command, _action: action)
@@ -66,7 +66,7 @@ def test_run_passes_the_parameters_to_the_action(monkeypatch):
     assert seen == ["videotool crop", "-i", "a.mp4", "--box", "1920x1080", "--center"]
 
 
-def test_run_uses_the_command_line_by_default(monkeypatch):
+def test_run_uses_the_command_line_by_default(monkeypatch) -> None:
     seen: list[str] = []
     monkeypatch.setattr(tools, "get_action_function", lambda _command, _action: lambda: seen.extend(sys.argv))
     monkeypatch.setattr(sys, "argv", ["pdftool", "split", "-i", "a.pdf"])
@@ -74,14 +74,14 @@ def test_run_uses_the_command_line_by_default(monkeypatch):
     assert seen == ["pdftool split", "-i", "a.pdf"]
 
 
-def test_run_unknown_action(capsys):
+def test_run_unknown_action(capsys) -> None:
     with pytest.raises(SystemExit) as e:
         tools.run("videotool", ["snpa"])
     assert e.value.code == 2
     assert "unknown action 'snpa', did you mean 'snap'?" in capsys.readouterr().err
 
 
-def test_run_without_action(capsys):
+def test_run_without_action(capsys) -> None:
     with pytest.raises(SystemExit) as e:
         tools.run("audiotool", [])
     assert e.value.code == 2
@@ -89,14 +89,14 @@ def test_run_without_action(capsys):
 
 
 @pytest.mark.parametrize("option", ["-h", "--help"])
-def test_run_help(option, capsys):
+def test_run_help(option, capsys) -> None:
     with pytest.raises(SystemExit) as e:
         tools.run("imagetool", [option])
     assert e.value.code == 0
     assert "usage: imagetool <action>" in capsys.readouterr().out
 
 
-def test_action_help_shows_the_unified_command(capsys, monkeypatch):
+def test_action_help_shows_the_unified_command(capsys, monkeypatch) -> None:
     # Python 3.14 names the program "python -m pytest" when run as a module, console scripts are named after sys.argv[0]
     monkeypatch.setattr(sys.modules["__main__"], "__spec__", None)
     with pytest.raises(SystemExit) as e:
@@ -105,7 +105,7 @@ def test_action_help_shows_the_unified_command(capsys, monkeypatch):
     assert "usage: videotool snap" in capsys.readouterr().out
 
 
-def test_videotool_snap_end_to_end(video_5s, tmp_path):
+def test_videotool_snap_end_to_end(video_5s, tmp_path) -> None:
     video = tmp_path / "clip.mp4"
     video.write_bytes(Path(video_5s).read_bytes())
     tools.run("videotool", ["snap", "-i", str(video), "--nbr_photos", "2"])

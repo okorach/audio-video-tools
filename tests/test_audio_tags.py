@@ -25,7 +25,7 @@ TITLE = "Love Is Stronger Than Pride"
 ARTIST = "Sade"
 
 
-def test_tags_all():
+def test_tags_all() -> None:
     aud = audio.AudioFile(SONG)
     aud.get_specs()
     tags = aud.get_tags()
@@ -33,21 +33,21 @@ def test_tags_all():
     assert tags["artist"] == ARTIST
 
 
-def test_tags_v1():
+def test_tags_v1() -> None:
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(1)
     assert tags["title"] == TITLE
     assert tags["artist"] == ARTIST
 
 
-def test_tags_v2():
+def test_tags_v2() -> None:
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version(2)
     assert tags["title"] == TITLE
     assert tags["artist"] == ARTIST
 
 
-def test_tags_vall():
+def test_tags_vall() -> None:
     aud = audio.AudioFile(SONG)
     tags = aud.get_tags_by_version()
     assert tags["title"] == TITLE

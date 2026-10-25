@@ -28,7 +28,7 @@ import mediatools.utilities as util
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     util.init("audio-shuffle")
     parser = argparse.ArgumentParser(description="Shuffle audio files with random numeric prefix")
     util.add_input_args(parser, "List of files to shuffle", required=False)

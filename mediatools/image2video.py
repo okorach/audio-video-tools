@@ -27,7 +27,7 @@ import mediatools.media_config as conf
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("image2video", "Converts an image to a video")
     parser.add_argument("--style", required=True, choices=["zoom", "panorama"], default="zoom", help="Effect to generate")
     parser.add_argument("--bounds", required=False, help="bounds of the panorama or zoom")

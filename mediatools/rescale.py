@@ -28,13 +28,13 @@ import mediatools.utilities as util
 import utilities.file as fil
 
 
-def __int_or_empty(x):
+def __int_or_empty(x) -> int:
     if x == "":
         return -1
     return int(x)
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("image-scale", "Rescale image dimensions of a file or directory")
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 

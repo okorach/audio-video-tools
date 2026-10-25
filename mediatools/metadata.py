@@ -30,7 +30,7 @@ import utilities.file as fil
 import mediatools.videofile as video
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-metadata", "Tool to add metadata to media files")
     parser.add_argument("--copyright", required=False, help="Copyright string without (c) sign")
     parser.add_argument("--author", required=False, help="Author of the media file")

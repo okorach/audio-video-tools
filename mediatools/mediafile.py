@@ -135,7 +135,7 @@ class MediaFile(fil.File):
         log.logger.debug("Searching first audio stream")
         return self.__get_stream_by_codec__("codec_type", ("audio"))
 
-    def __get_audio_stream_attribute__(self, attr: str, stream: dict | None = None):
+    def __get_audio_stream_attribute__(self, attr: str, stream: dict | None = None) -> object | None:
         if stream is None:
             stream = self.__get_first_audio_stream__()
         try:
@@ -144,7 +144,7 @@ class MediaFile(fil.File):
             log.logger.error("Audio stream %s has no key %s\n", util.json_fmt(stream), e.args[0])
             return None
 
-    def __get_video_stream_attribute__(self, attr: str, stream: dict | None = None):
+    def __get_video_stream_attribute__(self, attr: str, stream: dict | None = None) -> object | None:
         if stream is None:
             stream = self.__get_first_video_stream__()
         try:

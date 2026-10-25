@@ -41,49 +41,49 @@ def _content(tmp_path) -> dict[str, str]:
     return {f.name: f.read_text() for f in tmp_path.iterdir()}
 
 
-def test_simple_rename(tmp_path):
+def test_simple_rename(tmp_path) -> None:
     p = _make(tmp_path, a="A")
     assert renamer.rename_files([(p["a"], str(tmp_path / "z.txt"))])
     assert _content(tmp_path) == {"z.txt": "A"}
 
 
-def test_swap(tmp_path):
+def test_swap(tmp_path) -> None:
     p = _make(tmp_path, a="A", b="B")
     assert renamer.rename_files([(p["a"], p["b"]), (p["b"], p["a"])])
     assert _content(tmp_path) == {"a.txt": "B", "b.txt": "A"}
 
 
-def test_chain_conflict(tmp_path):
+def test_chain_conflict(tmp_path) -> None:
     p = _make(tmp_path, a="A", b="B", c="C")
     assert renamer.rename_files([(p["a"], p["b"]), (p["b"], p["c"]), (p["c"], str(tmp_path / "d.txt"))])
     assert _content(tmp_path) == {"b.txt": "A", "c.txt": "B", "d.txt": "C"}
 
 
-def test_no_op_rename(tmp_path):
+def test_no_op_rename(tmp_path) -> None:
     p = _make(tmp_path, a="A")
     assert renamer.rename_files([(p["a"], p["a"])])
     assert _content(tmp_path) == {"a.txt": "A"}
 
 
-def test_duplicate_targets_get_suffix(tmp_path):
+def test_duplicate_targets_get_suffix(tmp_path) -> None:
     p = _make(tmp_path, a="A", b="B")
     target = str(tmp_path / "x.txt")
     assert renamer.rename_files([(p["a"], target), (p["b"], target)])
     assert _content(tmp_path) == {"x.txt": "A", "x 2.txt": "B"}
 
 
-def test_existing_file_outside_batch_not_overwritten(tmp_path):
+def test_existing_file_outside_batch_not_overwritten(tmp_path) -> None:
     p = _make(tmp_path, a="A", other="O")
     assert renamer.rename_files([(p["a"], p["other"])])
     assert _content(tmp_path) == {"other.txt": "O", "other 2.txt": "A"}
 
 
-def test_failure_restores_original_names(tmp_path):
+def test_failure_restores_original_names(tmp_path) -> None:
     p = _make(tmp_path, a="A", b="B", c="C")
     real_rename = os.rename
     calls = []
 
-    def flaky(src, dst):
+    def flaky(src, dst) -> None:
         calls.append((src, dst))
         if len(calls) == 5:  # fails during the second phase
             raise OSError("boom")
@@ -94,12 +94,12 @@ def test_failure_restores_original_names(tmp_path):
     assert _content(tmp_path) == {"a.txt": "A", "b.txt": "B", "c.txt": "C"}
 
 
-def test_failure_in_first_phase_restores_original_names(tmp_path):
+def test_failure_in_first_phase_restores_original_names(tmp_path) -> None:
     p = _make(tmp_path, a="A", b="B")
     real_rename = os.rename
     calls = []
 
-    def flaky(src, dst):
+    def flaky(src, dst) -> None:
         calls.append((src, dst))
         if len(calls) == 2:
             raise OSError("boom")
@@ -110,7 +110,7 @@ def test_failure_in_first_phase_restores_original_names(tmp_path):
     assert _content(tmp_path) == {"a.txt": "A", "b.txt": "B"}
 
 
-def test_time_placeholder(tmp_path):
+def test_time_placeholder(tmp_path) -> None:
     """#TIME# is replaced by the time of day only, as HHhMMmSSs"""
     src = tmp_path / "a.mp4"
     src.write_text("a")
@@ -136,7 +136,7 @@ def test_time_placeholder(tmp_path):
     assert renames == [(str(src), str(tmp_path / "01 - 14h05m07s - Cam.mp4"))]
 
 
-def test_time_placeholder_has_no_sequence_prefix():
+def test_time_placeholder_has_no_sequence_prefix() -> None:
     """A format containing #TIME# is used as is: no sequence prefix is added"""
     assert renamer.get_fmt("a.mp4", "x", "DJI_#TIME#", "x") == "DJI_#TIME#"
     assert renamer.get_fmt("a.jpg", "DJI_#TIME#", "x", "x") == "DJI_#TIME#"
@@ -175,14 +175,14 @@ def _run_main(tmp_path, names: list[str], dates: list[dt.datetime], *args: str) 
     return rename.call_args[0][0]
 
 
-def test_time_placeholder_each_file_uses_its_own_time(tmp_path):
+def test_time_placeholder_each_file_uses_its_own_time(tmp_path) -> None:
     """Each file gets the time of its own creation date"""
     dates = [dt.datetime(2024, 3, 9, 8, 0, 1), dt.datetime(2024, 3, 9, 23, 59, 59)]
     renames = _run_main(tmp_path, ["a.mp4", "b.mp4"], dates, "--video_format", "#SEQ2# #TIME#")
     assert [os.path.basename(new) for _, new in renames] == ["01 08h00m01s.mp4", "02 23h59m59s.mp4"]
 
 
-def test_time_placeholder_photos_and_prefix(tmp_path):
+def test_time_placeholder_photos_and_prefix(tmp_path) -> None:
     """#TIME# works in photo formats and in the format built from --prefix"""
     renames = _run_main(tmp_path, ["a.jpg"], [dt.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#TIME# - #SIZE#")
     assert os.path.basename(renames[0][1]) == "01h02m03s - 10x20.jpg"
@@ -190,13 +190,13 @@ def test_time_placeholder_photos_and_prefix(tmp_path):
     assert "Trip 01h02m03s" in os.path.basename(renames[0][1])
 
 
-def test_time_placeholder_with_timestamp(tmp_path):
+def test_time_placeholder_with_timestamp(tmp_path) -> None:
     """#TIME# and #TIMESTAMP# can be used together"""
     renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "#TIMESTAMP# (#TIME#)")
     assert os.path.basename(renames[0][1]) == "2024-03-09 14h05m07s (14h05m07s).mp4"
 
 
-def test_time_placeholder_no_prefix_in_file_name(tmp_path):
+def test_time_placeholder_no_prefix_in_file_name(tmp_path) -> None:
     """DJI_#TIME# gives DJI_14h05m07s, without sequence prefix"""
     renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "DJI_#TIME#")
     assert os.path.basename(renames[0][1]) == "DJI_14h05m07s.mp4"

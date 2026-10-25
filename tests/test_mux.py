@@ -31,7 +31,7 @@ AUDIO2 = "it" + os.sep + "ub40.mp3"
 TMP1 = util.get_tmp_file() + ".mp4"
 
 
-def test_main():
+def test_main() -> None:
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", VIDEO, AUDIO1, AUDIO2]):
         try:
             tools.videotool()
@@ -43,7 +43,7 @@ def test_main():
             assert v.duration > 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "2", "-i", AUDIO1, VIDEO, AUDIO2, "-o", TMP1]):
         try:
             tools.videotool()
@@ -59,7 +59,7 @@ def test_main_with_output():
             os.remove(TMP1)
 
 
-def test_main_help():
+def test_main_help() -> None:
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "-h"]):
         try:
             tools.videotool()
@@ -68,7 +68,7 @@ def test_main_help():
             assert int(str(e)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "--badoption", "yes"]):
         try:
             tools.videotool()
@@ -77,7 +77,7 @@ def test_main_bad_option():
             assert int(str(e)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "4", "-b", "black", "-m", "10"]):
         try:
             tools.videotool()

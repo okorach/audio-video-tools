@@ -55,7 +55,7 @@ ALLOWED_SPEEDS = (
 )
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-speed", "Video speed change")
     parser.add_argument("-p", "--profile", required=False, help="Profile to use for encoding")
     parser.add_argument("--speed", required=True, help="Speed in the form of 4x (accelerate), 0.1x (slow down)")

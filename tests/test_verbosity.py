@@ -37,11 +37,11 @@ import mediatools.utilities as util
     "value,expected",
     [("CRITICAL", 0), ("ERROR", 1), ("WARNING", 2), ("INFO", 3), ("DEBUG", 4), ("debug", 4), ("Info", 3), (None, 3), ("", 3), ("4", 4), (2, 2)],
 )
-def test_parse_verbosity(value, expected):
+def test_parse_verbosity(value, expected) -> None:
     assert util.parse_verbosity(value) == expected
 
 
-def test_parse_verbosity_invalid():
+def test_parse_verbosity_invalid() -> None:
     with pytest.raises(ValueError, match="LOUD"):
         util.parse_verbosity("LOUD")
 
@@ -52,23 +52,23 @@ def parse(*args) -> dict:
     return vars(p.parse_args(args))
 
 
-def test_verbosity_option():
+def test_verbosity_option() -> None:
     assert util.get_verbosity(parse()) == 3
     assert util.get_verbosity(parse("-v", "DEBUG")) == 4
     assert util.get_verbosity(parse("--verbosity", "warning")) == 2
 
 
-def test_deprecated_debug_option():
+def test_deprecated_debug_option() -> None:
     assert util.get_verbosity(parse("-g", "4")) == 4
     assert util.get_verbosity(parse("-g", "debug")) == 4
 
 
-def test_invalid_verbosity_option():
+def test_invalid_verbosity_option() -> None:
     with pytest.raises(SystemExit):
         parse("-v", "LOUD")
 
 
-def test_set_debug_level_accepts_names():
+def test_set_debug_level_accepts_names() -> None:
     util.set_debug_level("DEBUG")
     assert util.log.logger.level == logging.DEBUG
     util.set_debug_level("error")
@@ -77,7 +77,7 @@ def test_set_debug_level_accepts_names():
     assert util.log.logger.level == logging.INFO
 
 
-def test_parse_media_args_verbosity():
+def test_parse_media_args_verbosity() -> None:
     p = util.get_common_args("test-verbosity", "test")
     kwargs = util.parse_media_args(p, ["-i", "it/song.mp3", "-v", "DEBUG"])
     assert "verbosity" not in kwargs
@@ -85,7 +85,7 @@ def test_parse_media_args_verbosity():
     util.set_debug_level(None)
 
 
-def test_no_empty_log_file(tmp_path):
+def test_no_empty_log_file(tmp_path) -> None:
     """Importing mediatools doesn't create mediatools.log, only the log file of the tool is created"""
     code = "import mediatools.utilities as util; util.init('my-tool'); util.log.logger.info('hello')"
     env = {**os.environ, "PYTHONPATH": str(pathlib.Path(__file__).parent.parent)}
@@ -113,7 +113,7 @@ TOOLS = (
 
 
 @pytest.mark.parametrize("module", TOOLS)
-def test_tools_have_the_verbosity_option(module, capsys):
+def test_tools_have_the_verbosity_option(module, capsys) -> None:
     with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit) as e:
         importlib.import_module(module).main()
     assert e.value.code == 0
@@ -123,7 +123,7 @@ def test_tools_have_the_verbosity_option(module, capsys):
 
 
 @pytest.mark.parametrize("module", TOOLS)
-def test_tools_reject_an_invalid_verbosity(module):
+def test_tools_reject_an_invalid_verbosity(module) -> None:
     with patch.object(sys, "argv", [module, "-v", "LOUD"]), pytest.raises(SystemExit) as e:
         importlib.import_module(module).main()
     assert e.value.code == 2
@@ -131,7 +131,7 @@ def test_tools_reject_an_invalid_verbosity(module):
 
 @pytest.mark.parametrize("module", ["mediatools.audio_lib", "mediatools.audio_list"])
 @pytest.mark.parametrize("option", ["-v", "--verbosity", "-g"])
-def test_directory_tools_verbosity(module, option, tmp_path, monkeypatch):
+def test_directory_tools_verbosity(module, option, tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)  # audio-list writes music.csv in the current folder
     with patch.object(sys, "argv", [module, option, "DEBUG", str(tmp_path)]), contextlib.suppress(SystemExit):
         importlib.import_module(module).main()
@@ -139,14 +139,14 @@ def test_directory_tools_verbosity(module, option, tmp_path, monkeypatch):
     util.set_debug_level(None)
 
 
-def test_normalize_sets_the_verbosity(tmp_path):
+def test_normalize_sets_the_verbosity(tmp_path) -> None:
     with patch.object(sys, "argv", ["audio-normalize", "-v", "WARNING", "-i", str(tmp_path)]), contextlib.suppress(SystemExit):
         importlib.import_module("mediatools.audio_normalize").main()
     assert util.DEBUG_LEVEL == 2
     util.set_debug_level(None)
 
 
-def test_add_input_and_output_args():
+def test_add_input_and_output_args() -> None:
     p = argparse.ArgumentParser()
     util.add_input_args(p, "inputs")
     util.add_output_args(p, "output")
@@ -156,7 +156,7 @@ def test_add_input_and_output_args():
         p.parse_args(["-o", "c"])  # -i is required by default
 
 
-def test_add_input_args_optional_with_aliases():
+def test_add_input_args_optional_with_aliases() -> None:
     p = argparse.ArgumentParser()
     util.add_input_args(p, "inputs", required=False, dest="files", aliases=("-f", "--files"))
     assert vars(p.parse_args([])) == {"files": None}
@@ -164,7 +164,7 @@ def test_add_input_args_optional_with_aliases():
     assert vars(p.parse_args(["--files", "a", "b"])) == {"files": ["a", "b"]}
 
 
-def test_add_output_args_required():
+def test_add_output_args_required() -> None:
     p = argparse.ArgumentParser()
     util.add_output_args(p, "output", required=True)
     with pytest.raises(SystemExit):
@@ -173,13 +173,13 @@ def test_add_output_args_required():
 
 # album_art has positional inputs and linker works on a directory (-d)
 @pytest.mark.parametrize("module", [m for m in TOOLS if m not in ("mediatools.album_art", "mediatools.linker")])
-def test_tools_document_the_input_option(module, capsys):
+def test_tools_document_the_input_option(module, capsys) -> None:
     with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit):
         importlib.import_module(module).main()
     assert "--inputfiles" in capsys.readouterr().out
 
 
-def test_input_and_output_options_names_are_constants():
+def test_input_and_output_options_names_are_constants() -> None:
     p = argparse.ArgumentParser()
     util.add_input_args(p, "inputs")
     util.add_output_args(p, "output")

@@ -56,19 +56,19 @@ def batch_id(path: Path) -> str:
     return f"{path.parent.name}/{path.name}"
 
 
-def test_batch_files_are_found():
+def test_batch_files_are_found() -> None:
     assert len(BATCH_FILES) > 40
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
-def test_batch_files_dont_pause_at_the_end(batch_file):
+def test_batch_files_dont_pause_at_the_end(batch_file) -> None:
     non_empty = [line for line in lines(batch_file) if line.strip()]
     assert non_empty, f"{batch_file.name} is empty"
     assert not PAUSE.match(non_empty[-1]), f"{batch_file.name} ends with a pause"
 
 
 @pytest.mark.parametrize("name", CONVERTED)
-def test_converted_batch_files_pass_all_the_files(name):
+def test_converted_batch_files_pass_all_the_files(name) -> None:
     batch_file = ROOT / f"{name}.bat"
     tool_commands = [line for line in commands(batch_file) if TOOLS_COMMANDS.search(line)]
     assert len(tool_commands) == 1
@@ -77,7 +77,7 @@ def test_converted_batch_files_pass_all_the_files(name):
     assert "%%~F" not in "".join(tool_commands)
 
 
-def test_removed_and_renamed_batch_files():
+def test_removed_and_renamed_batch_files() -> None:
     names = {p.name for p in BATCH_FILES}
     assert "crop ffmpeg.bat" not in names
     assert "flip-h.bat" not in names
@@ -89,7 +89,7 @@ def test_removed_and_renamed_batch_files():
 
 
 @pytest.mark.parametrize("name,profile", [("aac", "aac128"), ("mp3", "mp3_128k")])
-def test_audio_batch_files_ask_for_the_bitrate(name, profile):
+def test_audio_batch_files_ask_for_the_bitrate(name, profile) -> None:
     """The audio bitrate is asked (128 by default, with or without the k suffix) and passed to the tool"""
     batch_file = ROOT / "batch-files-audio" / f"{name}.bat"
     content = [line.strip() for line in lines(batch_file)]

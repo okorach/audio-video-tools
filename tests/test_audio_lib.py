@@ -28,7 +28,7 @@ TITLE = "Love Is Stronger Than Pride"
 ARTIST = "Sade"
 
 
-def test_changed_drive():
+def test_changed_drive() -> None:
     if platform.system() == "Windows":
         original_file = os.path.abspath(SONG)
         moved_file = "Z" + original_file[1:]
@@ -39,7 +39,7 @@ def test_changed_drive():
         assert True
 
 
-def test_fix_symlink(tmp_path):
+def test_fix_symlink(tmp_path) -> None:
     symlink = str(tmp_path / "shortcut.lnk")
     util.set_debug_level(5)
     if platform.system() == "Windows":
@@ -54,7 +54,7 @@ def test_fix_symlink(tmp_path):
         assert True
 
 
-def test_fix_symlink_2(tmp_path):
+def test_fix_symlink_2(tmp_path) -> None:
     symlink = str(tmp_path / "shortcut.lnk")
     if platform.system() == "Windows":
         moved_file = "doesnotexit.txt"

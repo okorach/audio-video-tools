@@ -27,7 +27,7 @@ import mediatools.imagefile as image
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("image-blinds", "Creates a window blinds effect on an image")
     parser.add_argument("-n", "--blinds", required=False, default=10, help="Number of blinds")
     parser.add_argument("-d", "--direction", required=False, default="vertical", help="Direction to slice")

@@ -75,7 +75,7 @@ def load() -> dict:
     return CONFIG_SETTINGS
 
 
-def get_property(name: str, settings: dict | None = None):
+def get_property(name: str, settings: dict | None = None) -> str | int | float | bool | None:
     if settings is None:
         settings = CONFIG_SETTINGS
     return settings.get(name, None)

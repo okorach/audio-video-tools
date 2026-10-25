@@ -24,7 +24,7 @@ import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-reverse", "Reverse a video")
     parser.add_argument(
         "-k", "--keep_audio", required=False, dest=opt.Option.MUTE, action="store_false", default=True, help="Keep audio track after reverse"

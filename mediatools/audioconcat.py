@@ -24,7 +24,7 @@ import mediatools.audiofile as audio
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     util.init("audio-concat")
     parser = argparse.ArgumentParser(description="Concatenates several audio files of the same type")
     util.add_input_args(parser, "List of audio files to concatenate")

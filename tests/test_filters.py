@@ -24,47 +24,47 @@ import mediatools.exceptions as ex
 ROTATE = "rotate: "
 
 
-def test_rotate_1():
+def test_rotate_1() -> None:
     assert fil.rotate(90) == "transpose=1"
 
 
-def test_rotate_2():
+def test_rotate_2() -> None:
     assert fil.rotate(-90) == "transpose=2"
 
 
-def test_rotate_3():
+def test_rotate_3() -> None:
     assert fil.rotate(1) == "transpose=1"
 
 
-def test_rotate_err_1():
+def test_rotate_err_1() -> None:
     try:
         _ = fil.rotate(17)
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_2
 
 
-def test_rotate_err_2():
+def test_rotate_err_2() -> None:
     try:
         _ = fil.rotate("counterclockwise")
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_1
 
 
-def test_rotate_err_3():
+def test_rotate_err_3() -> None:
     try:
         _ = fil.rotate(1.5)
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
 
-def test_rotate_err_4():
+def test_rotate_err_4() -> None:
     try:
         _ = fil.rotate([2])
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
 
-def test_str():
+def test_str() -> None:
     testf = fil.Simple()
     assert str(testf) == ""
     f = fil.rotate(90)

@@ -119,7 +119,7 @@ def get_exiftool() -> str:
     return get_media_properties().get("binaries.exiftool", "exiftool")
 
 
-def get_first_value(a_dict: dict | None, key_list: tuple | list):
+def get_first_value(a_dict: dict | None, key_list: tuple | list) -> object | None:
     if a_dict is None:
         return None
     for tag in key_list:
@@ -230,7 +230,7 @@ def get_media_properties() -> dict:
     return PROPERTIES_VALUES
 
 
-def get_conf_property(prop: str):
+def get_conf_property(prop: str) -> str | int | float | bool | None:
     if not PROPERTIES_VALUES:
         get_media_properties()
     return PROPERTIES_VALUES[prop]
@@ -650,7 +650,7 @@ def dict2str(options: dict) -> str:
     return cmd
 
 
-def find_key(hashlist: dict, keylist: list | tuple):
+def find_key(hashlist: dict, keylist: list | tuple) -> object | None:
     for key in keylist:
         if key not in hashlist:
             continue

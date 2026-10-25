@@ -25,7 +25,7 @@ import mediatools.imagefile as image
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("image-crop-ratio", "Image cropper")
     parser.add_argument("--align", required=False, default="center", help="How to crop")
     parser.add_argument("--ratio", required=True, help="W/H ratio of picture like 2, 1.5")

@@ -28,6 +28,7 @@ from pathlib import Path
 import pytest
 import yaml
 from mediatools import version
+from collections.abc import Callable
 
 ROOT = Path(__file__).parent.parent
 WORKFLOW = ROOT / ".github" / "workflows" / "build.yml"
@@ -48,26 +49,26 @@ def version_step() -> dict:
     return next(s for s in workflow_steps() if s.get("id") == "project-version")
 
 
-def test_version_of_the_package_and_of_pyproject_are_the_same():
+def test_version_of_the_package_and_of_pyproject_are_the_same() -> None:
     assert pyproject_version((ROOT / "pyproject.toml").read_text(encoding="utf-8")) == version.MEDIA_TOOLS_VERSION
 
 
-def test_workflow_passes_the_version_to_the_scanner():
+def test_workflow_passes_the_version_to_the_scanner() -> None:
     scan = next(s for s in workflow_steps() if "sonarqube-scan-action" in s.get("uses", ""))
     assert f"{PROJECT_VERSION_ARG}${{{{ steps.project-version.outputs.version }}}}" in scan["with"]["args"]
 
 
-def test_workflow_does_not_patch_sonar_project_properties():
+def test_workflow_does_not_patch_sonar_project_properties() -> None:
     """Appending the version to sonar-project.properties silently failed: the last line of the file is a comment without end of line"""
     assert "sonar-project.properties" not in "".join(s.get("run", "") for s in workflow_steps())
 
 
-def test_sonar_project_properties_has_no_version():
+def test_sonar_project_properties_has_no_version() -> None:
     lines = (ROOT / "sonar-project.properties").read_text(encoding="utf-8").splitlines()
     assert not [line for line in lines if line.strip().startswith("sonar.projectVersion")]
 
 
-def test_jenkins_passes_the_version_to_the_scanner():
+def test_jenkins_passes_the_version_to_the_scanner() -> None:
     scanner_calls = [line for line in JENKINSFILE.read_text(encoding="utf-8").splitlines() if "bin/sonar-scanner" in line]
     assert len(scanner_calls) == 2
     assert all(f"{PROJECT_VERSION_ARG}${{projectVersion()}}" in line for line in scanner_calls)
@@ -77,7 +78,7 @@ def test_jenkins_passes_the_version_to_the_scanner():
 
 
 @pytest.fixture
-def run_version_step(tmp_path):
+def run_version_step(tmp_path) -> Callable[[str], tuple[int, str]]:
     bash = shutil.which("bash")
     if bash is None or shutil.which("sed") is None:
         pytest.skip("bash and sed are required")
@@ -99,25 +100,25 @@ def run_version_step(tmp_path):
     return run
 
 
-def test_version_step_extracts_the_version_of_pyproject(run_version_step):
+def test_version_step_extracts_the_version_of_pyproject(run_version_step) -> None:
     code, output = run_version_step('[project]\nname = "x"\nversion = "1.23.4"\n\n[tool.ruff]\ntarget-version = "py310"\n')
     assert code == 0
     assert output == "version=1.23.4"
 
 
-def test_version_step_with_the_real_pyproject(run_version_step):
+def test_version_step_with_the_real_pyproject(run_version_step) -> None:
     code, output = run_version_step((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert code == 0
     assert output == f"version={version.MEDIA_TOOLS_VERSION}"
 
 
-def test_version_step_with_windows_line_ends(run_version_step):
+def test_version_step_with_windows_line_ends(run_version_step) -> None:
     code, output = run_version_step('[project]\r\nname = "x"\r\nversion = "2.0"\r\n')
     assert code == 0
     assert output == "version=2.0"
 
 
-def test_version_step_fails_without_version(run_version_step):
+def test_version_step_fails_without_version(run_version_step) -> None:
     code, output = run_version_step('[project]\nname = "x"\n')
     assert code == 1
     assert output == ""

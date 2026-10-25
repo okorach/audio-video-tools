@@ -27,7 +27,7 @@ import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     util.init("video-concat")
     parser = argparse.ArgumentParser(description="Concatenates several videos")
     util.add_input_args(parser, "List of files to concatenate")

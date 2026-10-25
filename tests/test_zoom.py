@@ -27,14 +27,14 @@ TMP_VID = util.get_tmp_file() + ".mp4"
 TMP_IMG = util.get_tmp_file() + ".jpg"
 
 
-def get_img(w, h, orientation="landscape"):
+def get_img(w, h, orientation="landscape") -> image.ImageFile:
     small_img = image.__get_background__("black")
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w, h, out_file=TMP_IMG))
     portrait_img.orientation = orientation
     return portrait_img
 
 
-def test_zoom_landscape():
+def test_zoom_landscape() -> None:
     img = get_img(4000, 3000)
     vid, _ = img.zoom(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -43,7 +43,7 @@ def test_zoom_landscape():
     os.remove(img.filename)
 
 
-def test_zoom_portrait():
+def test_zoom_portrait() -> None:
     img = get_img(2000, 3000, "portrait")
     vid, _ = img.zoom(duration=3, speed=0.2, vspeed=0.1, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
@@ -52,14 +52,14 @@ def test_zoom_portrait():
     os.remove(img.filename)
 
 
-def test_zoom_glob_1():
+def test_zoom_glob_1() -> None:
     vid, _ = image.zoom(image.__get_background__("black"), zoom_level=1.3, duration=3, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 3
     os.remove(vid)
 
 
-def test_zoom_glob_2():
+def test_zoom_glob_2() -> None:
     vid, _ = image.zoom(image.__get_background__("black"), zoom_level=-1.2, duration=5, resolution="720x400", out_file=TMP_VID)
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5

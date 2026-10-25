@@ -33,33 +33,34 @@ import pytest
 
 from mediatools import tools
 from mediatools import stabilize as stab
+from collections.abc import Iterator
 
 
-def completed(stdout="", stderr=""):
+def completed(stdout="", stderr="") -> mock.Mock:
     return mock.Mock(stdout=stdout, stderr=stderr)
 
 
-def test_has_vidstab():
+def test_has_vidstab() -> None:
     with mock.patch("subprocess.run", return_value=completed(stdout=" ... vidstabdetect  V->V ...")):
         assert stab.has_vidstab()
 
 
-def test_has_vidstab_in_stderr():
+def test_has_vidstab_in_stderr() -> None:
     with mock.patch("subprocess.run", return_value=completed(stderr="vidstabdetect")):
         assert stab.has_vidstab()
 
 
-def test_has_no_vidstab():
+def test_has_no_vidstab() -> None:
     with mock.patch("subprocess.run", return_value=completed(stdout="scale  V->V")):
         assert not stab.has_vidstab()
 
 
-def test_has_vidstab_without_ffmpeg():
+def test_has_vidstab_without_ffmpeg() -> None:
     with mock.patch("subprocess.run", side_effect=FileNotFoundError):
         assert not stab.has_vidstab()
 
 
-def test_run_vidstabdetect():
+def test_run_vidstabdetect() -> None:
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
         trf = stab.run_vidstabdetect("clip.mp4", shakiness=5)
     try:
@@ -72,7 +73,7 @@ def test_run_vidstabdetect():
         os.unlink(trf)
 
 
-def test_stabilize_two_passes():
+def test_stabilize_two_passes() -> None:
     with mock.patch.object(stab, "has_vidstab", return_value=True), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = stab.stabilize("dir/clip.mp4", smoothing=10, zoom=5, optzoom=2)
     assert output == os.path.join("dir", "clip.stabilized.mp4") or output.endswith("clip.stabilized.mp4")
@@ -86,14 +87,14 @@ def test_stabilize_two_passes():
     assert not os.path.exists(trf)  # The transforms file is removed
 
 
-def test_stabilize_without_sharpening_to_the_given_output():
+def test_stabilize_without_sharpening_to_the_given_output() -> None:
     with mock.patch.object(stab, "has_vidstab", return_value=True), mock.patch("mediatools.utilities.run_ffmpeg") as run:
         output = stab.stabilize("clip.mp4", output="out.mp4", sharpen=False)
     assert output == "out.mp4"
     assert "unsharp" not in run.call_args_list[1].args[0]
 
 
-def test_stabilize_removes_the_transforms_file_on_failure():
+def test_stabilize_removes_the_transforms_file_on_failure() -> None:
     with (
         mock.patch.object(stab, "has_vidstab", return_value=True),
         mock.patch("mediatools.utilities.run_ffmpeg", side_effect=[None, RuntimeError("boom")]) as run,
@@ -104,7 +105,7 @@ def test_stabilize_removes_the_transforms_file_on_failure():
     assert not os.path.exists(trf)
 
 
-def test_stabilize_falls_back_to_deshake_without_vidstab():
+def test_stabilize_falls_back_to_deshake_without_vidstab() -> None:
     with mock.patch.object(stab, "has_vidstab", return_value=False), mock.patch.object(stab.video, "VideoFile") as video_file:
         video_file.return_value.encode.return_value = "deshaken.mp4"
         assert stab.stabilize("clip.mp4", output="out.mp4") == "deshaken.mp4"
@@ -117,7 +118,7 @@ def test_stabilize_falls_back_to_deshake_without_vidstab():
 
 # Command line
 @pytest.fixture
-def cli():
+def cli() -> Iterator[mock.MagicMock]:
     with (
         mock.patch.object(stab, "stabilize", side_effect=lambda f, output=None, **_kw: output or f + ".stabilized") as stabilize,
         mock.patch("mediatools.utilities.generated_file"),
@@ -130,17 +131,17 @@ def run_main(*args: str) -> None:
         tools.videotool()
 
 
-def test_main_defaults(cli):
+def test_main_defaults(cli) -> None:
     run_main("-i", "a.mp4")
     cli.assert_called_once_with("a.mp4", output=None, shakiness=8, smoothing=30, zoom=0, optzoom=1, sharpen=True)
 
 
-def test_main_options(cli):
+def test_main_options(cli) -> None:
     run_main("-i", "a.mp4", "-o", "out.mp4", "--shakiness", "3", "--smoothing", "12", "--zoom", "4", "--optzoom", "0", "--no-sharpen")
     cli.assert_called_once_with("a.mp4", output="out.mp4", shakiness=3, smoothing=12, zoom=4, optzoom=0, sharpen=False)
 
 
-def test_main_several_files_ignore_the_output_name(cli):
+def test_main_several_files_ignore_the_output_name(cli) -> None:
     """With several files, the name of each output is derived from its input"""
     run_main("-i", "a.mp4", "b.mp4", "-o", "out.mp4")
     assert [(c.args[0], c.kwargs["output"]) for c in cli.call_args_list] == [("a.mp4", None), ("b.mp4", None)]

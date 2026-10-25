@@ -30,7 +30,7 @@ IMG2 = "it" + os.sep + "img-1770x1291.jpg"
 TMP1 = util.get_tmp_file() + ".jpg"
 
 
-def test_main():
+def test_main() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2]):
         try:
             tools.imagetool()
@@ -39,7 +39,7 @@ def test_main():
             assert int(str(e)) == 0
 
 
-def test_main_help():
+def test_main_help() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2, "-h"]):
         try:
             tools.imagetool()
@@ -48,7 +48,7 @@ def test_main_help():
             assert int(str(e)) == 0
 
 
-def test_main_bad_option():
+def test_main_bad_option() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-b", "black", "-m", "10", "--badoption", "foo", "-i", IMG1, IMG2]):
         try:
             tools.imagetool()
@@ -57,7 +57,7 @@ def test_main_bad_option():
             assert int(str(e)) == 2
 
 
-def test_main_no_file():
+def test_main_no_file() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-g", "4", "-b", "black", "-m", "10"]):
         try:
             tools.imagetool()
@@ -66,7 +66,7 @@ def test_main_no_file():
             assert int(str(e)) == 2
 
 
-def test_main_other_options():
+def test_main_other_options() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-b", "white", "-m", "50", "-d", "horizontal", "-i", IMG1, IMG2]):
         try:
             tools.imagetool()
@@ -75,7 +75,7 @@ def test_main_other_options():
             assert int(str(e)) == 0
 
 
-def test_main_with_output():
+def test_main_with_output() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-g", "2", "-i", IMG1, IMG2, "-o", TMP1]):
         try:
             tools.imagetool()
@@ -86,7 +86,7 @@ def test_main_with_output():
             os.remove(TMP1)
 
 
-def test_main_with_output2():
+def test_main_with_output2() -> None:
     with patch.object(sys, "argv", ["imagetool", "stack", "-g", "2", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "-d", "horizontal", "-o", TMP1]):
         try:
             tools.imagetool()

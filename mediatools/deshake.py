@@ -26,7 +26,7 @@ import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
     parser = util.get_common_args("video-stabilize", "Apply deshake filter")
     parser = video.add_video_args(parser)
     parser.add_argument("--rx", required=False, type=int, default=32, choices=range(65), help="Deshake rx", metavar="[0-64]")

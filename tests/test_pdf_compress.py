@@ -31,12 +31,12 @@ from mediatools import tools
 from mediatools import pdf_compress, pdf_split
 
 
-def test_original_file():
+def test_original_file() -> None:
     assert pdf_compress.original_file("foo.pdf") == "foo_original.pdf"
     assert pdf_compress.original_file(os.path.join("a.b", "foo.bar.pdf")) == os.path.join("a.b", "foo.bar_original.pdf")
 
 
-def _make_pdf(path):
+def _make_pdf(path) -> None:
     gs = pdf_split.find_ghostscript()
     ps_code = "/Helvetica findfont 20 scalefont setfont 1 1 3 {pop 50 50 moveto (x) show showpage} for"
     subprocess.run([gs, "-q", "-sDEVICE=pdfwrite", "-dNOPAUSE", "-dBATCH", f"-sOutputFile={path}", "-c", ps_code], check=True)
@@ -44,7 +44,7 @@ def _make_pdf(path):
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
 @pytest.mark.parametrize("ppp", [150, 300, 600])
-def test_compress(tmp_path, ppp):
+def test_compress(tmp_path, ppp) -> None:
     src = str(tmp_path / "foo.pdf")
     _make_pdf(src)
     orig_size = Path(src).stat().st_size
@@ -55,7 +55,7 @@ def test_compress(tmp_path, ppp):
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_compress_explicit_output(tmp_path):
+def test_compress_explicit_output(tmp_path) -> None:
     src = str(tmp_path / "foo.pdf")
     out = str(tmp_path / "small.pdf")
     _make_pdf(src)
@@ -64,7 +64,7 @@ def test_compress_explicit_output(tmp_path):
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_compress_does_not_overwrite_original(tmp_path):
+def test_compress_does_not_overwrite_original(tmp_path) -> None:
     src = tmp_path / "foo.pdf"
     _make_pdf(str(src))
     backup = tmp_path / "foo_original.pdf"

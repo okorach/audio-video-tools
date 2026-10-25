@@ -32,7 +32,7 @@ USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
 [--stretch] [-g 0-4] file1 file2 ... filen"
 
 
-def main():
+def main() -> None:
     files = []
     util.init("image-stack")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
