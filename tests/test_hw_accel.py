@@ -464,8 +464,9 @@ def test_encode_falls_back_to_the_cpu(gpu_available: None) -> None:
 
 def test_encode_does_not_fall_back_when_forced_on(gpu_available: None) -> None:
     """Encode does not fall back when forced on"""
+    vf = video.VideoFile(FILE)
     with failing_gpu_commands() as run, pytest.raises(subprocess.CalledProcessError):
-        video.VideoFile(FILE).encode(target_file="out.mp4", vcodec="h265", resolution="320x180", hw_accel="on")
+        vf.encode(target_file="out.mp4", vcodec="h265", resolution="320x180", hw_accel="on")
     assert run.call_count == 1
 
 

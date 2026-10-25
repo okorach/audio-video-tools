@@ -78,31 +78,25 @@ def test_keep_audio() -> None:
 def test_main_help() -> None:
     """Main help"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
 def test_main_bad_option() -> None:
     """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-i", VIDEO, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_main_no_file() -> None:
     """Main no file"""
     with patch.object(sys, "argv", ["videotool", "reverse", "-o", TMP1]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_reverse_api_removes_audio() -> None:

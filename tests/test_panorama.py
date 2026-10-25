@@ -19,11 +19,13 @@
 #
 
 import os
-import mediatools.utilities as util
-import mediatools.imagefile as image
-import mediatools.videofile as video
-import mediatools.exceptions as ex
+
 import pytest
+
+import mediatools.exceptions as ex
+import mediatools.imagefile as image
+import mediatools.utilities as util
+import mediatools.videofile as video
 
 EX_PAN_DURATION_POSITIVE = "panorama: duration must be a strictly positive number"
 TMP_VID = util.get_tmp_file() + ".mp4"

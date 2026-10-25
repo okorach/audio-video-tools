@@ -28,31 +28,25 @@ AUDIO_FILE = "it" + os.sep + "seal.mp3"
 
 def test_help() -> None:
     """Help"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=["-h"],
-        )
+        util.parse_media_args(parser, args=["-h"])
     assert exc_info.value.code == 0
 
 
 def test_bad_option() -> None:
     """Bad option"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=["--nonexistent"],
-        )
+        util.parse_media_args(parser, args=["--nonexistent"])
     assert exc_info.value.code == 2
 
 
 def test_missing_input() -> None:
     """Missing input"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=[],
-        )
+        util.parse_media_args(parser, args=[])
     assert exc_info.value.code == 2
 
 

@@ -208,28 +208,28 @@ def test_eta() -> None:
     assert util.__compute_eta__("frame=30608 fps=197 q=25.0 size=  7920kB" " time=00:00:10.000 bitrate=2261.3kbits/s sped=10x", 20) == ""
 
 
-def test_hw_accel_auto() -> None:
+def test_hw_accel_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hw accel auto"""
     util.set_debug_level(4)
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     assert not util.use_hardware_accel(hw_accel="auto", deinterlace=True)
 
 
-def test_hw_accel_off() -> None:
+def test_hw_accel_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hw accel off"""
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     assert not util.use_hardware_accel(hw_accel="off")
 
 
-def test_hw_accel_on() -> None:
+def test_hw_accel_on(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hw accel on"""
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     assert util.use_hardware_accel(hw_accel="on", deinterlace=True)
 
 
-def test_hw_accel_without_gpu() -> None:
+def test_hw_accel_without_gpu(monkeypatch: pytest.MonkeyPatch) -> None:
     """Hw accel without gpu"""
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     auto_accel = util.use_hardware_accel(hw_accel="auto")
     if platform.system() == "Windows":
         assert auto_accel

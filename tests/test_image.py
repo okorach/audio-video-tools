@@ -100,16 +100,10 @@ def test_needed_frame_3() -> None:
 
 def test_type() -> None:
     """Type"""
-    try:
+    with pytest.raises(ex.FileTypeError):
         _ = image.ImageFile("it/seal.mp3")
-        pytest.fail("An exception was expected")
-    except ex.FileTypeError:
-        pass
-    try:
+    with pytest.raises(ex.FileTypeError):
         _ = image.ImageFile("it/video-720p.mp4")
-        pytest.fail("An exception was expected")
-    except ex.FileTypeError:
-        pass
 
 
 def test_to_image_effect() -> None:
@@ -242,7 +236,7 @@ def test_rotate() -> None:
     assert f.height == 4000
     try:
         with pytest.raises(ex.InputError):
-            image.ImageFile(img.rotate(degrees=180))
+            img.rotate(degrees=180)
     finally:
         del_files(img, f)
 

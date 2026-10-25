@@ -112,7 +112,7 @@ def main() -> None:
     elif kwargs["all"]:
         for file in collection:
             link_file(file, directory, hashes)
-            copy_file(file, directory, hashes)
+            copy_file(file, directory)
 
     sys.exit(0)
 

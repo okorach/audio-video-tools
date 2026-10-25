@@ -49,7 +49,9 @@ EXIF_DATE_FMT: str = "%Y:%m:%d %H:%M:%S"
 ISO_DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
 TIME_FMT: str = "%H:%M:%S"
 DATE_FORMATS: tuple[str, ...] = (ISO_DATE_FMT, f"{ISO_DATE_FMT}%z", EXIF_DATE_FMT, f"{EXIF_DATE_FMT}%z")
-CREATION_DATE_TAGS: tuple[str, ...] = ("QuickTime:CreateDate", "EXIF:DateTimeOriginal", "File:FileModifyDate")
+EXIF_ORIGINAL_DATE_TAG: str = "EXIF:DateTimeOriginal"
+FILE_MODIFY_DATE_TAG: str = "File:FileModifyDate"
+CREATION_DATE_TAGS: tuple[str, ...] = ("QuickTime:CreateDate", EXIF_ORIGINAL_DATE_TAG, FILE_MODIFY_DATE_TAG)
 
 
 class MediaFile(fil.File):
@@ -224,10 +226,10 @@ class MediaFile(fil.File):
     def get_exif_creation_date(self) -> datetime | None:
         """Returns the EXIF creation date of the file (or the modification date of the file when there is none)"""
         exif_data = self.get_exif_data()
-        if "EXIF:DateTimeOriginal" in exif_data:
-            str_date = exif_data["EXIF:DateTimeOriginal"]
-        elif "File:FileModifyDate" in exif_data:
-            str_date = exif_data["File:FileModifyDate"]
+        if EXIF_ORIGINAL_DATE_TAG in exif_data:
+            str_date = exif_data[EXIF_ORIGINAL_DATE_TAG]
+        elif FILE_MODIFY_DATE_TAG in exif_data:
+            str_date = exif_data[FILE_MODIFY_DATE_TAG]
         else:
             log.logger.warning("Can't find creation date in %s", util.json_fmt(exif_data))
             return None
@@ -374,7 +376,6 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs: obje
     start: float = 0
     if kwargs.get(opt.Option.START) not in ("", None):
         start = util.to_seconds(kwargs[opt.Option.START])
-        # settings[opt.OptionFfmpeg.START] = start
     if kwargs.get(opt.Option.STOP) not in ("", None):
         settings[opt.OptionFfmpeg.STOP] = util.to_seconds(kwargs[opt.Option.STOP]) - start
 

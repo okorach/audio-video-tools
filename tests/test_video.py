@@ -37,17 +37,11 @@ TMP2 = util.get_tmp_file() + ".mp4"
 
 def test_type() -> None:
     """Type"""
-    try:
+    with pytest.raises(ex.FileTypeError):
         _ = video.VideoFile("it" + os.sep + "seal.mp3")
-        pytest.fail("An exception was expected")
-    except ex.FileTypeError:
-        pass
 
-    try:
+    with pytest.raises(ex.FileTypeError):
         _ = video.VideoFile("it" + os.sep + "img-640x480.jpg")
-        pytest.fail("An exception was expected")
-    except ex.FileTypeError:
-        pass
 
     v = video.VideoFile(FILE)
     assert v.filename == os.path.abspath(FILE)

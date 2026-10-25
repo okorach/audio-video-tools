@@ -29,7 +29,6 @@ import pathlib
 import subprocess
 import sys
 from pathlib import Path
-from types import ModuleType
 from unittest.mock import patch
 
 import pytest
@@ -125,10 +124,11 @@ TOOLS = (
 
 
 @pytest.mark.parametrize("module", TOOLS)
-def test_tools_have_the_verbosity_option(module: ModuleType, capsys: pytest.CaptureFixture[str]) -> None:
+def test_tools_have_the_verbosity_option(module: str, capsys: pytest.CaptureFixture[str]) -> None:
     """Tools have the verbosity option"""
+    main = importlib.import_module(module).main
     with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit) as e:
-        importlib.import_module(module).main()
+        main()
     assert e.value.code == 0
     out = capsys.readouterr().out
     assert "--verbosity" in out
@@ -136,10 +136,11 @@ def test_tools_have_the_verbosity_option(module: ModuleType, capsys: pytest.Capt
 
 
 @pytest.mark.parametrize("module", TOOLS)
-def test_tools_reject_an_invalid_verbosity(module: ModuleType) -> None:
+def test_tools_reject_an_invalid_verbosity(module: str) -> None:
     """Tools reject an invalid verbosity"""
+    main = importlib.import_module(module).main
     with patch.object(sys, "argv", [module, "-v", "LOUD"]), pytest.raises(SystemExit) as e:
-        importlib.import_module(module).main()
+        main()
     assert e.value.code == 2
 
 
@@ -192,10 +193,11 @@ def test_add_output_args_required() -> None:
 
 # album_art has positional inputs and linker works on a directory (-d)
 @pytest.mark.parametrize("module", [m for m in TOOLS if m not in ("mediatools.album_art", "mediatools.linker")])
-def test_tools_document_the_input_option(module: ModuleType, capsys: pytest.CaptureFixture[str]) -> None:
+def test_tools_document_the_input_option(module: str, capsys: pytest.CaptureFixture[str]) -> None:
     """Tools document the input option"""
+    main = importlib.import_module(module).main
     with patch.object(sys, "argv", [module, "-h"]), pytest.raises(SystemExit):
-        importlib.import_module(module).main()
+        main()
     assert "--inputfiles" in capsys.readouterr().out
 
 

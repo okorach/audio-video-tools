@@ -70,31 +70,25 @@ def test_main_a_with_output() -> None:
 def test_main_help() -> None:
     """Main help"""
     with patch.object(sys, "argv", ["videotool", "cut", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
 def test_main_bad_option() -> None:
     """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "cut", "-i", VIDEO, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_main_no_file() -> None:
     """Main no file"""
     with patch.object(sys, "argv", ["videotool", "cut", "-o", TMPA]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_output_file_is_used_for_a_single_range() -> None:

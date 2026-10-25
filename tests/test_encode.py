@@ -19,7 +19,6 @@
 #
 
 import os
-import subprocess
 import sys
 from unittest.mock import patch
 
@@ -39,39 +38,39 @@ def get_video() -> str:
     return "it" + os.sep + "video-1920x1080.mp4"
 
 
-def test_encode_size() -> None:
+def test_encode_size(monkeypatch: pytest.MonkeyPatch) -> None:
     """Encode size"""
     vid_o = video.VideoFile(get_video())
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="1280x720", start=1, stop=2))
     assert vid2_o.resolution.width == 1280
     assert abs(vid2_o.duration - 1) < 0.1
     os.remove(TMP_VID)
 
 
-def test_encode_bitrate() -> None:
+def test_encode_bitrate(monkeypatch: pytest.MonkeyPatch) -> None:
     """Encode bitrate"""
     vid_o = video.VideoFile(get_video())
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vbitrate="1000k", abitrate="64k", start=1, stop=4))
     assert abs(vid2_o.video_bitrate - 1024 * 1024) < 200000
     assert abs(vid2_o.audio_bitrate - 64 * 1024) < 30000
     os.remove(TMP_VID)
 
 
-def test_encode_acodec() -> None:
+def test_encode_acodec(monkeypatch: pytest.MonkeyPatch) -> None:
     """Encode acodec"""
     vid_o = video.VideoFile(get_video())
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", acodec="mp3", deinterlace=True, start=1, stop=2))
     assert vid2_o.audio_codec == "mp3"
     os.remove(TMP_VID)
 
 
-def test_encode_vcodec() -> None:
+def test_encode_vcodec(monkeypatch: pytest.MonkeyPatch) -> None:
     """Encode vcodec"""
     vid_o = video.VideoFile(get_video())
-    util.HW_ACCEL = None
+    monkeypatch.setattr(util, "HW_ACCEL", None)
     vid2_o = video.VideoFile(vid_o.encode(target_file=TMP_VID, resolution="640x360", vcodec="h265", deinterlace=True, start=1, stop=2))
     assert vid2_o.video_codec == "hevc"
     os.remove(TMP_VID)
@@ -90,14 +89,10 @@ def test_hw_accel_2(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_main_file(short_video: str) -> None:
     """Main file"""
     file1 = short_video
-    try:
-        with patch.object(
-            sys, "argv", ["videotool", "profile-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]
-        ):
-            tools.videotool()
-    except subprocess.CalledProcessError:
-        # Encoding will fail... just to cover some source code
-        pytest.fail("Unexpected exception")
+    with patch.object(
+        sys, "argv", ["videotool", "profile-encode", "-g", "4", "-p", "1mbps", "-i", file1, "--hw_accel", "off", "--resolution", "640x360"]
+    ):
+        tools.videotool()
 
 
 def test_main_file_audio() -> None:
@@ -117,31 +112,27 @@ def test_main_file_audio() -> None:
 def test_main_dir_timeranges_1(video_5s: str) -> None:
     """Main dir timeranges 1"""
     file1 = video_5s
-    try:
-        with patch.object(
-            sys,
-            "argv",
-            [
-                "videotool",
-                "profile-encode",
-                "-p",
-                "1mbps",
-                "-i",
-                file1,
-                "--hw_accel",
-                "off",
-                "--resolution",
-                "640x360",
-                "--timeranges",
-                "00:02-00:04",
-                "-g",
-                "4",
-            ],
-        ):
-            tools.videotool()
-        # Can't delete output file, don't know the name
-    except subprocess.CalledProcessError:
-        pytest.fail("Unexpected exception")
+    with patch.object(
+        sys,
+        "argv",
+        [
+            "videotool",
+            "profile-encode",
+            "-p",
+            "1mbps",
+            "-i",
+            file1,
+            "--hw_accel",
+            "off",
+            "--resolution",
+            "640x360",
+            "--timeranges",
+            "00:02-00:04",
+            "-g",
+            "4",
+        ],
+    ):
+        tools.videotool()
 
 
 def test_main_dir_timeranges_2(video_5s: str) -> None:
@@ -150,29 +141,26 @@ def test_main_dir_timeranges_2(video_5s: str) -> None:
     log.logger.setLevel(log.get_logging_level(4))
     file1 = video_5s
     output = f"{file1}.out.mp4"
-    try:
-        with patch.object(
-            sys,
-            "argv",
-            [
-                "videotool",
-                "profile-encode",
-                "-p",
-                "1mbps",
-                "-i",
-                file1,
-                "--resolution",
-                "640x360",
-                "--hw_accel",
-                "off",
-                "--timeranges",
-                "00:00-00:01,00:02-00:04",
-            ],
-            "-o",
-            output,
-        ):
-            tools.videotool()
-        # Output file is hardcoded for now :-(
-        os.remove(file1.replace("video-5s.mp4", "video-5s.combined.mp4"))
-    except subprocess.CalledProcessError:
-        pytest.fail("Unexpected exception")
+    with patch.object(
+        sys,
+        "argv",
+        [
+            "videotool",
+            "profile-encode",
+            "-p",
+            "1mbps",
+            "-i",
+            file1,
+            "--resolution",
+            "640x360",
+            "--hw_accel",
+            "off",
+            "--timeranges",
+            "00:00-00:01,00:02-00:04",
+        ],
+        "-o",
+        output,
+    ):
+        tools.videotool()
+    # Output file is hardcoded for now :-(
+    os.remove(file1.replace("video-5s.mp4", "video-5s.combined.mp4"))

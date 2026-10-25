@@ -44,7 +44,8 @@ def find_output_file(ffmpeg_params: str) -> str | None:
     if params.endswith('"'):
         opening = params.rfind('"', 0, len(params) - 1)
         if 0 <= opening < len(params) - 2:
-            return params[opening + 1 : -1]
+            content_start = opening + 1
+            return params[content_start:-1]
     return params.rsplit(None, 1)[-1] if params else None
 
 

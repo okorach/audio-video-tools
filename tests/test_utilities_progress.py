@@ -63,15 +63,15 @@ def test_process_input_files_logs_progress() -> None:
 FFMPEG_LINE = "frame=30608 fps=197 q=25.0 size=  330kB time=00:00:06.000 bitrate=2261.3kbits/s speed=2x"
 
 
-def test_eta_of_a_line_combines_file_and_global_progress() -> None:
+def test_eta_of_a_line_combines_file_and_global_progress(monkeypatch: pytest.MonkeyPatch) -> None:
     """Eta of a line combines file and global progress"""
+    monkeypatch.setattr(util.GlobalProgress, "current", None)  # Restored at the end of the test
     # 7th file of 11 at 60%: (6 * 100 + 60) / 1100 = 60% - 660 s after the start the 40% remaining take 440 s
     with patch.object(util.time, "time", side_effect=[1000.0, 1660.0]):
         progress = util.GlobalProgress(11)
         progress.count = 6
         eta = util.__compute_eta__(FFMPEG_LINE, 10)
     assert eta == " - File progress 60%/ETA 00:00:02.000 - Global progress 60%/ETA 00:07:20.000"
-    util.GlobalProgress.current = None
 
 
 def test_eta_of_a_line_without_global_progress() -> None:

@@ -77,41 +77,33 @@ def test_keep_audio() -> None:
 def test_main_help() -> None:
     """Main help"""
     with patch.object(sys, "argv", ["videotool", "speed", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
 def test_main_bad_option() -> None:
     """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_main_no_file() -> None:
     """Main no file"""
     with patch.object(sys, "argv", ["videotool", "speed", "-o", TMP1]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_bad_speed() -> None:
     """Bad speed"""
     with patch.object(sys, "argv", ["videotool", "speed", "-i", VIDEO, "--speed", "212%"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 1
+        assert int(str(e.value)) == 1
 
 
 def test_speed_api_removes_audio() -> None:

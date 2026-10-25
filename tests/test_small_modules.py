@@ -233,8 +233,9 @@ def test_log_handler_error_while_formatting() -> None:
 def test_log_handler_recursion_error_is_raised() -> None:
     """Log handler recursion error is raised"""
     handler = log.Utf8StreamHandler(io.StringIO())
+    record = _record()
     with mock.patch.object(handler, "format", side_effect=RecursionError), pytest.raises(RecursionError):
-        handler.emit(_record())
+        handler.emit(record)
 
 
 def test_log_handler_error_while_writing_the_bytes() -> None:

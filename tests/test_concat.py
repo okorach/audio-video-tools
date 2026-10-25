@@ -23,10 +23,11 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 import mediatools.utilities as util
 import mediatools.videofile as video
 from mediatools import tools
-import pytest
 
 VIDEO1 = "it" + os.sep + "video-720p.mp4"
 VIDEO2 = "it" + os.sep + "video-720p.mp4"
@@ -35,9 +36,9 @@ TMP2 = util.get_tmp_file() + ".mp4"
 TMP3 = util.get_tmp_file() + ".mp4"
 
 
-def test_main_with_output(short_video: str, tmp_path: Path) -> None:
+def test_main_with_output(short_video: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Main with output"""
-    util.HW_ACCEL = False
+    monkeypatch.setattr(util, "HW_ACCEL", False)
     output = str(tmp_path / "concat.mp4")
     with patch.object(sys, "argv", ["videotool", "concat", "-g", "3", "-i", short_video, short_video, "-o", output]):
         try:
@@ -50,28 +51,22 @@ def test_main_with_output(short_video: str, tmp_path: Path) -> None:
 def test_main_help() -> None:
     """Main help"""
     with patch.object(sys, "argv", ["videotool", "concat", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
 def test_main_bad_option() -> None:
     """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "concat", "-i", VIDEO1, "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_main_no_file() -> None:
     """Main no file"""
     with patch.object(sys, "argv", ["videotool", "concat", "-o", TMP1]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2

@@ -21,10 +21,12 @@
 import os
 import sys
 from unittest.mock import patch
-from mediatools import tools
+
+import pytest
+
 import mediatools.utilities as util
 import mediatools.videofile as video
-import pytest
+from mediatools import tools
 
 VIDEO = "it" + os.sep + "video-720p.mp4"
 AUDIO1 = "it" + os.sep + "seal.mp3"
@@ -64,28 +66,22 @@ def test_main_with_output() -> None:
 def test_main_help() -> None:
     """Main help"""
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "-h"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 0
+        assert int(str(e.value)) == 0
 
 
 def test_main_bad_option() -> None:
     """Main bad option"""
     with patch.object(sys, "argv", ["videotool", "mux", "-b", "black", "-m", "10", "--stretch", "--badoption", "yes"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
 
 
 def test_main_no_file() -> None:
     """Main no file"""
     with patch.object(sys, "argv", ["videotool", "mux", "-g", "4", "-b", "black", "-m", "10"]):
-        try:
+        with pytest.raises(SystemExit) as e:
             tools.videotool()
-            pytest.fail("An exception was expected")
-        except SystemExit as e:
-            assert int(str(e)) == 2
+        assert int(str(e.value)) == 2
