@@ -19,6 +19,4 @@
 ::
 
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    imagetool to-video --style panorama --bounds 0.1,0.9,0.6,0.4 --duration 5 -i "%%~F"
-)
+imagetool to-video --style panorama --bounds 0.1,0.9,0.6,0.4 --duration 5 -i %*

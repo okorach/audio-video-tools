@@ -30,7 +30,15 @@ TOOLS_COMMANDS = re.compile(r"\b(videotool|audiotool|imagetool|pdftool)\b")
 PAUSE = re.compile(r"^\s*((::|rem)\s*)?pause\s*$", re.IGNORECASE)
 
 # Batch files that don't loop on the files to call a tool: the tool processes all the files at once
-CONVERTED = ("crop", "Encode AVI", "encode with choices", "stabilize", "volume")
+CONVERTED = (
+    "batch-files/crop",
+    "batch-files/Encode AVI",
+    "batch-files/encode with choices",
+    "batch-files/stabilize",
+    "batch-files/volume",
+    "batch-files-images/image-panorama",
+    "batch-files-images/image-zoom",
+)
 
 
 def lines(path: Path) -> list[str]:
@@ -59,7 +67,7 @@ def test_batch_files_dont_pause_at_the_end(batch_file):
 
 @pytest.mark.parametrize("name", CONVERTED)
 def test_converted_batch_files_pass_all_the_files(name):
-    batch_file = ROOT / "batch-files" / f"{name}.bat"
+    batch_file = ROOT / f"{name}.bat"
     tool_commands = [line for line in commands(batch_file) if TOOLS_COMMANDS.search(line)]
     assert len(tool_commands) == 1
     assert " -i %* " in f"{tool_commands[0]} "
@@ -73,4 +81,5 @@ def test_removed_and_renamed_batch_files():
     assert "flip-h.bat" not in names
     assert "mirror.bat" not in names
     assert "video-stabilize.bat" not in names
-    assert {"flip.bat", "stabilize.bat", "crop.bat"} <= names
+    assert "img-zoom.bat" not in names
+    assert {"flip.bat", "stabilize.bat", "crop.bat", "image-zoom.bat", "image-panorama.bat"} <= names

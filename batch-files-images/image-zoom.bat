@@ -19,6 +19,4 @@
 ::
 
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    imagetool to-video --style zoom -i "%%~F"
-)
+imagetool to-video --style zoom -i %*
