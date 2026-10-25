@@ -266,7 +266,7 @@ def test_log_handler_error_while_writing_the_bytes() -> None:
 
 def test_set_logger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Set logger"""
-    previous = log.logger
+    monkeypatch.setattr(log, "logger", log.logger)  # Restored at the end of the test
     monkeypatch.chdir(tmp_path)
     try:
         log.set_logger("unit-test-logger")
@@ -279,7 +279,6 @@ def test_set_logger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         assert (tmp_path / "unit-test-logger.log").exists()
     finally:
         logging.getLogger("unit-test-logger").handlers.clear()
-        log.logger = previous
 
 
 @pytest.mark.parametrize(

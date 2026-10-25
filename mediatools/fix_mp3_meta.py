@@ -97,12 +97,9 @@ def mb_lookup_track(artist: str, title: str) -> int | None:
         recordings = result.get("recording-list", [])
         for rec in recordings:
             for release in rec.get("release-list", []):
-                date_str = release.get("date", "")
-                if date_str:
-                    try:
-                        return int(date_str[:4])
-                    except ValueError:
-                        pass
+                year = _to_int(release.get("date", ""), 4)
+                if year is not None:
+                    return year
     except Exception as e:
         log.logger.warning("MusicBrainz recording lookup failed for '%s' / '%s': %s", artist, title, str(e))
     return None
@@ -131,6 +128,7 @@ def _read_m4a_tags(filepath: str) -> tuple[str | None, str | None, str | None, i
     tags = MP4(filepath).tags or {}
 
     def text(key: str) -> str:
+        """Returns the stripped text of a tag, an empty string if it is not set"""
         return (tags.get(_M4A_TAG_MAP[key], [None])[0] or "").strip()
 
     track = None
@@ -151,9 +149,10 @@ def _read_mp3_tags(filepath: str) -> tuple[str | None, str | None, str | None, i
         return None, None, None, None, None
 
     def text(frame: str) -> str:
+        """Returns the stripped text of a frame, an empty string if it is not set"""
         return str(audio.tags.get(frame, "")).strip()
 
-    track = _to_int(text("TRCK").split("/")[0]) if text("TRCK") else None
+    track = _to_int(text("TRCK").split("/", maxsplit=1)[0]) if text("TRCK") else None
     year = _to_int(text("TDRC"), 4) if text("TDRC") else None
     return text("TPE1") or None, text("TIT2") or None, text("TALB") or None, track, year
 
