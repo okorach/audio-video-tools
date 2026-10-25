@@ -39,8 +39,8 @@ def test_changed_drive():
         assert True
 
 
-def test_fix_symlink():
-    symlink = "shortcut.lnk"
+def test_fix_symlink(tmp_path):
+    symlink = str(tmp_path / "shortcut.lnk")
     util.set_debug_level(5)
     if platform.system() == "Windows":
         original_file = os.path.abspath(SONG)
@@ -54,8 +54,8 @@ def test_fix_symlink():
         assert True
 
 
-def test_fix_symlink_2():
-    symlink = "shortcut.lnk"
+def test_fix_symlink_2(tmp_path):
+    symlink = str(tmp_path / "shortcut.lnk")
     if platform.system() == "Windows":
         moved_file = "doesnotexit.txt"
         f = fil.File(moved_file)
