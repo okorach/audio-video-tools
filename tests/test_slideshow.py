@@ -212,3 +212,10 @@ def test_to_video_drifts_up_or_down_by_at_most_5_percent(commands):
     assert all(-5.0 <= d <= 5.0 for d in drifts)
     assert any(d > 0 for d in drifts) and any(d < 0 for d in drifts)
     assert commands.call_count == 60
+
+
+def test_assembly_weight_grows_with_the_resolution():
+    full_hd = video.__assembly_weight__("1920x1080", 10)
+    assert full_hd == pytest.approx(0.8)
+    assert 1.5 < video.__assembly_weight__("3840x2160", 10) < 2.5
+    assert video.__assembly_weight__("invalid", 10) == pytest.approx(full_hd)
