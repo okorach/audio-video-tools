@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -95,7 +95,7 @@ def add_postfix(file: str, postfix: str, extension: str | None = None) -> str:
 def automatic_output_file_name(outfile: str | None, infile: str, postfix: str, extension: str | None = None) -> str:
     if outfile is not None:
         return outfile
-    postfix.replace(":", "-")
+    postfix = postfix.replace(":", "-")
     return add_postfix(infile, postfix, extension)
 
 
@@ -128,17 +128,23 @@ def get_first_value(a_dict: dict | None, key_list: tuple | list):
     return None
 
 
+# The progress line of ffmpeg: "size=... time=<hh:mm:ss.ms> bitrate=... speed=<speed>x"
+FFMPEG_TIME_RE: re.Pattern = re.compile(r" time=(\d+:\d+:\d+\.\d+)\s+bitrate=")
+FFMPEG_SPEED_RE: re.Pattern = re.compile(r"speed=\s*(\d+(?:\.\d*)?|\.\d+)x")
+
+
 def __compute_eta__(line: str, total_time: float | str | None) -> str:
     if total_time is None:
         return ""
     # m = re.search(r"frame=\s*\d+ fps=[\d\.]+ q=[\d\.]+ size=\s*\d+kB time=(\d+:\d+:\d+\.\d+) "
     #               r"bitrate=\s*[\d\.]+kbits\/s dup=\d+ drop=\d+ speed=\s*([\d\.]+)x", line)
-    m = re.search(r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x", line)
-    if not m:
-        log.logger.debug("%s does not match %s", line, r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x")
+    time_match = FFMPEG_TIME_RE.search(line) if "size=" in line else None
+    speed_match = FFMPEG_SPEED_RE.search(line, time_match.end()) if time_match else None
+    if not time_match or not speed_match:
+        log.logger.debug("%s does not match the progress line of ffmpeg", line)
         return ""
-    speed = float(m.group(2))
-    done_time = to_seconds(m.group(1))
+    speed = float(speed_match.group(1))
+    done_time = to_seconds(time_match.group(1))
     eta = "Undefined" if speed == 0 else to_hms_str(max(0, (total_time - done_time) / speed))
     progress = GlobalProgress.current
     if progress is None or total_time <= 0:
@@ -662,7 +668,7 @@ def find_key(hashlist: dict, keylist: list | tuple):
 
 def percent_or_absolute(x: str | float, reference: float = 1) -> float | int:
     if isinstance(x, str):
-        if re.match(r"-?\d+(.\d+)?%", x):
+        if re.match(r"-?\d+(\.\d+)?%", x):
             return float(x[:-1]) * reference / 100
         return float(x)
     return x

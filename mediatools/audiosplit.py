@@ -1,6 +1,6 @@
 #
 # media-tools
-# Copyright (C) 2019-2021 Olivier Korach
+# Copyright (C) 2019-2026 Olivier Korach
 # mailto:olivier.korach AT gmail DOT com
 #
 # This program is free software; you can redistribute it and/or
@@ -113,8 +113,8 @@ def _detect_energy_gaps(y: object, sr: int, hop_length: int, min_gap_sec: float 
 
     # Find contiguous gap regions
     diff = np.diff(is_gap.astype(int))
-    gap_starts = np.where(diff == 1)[0] + 1
-    gap_ends = np.where(diff == -1)[0] + 1
+    gap_starts = np.nonzero(diff == 1)[0] + 1
+    gap_ends = np.nonzero(diff == -1)[0] + 1
     if is_gap[0]:
         gap_starts = np.insert(gap_starts, 0, 0)
     if is_gap[-1]:
