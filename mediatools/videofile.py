@@ -594,6 +594,8 @@ class VideoFile(media.MediaFile):
             vfilters.append(filter.Reverse())
         if kwargs.get("rotate"):
             vfilters.append(get_rotation_filter(kwargs["rotate"]))
+        if kwargs.get("mirror"):
+            vfilters.append(get_mirror_filter(kwargs["mirror"]))
         if "deshake" in kwargs:
             rx, ry = [int(x) for x in kwargs["deshake"].split("x")]
             vfilters.append(filter.deshake(rx=rx, ry=ry))
@@ -635,6 +637,19 @@ def normalize_rotation_angle(angle: int | str | None) -> int:
 def get_rotation_filter(angle: int | str | None) -> str:
     """Returns the ffmpeg filter that rotates a video of the clockwise angle (-90, 90, 180 or 270 degrees)"""
     return {90: "transpose=1", 180: "hflip,vflip", 270: "transpose=2"}[normalize_rotation_angle(angle)]
+
+
+def normalize_mirror_direction(direction: str | None) -> str:
+    """Returns the direction of a mirror: leftright (default) or topbottom, case insensitive. Raises an InputError for any other value"""
+    value = opt.DEFAULT_MIRROR_DIRECTION if direction is None else str(direction).strip().lower()
+    if value not in opt.MIRROR_DIRECTIONS:
+        raise ex.InputError(f"Invalid mirror direction '{direction}', must be one of {', '.join(opt.MIRROR_DIRECTIONS)}", "mirror")
+    return value
+
+
+def get_mirror_filter(direction: str | None) -> str:
+    """Returns the ffmpeg filter that mirrors a video: hflip swaps the left and the right (leftright), vflip the top and the bottom (topbottom)"""
+    return {"leftright": "hflip", "topbottom": "vflip"}[normalize_mirror_direction(direction)]
 
 
 def get_size_option(cmdline: str) -> str:
@@ -727,6 +742,17 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
     cmd += f' -vcodec "{out_codec}" -b:v "{first.video_bitrate!s}" "{target_file}"'
     util.run_ffmpeg(cmd.strip(), total_duration)
     return target_file
+
+
+def add_reencode_args(parser) -> None:
+    """Adds the options of the tools that re-encode a video with the original settings (--vcodec, --quality and --fps) to the parser of a tool"""
+    parser.add_argument(
+        "--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...). Default: the codec of the original video"
+    )
+    add_quality_arg(parser)
+    parser.add_argument(
+        "-r", "--" + opt.Option.FPS, required=False, help="Video framerate of the output eg 25. Default: the one of the original video"
+    )
 
 
 def add_quality_arg(parser) -> None:
@@ -965,6 +991,29 @@ def __get_source_vcodec__(source: VideoFile) -> str | None:
     return None
 
 
+def __filter_video__(filename: str, output: str | None, postfix: str, keep_name: bool, **kwargs) -> str:
+    """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or mirror) and returns the generated file.
+    The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
+    The output file is <original>.<postfix>.<ext> by default. With keep_name, the output has the name of the original, which is
+    renamed <original>.before_<postfix>.<ext>"""
+    if keep_name and output is not None:
+        raise ex.InputError("An output file can't be given with keepName", postfix)
+    ext = fil.extension(filename)
+    target = util.automatic_output_file_name(outfile=output, infile=filename, postfix=postfix, extension=ext)
+    source = VideoFile(filename)
+    if kwargs.get(opt.Option.VCODEC) is None:
+        kwargs.pop(opt.Option.VCODEC, None)
+        source_codec = __get_source_vcodec__(source)
+        if source_codec is not None:
+            kwargs[opt.Option.VCODEC] = source_codec
+    generated = source.encode(target_file=target, **kwargs)
+    if keep_name:
+        fil.rename(filename, util.add_postfix(filename, f"before_{postfix}", ext))
+        fil.rename(generated, filename)
+        generated = filename
+    return generated
+
+
 def rotate(filename: str, output: str | None = None, angle: int | str | None = None, keep_name: bool = False, **kwargs) -> str:
     """Rotates a video clockwise of angle degrees (-90, 90, 180 or 270, 90 by default) and returns the rotated file.
     The video is re-encoded (quality high by default) with the original fps and resolution (rotated), unless fps and resolution are given.
@@ -974,22 +1023,20 @@ def rotate(filename: str, output: str | None = None, angle: int | str | None = N
     The output file is <original>.r<rotation>.<ext> by default. With keep_name, the output has the name of the original, which is
     renamed <original>.before_r<rotation>.<ext>"""
     rotation = normalize_rotation_angle(angle)
-    if keep_name and output is not None:
-        raise ex.InputError("An output file can't be given with keepName", "rotate")
-    ext = fil.extension(filename)
-    target = util.automatic_output_file_name(outfile=output, infile=filename, postfix=f"r{rotation}", extension=ext)
-    source = VideoFile(filename)
-    if kwargs.get(opt.Option.VCODEC) is None:
-        kwargs.pop(opt.Option.VCODEC, None)
-        source_codec = __get_source_vcodec__(source)
-        if source_codec is not None:
-            kwargs[opt.Option.VCODEC] = source_codec
-    rotated = source.encode(target_file=target, rotate=rotation, **kwargs)
-    if keep_name:
-        fil.rename(filename, util.add_postfix(filename, f"before_r{rotation}", ext))
-        fil.rename(rotated, filename)
-        rotated = filename
-    return rotated
+    return __filter_video__(filename, output, f"r{rotation}", keep_name, rotate=rotation, **kwargs)
+
+
+def mirror(filename: str, output: str | None = None, direction: str | None = None, keep_name: bool = False, **kwargs) -> str:
+    """Mirrors a video and returns the mirrored file: the left and the right of the video are swapped (direction leftright, default)
+    or its top and bottom (direction topbottom).
+    The video is re-encoded (quality high by default) with the original fps and resolution, unless fps and resolution are given.
+    The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
+    The GPU encodes the video if hw_accel is on or auto (and available), with a fallback to the CPU in auto mode if the command fails.
+    The frames are decoded and flipped on the CPU: the mirror is not available as a GPU filter.
+    The output file is <original>.mirror_<direction>.<ext> by default. With keep_name, the output has the name of the original, which is
+    renamed <original>.before_mirror_<direction>.<ext>"""
+    mirror_direction = normalize_mirror_direction(direction)
+    return __filter_video__(filename, output, f"mirror_{mirror_direction}", keep_name, mirror=mirror_direction, **kwargs)
 
 
 def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs) -> str:
