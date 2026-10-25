@@ -37,11 +37,7 @@ def main() -> None:
         help=f"Clockwise rotation angle in degrees: {', '.join(str(a) for a in opt.ROTATION_ANGLES)} (-90 is the same as 270), "
         f"{opt.DEFAULT_ROTATION_ANGLE} by default",
     )
-    parser.add_argument("--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...)")
-    video.add_quality_arg(parser)
-    parser.add_argument(
-        "-r", "--" + opt.Option.FPS, required=False, help="Video framerate of the output eg 25 (default: the one of the original video)"
-    )
+    video.add_reencode_args(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:

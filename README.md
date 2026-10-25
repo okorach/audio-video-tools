@@ -16,3 +16,5 @@ The resolutions can be given as `<width>x<height>` or as an alias (`4k`, `2.7k`,
 Videos can be rotated with `videotool rotate`: see [docs/videotool-rotate.md](docs/videotool-rotate.md).
 
 Slideshows are created with `videotool slideshow` (50 fps by default): see [docs/videotool-slideshow.md](docs/videotool-slideshow.md).
+
+Videos can be mirrored (left/right or top/bottom) with `videotool mirror`: see [docs/videotool-mirror.md](docs/videotool-mirror.md).
