@@ -63,11 +63,18 @@ jobs:
         if: success() || failure()
         run: |
           bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests > build/bandit-report.json
-      - name: Patch project version
+      - name: Get project version
+        id: project-version
         if: success() || failure()
         run: |
-          version=$(grep VERSION mediatools/version.py | cut -d "=" -f 2 | sed "s/[\'\" ]//g")
-          echo "sonar.projectVersion=$version" >> sonar-project.properties
+          # The version of the project is the one of pyproject.toml
+          version=$(grep -m1 '^version' pyproject.toml | sed -E 's/^version *= *"([^"]+)".*/\1/' | tr -d '\r\n')
+          if [ -z "$version" ]; then
+            echo "Can't find the project version in pyproject.toml"
+            exit 1
+          fi
+          echo "Project version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Cache SonarQube packages
         if: success() || failure()
         uses: actions/cache@v5
@@ -84,6 +91,7 @@ jobs:
         with:
           args: >
             -Dsonar.verbose=false
+            -Dsonar.projectVersion=${{ steps.project-version.outputs.version }}
 
 
   # code-ql:
