@@ -807,7 +807,11 @@ def slideshow(
     outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
     log.logger.info("Final slideshow file will be %s", outfile)
 
-    progress = util.GlobalProgress(len(slides))
+    # The steps are the clips of the photos (weight 1 each) and the assemblies of the clips. The assembly of all the clips encodes as
+    # much video as the clips themselves, at about the same speed, so it weighs as much as them. When there are more than
+    # MAX_SLIDESHOW_AT_ONCE clips, the parts are assembled first (weight = number of clips of the part), then concatenated (best guess: 30%)
+    nb_slides = len(slides)
+    progress = util.GlobalProgress(nb_slides * (2 if nb_slides <= MAX_SLIDESHOW_AT_ONCE else 2.3))
     for slide_file, description in slides:
         if fil.is_image_file(slide_file):
             try:
@@ -830,6 +834,7 @@ def slideshow(
             progress.done()
             continue
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
+            progress.next_weight = len(video_files)
             slideshows.append(
                 __build_slideshow__(
                     video_files,
@@ -838,10 +843,15 @@ def slideshow(
                     hw_accel=hw_accel,
                 )
             )
+            progress.done(len(video_files))
             all_video_files.append(video_files)
             video_files = []
     if len(all_video_files) == 0:
-        return (__build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel), operations)
+        progress.next_weight = nb_slides
+        final = __build_slideshow__(video_files, resolution=resolution, outfile=outfile, hw_accel=hw_accel)
+        progress.done(nb_slides)
+        return (final, operations)
+    progress.next_weight = len(video_files)
     slideshows.append(
         __build_slideshow__(
             video_files,
@@ -850,7 +860,11 @@ def slideshow(
             hw_accel=hw_accel,
         )
     )
-    return (concat(target_file=outfile, file_list=slideshows, with_audio=False, hw_accel=hw_accel), operations)
+    progress.done(len(video_files))
+    progress.next_weight = nb_slides * 0.3
+    final = concat(target_file=outfile, file_list=slideshows, with_audio=False, hw_accel=hw_accel)
+    progress.done(nb_slides * 0.3)
+    return (final, operations)
 
 
 def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:

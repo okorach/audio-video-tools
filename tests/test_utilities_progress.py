@@ -52,3 +52,43 @@ def test_process_input_files_logs_progress():
     assert len(messages) == 3
     assert messages[0].startswith("GLOBAL progress 1/3 - 33%")
     assert messages[2].startswith("GLOBAL progress 3/3 - 100%, ETA 00:00:00")
+
+
+FFMPEG_LINE = "frame=30608 fps=197 q=25.0 size=  330kB time=00:00:06.000 bitrate=2261.3kbits/s speed=2x"
+
+
+def test_eta_of_a_line_combines_file_and_global_progress():
+    # 7th file of 11 at 60%: (6 * 100 + 60) / 1100 = 60% - 660 s after the start the 40% remaining take 440 s
+    with patch.object(util.time, "time", side_effect=[1000.0, 1660.0]):
+        progress = util.GlobalProgress(11)
+        progress.count = 6
+        eta = util.__compute_eta__(FFMPEG_LINE, 10)
+    assert eta == " - File progress 60%/ETA 00:00:02.000 - Global progress 60%/ETA 00:07:20.000"
+    util.GlobalProgress.current = None
+
+
+def test_eta_of_a_line_without_global_progress():
+    util.GlobalProgress(1)
+    assert util.GlobalProgress.current is None
+    assert util.__compute_eta__(FFMPEG_LINE, 10) == " ETA=00:00:02.000"
+
+
+def test_global_progress_is_cleared_when_done():
+    progress = util.GlobalProgress(2)
+    assert util.GlobalProgress.current is progress
+    with patch.object(log.logger, "info"):
+        progress.done()
+        assert util.GlobalProgress.current is progress
+        progress.done()
+    assert util.GlobalProgress.current is None
+
+
+def test_weighted_steps():
+    # 4 clips of weight 1 then an assembly of weight 4: at 50% of the assembly, (4 + 2) / 8 = 75% of the work is done
+    with patch.object(util.time, "time", side_effect=[1000.0, 1300.0]), patch.object(log.logger, "info"):
+        progress = util.GlobalProgress(8)
+        progress.count = 4
+        progress.next_weight = 4
+        fraction, eta = progress.eta(0.5)
+    assert fraction == 0.75
+    assert eta == "00:01:40.000"

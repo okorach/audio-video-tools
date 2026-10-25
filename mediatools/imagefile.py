@@ -267,7 +267,7 @@ class ImageFile(media.MediaFile):
         vf_string = ",".join(vfilters)
         encoder = _encoder_options(**kwargs)
         cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" {encoder} -s "{resolution}" "{out_file}"'
-        util.run_ffmpeg(cmd)
+        util.run_ffmpeg(cmd, duration)
         effect = "zoom-in" if zstop >= zstart else "zoom-out"
         return (
             out_file,
@@ -383,7 +383,7 @@ class ImageFile(media.MediaFile):
         vf_str = ",".join(vfilters)
         encoder = _encoder_options(**kwargs)
         cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} {encoder} -s {v_res!s} "{out_file}"'
-        util.run_ffmpeg(cmd)
+        util.run_ffmpeg(cmd, duration)
         effect = "pan-right" if speed >= 0 else "pan-left"
         return (
             out_file,
