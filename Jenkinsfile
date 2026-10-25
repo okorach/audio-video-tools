@@ -1,3 +1,8 @@
+// The version of the project is the one of pyproject.toml
+def projectVersion() {
+  return sh(returnStdout: true, script: '''grep -m1 '^version' pyproject.toml | sed -E 's/^version *= *"([^"]+)".*/\\1/' | tr -d '\\r\\n' ''').trim()
+}
+
 pipeline {
   agent any
   stages {
@@ -6,7 +11,7 @@ pipeline {
           withSonarQubeEnv('SQ LTS') {
             script {
               def scannerHome = tool 'SonarScanner';
-              sh "${scannerHome}/bin/sonar-scanner"
+              sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectVersion=${projectVersion()}"
             }
           }
       }
@@ -28,7 +33,7 @@ pipeline {
           withSonarQubeEnv('SQ Latest') {
             script {
               def scannerHome = tool 'SonarScanner';
-              sh "${scannerHome}/bin/sonar-scanner"
+              sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectVersion=${projectVersion()}"
             }
           }
       }
