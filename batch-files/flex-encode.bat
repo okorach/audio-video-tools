@@ -18,7 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-set /p vbitrate=Video bitrate ?
+setlocal enabledelayedexpansion
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
 set /p width=Video width ?
-videotool profile-encode -i %1 -p 4mbps --vbitrate %vbitrate% --width %width%
+videotool profile-encode -i %1 -p 4mbps --quality !quality! --width %width%
 pause

@@ -58,6 +58,8 @@ def main() -> None:
         postfix += "." + str(kwargs["width"]) + "px"
     if "vbitrate" in kwargs:
         postfix += "." + kwargs["vbitrate"]
+    if "quality" in kwargs:
+        postfix += "." + kwargs["quality"]
     if "vcodec" in kwargs:
         postfix += "." + kwargs["vcodec"]
     if "fps" in kwargs:

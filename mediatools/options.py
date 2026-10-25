@@ -49,6 +49,14 @@ HW_ACCEL_CODECS: dict[str, str] = {
 }
 
 
+QUALITY_LEVELS: tuple[str, ...] = ("high", "medium", "low")
+DEFAULT_QUALITY: str = "high"
+
+# Constant quality (-crf for the CPU encoders, -cq for the hardware accelerated ones) by quality level, for the h264 and h265 codecs
+CRF_H264: dict[str, int] = {"high": 18, "medium": 23, "low": 28}
+CRF_H265: dict[str, int] = {"high": 23, "medium": 28, "low": 33}
+
+
 class OptionFfmpeg:
     """Documents supported ffmpeg options"""
 
@@ -61,6 +69,8 @@ class OptionFfmpeg:
     ACODEC2: str = "c:a"
     ACODEC3: str = "codec:a"
     VBITRATE: str = "b:v"
+    CRF: str = "crf"
+    CQ: str = "cq"
     ABITRATE: str = "b:a"
     FPS: str = "r"
     ASPECT: str = "aspect"
@@ -82,6 +92,7 @@ class Option:
     VCODEC: str = "vcodec"
     ACODEC: str = "acodec"
     VBITRATE: str = "vbitrate"
+    QUALITY: str = "quality"
     ABITRATE: str = "abitrate"
     WIDTH: str = "width"
     HEIGHT: str = "height"

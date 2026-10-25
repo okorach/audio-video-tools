@@ -23,10 +23,10 @@
 setlocal enabledelayedexpansion
 set width=1920
 set /p width=Width (default 1920) ?
-set bitrate=20000k
-set /p bitrate=Bitrate (default 20000k) ?
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
 for %%F in (%*) do (
-    videotool encode -i "%%~F" --hw_accel on --vcodec x265 --width !width! --vbitrate !bitrate! --acodec aac --abitrate 128k
+    videotool encode -i "%%~F" --hw_accel on --vcodec x265 --width !width! --quality !quality! --acodec aac --abitrate 128k
 )
 pause
 

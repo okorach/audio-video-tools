@@ -18,8 +18,11 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
+setlocal enabledelayedexpansion
+set quality=high
+set /p quality=Quality [high, medium, low] (default high) ? 
 set /p timeranges=Time ranges ?
 
-videotool profile-encode -i %1 -p 1080p -t %timeranges% --fade 2 --vcodec h264 --acodec aac --vbitrate 4096k --abitrate 128k
+videotool profile-encode -i %1 -p 1080p -t %timeranges% --fade 2 --vcodec h264 --acodec aac --quality !quality! --abitrate 128k
 
 pause

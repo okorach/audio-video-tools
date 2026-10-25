@@ -8,3 +8,5 @@ The `-i` option of the tools accepts files and directories (processed recursivel
 The tools use the Nvidia hardware acceleration when it's available, with a fallback to the CPU if a command fails with it: see [docs/hw-accel.md](docs/hw-accel.md).
 
 The verbosity of the logs is set with `-v CRITICAL|ERROR|WARNING|INFO|DEBUG` (`INFO` by default): see [docs/verbosity.md](docs/verbosity.md).
+
+The quality of the encoded videos is set with `--quality high|medium|low` (`high` by default), a better option than the bitrate: see [docs/quality.md](docs/quality.md).
