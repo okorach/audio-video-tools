@@ -18,4 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 setlocal enabledelayedexpansion
-audiotool profile-encode -i %* -p aac128 --abitrate 128k
+set bitrate=128
+set /p bitrate=Audio bitrate in kbps (default 128) ? 
+:: The bitrate can be given with or without the k suffix: 192 or 192k
+set bitrate=!bitrate:k=!
+
+audiotool profile-encode -i %* -p mp3_128k --abitrate !bitrate!k

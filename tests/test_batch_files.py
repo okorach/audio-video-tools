@@ -38,9 +38,8 @@ CONVERTED = (
     "batch-files/volume",
     "batch-files-images/image-panorama",
     "batch-files-images/image-zoom",
-    "batch-files-audio/aac 128",
-    "batch-files-audio/mp3 128",
-    "batch-files-audio/mp3 192",
+    "batch-files-audio/aac",
+    "batch-files-audio/mp3",
 )
 
 
@@ -85,4 +84,16 @@ def test_removed_and_renamed_batch_files():
     assert "mirror.bat" not in names
     assert "video-stabilize.bat" not in names
     assert "img-zoom.bat" not in names
-    assert {"flip.bat", "stabilize.bat", "crop.bat", "image-zoom.bat", "image-panorama.bat"} <= names
+    assert not {"aac 128.bat", "mp3 128.bat", "mp3 192.bat"} & names
+    assert {"flip.bat", "stabilize.bat", "crop.bat", "image-zoom.bat", "image-panorama.bat", "aac.bat", "mp3.bat"} <= names
+
+
+@pytest.mark.parametrize("name,profile", [("aac", "aac128"), ("mp3", "mp3_128k")])
+def test_audio_batch_files_ask_for_the_bitrate(name, profile):
+    """The audio bitrate is asked (128 by default, with or without the k suffix) and passed to the tool"""
+    batch_file = ROOT / "batch-files-audio" / f"{name}.bat"
+    content = [line.strip() for line in lines(batch_file)]
+    assert "set bitrate=128" in content
+    assert any(line.startswith("set /p bitrate=") for line in content)
+    assert "set bitrate=!bitrate:k=!" in content
+    assert f"audiotool profile-encode -i %* -p {profile} --abitrate !bitrate!k" in content
