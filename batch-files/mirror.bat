@@ -21,9 +21,4 @@
 setlocal enabledelayedexpansion
 set direction=leftright
 set /p direction=Mirror direction [leftright, topbottom] (default leftright) ? 
-set quality=high
-set /p quality=Quality [high, medium, low] (default high) ? 
-
-videotool mirror -i %* --direction !direction! --quality !quality!
-
-pause
+videotool mirror -i %* --direction !direction! --quality high
