@@ -33,5 +33,3 @@ set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 
 videotool encode -i %* --hw_accel on --vcodec !codec! --width 1080 --height 1920 --quality !quality! --acodec aac --abitrate 128k --fps !fps! --keepName
-
-pause

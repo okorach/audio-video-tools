@@ -22,5 +22,3 @@ setlocal enabledelayedexpansion
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 videotool profile-encode -i %1 -p 100fps --quality !quality!
-
-pause

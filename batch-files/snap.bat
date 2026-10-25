@@ -31,5 +31,3 @@ if "%nbr%"=="" (
 ) else (
     videotool snap -i %* --nbr_photos %nbr%
 )
-
-pause

@@ -20,7 +20,4 @@
 
 setlocal enabledelayedexpansion
 set /p volume=Volume factor ?:
-for %%F in (%*) do (
-    videotool volume -i "%%~F" --volume %volume%
-)
-pause
+videotool volume -i %* --volume %volume%

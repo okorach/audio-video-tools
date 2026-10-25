@@ -24,4 +24,3 @@ for %%F in (%*) do (
     ren "%%~F" "%%~nxF.before-scale.jpg"
     D:\Tools\ffmpeg\bin\ffmpeg -i "%%~F.before-scale.jpg" -vf scale=%scale%:-1 "%%~F"
 )
-pause

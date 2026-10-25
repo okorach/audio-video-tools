@@ -25,9 +25,4 @@ set width=1920
 set /p width=Width (default 1920) ?
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
-for %%F in (%*) do (
-    videotool encode -i "%%~F" --hw_accel on --vcodec x265 --width !width! --quality !quality! --acodec aac --abitrate 128k
-)
-pause
-
-pause
+videotool encode -i %* --hw_accel on --vcodec x265 --width !width! --quality !quality! --acodec aac --abitrate 128k

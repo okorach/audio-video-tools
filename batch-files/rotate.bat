@@ -25,5 +25,3 @@ set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 
 videotool rotate -i %* --angle !angle! --quality !quality!
-
-pause

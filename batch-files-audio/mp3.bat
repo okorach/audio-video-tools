@@ -1,6 +1,6 @@
 ::
 :: media-tools
-:: Copyright (C) 2021 Olivier Korach
+:: Copyright (C) 2019-2021 Olivier Korach
 :: mailto:olivier.korach AT gmail DOT com
 ::
 :: This program is free software; you can redistribute it and/or
@@ -17,8 +17,10 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    imagetool to-video --style zoom -i "%%~F"
-)
+set bitrate=128
+set /p bitrate=Audio bitrate in kbps (default 128) ? 
+:: The bitrate can be given with or without the k suffix: 192 or 192k
+set bitrate=!bitrate:k=!
+
+audiotool profile-encode -i %* -p mp3_128k --abitrate !bitrate!k

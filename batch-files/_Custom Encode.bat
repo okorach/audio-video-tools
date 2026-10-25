@@ -34,5 +34,3 @@ set /p "hwaccel=Hardware acceleration [%hwaccel%] ? "
 set /p "fps=FPS ? "
 
 videotool encode -i %* --hw_accel "%hwaccel%" --width "%width%" --quality "%quality%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
-
-pause

@@ -17,9 +17,6 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    audiotool profile-encode -i "%%~F" -p aac128 --abitrate 128k
-)
 
-pause
+setlocal enabledelayedexpansion
+videotool stabilize -i %* --shakiness 8 --smoothing 30

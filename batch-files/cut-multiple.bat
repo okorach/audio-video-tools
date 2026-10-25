@@ -21,4 +21,3 @@
 set /p ranges=Ranges ?
 
 videotool cut -i "%~1" --timeranges %ranges% -v DEBUG
-pause

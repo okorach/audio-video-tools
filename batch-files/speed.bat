@@ -25,4 +25,3 @@
 set /p speed=Speed factor ?:
 
 videotool speed -i %* --speed "%speed%"
-pause
