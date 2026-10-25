@@ -18,6 +18,4 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""Version of the package"""
-
-MEDIA_TOOLS_VERSION: str = "0.10"
+MEDIA_TOOLS_VERSION: str = "0.11"

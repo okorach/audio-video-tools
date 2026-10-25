@@ -41,7 +41,7 @@ from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, TDRC, ID3NoHeaderError
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4
 
-from mediatools import log
+from mediatools import log, version
 from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 from mediatools import metacopy
 import mediatools.utilities as util
@@ -52,7 +52,7 @@ _M4A_TAG_MAP = {"artist": "©ART", "title": "©nam", "album": "©alb", "year": "
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
-musicbrainzngs.set_useragent("audio-video-tools", "0.10", "olivier.korach@gmail.com")
+musicbrainzngs.set_useragent("audio-video-tools", version.MEDIA_TOOLS_VERSION, "olivier.korach@gmail.com")
 
 # ---------------------------------------------------------------------------
 # MusicBrainz lookup
