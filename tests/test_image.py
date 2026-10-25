@@ -20,6 +20,7 @@
 
 import os
 from unittest.mock import patch
+import pytest
 import mediatools.utilities as util
 from mediatools import log
 import mediatools.exceptions as ex
@@ -212,12 +213,8 @@ def test_rotate():
     f = image.ImageFile(img.rotate())
     assert f.width == 3000 and f.height == 4000
     try:
-        image.ImageFile(img.rotate(degrees=180))
-        assert False
-    except ex.InputError:
-        pass
-    except Exception:
-        assert False
+        with pytest.raises(ex.InputError):
+            image.ImageFile(img.rotate(degrees=180))
     finally:
         del_files(img, f)
 

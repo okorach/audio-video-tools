@@ -36,7 +36,16 @@ QUICKTIME_EXTENSIONS = ("mp4", "m4v", "m4a", "mov", "qt", "3gp", "3g2")
 OTHER_AUDIO_EXTENSIONS = ("wav", "flac", "ogg", "opus", "aac", "wma", "aiff", "aif")
 GPS_KEYS = ("Composite:GPSLatitude", "Composite:GPSLongitude", "Composite:GPSAltitude")
 FFMPEG_INPUT_RE = re.compile(r'-i\s+(?:"([^"]+)"|(\S+))')
-FFMPEG_OUTPUT_RE = re.compile(r'(?:"([^"]+)"|(\S+))\s*$')
+
+
+def find_output_file(ffmpeg_params: str) -> str | None:
+    """The output file of an ffmpeg command is its last parameter: a quoted string, or a word"""
+    params = ffmpeg_params.strip()
+    if params.endswith('"'):
+        opening = params.rfind('"', 0, len(params) - 1)
+        if 0 <= opening < len(params) - 2:
+            return params[opening + 1 : -1]
+    return params.rsplit(None, 1)[-1] if params else None
 
 
 def is_media_file(filename: str) -> bool:
@@ -47,11 +56,8 @@ def is_media_file(filename: str) -> bool:
 def find_source_and_target(ffmpeg_params: str) -> tuple[str | None, str | None]:
     """Extracts from the parameters of an ffmpeg command the first input that is a media file (the source) and the output file (the target).
     Returns (None, None) if there is no such pair, eg for commands that generate no media file"""
-    output = FFMPEG_OUTPUT_RE.search(ffmpeg_params.strip())
-    if output is None:
-        return None, None
-    target = output.group(1) or output.group(2)
-    if not is_media_file(target):
+    target = find_output_file(ffmpeg_params)
+    if not target or not is_media_file(target):
         return None, None
     for m in FFMPEG_INPUT_RE.finditer(ffmpeg_params):
         source = m.group(1) or m.group(2)

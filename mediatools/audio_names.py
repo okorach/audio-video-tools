@@ -30,6 +30,22 @@ from typing import TYPE_CHECKING
 import utilities.file as fil
 from mediatools import log
 
+_BITRATE_RE = re.compile(r"\d\s*k", re.IGNORECASE)
+
+
+def strip_encoding_postfix(base_name: str) -> str:
+    """Removes a trailing bitrate/codec postfix, like " (128kbit_AAC)" or " [320kbps MP3]", from a file base name:
+    it is the last bracketed text (without nested brackets) when it contains a number followed by k"""
+    name = base_name.rstrip()
+    if name[-1:] not in (")", "]"):
+        return name
+    opening = max(name.rfind("("), name.rfind("["))
+    inner = name[opening + 1 : -1]
+    if opening < 0 or any(c in inner for c in "()[]") or not _BITRATE_RE.search(inner):
+        return name
+    return name[:opening].rstrip()
+
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
