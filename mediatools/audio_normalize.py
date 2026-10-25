@@ -58,15 +58,7 @@ except ImportError:
     _PIL_AVAILABLE = False
 
 from mediatools import log
-from mediatools.audio_names import (
-    strip_encoding_postfix,
-    title_case,
-    sentence_case,
-    parse_dir_name,
-    parse_file_name,
-    collect_inputs,
-    process_album_directories,
-)
+from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 from mediatools import metacopy
 import mediatools.utilities as util
 import utilities.file as fil
@@ -264,6 +256,10 @@ _ID3V1_GENRES: list[str] = [
 ]
 _GENRE_LOWER: dict[str, int] = {g.lower(): i for i, g in enumerate(_ID3V1_GENRES)}
 
+# Encoding postfix pattern (e.g. "(128kbit_AAC)", "[320kbps MP3]")
+_ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
+
+
 _COVER_FILENAME = "folder.jpg"
 _MAX_COVER_SIZE = 600
 
@@ -290,6 +286,11 @@ def find_genre(genre_name: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Filename cleanup
 # ---------------------------------------------------------------------------
+
+
+def strip_encoding_postfix(base_name: str) -> str:
+    """Remove encoding postfixes like '(128kbit_AAC)' or '[320kbps MP3]'."""
+    return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
 
 
 def strip_exotic_unicode(text: str) -> str:

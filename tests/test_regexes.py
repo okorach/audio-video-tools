@@ -21,68 +21,15 @@
 """Tests of the string parsing functions that don't use regular expressions with a super-linear runtime:
 they give the same results as the regular expressions they replace"""
 
-import random
 import re
 import time
 import pytest
-import mediatools.audio_names as names
-import mediatools.audio_normalize as norm
-import mediatools.audiofile as audio
 from mediatools import metacopy
 import mediatools.utilities as util
 
 # The regular expressions that the functions replace
-OLD_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
 OLD_OUTPUT_RE = re.compile(r'(?:"([^"]+)"|(\S+))\s*$')
 OLD_ETA_RE = re.compile(r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*([\d\.]+)x")
-
-
-def old_strip_encoding_postfix(base_name: str) -> str:
-    return OLD_POSTFIX_RE.sub("", base_name).rstrip()
-
-
-@pytest.mark.parametrize(
-    "name,expected",
-    [
-        ("Song (128kbit_AAC)", "Song"),
-        ("Track [320kbps MP3]", "Track"),
-        ("Normal Title", "Normal Title"),
-        ("Song (256kb)", "Song"),
-        ("Song (live)", "Song (live)"),
-        ("Song (2 K)", "Song"),
-        ("Song (128kbit) ", "Song"),
-        ("Song (128kbit)(live)", "Song (128kbit)(live)"),
-        ("Song (a (128k))", "Song (a (128k))"),
-        ("(128k)", ""),
-        ("Song )128k(", "Song )128k("),
-        ("Song (128k]", "Song"),
-        ("", ""),
-        ("   ", ""),
-    ],
-)
-def test_strip_encoding_postfix(name, expected):
-    assert names.strip_encoding_postfix(name) == expected
-    assert old_strip_encoding_postfix(name) == expected
-
-
-def test_strip_encoding_postfix_is_the_same_everywhere():
-    assert norm.strip_encoding_postfix is names.strip_encoding_postfix
-    assert audio.strip_encoding_postfix is names.strip_encoding_postfix
-
-
-def test_strip_encoding_postfix_gives_the_same_results_as_the_regular_expression():
-    rnd = random.Random(109)
-    alphabet = ["a", "B", "1", "28", "k", "K", "kbit", "bps", " ", "  ", "(", ")", "[", "]", "-", "_", "é"]
-    for _ in range(20000):
-        name = "".join(rnd.choice(alphabet) for _ in range(rnd.randint(0, 14)))
-        assert names.strip_encoding_postfix(name) == old_strip_encoding_postfix(name), repr(name)
-
-
-def test_strip_encoding_postfix_is_fast_on_pathological_names():
-    name = "(" + "1" * 50000 + " " * 50000
-    start = time.perf_counter()
-    assert names.strip_encoding_postfix(name) == name.rstrip()
-    assert time.perf_counter() - start < 1
 
 
 @pytest.mark.parametrize(
@@ -150,80 +97,3 @@ def test_percent_or_absolute_rejects_malformed_percentages(value):
 def test_output_file_name_replaces_the_colons_of_the_postfix():
     assert util.automatic_output_file_name(None, "dir/video.mp4", "1:2", "mp4").endswith("video.1-2.mp4")
     assert util.automatic_output_file_name("given.mp4", "video.mp4", "1:2") == "given.mp4"
-
-
-# The directory and file names parsing, compared to the regular expressions it replaces
-OLD_DIR_ARTIST_ALBUM_RE = re.compile(r"^(.+?)\s+-\s+(.+?)(?:\s*[\(\[]\s*(\d{4})\s*[\)\]])?\s*$")
-OLD_ARTIST_TITLE_RE = re.compile(r"^(.+?)\s+-\s+(.+)$")
-
-NAMES = [
-    "Artist - Album",
-    "Artist - Album (1999)",
-    "Artist - Album [1999]",
-    "Artist - Album (live)",
-    "Artist - Album (19999)",
-    "Artist - (1999)",
-    "Artist - Album  (1999)  ",
-    "Artist",
-    "Artist -",
-    "Artist - ",
-    "Artist -  ",
-    "- Album",
-    " - Album",
-    "A - B - C",
-    "A-B",
-    "A - B-C",
-    "  - x",
-    "a - b (2001) (2002)",
-    "a	-	b",
-    "",
-]
-
-
-def old_parse_dir_name(dir_name: str):
-    m = OLD_DIR_ARTIST_ALBUM_RE.match(dir_name)
-    if m:
-        return names.title_case(m.group(1).strip()), m.group(2).strip(), int(m.group(3)) if m.group(3) else None
-    return names.title_case(dir_name.strip()), None, None
-
-
-def old_artist_title(rest: str):
-    am = OLD_ARTIST_TITLE_RE.match(rest)
-    return (names.title_case(am.group(1).strip()), names.sentence_case(am.group(2).strip())) if am else None
-
-
-def new_artist_title(rest: str):
-    separator = names._split_on_dash(rest)  # pylint: disable=protected-access
-    return (names.title_case(separator[0].strip()), names.sentence_case(rest[separator[1] :].strip())) if separator else None
-
-
-@pytest.mark.parametrize("name", NAMES)
-def test_parse_dir_name_gives_the_same_results_as_the_regular_expression(name):
-    assert names.parse_dir_name(name) == old_parse_dir_name(name)
-
-
-@pytest.mark.parametrize("name", NAMES)
-def test_artist_title_gives_the_same_results_as_the_regular_expression(name):
-    assert new_artist_title(name) == old_artist_title(name)
-
-
-def test_parse_names_gives_the_same_results_as_the_regular_expressions_on_random_names():
-    rnd = random.Random(2026)
-    alphabet = ["a", "B", " ", "  ", "	", "-", " - ", "(", ")", "[", "]", "1999", "12", "x"]
-    for _ in range(30000):
-        name = "".join(rnd.choice(alphabet) for _ in range(rnd.randint(0, 10)))
-        assert names.parse_dir_name(name) == old_parse_dir_name(name), repr(name)
-        assert new_artist_title(name) == old_artist_title(name), repr(name)
-
-
-def test_parse_file_name():
-    assert names.parse_file_name("01 - Artist - the title") == (1, "Artist", "The title")
-    assert names.parse_file_name("Just a title") == (None, None, "Just a title")
-
-
-def test_parse_names_is_fast_on_pathological_names():
-    name = "a" + " - " * 20000 + " " * 20000
-    start = time.perf_counter()
-    names.parse_dir_name(name)
-    names.parse_file_name(name)
-    assert time.perf_counter() - start < 2

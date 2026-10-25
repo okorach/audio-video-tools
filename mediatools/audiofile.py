@@ -34,7 +34,6 @@ import utilities.file as fil
 import mediatools.mediafile as media
 import mediatools.imagefile as image
 from mediatools import metacopy
-from mediatools.audio_names import strip_encoding_postfix
 import mediatools.utilities as util
 import mediatools.options as opt
 import mediatools.media_config as conf
@@ -53,6 +52,14 @@ _CSV_KEYS: tuple[str, ...] = (
     "genre",
     "has_album_art",
 )
+
+# Matches a trailing bitrate/codec postfix in a file name, eg " (128kbit_AAC)" or "[320kbps MP3]"
+_ENCODING_POSTFIX_RE = re.compile(r"\s*[\(\[][^()\[\]]*\d+\s*k(?:bit|bps|b)?[^()\[\]]*[\)\]]\s*$", re.IGNORECASE)
+
+
+def strip_encoding_postfix(base_name: str) -> str:
+    """Removes a trailing bitrate/codec postfix (eg " (128kbit_AAC)") from a file base name"""
+    return _ENCODING_POSTFIX_RE.sub("", base_name).rstrip()
 
 
 def _strip_exotic_chars(base_name: str) -> str:
