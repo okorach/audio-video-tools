@@ -19,5 +19,3 @@
 ::
 
 videotool specs -i "%~1" -f txt
-
-pause

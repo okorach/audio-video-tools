@@ -23,4 +23,3 @@ set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 set /p width=Video width ?
 videotool profile-encode -i %1 -p 4mbps --quality !quality! --width %width%
-pause

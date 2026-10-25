@@ -19,4 +19,3 @@
 ::
 
 imagetool stack -i %*-m "4%%" -d horizontal
-:: pause

@@ -19,5 +19,3 @@
 ::
 
 audiotool normalize -f %*
-
-pause

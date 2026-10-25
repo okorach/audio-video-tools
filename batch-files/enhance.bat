@@ -26,4 +26,3 @@
 @echo off
 
 videotool enhance -i %*
-pause

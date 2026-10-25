@@ -24,7 +24,4 @@ set box=1920x1080
 set /p box=Box to crop (default 1920x1080) ?
 set corner=middle
 set /p corner=Corner to crop [topleft, top, topright, left, center, right, bottomleft, bottom, bottomright](default middle) ?
-for %%F in (%*) do (
-    videotool crop -i "%%~F" --box !box! --center
-)
-pause
+videotool crop -i %* --box !box! --center

@@ -22,4 +22,3 @@ set /p start=Start ?
 set /p stop=Stop ?
 
 videotool cut -i "%~1" --start %start% --stop %stop% -v DEBUG
-pause

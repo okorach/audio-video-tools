@@ -19,5 +19,3 @@
 ::
 
 audiotool lib "%~1"
-
-pause

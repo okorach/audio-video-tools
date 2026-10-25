@@ -19,7 +19,4 @@
 ::
 
 setlocal enabledelayedexpansion
-for %%F in (%*) do (
-    videotool stabilize -i "%%~F" --shakiness 8 --smoothing 30
-)
-pause
+videotool stabilize -i %* --shakiness 8 --smoothing 30

@@ -19,5 +19,3 @@
 ::
 
 shuffle -v DEBUG -i %*
-
-pause

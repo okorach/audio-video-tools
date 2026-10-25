@@ -19,5 +19,3 @@
 ::
 
 videotool concat -i %* -o "%~1.concat.mp4"
-
-Pause

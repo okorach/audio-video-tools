@@ -24,5 +24,3 @@ setlocal enabledelayedexpansion
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 videotool encode -i %* --vcodec x265 --width 2560 --height 1440 --quality !quality! --acodec aac --abitrate 128k --keepName
-
-pause

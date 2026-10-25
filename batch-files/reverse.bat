@@ -19,4 +19,3 @@
 ::
 
 videotool reverse %*
-pause

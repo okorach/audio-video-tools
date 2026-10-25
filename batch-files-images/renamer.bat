@@ -9,5 +9,3 @@
 set /p prefix=Format (#SEQ# #SIZE# #DEVICE# #TIMESTAMP# #TIME# #FPS# #BITRATE#)?
 set /p seqstart=Sequence Start ?
 renamer --seqstart %seqstart% --prefix "%prefix%" --photo_format "%prefix%" --video_format "%prefix%" -i %*
-
-pause

@@ -19,5 +19,3 @@
 ::
 
 audiotool list "%~1" >audio-list.csv
-
-pause

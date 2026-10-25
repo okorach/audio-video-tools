@@ -19,4 +19,3 @@
 ::
 
 E:\Tools\ffmpeg\bin\ffprobe -v error -show_format -show_streams "%~1" >"%~1.txt"
-pause

@@ -19,5 +19,3 @@
 ::
 
 audiotool fix-mp3-meta -i %*
-
-pause

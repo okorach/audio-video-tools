@@ -22,5 +22,3 @@
 ::
 
 audiotool concat -i %* -o "%~dpn1.concat%~x1"
-
-pause

@@ -19,4 +19,3 @@
 ::
 :: setlocal enabledelayedexpansion
 audiotool profile-encode -i %* -p mp3_192k --abitrate 192k
-pause

@@ -30,4 +30,3 @@ set /p QUALITY="Quality [high, medium, low] (default high): "
 if "%QUALITY%"=="" set QUALITY=high
 
 videotool slideshow -i %* --resolution %RESOLUTION% --fps %FPS% --quality %QUALITY%
-:: pause
