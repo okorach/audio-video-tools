@@ -98,8 +98,8 @@ def test_main_yaml_input(images, tmp_path):
         {"photo": os.path.abspath(images[0]), "effect": "pan-left", "duration": 3.0, "vertical_drift_pct": 2.5},
         {"photo": os.path.abspath(images[2]), "effect": "zoom-in", "duration": 3.0, "zoom_start_pct": 100.0, "zoom_stop_pct": 120.0},
     ]
-    yaml_in.write_text(yaml.safe_dump({"output": out_file, "photos": photos}), encoding="utf-8")
-    with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in), "--resolution", "320x180"]):
+    yaml_in.write_text(yaml.safe_dump({"slideshow": {"output": out_file, "resolution": "320x180"}, "photos": photos}), encoding="utf-8")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in)]):
         tools.videotool()
     assert os.path.isfile(out_file)
     with open(fil.strip_extension(out_file) + ".yaml", encoding="utf-8") as f:
