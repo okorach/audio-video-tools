@@ -85,6 +85,7 @@ def test_removed_and_renamed_batch_files():
     assert "mirror.bat" not in names
     assert "video-stabilize.bat" not in names
     assert "img-zoom.bat" not in names
+    assert not {"flex-encode.bat", "720p x265 25fps.bat"} & names
     assert not {"_Pinnacle 1080p CPU.bat", "_Pinnacle 1080p GPU.bat"} & names
     assert "_Pinnacle 1080p .bat" in names
     assert not {"aac 128.bat", "mp3 128.bat", "mp3 192.bat"} & names
@@ -114,3 +115,13 @@ def test_delayed_expansion_is_enabled_when_used(batch_file):
     """!variable! is only expanded after setlocal enabledelayedexpansion (and not when this line is a comment)"""
     if any(re.search(r"![A-Za-z_]\w*!", line) for line in commands(batch_file)):
         assert any(re.match(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in commands(batch_file)), batch_file.name
+
+
+def test_custom_encode_asks_the_resolution_and_not_the_width():
+    content = [line.strip() for line in lines(ROOT / "batch-files" / "_Custom Encode.bat")]
+    assert "set resolution=1920x1080" in content
+    assert any(line.startswith('set /p "resolution=') for line in content)
+    encode = next(line for line in content if line.startswith("videotool encode"))
+    assert '--resolution "%resolution%"' in encode
+    assert "--width" not in encode
+    assert not any("width" in line.lower() for line in content if not line.startswith("::"))

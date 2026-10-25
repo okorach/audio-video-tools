@@ -24,13 +24,13 @@ set vcodec=h265
 set quality=high
 set acodec=aac
 set abitrate=128k
-set width=1920
+set resolution=1920x1080
 set hwaccel=on
 
-set /p "width=Video width [%width%] ? "
+set /p "resolution=Video resolution, WxH or 4k, 2.7k, 2.5k, fhd, hd [%resolution%] ? "
 set /p "quality=Quality [high, medium, low] (default %quality%) ? "
 set /p "vcodec=Video codec [%vcodec%] ? "
 set /p "hwaccel=Hardware acceleration [%hwaccel%] ? "
 set /p "fps=FPS ? "
 
-videotool encode -i %* --hw_accel "%hwaccel%" --width "%width%" --quality "%quality%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
+videotool encode -i %* --hw_accel "%hwaccel%" --resolution "%resolution%" --quality "%quality%" --vcodec "%vcodec%" --acodec "%acodec%" --abitrate "%abitrate%" --fps "%fps%" --keepName
