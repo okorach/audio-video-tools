@@ -61,14 +61,14 @@ def test_batch_files_are_found() -> None:
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
-def test_batch_files_dont_pause_at_the_end(batch_file) -> None:
+def test_batch_files_dont_pause_at_the_end(batch_file: Path) -> None:
     non_empty = [line for line in lines(batch_file) if line.strip()]
     assert non_empty, f"{batch_file.name} is empty"
     assert not PAUSE.match(non_empty[-1]), f"{batch_file.name} ends with a pause"
 
 
 @pytest.mark.parametrize("name", CONVERTED)
-def test_converted_batch_files_pass_all_the_files(name) -> None:
+def test_converted_batch_files_pass_all_the_files(name: str) -> None:
     batch_file = ROOT / f"{name}.bat"
     tool_commands = [line for line in commands(batch_file) if TOOLS_COMMANDS.search(line)]
     assert len(tool_commands) == 1
@@ -89,7 +89,7 @@ def test_removed_and_renamed_batch_files() -> None:
 
 
 @pytest.mark.parametrize("name,profile", [("aac", "aac128"), ("mp3", "mp3_128k")])
-def test_audio_batch_files_ask_for_the_bitrate(name, profile) -> None:
+def test_audio_batch_files_ask_for_the_bitrate(name: str, profile: str) -> None:
     """The audio bitrate is asked (128 by default, with or without the k suffix) and passed to the tool"""
     batch_file = ROOT / "batch-files-audio" / f"{name}.bat"
     content = [line.strip() for line in lines(batch_file)]

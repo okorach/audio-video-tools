@@ -33,7 +33,7 @@ TMP_IMG = util.get_tmp_file() + ".jpg"
 IMAGE_SCALE_DOWN = 5
 
 
-def get_img(w, h, orientation="landscape") -> image.ImageFile:
+def get_img(w: int, h: int, orientation: str = "landscape") -> image.ImageFile:
     small_img = image.__get_background__("black")
     portrait_img = image.ImageFile(image.ImageFile(small_img).scale(w // IMAGE_SCALE_DOWN, h // IMAGE_SCALE_DOWN, out_file=TMP_IMG))
     portrait_img.orientation = orientation

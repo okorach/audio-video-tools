@@ -26,7 +26,7 @@ import mediatools.audiofile as audio
 import mediatools.videofile as video
 
 
-def __patch_args(file_type: str, **kwargs) -> dict:
+def __patch_args(file_type: str, **kwargs: object) -> dict:
     if file_type == fil.FileType.VIDEO_FILE and "vcodec" not in kwargs:
         kwargs["vcodec"] = "copy"
         kwargs["hw_accel"] = False
@@ -40,7 +40,12 @@ def __patch_args(file_type: str, **kwargs) -> dict:
 
 
 def cut(
-    file: str, output: str | None = None, start: float | str | None = None, stop: float | str | None = None, timeranges: str | None = None, **kwargs
+    file: str,
+    output: str | None = None,
+    start: float | str | None = None,
+    stop: float | str | None = None,
+    timeranges: str | None = None,
+    **kwargs: object,
 ) -> str | None:
     t = fil.get_type(file)
     if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):

@@ -38,7 +38,7 @@ from mediatools import tools
 
 
 @pytest.fixture
-def clip(short_video, tmp_path) -> str:
+def clip(short_video: str, tmp_path: Path) -> str:
     """A copy of the 320x180 short video in a temporary folder, where the flipped videos are generated"""
     return shutil.copy(short_video, tmp_path / "clip.mp4").__str__()
 
@@ -72,25 +72,25 @@ def difference(a: np.ndarray, b: np.ndarray) -> float:
 @pytest.mark.parametrize(
     "direction,expected", [("leftright", "leftright"), ("topbottom", "topbottom"), ("LeftRight", "leftright"), (None, "leftright")]
 )
-def test_normalize_direction(direction, expected) -> None:
+def test_normalize_direction(direction: str | None, expected: str) -> None:
     assert video.normalize_flip_direction(direction) == expected
 
 
 @pytest.mark.parametrize("direction", ["", "left", "rightleft", "updown", "diagonal"])
-def test_invalid_direction(direction) -> None:
+def test_invalid_direction(direction: str) -> None:
     with pytest.raises(ex.InputError, match="Invalid flip direction"):
         video.normalize_flip_direction(direction)
 
 
 @pytest.mark.parametrize("direction,expected", [("leftright", "hflip"), ("topbottom", "vflip"), (None, "hflip")])
-def test_flip_filter(direction, expected) -> None:
+def test_flip_filter(direction: str | None, expected: str) -> None:
     assert video.get_flip_filter(direction) == expected
 
 
 # ------------------------------------------------ The flipped video
 
 
-def test_flip_default_is_left_to_right(clip) -> None:
+def test_flip_default_is_left_to_right(clip: str) -> None:
     out = video.flip(clip)
     assert out == clip.replace("clip.mp4", "clip.flip_leftright.mp4")
     assert size(out) == (320, 180)  # The size is unchanged
@@ -99,7 +99,7 @@ def test_flip_default_is_left_to_right(clip) -> None:
     assert difference(flipped, source[:, ::-1]) < 20
 
 
-def test_flip_top_to_bottom(clip) -> None:
+def test_flip_top_to_bottom(clip: str) -> None:
     out = video.flip(clip, direction="topbottom")
     assert out == clip.replace("clip.mp4", "clip.flip_topbottom.mp4")
     source, flipped = first_frame(clip), first_frame(out)
@@ -108,13 +108,13 @@ def test_flip_top_to_bottom(clip) -> None:
     assert difference(flipped, source[:, ::-1]) > difference(flipped, source[::-1])
 
 
-def test_flip_twice_gives_the_original(clip, tmp_path) -> None:
+def test_flip_twice_gives_the_original(clip: str, tmp_path: Path) -> None:
     once = video.flip(clip, str(tmp_path / "once.mp4"), hw_accel="off")
     twice = video.flip(once, str(tmp_path / "twice.mp4"), hw_accel="off")
     assert difference(first_frame(twice), first_frame(clip)) < 20
 
 
-def test_flip_keeps_audio_fps_codec_and_extension(clip) -> None:
+def test_flip_keeps_audio_fps_codec_and_extension(clip: str) -> None:
     out = video.flip(clip, hw_accel="off")
     original, flipped = video.VideoFile(clip), video.VideoFile(out)
     assert flipped.get_fps() == original.get_fps()
@@ -123,20 +123,20 @@ def test_flip_keeps_audio_fps_codec_and_extension(clip) -> None:
     assert Path(out).suffix == ".mp4"
 
 
-def test_flip_fps_resolution_and_codec(clip) -> None:
+def test_flip_fps_resolution_and_codec(clip: str) -> None:
     out = video.flip(clip, fps="10", resolution="160x90", vcodec="h265", hw_accel="off")
     assert float(video.VideoFile(out).get_fps()) == 10
     assert size(out) == (160, 90)
     assert video.VideoFile(out).get_video_codec() == "hevc"
 
 
-def test_flip_output_file(clip, tmp_path) -> None:
+def test_flip_output_file(clip: str, tmp_path: Path) -> None:
     target = str(tmp_path / "flipped.mp4")
     assert video.flip(clip, target) == target
     assert Path(target).exists()
 
 
-def test_flip_keep_name(clip) -> None:
+def test_flip_keep_name(clip: str) -> None:
     out = video.flip(clip, direction="topbottom", keep_name=True)
     assert out == clip
     source = first_frame(clip.replace("clip.mp4", "clip.before_flip_topbottom.mp4"))
@@ -144,7 +144,7 @@ def test_flip_keep_name(clip) -> None:
     assert not Path(clip.replace("clip.mp4", "clip.flip_topbottom.mp4")).exists()
 
 
-def test_flip_keep_name_with_output_is_rejected(clip, tmp_path) -> None:
+def test_flip_keep_name_with_output_is_rejected(clip: str, tmp_path: Path) -> None:
     with pytest.raises(ex.InputError):
         video.flip(clip, str(tmp_path / "out.mp4"), keep_name=True)
 
@@ -152,7 +152,7 @@ def test_flip_keep_name_with_output_is_rejected(clip, tmp_path) -> None:
 # ------------------------------------------------ Quality and hardware acceleration
 
 
-def test_flip_quality_is_high_by_default(clip) -> None:
+def test_flip_quality_is_high_by_default(clip: str) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.flip(clip, hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
@@ -165,7 +165,7 @@ def test_flip_quality_is_high_by_default(clip) -> None:
     assert "vflip" in cmd
 
 
-def test_flip_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip) -> None:
+def test_flip_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip: str) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.flip(clip, hw_accel="on", resolution="90x160")
     cmd = run_ffmpeg.call_args.args[0]
@@ -178,10 +178,10 @@ def test_flip_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip) -> None:
     assert '-s "90x160"' in cmd
 
 
-def test_flip_runs_again_on_the_cpu_when_the_gpu_fails(clip, tmp_path) -> None:
+def test_flip_runs_again_on_the_cpu_when_the_gpu_fails(clip: str, tmp_path: Path) -> None:
     attempts = []
 
-    def run_os_cmd(cmd, duration=None) -> None:
+    def run_os_cmd(cmd: str, duration: float | None = None) -> None:
         attempts.append(cmd)
         if "nvenc" in cmd:
             raise subprocess.CalledProcessError(1, cmd)
@@ -201,31 +201,31 @@ def test_flip_is_a_videotool_action() -> None:
     assert "flip" in tools.VIDEO_ACTIONS
 
 
-def test_command_default(clip) -> None:
+def test_command_default(clip: str) -> None:
     run("-i", clip, "--hw_accel", "off")
     assert Path(clip.replace("clip.mp4", "clip.flip_leftright.mp4")).exists()
 
 
 @pytest.mark.parametrize("direction", ["leftright", "topbottom", "TopBottom"])
-def test_command_directions(clip, direction) -> None:
+def test_command_directions(clip: str, direction: str) -> None:
     run("-i", clip, "--direction", direction, "--hw_accel", "off")
     assert Path(clip.replace("clip.mp4", f"clip.flip_{direction.lower()}.mp4")).exists()
 
 
 @pytest.mark.parametrize("direction", ["left", "updown", "90"])
-def test_command_rejects_invalid_directions(clip, direction) -> None:
+def test_command_rejects_invalid_directions(clip: str, direction: str) -> None:
     with pytest.raises(SystemExit) as e:
         run("-i", clip, "--direction", direction)
     assert e.value.code == 2
 
 
-def test_command_keep_name(clip) -> None:
+def test_command_keep_name(clip: str) -> None:
     run("-i", clip, "--keepName", "--hw_accel", "off")
     assert Path(clip.replace("clip.mp4", "clip.before_flip_leftright.mp4")).exists()
     assert Path(clip).exists()
 
 
-def test_command_standard_options(clip) -> None:
+def test_command_standard_options(clip: str) -> None:
     run("-i", clip, "--fps", "12", "--resolution", "90x160", "--quality", "low", "--vcodec", "x265", "--hw_accel", "off")
     out = video.VideoFile(clip.replace("clip.mp4", "clip.flip_leftright.mp4"))
     assert size(out.filename) == (90, 160)
@@ -234,20 +234,20 @@ def test_command_standard_options(clip) -> None:
 
 
 @pytest.mark.parametrize("mode", ["auto", "on", "off"])
-def test_command_hw_accel_option(clip, mode) -> None:
+def test_command_hw_accel_option(clip: str, mode: str) -> None:
     with patch.object(video, "flip", return_value=clip) as flip:
         run("-i", clip, "--hw_accel", mode)
     assert flip.call_args.kwargs["hw_accel"] == mode
 
 
-def test_command_invalid_options(clip) -> None:
+def test_command_invalid_options(clip: str) -> None:
     for args in (["--hw_accel", "maybe"], ["--quality", "ultra"]):
         with pytest.raises(SystemExit) as e:
             run("-i", clip, *args)
         assert e.value.code == 2
 
 
-def test_command_several_files_and_directories(short_video, tmp_path) -> None:
+def test_command_several_files_and_directories(short_video: str, tmp_path: Path) -> None:
     folder = tmp_path / "videos"
     (folder / "sub").mkdir(parents=True)
     first = shutil.copy(short_video, folder / "a.mp4")
@@ -258,7 +258,7 @@ def test_command_several_files_and_directories(short_video, tmp_path) -> None:
         assert Path(str(f).replace(".mp4", ".flip_topbottom.mp4")).exists()
 
 
-def test_command_output_file_with_several_files_is_rejected(short_video, tmp_path) -> None:
+def test_command_output_file_with_several_files_is_rejected(short_video: str, tmp_path: Path) -> None:
     first = shutil.copy(short_video, tmp_path / "a.mp4")
     second = shutil.copy(short_video, tmp_path / "b.mp4")
     with pytest.raises(SystemExit) as e:
@@ -266,7 +266,7 @@ def test_command_output_file_with_several_files_is_rejected(short_video, tmp_pat
     assert e.value.code == 2
 
 
-def test_flipped_files_keep_the_dates_of_the_original(clip) -> None:
+def test_flipped_files_keep_the_dates_of_the_original(clip: str) -> None:
     import os  # pylint: disable=import-outside-toplevel
     from datetime import datetime  # pylint: disable=import-outside-toplevel
 

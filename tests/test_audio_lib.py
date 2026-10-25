@@ -23,6 +23,7 @@ import pytest
 import mediatools.utilities as util
 import mediatools.audio_lib as ad
 import utilities.file as fil
+from pathlib import Path
 
 SONG = "it/song.mp3"
 TITLE = "Love Is Stronger Than Pride"
@@ -39,7 +40,7 @@ def test_changed_drive() -> None:
     assert ad.search_on_other_drives(moved_file) is None
 
 
-def test_fix_symlink(tmp_path) -> None:
+def test_fix_symlink(tmp_path: Path) -> None:
     if platform.system() != "Windows":
         pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")
@@ -53,7 +54,7 @@ def test_fix_symlink(tmp_path) -> None:
     assert f2.read_link() == original_file
 
 
-def test_fix_symlink_2(tmp_path) -> None:
+def test_fix_symlink_2(tmp_path: Path) -> None:
     if platform.system() != "Windows":
         pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")

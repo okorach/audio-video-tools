@@ -31,6 +31,7 @@ from mutagen.id3 import ID3
 
 from mediatools import tools
 import mediatools.audio_normalize as norm
+from pathlib import Path
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
 
@@ -177,7 +178,7 @@ def test_parse_mb_date_invalid() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _mb_release_result(date="1994-10-03", genre="Rock") -> dict:
+def _mb_release_result(date: str = "1994-10-03", genre: str = "Rock") -> dict:
     return {
         "release-list": [
             {
@@ -188,7 +189,7 @@ def _mb_release_result(date="1994-10-03", genre="Rock") -> dict:
     }
 
 
-def _mb_full_release(date="1994-10-03", genre="Rock") -> dict:
+def _mb_full_release(date: str = "1994-10-03", genre: str = "Rock") -> dict:
     return {
         "release": {
             "date": date,
@@ -242,7 +243,7 @@ def test_extract_tracks_empty() -> None:
 
 @patch("mediatools.audio_normalize.musicbrainzngs.get_release_by_id")
 @patch("mediatools.audio_normalize.musicbrainzngs.search_releases")
-def test_mb_lookup_release_success(mock_search, mock_get) -> None:
+def test_mb_lookup_release_success(mock_search: MagicMock, mock_get: MagicMock) -> None:
     mock_search.return_value = _mb_release_result()
     mock_get.return_value = _mb_full_release()
     year, date, genre, tracks, release_id = norm.mb_lookup_release("Seal", "Seal")
@@ -254,7 +255,7 @@ def test_mb_lookup_release_success(mock_search, mock_get) -> None:
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_releases")
-def test_mb_lookup_release_no_results(mock_search) -> None:
+def test_mb_lookup_release_no_results(mock_search: MagicMock) -> None:
     mock_search.return_value = {"release-list": []}
     year, date, genre, tracks, release_id = norm.mb_lookup_release("Unknown", "Unknown")
     assert year is None
@@ -263,14 +264,14 @@ def test_mb_lookup_release_no_results(mock_search) -> None:
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_releases")
-def test_mb_lookup_release_empty_artist(mock_search) -> None:
+def test_mb_lookup_release_empty_artist(mock_search: MagicMock) -> None:
     year, date, genre, tracks, release_id = norm.mb_lookup_release("", "Album")
     mock_search.assert_not_called()
     assert year is None
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_releases")
-def test_mb_lookup_release_exception(mock_search) -> None:
+def test_mb_lookup_release_exception(mock_search: MagicMock) -> None:
     mock_search.side_effect = Exception("Network error")
     year, date, genre, tracks, release_id = norm.mb_lookup_release("Artist", "Album")
     assert year is None
@@ -278,7 +279,7 @@ def test_mb_lookup_release_exception(mock_search) -> None:
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_recordings")
-def test_mb_lookup_track_success(mock_search) -> None:
+def test_mb_lookup_track_success(mock_search: MagicMock) -> None:
     mock_search.return_value = {"recording-list": [{"release-list": [{"date": "1994-10-03"}]}]}
     year, date = norm.mb_lookup_track("Seal", "Crazy")
     assert year == 1994
@@ -286,21 +287,21 @@ def test_mb_lookup_track_success(mock_search) -> None:
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_recordings")
-def test_mb_lookup_track_no_date(mock_search) -> None:
+def test_mb_lookup_track_no_date(mock_search: MagicMock) -> None:
     mock_search.return_value = {"recording-list": [{"release-list": [{"date": ""}]}]}
     year, date = norm.mb_lookup_track("Seal", "Crazy")
     assert year is None
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_recordings")
-def test_mb_lookup_track_empty(mock_search) -> None:
+def test_mb_lookup_track_empty(mock_search: MagicMock) -> None:
     year, date = norm.mb_lookup_track("", "")
     mock_search.assert_not_called()
     assert year is None
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.search_recordings")
-def test_mb_lookup_track_exception(mock_search) -> None:
+def test_mb_lookup_track_exception(mock_search: MagicMock) -> None:
     mock_search.side_effect = Exception("error")
     year, date = norm.mb_lookup_track("Artist", "Title")
     assert year is None
@@ -312,14 +313,14 @@ def test_mb_lookup_track_exception(mock_search) -> None:
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.get_image_front")
-def test_fetch_cover_art_success(mock_get) -> None:
+def test_fetch_cover_art_success(mock_get: MagicMock) -> None:
     mock_get.return_value = b"JPEG_DATA"
     data = norm.fetch_cover_art("release-123")
     assert data == b"JPEG_DATA"
 
 
 @patch("mediatools.audio_normalize.musicbrainzngs.get_image_front")
-def test_fetch_cover_art_exception(mock_get) -> None:
+def test_fetch_cover_art_exception(mock_get: MagicMock) -> None:
     mock_get.side_effect = Exception("Not found")
     data = norm.fetch_cover_art("release-123")
     assert data is None
@@ -337,14 +338,14 @@ def test_resize_image_no_pillow() -> None:
     assert result == original
 
 
-def test_save_cover_to_folder(tmp_path) -> None:
+def test_save_cover_to_folder(tmp_path: Path) -> None:
     fake_image = b"FAKE_IMAGE_DATA"
     with patch("mediatools.audio_normalize.resize_image", return_value=fake_image):
         norm.save_cover_to_folder(str(tmp_path), fake_image)
     assert os.path.exists(tmp_path / "folder.jpg")
 
 
-def test_save_cover_to_folder_error(tmp_path) -> None:
+def test_save_cover_to_folder_error(tmp_path: Path) -> None:
     with patch("mediatools.audio_normalize.resize_image", side_effect=Exception("err")):
         norm.save_cover_to_folder(str(tmp_path), b"data")
 
@@ -354,7 +355,7 @@ def test_save_cover_to_folder_error(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_read_existing_tags_mp3(tmp_path) -> None:
+def test_read_existing_tags_mp3(tmp_path: Path) -> None:
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     artist, title, album, track, year, genre = norm.read_existing_tags(dest)
@@ -432,7 +433,7 @@ def test_read_existing_tags_vorbis_tracknumber_with_total() -> None:
     assert year == 2005
 
 
-def test_write_tags_mp3(tmp_path) -> None:
+def test_write_tags_mp3(tmp_path: Path) -> None:
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     norm.write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock"))
@@ -442,7 +443,7 @@ def test_write_tags_mp3(tmp_path) -> None:
     assert str(tags["TCON"]) == "Rock"
 
 
-def test_write_tags_mp3_with_cover(tmp_path) -> None:
+def test_write_tags_mp3_with_cover(tmp_path: Path) -> None:
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     norm.write_tags(dest, norm.AudioTags(artist="Seal", title="Crazy", album="Seal", track=1, year=1994, genre="Rock", cover_bytes=b"\xff\xd8\xff"))
@@ -482,7 +483,7 @@ def test_write_tags_vorbis_none_file() -> None:
         norm.write_tags("song.ogg", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
-def test_write_tags_exception(tmp_path) -> None:
+def test_write_tags_exception(tmp_path: Path) -> None:
     norm.write_tags("/nonexistent/song.mp3", norm.AudioTags(artist="Artist", title="Title", album="Album", track=1, year=2000))
 
 
@@ -491,7 +492,7 @@ def test_write_tags_exception(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_set_file_date(tmp_path) -> None:
+def test_set_file_date(tmp_path: Path) -> None:
     f = tmp_path / "test.mp3"
     f.write_bytes(b"data")
     norm.set_file_date(str(f), dt.date(1994, 10, 3))
@@ -506,7 +507,7 @@ def test_set_file_date_error() -> None:
     norm.set_file_date("/nonexistent/file.mp3", dt.date(2000, 1, 1))
 
 
-def test_rename_file(tmp_path) -> None:
+def test_rename_file(tmp_path: Path) -> None:
     src = tmp_path / "old name.mp3"
     src.write_bytes(b"data")
     new_path = norm.rename_file(str(src), "new name")
@@ -514,14 +515,14 @@ def test_rename_file(tmp_path) -> None:
     assert "new name.mp3" in new_path
 
 
-def test_rename_file_same_name(tmp_path) -> None:
+def test_rename_file_same_name(tmp_path: Path) -> None:
     src = tmp_path / "same.mp3"
     src.write_bytes(b"data")
     result = norm.rename_file(str(src), "same")
     assert result == str(src)
 
 
-def test_rename_file_error(tmp_path) -> None:
+def test_rename_file_error(tmp_path: Path) -> None:
     src = tmp_path / "test.mp3"
     src.write_bytes(b"data")
     with patch("mediatools.audio_normalize.os.rename", side_effect=OSError("denied")):
@@ -536,7 +537,7 @@ def test_rename_file_error(tmp_path) -> None:
 
 @patch("mediatools.audio_normalize.write_tags")
 @patch("mediatools.audio_normalize.set_file_date")
-def test_process_file_dry_run(mock_date, mock_write, tmp_path) -> None:
+def test_process_file_dry_run(mock_date: MagicMock, mock_write: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "01 - Seal - Crazy.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     norm.process_file(dest, "Seal", "Seal", 1994, dt.date(1994, 10, 3), "Rock", [], None, dry_run=True)
@@ -546,7 +547,7 @@ def test_process_file_dry_run(mock_date, mock_write, tmp_path) -> None:
 
 @patch("mediatools.audio_normalize.set_file_date")
 @patch("mediatools.audio_normalize.write_tags")
-def test_process_file_writes_tags(mock_write, mock_date, tmp_path) -> None:
+def test_process_file_writes_tags(mock_write: MagicMock, mock_date: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "01 - Seal - Crazy.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     norm.process_file(dest, "Seal", "Seal", 1994, dt.date(1994, 10, 3), "Rock", [], None, dry_run=False)
@@ -557,7 +558,7 @@ def test_process_file_writes_tags(mock_write, mock_date, tmp_path) -> None:
 @patch("mediatools.audio_normalize.mb_lookup_track", return_value=(1991, dt.date(1991, 1, 1)))
 @patch("mediatools.audio_normalize.write_tags")
 @patch("mediatools.audio_normalize.set_file_date")
-def test_process_file_mb_track_lookup(mock_date, mock_write, mock_track, tmp_path) -> None:
+def test_process_file_mb_track_lookup(mock_date: MagicMock, mock_write: MagicMock, mock_track: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "Artist - Title.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     tags = ID3(dest)
@@ -569,7 +570,7 @@ def test_process_file_mb_track_lookup(mock_date, mock_write, mock_track, tmp_pat
 
 @patch("mediatools.audio_normalize.write_tags")
 @patch("mediatools.audio_normalize.set_file_date")
-def test_process_file_mb_tracks_title(mock_date, mock_write, tmp_path) -> None:
+def test_process_file_mb_tracks_title(mock_date: MagicMock, mock_write: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "03.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     tags = ID3(dest)
@@ -584,7 +585,7 @@ def test_process_file_mb_tracks_title(mock_date, mock_write, tmp_path) -> None:
 
 @patch("mediatools.audio_normalize.write_tags")
 @patch("mediatools.audio_normalize.set_file_date")
-def test_process_file_renames_dirty_filename(mock_date, mock_write, tmp_path) -> None:
+def test_process_file_renames_dirty_filename(mock_date: MagicMock, mock_write: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "Song (128kbit_AAC).mp3")
     shutil.copy(FIXTURE_MP3, dest)
     norm.process_file(dest, "Artist", "Album", 2000, None, None, [], None, dry_run=False)
@@ -599,7 +600,7 @@ def test_process_file_renames_dirty_filename(mock_date, mock_write, tmp_path) ->
 @patch("mediatools.audio_normalize.fetch_cover_art", return_value=None)
 @patch("mediatools.audio_normalize.mb_lookup_release", return_value=(1994, dt.date(1994, 10, 3), "Rock", ["Crazy", "Newborn"], "rel-123"))
 @patch("mediatools.audio_normalize.process_file")
-def test_process_directory(mock_pf, mock_mb, mock_cover, tmp_path) -> None:
+def test_process_directory(mock_pf: MagicMock, mock_mb: MagicMock, mock_cover: MagicMock, tmp_path: Path) -> None:
     shutil.copy(FIXTURE_MP3, str(tmp_path / "01 - Seal - Crazy.mp3"))
     (tmp_path / "notes.txt").write_text("ignore me")
     norm.process_directory(str(tmp_path), dry_run=False)
@@ -610,7 +611,7 @@ def test_process_directory(mock_pf, mock_mb, mock_cover, tmp_path) -> None:
 @patch("mediatools.audio_normalize.save_cover_to_folder")
 @patch("mediatools.audio_normalize.mb_lookup_release", return_value=(1994, dt.date(1994, 10, 3), "Rock", [], "rel-123"))
 @patch("mediatools.audio_normalize.process_file")
-def test_process_directory_saves_cover(mock_pf, mock_mb, mock_save, mock_cover, tmp_path) -> None:
+def test_process_directory_saves_cover(mock_pf: MagicMock, mock_mb: MagicMock, mock_save: MagicMock, mock_cover: MagicMock, tmp_path: Path) -> None:
     album_dir = tmp_path / "Seal - Seal"
     album_dir.mkdir()
     shutil.copy(FIXTURE_MP3, str(album_dir / "01.mp3"))
@@ -622,7 +623,9 @@ def test_process_directory_saves_cover(mock_pf, mock_mb, mock_save, mock_cover, 
 @patch("mediatools.audio_normalize.save_cover_to_folder")
 @patch("mediatools.audio_normalize.mb_lookup_release", return_value=(1994, dt.date(1994, 10, 3), "Rock", [], "rel-123"))
 @patch("mediatools.audio_normalize.process_file")
-def test_process_directory_skip_cover_if_exists(mock_pf, mock_mb, mock_save, mock_cover, tmp_path) -> None:
+def test_process_directory_skip_cover_if_exists(
+    mock_pf: MagicMock, mock_mb: MagicMock, mock_save: MagicMock, mock_cover: MagicMock, tmp_path: Path
+) -> None:
     album_dir = tmp_path / "Seal - Seal"
     album_dir.mkdir()
     shutil.copy(FIXTURE_MP3, str(album_dir / "01.mp3"))
@@ -637,7 +640,7 @@ def test_process_directory_skip_cover_if_exists(mock_pf, mock_mb, mock_save, moc
 
 
 @patch("mediatools.audio_normalize.process_directory")
-def test_main_default_dir(mock_pd) -> None:
+def test_main_default_dir(mock_pd: MagicMock) -> None:
     with (
         patch("sys.argv", ["audiotool", "normalize"]),
         patch("os.path.isdir", return_value=True),
@@ -648,7 +651,7 @@ def test_main_default_dir(mock_pd) -> None:
 
 
 @patch("mediatools.audio_normalize.process_directory")
-def test_main_dry_run(mock_pd, tmp_path) -> None:
+def test_main_dry_run(mock_pd: MagicMock, tmp_path: Path) -> None:
     with (
         patch("sys.argv", ["audiotool", "normalize", "-f", str(tmp_path), "--dry-run"]),
         patch("os.listdir", return_value=[]),
@@ -660,7 +663,7 @@ def test_main_dry_run(mock_pd, tmp_path) -> None:
 @patch("mediatools.audio_normalize.process_file")
 @patch("mediatools.audio_normalize.mb_lookup_release", return_value=(None, None, None, [], None))
 @patch("mediatools.audio_normalize.fetch_cover_art", return_value=None)
-def test_main_with_mp3_file(mock_cover, mock_mb, mock_pf, tmp_path) -> None:
+def test_main_with_mp3_file(mock_cover: MagicMock, mock_mb: MagicMock, mock_pf: MagicMock, tmp_path: Path) -> None:
     dest = str(tmp_path / "seal.mp3")
     shutil.copy(FIXTURE_MP3, dest)
     with patch("sys.argv", ["audiotool", "normalize", "-f", dest]), pytest.raises(SystemExit):
@@ -668,14 +671,14 @@ def test_main_with_mp3_file(mock_cover, mock_mb, mock_pf, tmp_path) -> None:
     mock_pf.assert_called()
 
 
-def test_main_non_audio_file(tmp_path) -> None:
+def test_main_non_audio_file(tmp_path: Path) -> None:
     f = str(tmp_path / "notes.txt")
     pathlib.Path(f).touch()
     with patch("sys.argv", ["audiotool", "normalize", "-f", f]), pytest.raises(SystemExit):
         tools.audiotool()
 
 
-def test_main_debug_flag(tmp_path) -> None:
+def test_main_debug_flag(tmp_path: Path) -> None:
     with (
         patch("sys.argv", ["audiotool", "normalize", "-f", str(tmp_path), "-g", "2"]),
         patch("os.listdir", return_value=[]),

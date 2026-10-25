@@ -49,7 +49,7 @@ def test_photo_name_padding() -> None:
     assert vs.photo_name("dir/foo.mp4", 3, 5, "out").replace("\\", "/") == "out/foo.3.jpg"
 
 
-def test_snap_file(monkeypatch) -> None:
+def test_snap_file(monkeypatch: pytest.MonkeyPatch) -> None:
     run = mock.Mock()
     monkeypatch.setattr(vs.video, "get_duration", lambda _f: 30.0)
     monkeypatch.setattr(vs.util, "run_ffmpeg", run)
@@ -60,51 +60,51 @@ def test_snap_file(monkeypatch) -> None:
     assert run.call_args_list[0].args[0].startswith("-ss 10.000 -i ")
 
 
-def test_snap_file_without_duration(monkeypatch) -> None:
+def test_snap_file_without_duration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(vs.video, "get_duration", lambda _f: None)
     with pytest.raises(ValueError, match="duration"):
         vs.snap_file("foo.mp4", every=5)
 
 
-def run_main(monkeypatch, *args) -> None:
+def run_main(monkeypatch: pytest.MonkeyPatch, *args: object) -> None:
     monkeypatch.setattr(vs.util, "expand_input_files", lambda inputs, *_a, **_k: inputs)
     with mock.patch.object(sys, "argv", ["videotool", "snap", *args]):
         tools.videotool()
 
 
-def test_main_every(monkeypatch) -> None:
+def test_main_every(monkeypatch: pytest.MonkeyPatch) -> None:
     snap = mock.Mock()
     monkeypatch.setattr(vs, "snap_file", snap)
     run_main(monkeypatch, "-i", "a.mp4", "b.mp4", "--every", "2.5")
     assert [c.args for c in snap.call_args_list] == [("a.mp4", None, 2.5, None), ("b.mp4", None, 2.5, None)]
 
 
-def test_main_requires_one_option(monkeypatch) -> None:
+def test_main_requires_one_option(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit):
         run_main(monkeypatch, "-i", "a.mp4")
     with pytest.raises(SystemExit):
         run_main(monkeypatch, "-i", "a.mp4", "--every", "2", "--nbr_photos", "3")
 
 
-def test_main_rejects_non_positive(monkeypatch) -> None:
+def test_main_rejects_non_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(SystemExit) as e:
         run_main(monkeypatch, "-i", "a.mp4", "--nbr_photos", "0")
     assert e.value.code == 2
 
 
-def test_snap_real_video_nbr_photos(video_5s) -> None:
+def test_snap_real_video_nbr_photos(video_5s: str) -> None:
     photos = vs.snap_file(video_5s, nbr_photos=4)
     assert [os.path.basename(p) for p in photos] == [f"video-5s.{i}.jpg" for i in range(1, 5)]
     assert all(Path(p).stat().st_size > 0 for p in photos)
 
 
-def test_snap_real_video_every_in_output_dir(video_5s, tmp_path) -> None:
+def test_snap_real_video_every_in_output_dir(video_5s: str, tmp_path: Path) -> None:
     photos = vs.snap_file(video_5s, every=1, out_dir=str(tmp_path / "photos"))
     assert sorted(os.listdir(tmp_path / "photos")) == [f"video-5s.{i}.jpg" for i in range(1, 5)]
     assert len(photos) == 4
 
 
-def test_snap_real_video_zero_padding(video_5s, tmp_path) -> None:
+def test_snap_real_video_zero_padding(video_5s: str, tmp_path: Path) -> None:
     photos = vs.snap_file(video_5s, every=0.5, out_dir=str(tmp_path))
     assert len(photos) == 9
     assert os.path.basename(photos[0]) == "video-5s.1.jpg"
@@ -113,7 +113,7 @@ def test_snap_real_video_zero_padding(video_5s, tmp_path) -> None:
     assert os.path.basename(photos[0]) == "video-5s.01.jpg"
 
 
-def test_main_real_directory(video_5s, tmp_path) -> None:
+def test_main_real_directory(video_5s: str, tmp_path: Path) -> None:
     shutil.copy(video_5s, tmp_path / "a.mp4")
     with mock.patch.object(sys, "argv", ["videotool", "snap", "-i", str(tmp_path), "--nbr_photos", "2"]):
         tools.videotool()

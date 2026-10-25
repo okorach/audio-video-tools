@@ -27,6 +27,7 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.audiofile as audio
 from mediatools import log
+import pytest
 
 TMP_VID = util.get_tmp_file() + ".mp4"
 TMP_AUDIO = util.get_tmp_file() + ".mp3"
@@ -70,7 +71,7 @@ def test_encode_vcodec() -> None:
     os.remove(TMP_VID)
 
 
-def test_hw_accel_2(monkeypatch) -> None:
+def test_hw_accel_2(monkeypatch: pytest.MonkeyPatch) -> None:
     """The hardware acceleration is available according to the check: the encoding succeeds in any case, on the GPU or,
     if the GPU command fails (no GPU), on the CPU"""
     monkeypatch.setattr(util, "HW_ACCEL", True)
@@ -80,7 +81,7 @@ def test_hw_accel_2(monkeypatch) -> None:
     os.remove(TMP_VID)
 
 
-def test_main_file(short_video) -> None:
+def test_main_file(short_video: str) -> None:
     file1 = short_video
     try:
         with patch.object(
@@ -107,7 +108,7 @@ def test_main_file_audio() -> None:
     os.remove(TMP_AUDIO)
 
 
-def test_main_dir_timeranges_1(video_5s) -> None:
+def test_main_dir_timeranges_1(video_5s: str) -> None:
     file1 = video_5s
     try:
         with patch.object(
@@ -137,7 +138,7 @@ def test_main_dir_timeranges_1(video_5s) -> None:
         assert False
 
 
-def test_main_dir_timeranges_2(video_5s) -> None:
+def test_main_dir_timeranges_2(video_5s: str) -> None:
     log.set_logger("tests")
     log.logger.setLevel(log.get_logging_level(4))
     file1 = video_5s

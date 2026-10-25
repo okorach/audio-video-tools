@@ -164,7 +164,7 @@ class MediaFile(fil.File):
     def get_properties(self) -> dict:
         return self.get_file_properties()
 
-    def __get_top_left__(self, width: int, height: int, **kwargs) -> tuple[int, int, str]:
+    def __get_top_left__(self, width: int, height: int, **kwargs: object) -> tuple[int, int, str]:
         # The caller may give the dimensions of the frame (eg the displayed size of a rotated video)
         iw, ih = kwargs.get("dimensions") or self.dimensions(ignore_orientation=True)
         top: int | None = kwargs.get("top")
@@ -299,7 +299,7 @@ class MediaFile(fil.File):
 # ---------------- Class methods ---------------------------------
 
 
-def get_audio_filters(**kwargs) -> filters.Simple:
+def get_audio_filters(**kwargs: object) -> filters.Simple:
     log.logger.debug("Afilters options = %s", str(kwargs))
     afilters = filters.Simple(filters.AUDIO_TYPE)
     if kwargs.get("volume") is not None:
@@ -311,13 +311,13 @@ def get_audio_filters(**kwargs) -> filters.Simple:
     return afilters
 
 
-def use_gpu_filters(**kwargs) -> bool:
+def use_gpu_filters(**kwargs: object) -> bool:
     """True if the video is decoded and filtered by the GPU. The rotation and the flip are CPU filters only: with them only the encoding
     is done by the GPU (the frames are decoded and filtered on the CPU)"""
     return util.use_hardware_accel(**kwargs) and not kwargs.get("rotate") and not kwargs.get("flip")
 
 
-def get_input_settings(**kwargs) -> list[str]:
+def get_input_settings(**kwargs: object) -> list[str]:
     log.logger.debug("get_input_setting(%s)", str(kwargs))
     settings: list[str] = []
     if kwargs.get(opt.Option.START, "") != "":
@@ -329,12 +329,12 @@ def get_input_settings(**kwargs) -> list[str]:
     return settings
 
 
-def get_prefilter_settings(**kwargs) -> list[str]:
+def get_prefilter_settings(**kwargs: object) -> list[str]:
     settings: list[str] = []
     return settings
 
 
-def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> dict:
+def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs: object) -> dict:
     settings: dict = {}
     log.logger.debug("get_output_setting(%s)", str(kwargs))
 
@@ -370,7 +370,7 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs) -> d
     return settings
 
 
-def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs) -> dict:
+def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs: object) -> dict:
     """Returns the ffmpeg constant quality setting (-crf, or -cq for the hardware accelerated encoders) of the video quality
     (--quality high, medium or low, high by default), according to the ffmpeg video codec (ffmpeg_codec):
     h264: 18, 23 and 28 - h265: 23, 28 and 33.
@@ -393,7 +393,7 @@ def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwar
     return {(opt.OptionFfmpeg.CQ if ffmpeg_codec.endswith("_nvenc") else opt.OptionFfmpeg.CRF): table[quality]}
 
 
-def _must_encode_video(**kwargs) -> bool:
+def _must_encode_video(**kwargs: object) -> bool:
     for k, v in kwargs.items():
         if k == opt.Option.QUALITY and kwargs.get(opt.Option.VCODEC) != "copy":
             return True
@@ -404,7 +404,7 @@ def _must_encode_video(**kwargs) -> bool:
     return False
 
 
-def _get_vcodec(**kwargs) -> str:
+def _get_vcodec(**kwargs: object) -> str:
     if _must_encode_video(**kwargs):
         vcodec = kwargs.get(opt.Option.VCODEC, conf.get_property("default.video.codec"))
         if util.use_hardware_accel(**kwargs):
@@ -416,7 +416,7 @@ def _get_vcodec(**kwargs) -> str:
     return vcodec
 
 
-def _get_acodec(**kwargs) -> str:
+def _get_acodec(**kwargs: object) -> str:
     acodec: str
     if not _must_encode_audio(**kwargs):
         acodec = "copy"
@@ -425,7 +425,7 @@ def _get_acodec(**kwargs) -> str:
     return acodec
 
 
-def _must_encode_audio(**kwargs) -> bool:
+def _must_encode_audio(**kwargs: object) -> bool:
     for k, v in kwargs.items():
         if k in (opt.Option.ABITRATE, "volume"):
             return True

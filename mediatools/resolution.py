@@ -71,7 +71,7 @@ class Resolution:
     RATIO_15_10: float = 15 / 10
     RATIO_4_3: float = 4 / 3
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: object) -> None:
         self.width: int = 0
         self.height: int = 0
         self.pixels: int = 0

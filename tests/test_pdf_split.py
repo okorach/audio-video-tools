@@ -41,7 +41,7 @@ def test_output_pattern_width() -> None:
 
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
-def test_split(tmp_path) -> None:
+def test_split(tmp_path: Path) -> None:
     gs = pdf_split.find_ghostscript()
     src = str(tmp_path / "foo.pdf")
     # Generate a 12 pages PDF
@@ -54,7 +54,7 @@ def test_split(tmp_path) -> None:
 
 @pytest.mark.skipif(pdf_split.find_ghostscript() is None, reason="Ghostscript not installed")
 @pytest.mark.parametrize("ppp", [150, 300, 600])
-def test_split_ppp(tmp_path, ppp) -> None:
+def test_split_ppp(tmp_path: Path, ppp: int) -> None:
     gs = pdf_split.find_ghostscript()
     src = str(tmp_path / "bar.pdf")
     ps_code = "/Helvetica findfont 20 scalefont setfont 1 1 2 {pop 50 50 moveto (x) show showpage} for"

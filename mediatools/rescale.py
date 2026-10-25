@@ -28,7 +28,7 @@ import mediatools.utilities as util
 import utilities.file as fil
 
 
-def __int_or_empty(x) -> int:
+def __int_or_empty(x: str) -> int:
     if x == "":
         return -1
     return int(x)

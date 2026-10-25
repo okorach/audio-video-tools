@@ -31,7 +31,7 @@ TMP1 = util.get_tmp_file() + ".mp4"
 
 
 @pytest.fixture(autouse=True)
-def use_short_video(short_video, monkeypatch) -> None:
+def use_short_video(short_video: str, monkeypatch: pytest.MonkeyPatch) -> None:
     """The tests don't depend on a specific video: reversing a short video is much faster"""
     monkeypatch.setattr(sys.modules[__name__], "VIDEO", short_video)
 

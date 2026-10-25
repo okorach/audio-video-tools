@@ -130,7 +130,7 @@ def setsar(ratio: str) -> str:
     return f"setsar={ratio}"
 
 
-def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
+def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs: object) -> str:
     opts = ":".join([f"{k}={v}" for k, v in kwargs.items()])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
@@ -291,9 +291,9 @@ def afade(fade_type: str, start: float = 0, duration: float = 1.0) -> str:
     return f"afade=t={fade_type}:st={start}:d={duration}"
 
 
-def hw_accel_input(**kwargs) -> str:
+def hw_accel_input(**kwargs: object) -> str:
     return "-hwaccel cuvid -c:v h264_cuvid" if kwargs.get("hw_accel", False) else ""
 
 
-def hw_accel_output(**kwargs) -> str:
+def hw_accel_output(**kwargs: object) -> str:
     return "-c:v h264_nvenc" if kwargs.get("hw_accel", False) else ""

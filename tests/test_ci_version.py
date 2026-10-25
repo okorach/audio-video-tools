@@ -78,7 +78,7 @@ def test_jenkins_passes_the_version_to_the_scanner() -> None:
 
 
 @pytest.fixture
-def run_version_step(tmp_path) -> Callable[[str], tuple[int, str]]:
+def run_version_step(tmp_path: Path) -> Callable[[str], tuple[int, str]]:
     bash = shutil.which("bash")
     if bash is None or shutil.which("sed") is None:
         pytest.skip("bash and sed are required")
@@ -100,25 +100,25 @@ def run_version_step(tmp_path) -> Callable[[str], tuple[int, str]]:
     return run
 
 
-def test_version_step_extracts_the_version_of_pyproject(run_version_step) -> None:
+def test_version_step_extracts_the_version_of_pyproject(run_version_step: Callable[[str], tuple[int, str]]) -> None:
     code, output = run_version_step('[project]\nname = "x"\nversion = "1.23.4"\n\n[tool.ruff]\ntarget-version = "py310"\n')
     assert code == 0
     assert output == "version=1.23.4"
 
 
-def test_version_step_with_the_real_pyproject(run_version_step) -> None:
+def test_version_step_with_the_real_pyproject(run_version_step: Callable[[str], tuple[int, str]]) -> None:
     code, output = run_version_step((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert code == 0
     assert output == f"version={version.MEDIA_TOOLS_VERSION}"
 
 
-def test_version_step_with_windows_line_ends(run_version_step) -> None:
+def test_version_step_with_windows_line_ends(run_version_step: Callable[[str], tuple[int, str]]) -> None:
     code, output = run_version_step('[project]\r\nname = "x"\r\nversion = "2.0"\r\n')
     assert code == 0
     assert output == "version=2.0"
 
 
-def test_version_step_fails_without_version(run_version_step) -> None:
+def test_version_step_fails_without_version(run_version_step: Callable[[str], tuple[int, str]]) -> None:
     code, output = run_version_step('[project]\nname = "x"\n')
     assert code == 1
     assert output == ""

@@ -21,6 +21,7 @@
 """Video file tools"""
 
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import datetime
 import math
 import os
@@ -37,6 +38,9 @@ import mediatools.options as opt
 from filters import filter  # noqa: A004
 from filters import filters
 import mediatools.media_config as conf
+
+if TYPE_CHECKING:
+    import argparse
 
 H264_HW_DECODE_MAX_SIZE: int = 4096
 H264_HW_DECODE_PIX_FMTS: tuple[str, ...] = ("yuv420p", "yuvj420p", "nv12")
@@ -305,7 +309,7 @@ class VideoFile(media.MediaFile):
         return all_props
 
     @util.hw_accel_fallback
-    def crop(self, out_file: str | None = None, **kwargs) -> str:
+    def crop(self, out_file: str | None = None, **kwargs: object) -> str:
         """Crops a region of the video.
         The region size is given by either box="WxH" (default 1920x1080) or width and height.
         The region location is given by position (any combination of top, center, bottom, left, right).
@@ -353,7 +357,7 @@ class VideoFile(media.MediaFile):
             set_creation_date(out_file, creation_date)
         return out_file
 
-    def add_metadata(self, **metadatas) -> str:
+    def add_metadata(self, **metadatas: object) -> str:
         # ffmpeg -i in.mp4 -vcodec copy -c:a copy -map 0 -metadata year=<year>
         # -metadata copyright="(c) O. Korach <year>"  -metadata author="Olivier Korach"
         # -metadata:s:a:0 language=fre -metadata:s:a:0 title="Avec musique"
@@ -428,7 +432,7 @@ class VideoFile(media.MediaFile):
         return self.copyright
 
     @util.hw_accel_fallback
-    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:
+    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs: object) -> str:
         """Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file
@@ -560,13 +564,13 @@ class VideoFile(media.MediaFile):
         except (TypeError, ValueError):
             return 0.5
 
-    def __get_encoded_duration(self, **kwargs) -> float:
+    def __get_encoded_duration(self, **kwargs: object) -> float:
         """The duration of the part of the video that is encoded (the whole video, or between start and stop)"""
         start = util.to_seconds(kwargs[opt.Option.START]) if kwargs.get(opt.Option.START) not in ("", None) else 0.0
         stop = util.to_seconds(kwargs[opt.Option.STOP]) if kwargs.get(opt.Option.STOP) not in ("", None) else self.get_duration()
         return stop - start
 
-    def __get_scale_filter(self, **kwargs) -> str | None:
+    def __get_scale_filter(self, **kwargs: object) -> str | None:
         """Returns the scale filter for the requested --width, --height or --resolution, None if the video is not resized.
         The unspecified dimension is computed to keep the aspect ratio (-2 keeps it even, as required by most encoders)"""
         width, height = kwargs.get(opt.Option.WIDTH), kwargs.get(opt.Option.HEIGHT)
@@ -583,7 +587,7 @@ class VideoFile(media.MediaFile):
             return None
         return f"scale={width}:{height}"
 
-    def __get_video_filters(self, **kwargs) -> filter.Simple:
+    def __get_video_filters(self, **kwargs: object) -> filter.Simple:
         log.logger.debug("Vfilters options = %s", str(kwargs))
         vfilters = filter.Simple(filters.VIDEO_TYPE)
         if kwargs.get(opt.Option.DEINTERLACE, False):
@@ -744,7 +748,7 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
     return target_file
 
 
-def add_reencode_args(parser) -> None:
+def add_reencode_args(parser: argparse.ArgumentParser) -> None:
     """Adds the options of the tools that re-encode a video with the original settings (--vcodec, --quality and --fps) to the parser of a tool"""
     parser.add_argument(
         "--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...). Default: the codec of the original video"
@@ -755,7 +759,7 @@ def add_reencode_args(parser) -> None:
     )
 
 
-def add_quality_arg(parser) -> None:
+def add_quality_arg(parser: argparse.ArgumentParser) -> None:
     """Adds the --quality option to the parser of a tool"""
     parser.add_argument(
         "--" + opt.Option.QUALITY,
@@ -767,7 +771,7 @@ def add_quality_arg(parser) -> None:
     )
 
 
-def add_video_args(parser) -> object:
+def add_video_args(parser: argparse.ArgumentParser) -> object:
     """Parses options specific to video encoding scripts"""
     parser.add_argument("-p", "--profile", required=False, help="Profile to use for encoding")
 
@@ -794,7 +798,7 @@ def add_video_args(parser) -> object:
     return parser
 
 
-def __get_aspect_ratio__(width: int, height: int, **kwargs) -> str:
+def __get_aspect_ratio__(width: int, height: int, **kwargs: object) -> str:
     if kwargs.get("aspect") is None:
         aw, ah = re.split(":", media.reduce_aspect_ratio(width, height))
     else:
@@ -802,7 +806,7 @@ def __get_aspect_ratio__(width: int, height: int, **kwargs) -> str:
     return f"{aw}:{ah}"
 
 
-def __get_audio_channel_mapping__(**kwargs) -> str:
+def __get_audio_channel_mapping__(**kwargs: object) -> str:
     # Hack for channels selection
     if opt.Option.ACHANNEL not in kwargs:
         return ""
@@ -811,7 +815,7 @@ def __get_audio_channel_mapping__(**kwargs) -> str:
     return mapping
 
 
-def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", resolution: str | None = None, **kwargs) -> str:
+def __build_slideshow__(input_files: list[str], outfile: str = "slideshow.mp4", resolution: str | None = None, **kwargs: object) -> str:
     log.logger.debug("%s = slideshow(%s)", outfile, " + ".join(input_files))
     # The filters of the slideshow run on the CPU, only the encoding is done by the GPU (decoding some of the clips on the GPU
     # and the others on the CPU fails). If it fails anyway, slideshow() runs it again on the CPU
@@ -964,7 +968,7 @@ def slideshow(
     return (final, operations)
 
 
-def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs) -> str:
+def speed(filename: str, target_speed: str | float, output: str | None = None, mute: bool = True, **kwargs: object) -> str:
     """Changes the speed of a video. The size is unchanged and the video bitrate is the one of the source, unless a profile or a bitrate is given"""
     speed_str = str(target_speed)
     if not speed_str.endswith(("x", "%")):
@@ -976,7 +980,7 @@ def speed(filename: str, target_speed: str | float, output: str | None = None, m
     return vf.encode(speed=target_speed, target_file=output, mute=mute, **kwargs)
 
 
-def volume(filename: str, vol: str | float, output: str | None = None, **kwargs) -> str:
+def volume(filename: str, vol: str | float, output: str | None = None, **kwargs: object) -> str:
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="volume")
     return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
 
@@ -991,7 +995,7 @@ def __get_source_vcodec__(source: VideoFile) -> str | None:
     return None
 
 
-def __filter_video__(filename: str, output: str | None, postfix: str, keep_name: bool, **kwargs) -> str:
+def __filter_video__(filename: str, output: str | None, postfix: str, keep_name: bool, **kwargs: object) -> str:
     """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or flip) and returns the generated file.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
     The output file is <original>.<postfix>.<ext> by default. With keep_name, the output has the name of the original, which is
@@ -1014,7 +1018,7 @@ def __filter_video__(filename: str, output: str | None, postfix: str, keep_name:
     return generated
 
 
-def rotate(filename: str, output: str | None = None, angle: int | str | None = None, keep_name: bool = False, **kwargs) -> str:
+def rotate(filename: str, output: str | None = None, angle: int | str | None = None, keep_name: bool = False, **kwargs: object) -> str:
     """Rotates a video clockwise of angle degrees (-90, 90, 180 or 270, 90 by default) and returns the rotated file.
     The video is re-encoded (quality high by default) with the original fps and resolution (rotated), unless fps and resolution are given.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
@@ -1026,7 +1030,7 @@ def rotate(filename: str, output: str | None = None, angle: int | str | None = N
     return __filter_video__(filename, output, f"r{rotation}", keep_name, rotate=rotation, **kwargs)
 
 
-def flip(filename: str, output: str | None = None, direction: str | None = None, keep_name: bool = False, **kwargs) -> str:
+def flip(filename: str, output: str | None = None, direction: str | None = None, keep_name: bool = False, **kwargs: object) -> str:
     """Flips a video and returns the flipped file: the left and the right of the video are swapped (direction leftright, default)
     or its top and bottom (direction topbottom).
     The video is re-encoded (quality high by default) with the original fps and resolution, unless fps and resolution are given.
@@ -1039,14 +1043,21 @@ def flip(filename: str, output: str | None = None, direction: str | None = None,
     return __filter_video__(filename, output, f"flip_{flip_direction}", keep_name, flip=flip_direction, **kwargs)
 
 
-def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs) -> str:
+def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs: object) -> str:
     kwargs["hw_accel"] = False  # Reverse filter not compatible with HW accel
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="reverse")
     return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
 
 
 def color_enhance(
-    filename: str, output: str | None = None, *, saturation: float = 1.3, contrast: float = 1.1, brightness: float = 0.0, gamma: float = 1.0, **kwargs
+    filename: str,
+    output: str | None = None,
+    *,
+    saturation: float = 1.3,
+    contrast: float = 1.1,
+    brightness: float = 0.0,
+    gamma: float = 1.0,
+    **kwargs: object,
 ) -> str:
     """Enhances video colors using the ffmpeg eq filter (saturation, contrast, brightness, gamma)."""
     eq = f"eq=saturation={saturation}:contrast={contrast}:brightness={brightness}:gamma={gamma}"
@@ -1058,7 +1069,7 @@ def color_enhance(
     return vf.encode(target_file=output, color_eq=eq, **kwargs)
 
 
-def deshake(filename: str, output: str | None = None, **kwargs) -> str:
+def deshake(filename: str, output: str | None = None, **kwargs: object) -> str:
     output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="deshake")
     return VideoFile(filename).encode(target_file=output, **kwargs)
 

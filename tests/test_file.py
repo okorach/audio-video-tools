@@ -24,6 +24,7 @@ import platform
 import utilities.file as fil
 import mediatools.videofile as video
 from mediatools import version
+from pathlib import Path
 
 BASE = "video-720p.mp4"
 FILE = "it" + os.sep + BASE
@@ -72,7 +73,7 @@ def test_dirname() -> None:
     assert f.dirname() == dirname
 
 
-def test_link(tmp_path) -> None:
+def test_link(tmp_path: Path) -> None:
     assert not fil.is_link(FILE)
     assert not fil.is_shortcut(FILE)
     f = fil.File(FILE)

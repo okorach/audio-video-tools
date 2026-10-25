@@ -52,7 +52,7 @@ def find_ghostscript() -> str | None:
     return None
 
 
-def page_count(gs, pdf_file) -> int:
+def page_count(gs: str, pdf_file: str) -> int:
     """Returns the number of pages of a PDF file"""
     # PostScript string: backslashes and parentheses must be escaped
     ps_path = pdf_file.replace("\\", "/").replace("(", r"\(").replace(")", r"\)")
@@ -65,14 +65,14 @@ def page_count(gs, pdf_file) -> int:
     return int(match.group())
 
 
-def output_pattern(pdf_file, nb_pages) -> str:
+def output_pattern(pdf_file: str, nb_pages: int) -> str:
     """Returns the Ghostscript output file pattern, with page number zero padded to the width of nb_pages"""
     width = len(str(nb_pages))
     base = os.path.splitext(pdf_file)[0]
     return f"{base}.page_%0{width}d.pdf"
 
 
-def split(pdf_file, ppp=DEFAULT_PPP) -> int:
+def split(pdf_file: str, ppp: int = DEFAULT_PPP) -> int:
     """Splits a PDF in 1 PDF per page. Returns the number of pages"""
     gs = find_ghostscript()
     if gs is None:

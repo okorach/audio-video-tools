@@ -110,7 +110,7 @@ class Complex(Filter):
 
 
 class Fade(Simple):
-    def __init__(self, start: float = 0.0, direction: str = "out", duration: float = 0.5, **kwargs) -> None:
+    def __init__(self, start: float = 0.0, direction: str = "out", duration: float = 0.5, **kwargs: object) -> None:
         self.start: float = start
         self.direction: str = "in" if direction.lower() == "in" else "out"
         self.duration: float = duration
@@ -122,14 +122,14 @@ class Fade(Simple):
 
 class FadeIn(Fade):
 
-    def __init__(self, duration: float = 0.5, **kwargs) -> None:
+    def __init__(self, duration: float = 0.5, **kwargs: object) -> None:
         super().__init__(start=0.0, direction="in", duration=duration, **kwargs)
 
 
 class FadeOut(Fade):
     """Fades out during the duration that starts at start (the end of the video minus the duration)"""
 
-    def __init__(self, start: float = 0.0, duration: float = 0.5, **kwargs) -> None:
+    def __init__(self, start: float = 0.0, duration: float = 0.5, **kwargs: object) -> None:
         super().__init__(start=start, direction="out", duration=duration, **kwargs)
 
 
@@ -144,7 +144,7 @@ class Sar(Simple):
 
 class Trim(Simple):
 
-    def __init__(self, end: float, start: float = 0, **kwargs) -> None:
+    def __init__(self, end: float, start: float = 0, **kwargs: object) -> None:
         self.start: float = start
         self.end: float = end
         self.params: dict = kwargs.copy()
@@ -156,7 +156,7 @@ class Trim(Simple):
 class Scale(Simple):
     """Scales a video - see https://ffmpeg.org/ffmpeg-filters.html#toc-scale-1"""
 
-    def __init__(self, x: int, y: int, **kwargs) -> None:
+    def __init__(self, x: int, y: int, **kwargs: object) -> None:
         self.x: int = x
         self.y: int = y
         self.params: dict = kwargs.copy()
@@ -202,7 +202,7 @@ class Volume(Simple):
     """Sets video / audio volume: see https://ffmpeg.org/ffmpeg-filters.html#toc-volume
     Can pass vol as a multiplier of current volume or absolute value like -6.0dB"""
 
-    def __init__(self, vol: str, **kwargs) -> None:
+    def __init__(self, vol: str, **kwargs: object) -> None:
         self.volume: str = vol
         self.params: dict = kwargs.copy()
 
@@ -230,7 +230,7 @@ class OverlayCuda(Overlay):
 
 class Deshake(Simple):
 
-    def __init__(self, rx: int = 32, ry: int = 32, **kwargs) -> None:
+    def __init__(self, rx: int = 32, ry: int = 32, **kwargs: object) -> None:
         self.params: dict[str, int] = {"x": -1, "y": -1, "w": -1, "h": -1, "rx": rx, "ry": ry}
         self.params.update(kwargs.copy())
 
@@ -238,7 +238,7 @@ class Deshake(Simple):
         return "deshake=" + ":".join([f"{k}={v}" for k, v in self.params.items()])
 
 
-def deshake(rx: int = 32, ry: int = 32, **kwargs) -> Deshake:
+def deshake(rx: int = 32, ry: int = 32, **kwargs: object) -> Deshake:
     return Deshake(rx=rx, ry=ry, **kwargs)
 
 
@@ -272,7 +272,7 @@ class Transpose(Simple):
 class Rotate(Simple):
     """Rotates a video, see https://ffmpeg.org/ffmpeg-filters.html#toc-rotate"""
 
-    def __init__(self, angle: str, **kwargs) -> None:
+    def __init__(self, angle: str, **kwargs: object) -> None:
         """Example angle = 'PI/2'"""
         self.angle: str = angle
         self.params: dict = kwargs.copy()
@@ -337,7 +337,7 @@ def in_out(filter_str: str, in_streams: list | tuple | str, out_streams: list | 
     return f"{__str_streams(in_streams)}{filter_str}{__str_streams(out_streams)}"
 
 
-def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs) -> str:
+def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs: object) -> str:
     opts = ":".join([f"{k}={v}" for k, v in kwargs.items()])
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
@@ -401,9 +401,9 @@ def disposition(default_track: int, nb_tracks: int) -> str:
     return " ".join([f"-disposition:a:{t} {'default' if t == default_track else 'none'}" for t in range(nb_tracks)])
 
 
-def hw_accel_input(**kwargs) -> str:
+def hw_accel_input(**kwargs: object) -> str:
     return "-hwaccel cuvid -c:v h264_cuvid" if kwargs.get("hw_accel", False) else ""
 
 
-def hw_accel_output(**kwargs) -> str:
+def hw_accel_output(**kwargs: object) -> str:
     return "-c:v h264_nvenc" if kwargs.get("hw_accel", False) else ""

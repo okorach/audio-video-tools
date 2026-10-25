@@ -102,7 +102,7 @@ def test_attributes() -> None:
     assert p["vbitrate"] == 1489365
 
 
-def test_crop(short_video) -> None:
+def test_crop(short_video: str) -> None:
     v = video.VideoFile(short_video)
     # util.set_debug_level(4)
     cropv = video.VideoFile(v.crop(out_file=TMP1, width=160, height=160, position="center"))
@@ -111,7 +111,7 @@ def test_crop(short_video) -> None:
     util.delete_files(cropv.filename)
 
 
-def test_crop_box_position(short_video) -> None:
+def test_crop_box_position(short_video: str) -> None:
     v = video.VideoFile(short_video)
     cropv = video.VideoFile(v.crop(out_file=TMP1, box="160x120", position="top left"))
     cropv.probe()
@@ -158,7 +158,7 @@ def _rotated_video(rotation: int, streams: list | None = None) -> video.VideoFil
 
 
 @pytest.mark.parametrize(("rotation", "expected"), [(0, (1280, 720)), (90, (720, 1280)), (-90, (720, 1280)), (180, (1280, 720)), (270, (720, 1280))])
-def test_displayed_dimensions(rotation, expected) -> None:
+def test_displayed_dimensions(rotation: int, expected: tuple[int, int]) -> None:
     """The displayed dimensions take the rotation of the video into account"""
     assert _rotated_video(rotation).displayed_dimensions() == expected
 
@@ -219,7 +219,7 @@ def test_crop_keeps_creation_date() -> None:
     date = dt.datetime(2020, 5, 17, 10, 30, 0)
     calls = []
 
-    def fake_encode(*args, **kwargs) -> None:
+    def fake_encode(*args: object, **kwargs: object) -> None:
         shutil.copy(FILE, TMP1)
         calls.append("encode")
 
@@ -268,14 +268,14 @@ def test_speed() -> None:
     os.remove(v2.filename)
 
 
-def test_volume(short_video) -> None:
+def test_volume(short_video: str) -> None:
     v1 = video.VideoFile(short_video)
     v2 = video.VideoFile(video.volume(short_video, 2, output=TMP1))
     assert abs(v1.duration - v2.duration) < 0.1
     os.remove(v2.filename)
 
 
-def test_reverse(short_video) -> None:
+def test_reverse(short_video: str) -> None:
     v1 = video.VideoFile(short_video)
     v2 = video.VideoFile(video.reverse(short_video, output=TMP1))
     assert abs(v1.duration - v2.duration) < 0.1
@@ -342,7 +342,7 @@ def test_metadata() -> None:
         (False, {"resolution": "640x360"}, '-s "640x360"'),
     ],
 )
-def test_encode_resize_options(hw_accel, options, expected) -> None:
+def test_encode_resize_options(hw_accel: bool, options: dict, expected: str) -> None:
     """--width, --height and --resolution are all honored, with or without HW acceleration"""
     v = video.VideoFile(FILE)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
@@ -351,7 +351,7 @@ def test_encode_resize_options(hw_accel, options, expected) -> None:
 
 
 @pytest.mark.parametrize("hw_accel", [True, False])
-def test_encode_no_resize(hw_accel) -> None:
+def test_encode_no_resize(hw_accel: bool) -> None:
     """Without --width, --height or --resolution the video is not scaled"""
     v = video.VideoFile(FILE)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
@@ -372,7 +372,7 @@ def test_properties_do_not_alter_the_object() -> None:
 
 
 @pytest.mark.parametrize("hw_accel", [True, False])
-def test_deinterlace_uses_yadif(hw_accel) -> None:
+def test_deinterlace_uses_yadif(hw_accel: bool) -> None:
     """-deinterlace is not supported by recent ffmpeg versions: the yadif filter is used instead"""
     v = video.VideoFile(FILE)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:
@@ -410,7 +410,7 @@ def test_no_deinterlace_by_default() -> None:
         ({"fade": "yes"}, "9.5", "0.5"),  # Not a duration: 0.5 second
     ],
 )
-def test_fade_in_and_out(options, fade_out_start, duration) -> None:
+def test_fade_in_and_out(options: dict, fade_out_start: str, duration: float | None) -> None:
     """--fade fades in at the start and out at the end of the part of the video that is encoded"""
     v = video.VideoFile(FILE)
     with mock.patch("mediatools.utilities.run_ffmpeg") as run:

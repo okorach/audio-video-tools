@@ -84,7 +84,7 @@ def test_multiply_by_negative() -> None:
         (" 4k ", "3840x2160"),
     ],
 )
-def test_aliases(alias, expected) -> None:
+def test_aliases(alias: str, expected: str) -> None:
     assert res.canonical(alias) == expected
     assert str(res.Resolution(resolution=alias)) == expected
 
@@ -96,7 +96,7 @@ def test_not_an_alias() -> None:
 
 
 @pytest.mark.parametrize("alias,expected", [("4K", "3840x2160"), ("2.7k", "2704x1520"), ("FHD", "1920x1080"), ("720P", "1280x720")])
-def test_resolution_option_aliases(alias, expected) -> None:
+def test_resolution_option_aliases(alias: str, expected: str) -> None:
     parser = util.get_common_args("test-resolution", "test")
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "--resolution", alias])["resolution"] == expected
     assert util.parse_media_args(parser, ["-i", "it/song.mp3", "-s", alias])["resolution"] == expected
@@ -107,5 +107,5 @@ def test_resolution_option_aliases(alias, expected) -> None:
 @pytest.mark.parametrize(
     "alias,expected", [("2.7k", ("2704", "1520")), ("4K", ("3840", "2160")), ("1k", ("1920", "1080")), ("1280x720", ("1280", "720"))]
 )
-def test_crop_box_aliases(alias, expected) -> None:
+def test_crop_box_aliases(alias: str, expected: tuple) -> None:
     assert video.parse_crop_box(alias) == expected

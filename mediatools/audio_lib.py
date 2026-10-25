@@ -29,7 +29,7 @@ import utilities.file as fil
 import mediatools.audiofile as audio
 
 
-def search_on_other_drives(file) -> str | None:
+def search_on_other_drives(file: str) -> str | None:
     for drive_letter in ("C", "D", "E", "F"):
         new_file = f"{drive_letter}{file[1:]}"
         log.logger.debug("Checking existence of %s", new_file)
@@ -40,7 +40,7 @@ def search_on_other_drives(file) -> str | None:
     return None
 
 
-def __check_file_name(file) -> None:
+def __check_file_name(file: str) -> None:
     if not fil.is_audio_file(file):
         return
     f = audio.AudioFile(file)
@@ -54,7 +54,7 @@ def __check_file_name(file) -> None:
         pass
 
 
-def fix_symlink(symlink, target_file) -> str | None:
+def fix_symlink(symlink: str, target_file: str) -> str | None:
     old_tgt = target_file
     log.logger.info("Trying to fix symlink %s --> Target = %s", symlink, old_tgt)
     target_file = search_on_other_drives(old_tgt)

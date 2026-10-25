@@ -70,7 +70,7 @@ def stabilize(
     zoom: int = 0,
     optzoom: int = 1,
     sharpen: bool = True,
-    **kwargs,
+    **kwargs: object,
 ) -> str:
     """Stabilize a video file using a two-pass libvidstab pipeline.
 

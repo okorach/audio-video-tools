@@ -36,7 +36,7 @@ from mediatools import stabilize as stab
 from collections.abc import Iterator
 
 
-def completed(stdout="", stderr="") -> mock.Mock:
+def completed(stdout: str = "", stderr: str = "") -> mock.Mock:
     return mock.Mock(stdout=stdout, stderr=stderr)
 
 
@@ -131,17 +131,17 @@ def run_main(*args: str) -> None:
         tools.videotool()
 
 
-def test_main_defaults(cli) -> None:
+def test_main_defaults(cli: mock.MagicMock) -> None:
     run_main("-i", "a.mp4")
     cli.assert_called_once_with("a.mp4", output=None, shakiness=8, smoothing=30, zoom=0, optzoom=1, sharpen=True)
 
 
-def test_main_options(cli) -> None:
+def test_main_options(cli: mock.MagicMock) -> None:
     run_main("-i", "a.mp4", "-o", "out.mp4", "--shakiness", "3", "--smoothing", "12", "--zoom", "4", "--optzoom", "0", "--no-sharpen")
     cli.assert_called_once_with("a.mp4", output="out.mp4", shakiness=3, smoothing=12, zoom=4, optzoom=0, sharpen=False)
 
 
-def test_main_several_files_ignore_the_output_name(cli) -> None:
+def test_main_several_files_ignore_the_output_name(cli: mock.MagicMock) -> None:
     """With several files, the name of each output is derived from its input"""
     run_main("-i", "a.mp4", "b.mp4", "-o", "out.mp4")
     assert [(c.args[0], c.kwargs["output"]) for c in cli.call_args_list] == [("a.mp4", None), ("b.mp4", None)]

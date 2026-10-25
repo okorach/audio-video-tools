@@ -110,7 +110,7 @@ def backup_file(input_file: str) -> str:
     return f"{root}{BACKUP_POSTFIX}{ext}"
 
 
-def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs) -> str:
+def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs: object) -> str:
     """Reduces the noise of the audio of a file. Returns the output file name.
     With keep_name the output file takes the name of the input file, which is renamed with a .before-denoise postfix.
     Options: method, level, cutoff, reduction, noise_floor, model, mix (see build_filter())"""

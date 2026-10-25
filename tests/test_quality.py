@@ -32,6 +32,7 @@ import mediatools.mediafile as media
 import mediatools.utilities as util
 import mediatools.videofile as video
 from collections.abc import Callable
+from pathlib import Path
 
 
 @pytest.mark.parametrize(
@@ -48,7 +49,7 @@ from collections.abc import Callable
         ("libx264", "HIGH", {"crf": 18}),
     ],
 )
-def test_quality_settings(vcodec, quality, expected) -> None:
+def test_quality_settings(vcodec: str, quality: str, expected: dict) -> None:
     assert media.get_quality_settings(vcodec, False, quality=quality) == expected
 
 
@@ -93,7 +94,7 @@ def test_quality_option() -> None:
 def ffmpeg_cmd() -> Callable[..., str]:
     """Runs VideoFile.encode() without running ffmpeg, and returns the ffmpeg parameters"""
 
-    def run(short_video, tmp_path, **kwargs) -> str:
+    def run(short_video: str, tmp_path: Path, **kwargs: object) -> str:
         with patch.object(util, "run_ffmpeg") as run_ffmpeg:
             video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), hw_accel="off", **kwargs)
         return run_ffmpeg.call_args.args[0]
@@ -106,36 +107,36 @@ def crf(cmd: str) -> str | None:
     return m.group(1) if m else None
 
 
-def test_encode_default_quality_is_high(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_encode_default_quality_is_high(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", width=160)
     assert crf(cmd) == "18"
     assert "-b:v" not in cmd
 
 
-def test_encode_x265_qualities(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_encode_x265_qualities(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     for quality, expected in (("high", "23"), ("medium", "28"), ("low", "33")):
         assert crf(ffmpeg_cmd(short_video, tmp_path, vcodec="x265", quality=quality)) == expected
 
 
-def test_encode_quality_alone_encodes_the_video(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_encode_quality_alone_encodes_the_video(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, quality="low")
     assert crf(cmd) == "28"  # h264 by default
     assert "libx264" in cmd
 
 
-def test_encode_bitrate_without_quality_keeps_the_bitrate(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_encode_bitrate_without_quality_keeps_the_bitrate(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", vbitrate="2000k")
     assert crf(cmd) is None
     assert '-b:v "2000k"' in cmd
 
 
-def test_encode_quality_replaces_the_bitrate(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_encode_quality_replaces_the_bitrate(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="x264", vbitrate="2000k", quality="medium")
     assert crf(cmd) == "23"
     assert "-b:v" not in cmd
 
 
-def test_encode_with_a_profile_bitrate(short_video, tmp_path) -> None:
+def test_encode_with_a_profile_bitrate(short_video: str, tmp_path: Path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), profile="720p", vcodec="x264", hw_accel="off")
     assert crf(run_ffmpeg.call_args.args[0]) is None
@@ -146,7 +147,7 @@ def test_encode_with_a_profile_bitrate(short_video, tmp_path) -> None:
     assert "-b:v" not in cmd
 
 
-def test_encode_hardware_accelerated_uses_cq(short_video, tmp_path) -> None:
+def test_encode_hardware_accelerated_uses_cq(short_video: str, tmp_path: Path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg, patch.object(util, "use_hardware_accel", return_value=True):
         video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), vcodec="x265", quality="medium")
     cmd = run_ffmpeg.call_args.args[0]
@@ -154,12 +155,12 @@ def test_encode_hardware_accelerated_uses_cq(short_video, tmp_path) -> None:
     assert '-cq "28"' in cmd
 
 
-def test_copy_does_not_use_the_quality(short_video, tmp_path, ffmpeg_cmd) -> None:
+def test_copy_does_not_use_the_quality(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     cmd = ffmpeg_cmd(short_video, tmp_path, vcodec="copy", acodec="copy")
     assert crf(cmd) is None
 
 
-def test_encode_real_video_low_quality_is_smaller(short_video, tmp_path) -> None:
+def test_encode_real_video_low_quality_is_smaller(short_video: str, tmp_path: Path) -> None:
     sizes = {}
     for quality in ("high", "low"):
         out = video.VideoFile(short_video).encode(target_file=str(tmp_path / f"{quality}.mp4"), vcodec="x264", quality=quality, hw_accel="off")

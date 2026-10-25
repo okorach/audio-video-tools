@@ -108,7 +108,7 @@ def get_fps(exif_data: dict[str, str]) -> int | None:
     return fps
 
 
-def get_formats(nb_photos: int, nb_videos: int, **kwargs) -> tuple[str, str]:
+def get_formats(nb_photos: int, nb_videos: int, **kwargs: object) -> tuple[str, str]:
     prefix = kwargs.get("prefix")
     pformat = vformat = SEQ
     if nb_videos > 0:

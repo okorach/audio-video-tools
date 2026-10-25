@@ -24,9 +24,10 @@ from unittest.mock import patch
 import pytest
 from mediatools import log
 import mediatools.utilities as util
+from unittest.mock import MagicMock
 
 
-def progress_messages(info) -> list[str]:
+def progress_messages(info: MagicMock) -> list[str]:
     return [call.args[0] % call.args[1:] for call in info.call_args_list if call.args[0].startswith("GLOBAL progress")]
 
 

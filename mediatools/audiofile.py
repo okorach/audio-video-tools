@@ -244,7 +244,7 @@ class AudioFile(media.MediaFile):
         all_props.update(audio_props)
         return all_props
 
-    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs) -> str:
+    def encode(self, target_file: str | None = None, profile: str | None = None, **kwargs: object) -> str:
         """Encodes a file
         - target_file is the name of the output file. Optional
         - Profile is the encoding profile as per the VideoTools.properties config file

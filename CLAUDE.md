@@ -89,8 +89,9 @@ Requires `ffmpeg` and `ffprobe` on PATH (or configured via properties). Image me
 
 ## Code Style
 
-- **Line length:** 150 (black/flake8), 128 (pylint)
+- **Line length:** 150 (black/flake8), 150 (pylint)
 - **Formatter:** `black --line-length=150`
 - All Python files carry the LGPL v3 license header
-- Python 3.6+ required
+- Python 3.10+ required
 - All new code should be systematically covered by tests
+- All new code should not have any issues reported by ruff, pylint or SonarQube

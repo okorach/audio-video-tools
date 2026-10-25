@@ -47,7 +47,7 @@ class Encoder:
         "stop",
     ]
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: object) -> None:
         self.format: str | None = None
         self.aspect: str | None = None
         self.resolution: str | None = None
@@ -64,7 +64,7 @@ class Encoder:
         self.add_settings(**kwargs)
         self.others: dict = {}
 
-    def add_settings(self, **kwargs) -> None:
+    def add_settings(self, **kwargs: object) -> None:
         kwsettings = {k: v for k, v in kwargs.items() if k in Encoder.SETTINGS and v is not None}
         if "vcodec" in kwsettings:
             self.vcodec = kwsettings[opt.Option.VCODEC]

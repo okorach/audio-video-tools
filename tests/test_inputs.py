@@ -48,6 +48,7 @@ from mediatools import (
 )
 import mediatools.utilities as util
 import utilities.file as fil
+from types import ModuleType
 
 
 def _tree(root: Path) -> dict:
@@ -68,13 +69,13 @@ def _tree(root: Path) -> dict:
     return files
 
 
-def _argv(module, *args: str) -> list[str]:
+def _argv(module: ModuleType, *args: str) -> list[str]:
     """The command line of a tool: the unified command and action, or the name of the tool if it has none"""
     action = tools.find_action(module.__name__)
     return [*action, *args] if action else [module.__name__, *args]
 
 
-def _call_main(module) -> None:
+def _call_main(module: ModuleType) -> None:
     """Runs a tool the way its command line does: through the unified command if it has one"""
     action = tools.find_action(module.__name__)
     if action:
@@ -83,7 +84,7 @@ def _call_main(module) -> None:
         module.main()
 
 
-def _main_exit_ok(module) -> None:
+def _main_exit_ok(module: ModuleType) -> None:
     """Runs a tool, tolerating an exit with code 0"""
     try:
         _call_main(module)
@@ -227,7 +228,7 @@ IMAGE_TOOLS = [
 ]
 
 
-def _run_tool(module, argv: list[str]) -> None:
+def _run_tool(module: ModuleType, argv: list[str]) -> None:
     with mock.patch.object(sys, "argv", _argv(module, *argv)):
         try:
             _call_main(module)
@@ -241,7 +242,7 @@ def _called_files(target: mock.Mock) -> list[str]:
 
 
 @pytest.mark.parametrize(("module", "target", "extra"), VIDEO_TOOLS, ids=[t[0].__name__ for t in VIDEO_TOOLS])
-def test_video_tools_process_all_inputs(tmp_path: Path, module, target: str, extra: list) -> None:
+def test_video_tools_process_all_inputs(tmp_path: Path, module: ModuleType, target: str, extra: list) -> None:
     """-i file1.mp4 file2.mp4 dir1 processes file1.mp4, file2.mp4 and all the video files of dir1 (recursively)"""
     files = _tree(tmp_path)
     argv = ["-i", files["a.mp4"], files["dir1/z.mp4"], files["dir1"], *extra]
@@ -256,7 +257,7 @@ def test_video_tools_process_all_inputs(tmp_path: Path, module, target: str, ext
 
 
 @pytest.mark.parametrize(("module", "target", "extra"), IMAGE_TOOLS, ids=[t[0].__name__ for t in IMAGE_TOOLS])
-def test_image_tools_process_all_inputs(tmp_path: Path, module, target: str, extra: list) -> None:
+def test_image_tools_process_all_inputs(tmp_path: Path, module: ModuleType, target: str, extra: list) -> None:
     """The image tools process the image files of the directories only"""
     files = _tree(tmp_path)
     (tmp_path / "dir1" / "x.jpg").write_bytes(b"x")
@@ -440,7 +441,7 @@ def test_datefixer_inputs(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("module", [fix_mp3_meta, audio_normalize], ids=["fix_mp3_meta", "audio_normalize"])
-def test_album_tools_input_option(tmp_path: Path, module) -> None:
+def test_album_tools_input_option(tmp_path: Path, module: ModuleType) -> None:
     """fix-mp3-meta and audio-normalize take -i (and -f as an alias): files and directories, processed album by album"""
     files = _tree(tmp_path)
     for option in ("-i", "-f", "--files"):

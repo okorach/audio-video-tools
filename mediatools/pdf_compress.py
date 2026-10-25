@@ -36,13 +36,13 @@ import mediatools.utilities as util
 from mediatools.pdf_split import find_ghostscript, GS_BINARIES, PPP_PRESETS, DEFAULT_PPP, PDF_EXTENSIONS
 
 
-def original_file(pdf_file) -> str:
+def original_file(pdf_file: str) -> str:
     """Returns the name under which the original file is kept: foo.pdf -> foo_original.pdf"""
     root, ext = os.path.splitext(pdf_file)
     return f"{root}_original{ext}"
 
 
-def _run_gs(pdf_file, out_file, ppp) -> None:
+def _run_gs(pdf_file: str, out_file: str, ppp: int) -> None:
     gs = find_ghostscript()
     if gs is None:
         raise RuntimeError("Ghostscript not found on PATH (looked for " + ", ".join(GS_BINARIES) + ")")
@@ -59,7 +59,7 @@ def _run_gs(pdf_file, out_file, ppp) -> None:
     subprocess.run(cmd, check=True)
 
 
-def compress(pdf_file, out_file=None, ppp=DEFAULT_PPP) -> str:
+def compress(pdf_file: str, out_file: str | None = None, ppp: int = DEFAULT_PPP) -> str:
     """Compresses a PDF file. Returns the output file name
     Without out_file, the compressed file takes the name of the original, which is renamed with an _original postfix"""
     if out_file:

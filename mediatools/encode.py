@@ -34,7 +34,7 @@ import mediatools.options as opt
 import utilities.file as fileutil
 
 
-def encode_file(file: str, file_type: str, **kwargs) -> str:
+def encode_file(file: str, file_type: str, **kwargs: object) -> str:
     """Encodes a single file"""
     if file_type == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)

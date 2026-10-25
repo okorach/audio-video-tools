@@ -614,7 +614,7 @@ def get_profile_options(profile: str) -> dict:
     return get_ffmpeg_cmdline_params(get_conf_property(profile + ".cmdline"))
 
 
-def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args) -> dict:
+def get_all_options(filetype: str = fil.FileType.VIDEO_FILE, **cmdline_args: object) -> dict:
     log.logger.debug("get_all_options(%s)", str(cmdline_args))
     if cmdline_args.get("vcodec") == "copy" and cmdline_args.get("acodec") == "copy":
         return cmdline_args
@@ -681,7 +681,7 @@ def get_tmp_file() -> str:
     return tempfile.gettempdir() + os.sep + uuid.uuid4().hex[:8]
 
 
-def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:
+def resolve_resolution(**kwargs: object) -> tuple[int | None, int | None]:
     log.logger.info("ARgs = %s", str(kwargs))
     if kwargs.get(opt.Option.WIDTH):
         if kwargs.get(opt.Option.HEIGHT):
@@ -699,7 +699,7 @@ def resolve_resolution(**kwargs) -> tuple[int | None, int | None]:
     return (w, h)
 
 
-def get_hw_accel_mode(**kwargs) -> str:
+def get_hw_accel_mode(**kwargs: object) -> str:
     """Returns the hardware acceleration mode: auto, on or off.
     It's the value of the hw_accel option (a boolean means on / off), or the default.hw_accel property, or auto"""
     value = kwargs.get("hw_accel")
@@ -730,7 +730,7 @@ def check_hardware_accel() -> bool:
     return HW_ACCEL
 
 
-def use_hardware_accel(**kwargs) -> bool:
+def use_hardware_accel(**kwargs: object) -> bool:
     """Returns whether the hardware acceleration must be used (hw_accel option: auto, on or off).
     In auto mode it's used if it's available, unless the command is being retried on the CPU, see hw_accel_fallback()"""
     if _hw_forced_off.get():

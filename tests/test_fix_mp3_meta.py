@@ -32,6 +32,7 @@ from mutagen.mp3 import MP3
 
 from mediatools import tools
 import mediatools.fix_mp3_meta as fix
+from pathlib import Path
 
 FIXTURE_MP3 = os.path.join("it", "seal.mp3")
 
@@ -42,7 +43,7 @@ FIXTURE_MP3 = os.path.join("it", "seal.mp3")
 
 
 @pytest.fixture
-def tmp_mp3(tmp_path) -> str:
+def tmp_mp3(tmp_path: Path) -> str:
     """Copy the fixture MP3 to a temporary location so tests can mutate it."""
     dest = str(tmp_path / "test.mp3")
     shutil.copy(FIXTURE_MP3, dest)
@@ -65,7 +66,7 @@ def tmp_mp3(tmp_path) -> str:
         ("multiple   spaces", "Multiple Spaces"),  # split() collapses runs of whitespace
     ],
 )
-def test_title_case(text, expected) -> None:
+def test_title_case(text: str, expected: str) -> None:
     assert fix.title_case(text) == expected
 
 
@@ -79,7 +80,7 @@ def test_title_case(text, expected) -> None:
         ("a", "A"),
     ],
 )
-def test_sentence_case(text, expected) -> None:
+def test_sentence_case(text: str, expected: str) -> None:
     assert fix.sentence_case(text) == expected
 
 
@@ -98,7 +99,7 @@ def test_sentence_case(text, expected) -> None:
         ("the rolling stones - exile on main st", "The Rolling Stones", "exile on main st", None),
     ],
 )
-def test_parse_dir_name(dir_name, exp_artist, exp_album, exp_year) -> None:
+def test_parse_dir_name(dir_name: str, exp_artist: str, exp_album: str | None, exp_year: int | None) -> None:
     artist, album, year = fix.parse_dir_name(dir_name)
     assert artist == exp_artist
     assert album == exp_album
@@ -127,7 +128,7 @@ def test_parse_dir_name(dir_name, exp_artist, exp_album, exp_year) -> None:
         ("12 - Hey Jude", 12, None, "Hey jude"),
     ],
 )
-def test_parse_file_name(base_name, exp_track, exp_artist, exp_title) -> None:
+def test_parse_file_name(base_name: str, exp_track: int | None, exp_artist: str | None, exp_title: str) -> None:
     track, artist, title = fix.parse_file_name(base_name)
     assert track == exp_track
     assert artist == exp_artist
@@ -139,7 +140,7 @@ def test_parse_file_name(base_name, exp_track, exp_artist, exp_title) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_write_tags_creates_id3_header(tmp_mp3) -> None:
+def test_write_tags_creates_id3_header(tmp_mp3: str) -> None:
     fix.write_tags(tmp_mp3, artist="Test Artist", title="Test title", album="Test Album", track=3, year=2001)
     tags = ID3(tmp_mp3)
     assert str(tags["TPE1"]) == "Test Artist"
@@ -149,14 +150,14 @@ def test_write_tags_creates_id3_header(tmp_mp3) -> None:
     assert str(tags["TDRC"]) == "2001"
 
 
-def test_write_tags_partial(tmp_mp3) -> None:
+def test_write_tags_partial(tmp_mp3: str) -> None:
     """write_tags with some None fields should not crash and only set provided tags."""
     fix.write_tags(tmp_mp3, artist="Solo Artist", title=None, album=None, track=None, year=None)
     tags = ID3(tmp_mp3)
     assert str(tags["TPE1"]) == "Solo Artist"
 
 
-def test_write_tags_id3v1_present(tmp_mp3) -> None:
+def test_write_tags_id3v1_present(tmp_mp3: str) -> None:
     """mutagen save with v1=2 should write both v1 and v2 headers."""
     fix.write_tags(tmp_mp3, artist="Artist", title="Title", album="Album", track=1, year=1999)
     audio = MP3(tmp_mp3)
@@ -168,7 +169,7 @@ def test_write_tags_id3v1_present(tmp_mp3) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_set_file_date(tmp_mp3) -> None:
+def test_set_file_date(tmp_mp3: str) -> None:
     fix.set_file_date(tmp_mp3, 1991)
     mtime = os.path.getmtime(tmp_mp3)
     file_time = dt.datetime.fromtimestamp(mtime)
@@ -241,7 +242,7 @@ def test_mb_lookup_track_network_error() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_file_dry_run_does_not_modify_file(tmp_mp3) -> None:
+def test_process_file_dry_run_does_not_modify_file(tmp_mp3: str) -> None:
     mtime_before = os.path.getmtime(tmp_mp3)
     with (
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
@@ -252,7 +253,7 @@ def test_process_file_dry_run_does_not_modify_file(tmp_mp3) -> None:
     assert mtime_before == mtime_after
 
 
-def test_process_file_writes_tags_and_date(tmp_mp3) -> None:
+def test_process_file_writes_tags_and_date(tmp_mp3: str) -> None:
     with (
         patch("musicbrainzngs.search_releases", return_value={"release-list": []}),
         patch("musicbrainzngs.search_recordings", return_value={"recording-list": []}),
@@ -264,7 +265,7 @@ def test_process_file_writes_tags_and_date(tmp_mp3) -> None:
     assert file_time.year == 1991
 
 
-def test_process_file_uses_mb_tracks_for_title(tmp_path) -> None:
+def test_process_file_uses_mb_tracks_for_title(tmp_path: Path) -> None:
     """When filename has only a track number (no title) and no title tag, mb_tracks fills the title."""
     mb_tracks = ["Crazy", "Future Love Paradise", "Wild"]
     # File name "01.mp3" → track=1, title=None from filename
@@ -289,7 +290,7 @@ def test_process_file_uses_mb_tracks_for_title(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_directory(tmp_path) -> None:
+def test_process_directory(tmp_path: Path) -> None:
     """process_directory must process all MP3s in a folder without raising."""
     dest = str(tmp_path / "Seal - Seal (1991)")
     os.makedirs(dest)
@@ -362,7 +363,7 @@ def test_mb_lookup_track_invalid_date() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_write_tags_no_existing_id3_header(tmp_path) -> None:
+def test_write_tags_no_existing_id3_header(tmp_path: Path) -> None:
     """Writing tags to a file that has no ID3 header should not raise."""
     bare = str(tmp_path / "bare.mp3")
     shutil.copy(FIXTURE_MP3, bare)
@@ -370,7 +371,7 @@ def test_write_tags_no_existing_id3_header(tmp_path) -> None:
         fix.write_tags(bare, artist="A", title="T", album="Al", track=1, year=2000)
 
 
-def test_write_tags_exception_is_swallowed(tmp_path) -> None:
+def test_write_tags_exception_is_swallowed(tmp_path: Path) -> None:
     """An exception during tag save should be logged, not propagated."""
     bad_path = str(tmp_path / "no_such.mp3")
     fix.write_tags(bad_path, artist="A", title="T", album="Al", track=1, year=2000)
@@ -381,7 +382,7 @@ def test_write_tags_exception_is_swallowed(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_set_file_date_exception_is_swallowed(tmp_mp3) -> None:
+def test_set_file_date_exception_is_swallowed(tmp_mp3: str) -> None:
     with patch("os.utime", side_effect=OSError("permission denied")):
         fix.set_file_date(tmp_mp3, 2000)  # must not raise
 
@@ -391,7 +392,7 @@ def test_set_file_date_exception_is_swallowed(tmp_mp3) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_file_non_numeric_track_tag(tmp_path) -> None:
+def test_process_file_non_numeric_track_tag(tmp_path: Path) -> None:
     """A non-numeric TRCK tag must not crash process_file."""
 
     dest = str(tmp_path / "track.mp3")
@@ -412,7 +413,7 @@ def test_process_file_non_numeric_track_tag(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_file_mb_year_lookup_from_album(tmp_path) -> None:
+def test_process_file_mb_year_lookup_from_album(tmp_path: Path) -> None:
     """When dir_year is None and existing year tag is absent, year is fetched via MB album lookup."""
     dest = str(tmp_path / "song.mp3")
     shutil.copy(FIXTURE_MP3, dest)
@@ -431,7 +432,7 @@ def test_process_file_mb_year_lookup_from_album(tmp_path) -> None:
     assert file_time.year == 1991
 
 
-def test_process_file_mb_year_lookup_from_track(tmp_path) -> None:
+def test_process_file_mb_year_lookup_from_track(tmp_path: Path) -> None:
     """When album MB lookup yields no year, per-track recording lookup is used."""
     dest = str(tmp_path / "song.mp3")
     shutil.copy(FIXTURE_MP3, dest)
@@ -452,7 +453,7 @@ def test_process_file_mb_year_lookup_from_track(tmp_path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_directory_mb_album_lookup(tmp_path) -> None:
+def test_process_directory_mb_album_lookup(tmp_path: Path) -> None:
     """process_directory fires MB lookup when directory name has no year."""
     dest = str(tmp_path / "Seal - Seal")  # no year in dir name
     os.makedirs(dest)
@@ -484,7 +485,7 @@ def test_main_nonexistent_directory() -> None:
     assert exc.value.code == 0
 
 
-def test_main_empty_directory(tmp_path) -> None:
+def test_main_empty_directory(tmp_path: Path) -> None:
     """main() exits with code 0 for an existing empty directory."""
     with (
         patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path)]),
@@ -496,7 +497,7 @@ def test_main_empty_directory(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_dry_run(tmp_path) -> None:
+def test_main_dry_run(tmp_path: Path) -> None:
     """main() --dry-run exits 0 and does not write any files."""
     shutil.copy(FIXTURE_MP3, str(tmp_path / "song.mp3"))
     with (
@@ -509,7 +510,7 @@ def test_main_dry_run(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_individual_files(tmp_path) -> None:
+def test_main_individual_files(tmp_path: Path) -> None:
     """main() accepts individual audio files (not directories) via -f."""
     src = str(tmp_path / "01 - Crazy.mp3")
     shutil.copy(FIXTURE_MP3, src)
@@ -526,7 +527,7 @@ def test_main_individual_files(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_mixed_files_and_dirs(tmp_path) -> None:
+def test_main_mixed_files_and_dirs(tmp_path: Path) -> None:
     """main() handles a mix of a directory and an individual file."""
     subdir = tmp_path / "Seal - Seal (1991)"
     subdir.mkdir()
@@ -543,7 +544,7 @@ def test_main_mixed_files_and_dirs(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_with_debug_flag(tmp_path) -> None:
+def test_main_with_debug_flag(tmp_path: Path) -> None:
     """main() -g flag sets debug level without crashing."""
     with (
         patch("sys.argv", ["audiotool", "fix-mp3-meta", "-f", str(tmp_path), "-g", "5"]),
@@ -555,7 +556,7 @@ def test_main_with_debug_flag(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_with_subdirectories(tmp_path) -> None:
+def test_main_with_subdirectories(tmp_path: Path) -> None:
     """main() processes subdirectories when root dir contains them."""
     subdir = tmp_path / "Seal - Seal (1991)"
     subdir.mkdir()
@@ -570,7 +571,7 @@ def test_main_with_subdirectories(tmp_path) -> None:
     assert exc.value.code == 0
 
 
-def test_main_individual_files_mb_lookup(tmp_path) -> None:
+def test_main_individual_files_mb_lookup(tmp_path: Path) -> None:
     """When individual files are in an Artist-Album dir, MB lookup fires for the album."""
     parent = tmp_path / "Seal - Seal"
     parent.mkdir()
@@ -594,7 +595,7 @@ def test_main_individual_files_mb_lookup(tmp_path) -> None:
     assert file_time.year == 1991
 
 
-def test_main_skips_non_audio_file(tmp_path) -> None:
+def test_main_skips_non_audio_file(tmp_path: Path) -> None:
     """main() logs a warning and skips entries that are not audio files or directories."""
     txt_file = str(tmp_path / "readme.txt")
     with open(txt_file, "w", encoding="utf-8") as f:
@@ -616,7 +617,7 @@ def test_is_m4a() -> None:
     assert fix.is_m4a("song.ogg") is False
 
 
-def _make_mp4_mock(artist="Seal", title="Crazy", album="Seal", track=None, year="1991") -> MagicMock:
+def _make_mp4_mock(artist: str = "Seal", title: str = "Crazy", album: str = "Seal", track: list | None = None, year: str = "1991") -> MagicMock:
     """Build a MagicMock that behaves like a mutagen MP4 object."""
     if track is None:
         track = [(3, 0)]
@@ -689,7 +690,7 @@ def test_write_tags_m4a_no_existing_tags() -> None:
     mock_audio.add_tags.assert_called_once()
 
 
-def test_process_file_m4a(tmp_path) -> None:
+def test_process_file_m4a(tmp_path: Path) -> None:
     """process_file correctly handles an M4A file end-to-end."""
     m4a_path = str(tmp_path / "01 - Crazy.m4a")
     mock_audio = _make_mp4_mock(track=[(1, 0)], year="")

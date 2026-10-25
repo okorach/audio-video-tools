@@ -25,18 +25,19 @@ from mediatools import log
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.videofile as video
+from pathlib import Path
 
 TMP_VID = util.get_tmp_file() + ".mp4"
 
 
-def get_img(w, h, orientation="landscape") -> image.ImageFile:
+def get_img(w: int, h: int, orientation: str = "landscape") -> image.ImageFile:
     img = image.ImageFile(image.get_rectangle("black", w, h))
     img.probe()
     img.orientation = orientation
     return img
 
 
-def del_files(*imgs) -> None:
+def del_files(*imgs: object) -> None:
     for o in imgs:
         os.remove(o.filename)
 
@@ -231,7 +232,7 @@ def test_to_video_zoom_keeps_duration() -> None:
     del_files(img)
 
 
-def test_crop_any(tmp_path) -> None:
+def test_crop_any(tmp_path: Path) -> None:
     src = str(tmp_path / "wide.jpg")
     util.run_ffmpeg(f'-f lavfi -i testsrc=size=400x200:rate=1:duration=1 -frames:v 1 -update 1 "{src}"')
     for ratio, expected in (("1", (200, 200)), ("2", (400, 200)), ("1:2", (100, 200)), (4.0, (400, 100))):
