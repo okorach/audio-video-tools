@@ -574,7 +574,7 @@ class VideoFile(media.MediaFile):
             return None
         width = width if width and width > 0 else -2
         height = height if height and height > 0 else -2
-        if util.use_hardware_accel(**kwargs):
+        if media.use_gpu_filters(**kwargs):
             # The frames of a video that the GPU can't decode are in system memory, they must be uploaded to the GPU
             upload = "" if self.can_hw_decode() else "hwupload_cuda,"
             return f"{upload}scale_cuda={width}:{height}"
@@ -592,6 +592,8 @@ class VideoFile(media.MediaFile):
             vfilters.append(filter.speed(kwargs["speed"]))
         if kwargs.get("reverse", False):
             vfilters.append(filter.Reverse())
+        if kwargs.get("rotate"):
+            vfilters.append(get_rotation_filter(kwargs["rotate"]))
         if "deshake" in kwargs:
             rx, ry = [int(x) for x in kwargs["deshake"].split("x")]
             vfilters.append(filter.deshake(rx=rx, ry=ry))
@@ -609,12 +611,30 @@ class VideoFile(media.MediaFile):
         if scale:
             vfilters.append(scale)
         if kwargs.get("color_eq") is not None:
-            if util.use_hardware_accel(**kwargs):
+            if media.use_gpu_filters(**kwargs):
                 log.logger.warning("Skipping eq color filter: not compatible with GPU hw acceleration (use --software_filters to enable)")
             else:
                 vfilters.append(kwargs["color_eq"])
         log.logger.debug("vfilters = %s", str(vfilters))
         return vfilters
+
+
+def normalize_rotation_angle(angle: int | str | None) -> int:
+    """Returns the clockwise rotation angle (90, 180 or 270) of an angle given in degrees: -90, 90, 180 or 270 (90 by default).
+    Raises an InputError for any other value"""
+    allowed = ", ".join(str(a) for a in opt.ROTATION_ANGLES)
+    try:
+        value = opt.DEFAULT_ROTATION_ANGLE if angle is None else int(str(angle).strip())
+    except ValueError as e:
+        raise ex.InputError(f"Invalid rotation angle '{angle}', must be one of {allowed}", "rotate") from e
+    if value not in opt.ROTATION_ANGLES:
+        raise ex.InputError(f"Invalid rotation angle {value}, must be one of {allowed}", "rotate")
+    return value % 360
+
+
+def get_rotation_filter(angle: int | str | None) -> str:
+    """Returns the ffmpeg filter that rotates a video of the clockwise angle (-90, 90, 180 or 270 degrees)"""
+    return {90: "transpose=1", 180: "hflip,vflip", 270: "transpose=2"}[normalize_rotation_angle(angle)]
 
 
 def get_size_option(cmdline: str) -> str:
@@ -709,14 +729,8 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
     return target_file
 
 
-def add_video_args(parser) -> object:
-    """Parses options specific to video encoding scripts"""
-    parser.add_argument("-p", "--profile", required=False, help="Profile to use for encoding")
-
-    parser.add_argument("--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...)")
-    parser.add_argument("--" + opt.Option.ACODEC, required=False, help="Audio codec (mp3, aac, ac3...)")
-
-    parser.add_argument("--" + opt.Option.VBITRATE, required=False, help="Video bitrate eg 1024k")
+def add_quality_arg(parser) -> None:
+    """Adds the --quality option to the parser of a tool"""
     parser.add_argument(
         "--" + opt.Option.QUALITY,
         required=False,
@@ -725,6 +739,17 @@ def add_video_args(parser) -> object:
         help=f"Video quality (constant quality, better than a bitrate to keep the quality), {opt.DEFAULT_QUALITY} by default "
         "when no video bitrate is given: x264 crf 18/23/28, x265 crf 23/28/33",
     )
+
+
+def add_video_args(parser) -> object:
+    """Parses options specific to video encoding scripts"""
+    parser.add_argument("-p", "--profile", required=False, help="Profile to use for encoding")
+
+    parser.add_argument("--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...)")
+    parser.add_argument("--" + opt.Option.ACODEC, required=False, help="Audio codec (mp3, aac, ac3...)")
+
+    parser.add_argument("--" + opt.Option.VBITRATE, required=False, help="Video bitrate eg 1024k")
+    add_quality_arg(parser)
     parser.add_argument("--" + opt.Option.ABITRATE, required=False, help="Audio bitrate eg 128k")
 
     parser.add_argument("--fade", required=False, help="Fade in/out duration")
@@ -912,6 +937,43 @@ def speed(filename: str, target_speed: str | float, output: str | None = None, m
 def volume(filename: str, vol: str | float, output: str | None = None, **kwargs) -> str:
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="volume")
     return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
+
+
+def __get_source_vcodec__(source: VideoFile) -> str | None:
+    """Returns the name (as known by the vcodec option) of the video codec of a video, None if it is not supported (the default codec is then used)"""
+    codec = source.get_video_codec()
+    codec = "h265" if codec == "hevc" else codec  # ffprobe reports hevc, the option mapping knows it as h265
+    if codec in opt.CODECS:
+        return codec
+    log.logger.warning("The video codec %s of %s is not supported, using the default codec", codec, source.filename)
+    return None
+
+
+def rotate(filename: str, output: str | None = None, angle: int | str | None = None, keep_name: bool = False, **kwargs) -> str:
+    """Rotates a video clockwise of angle degrees (-90, 90, 180 or 270, 90 by default) and returns the rotated file.
+    The video is re-encoded (quality high by default) with the original fps and resolution (rotated), unless fps and resolution are given.
+    The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
+    The GPU encodes the video if hw_accel is on or auto (and available), with a fallback to the CPU in auto mode if the command fails.
+    The frames are decoded and rotated on the CPU: the rotation is not available as a GPU filter.
+    The output file is <original>.r<rotation>.<ext> by default. With keep_name, the output has the name of the original, which is
+    renamed <original>.before_r<rotation>.<ext>"""
+    rotation = normalize_rotation_angle(angle)
+    if keep_name and output is not None:
+        raise ex.InputError("An output file can't be given with keepName", "rotate")
+    ext = fil.extension(filename)
+    target = util.automatic_output_file_name(outfile=output, infile=filename, postfix=f"r{rotation}", extension=ext)
+    source = VideoFile(filename)
+    if kwargs.get(opt.Option.VCODEC) is None:
+        kwargs.pop(opt.Option.VCODEC, None)
+        source_codec = __get_source_vcodec__(source)
+        if source_codec is not None:
+            kwargs[opt.Option.VCODEC] = source_codec
+    rotated = source.encode(target_file=target, rotate=rotation, **kwargs)
+    if keep_name:
+        fil.rename(filename, util.add_postfix(filename, f"before_r{rotation}", ext))
+        fil.rename(rotated, filename)
+        rotated = filename
+    return rotated
 
 
 def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs) -> str:

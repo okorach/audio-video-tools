@@ -12,3 +12,5 @@ The verbosity of the logs is set with `-v CRITICAL|ERROR|WARNING|INFO|DEBUG` (`I
 The quality of the encoded videos is set with `--quality high|medium|low` (`high` by default), a better option than the bitrate: see [docs/quality.md](docs/quality.md).
 
 The resolutions can be given as `<width>x<height>` or as an alias (`4k`, `2.7k`, `2.5k`, `fhd`, `hd`...): see [docs/resolutions.md](docs/resolutions.md).
+
+Videos can be rotated with `videotool rotate`: see [docs/videotool-rotate.md](docs/videotool-rotate.md).
