@@ -18,9 +18,9 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-:: setlocal enabledelayedexpansion
-
 setlocal enabledelayedexpansion
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
-videotool encode -i %* --hw_accel on --vcodec x264 --width 1920 --quality !quality! --acodec aac --abitrate 128k --keepName
+set hwaccel=auto
+set /p hwaccel=Hardware acceleration [auto, on, off] (default auto) ? 
+videotool encode -i %* --hw_accel !hwaccel! --vcodec x264 --width 1920 --quality !quality! --acodec aac --abitrate 128k --keepName
