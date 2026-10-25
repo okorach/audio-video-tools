@@ -55,7 +55,8 @@ ALLOWED_SPEEDS = (
 )
 
 
-def main():
+def main() -> None:
+    """Changes the speed of videos"""
     parser = util.get_common_args("video-speed", "Video speed change")
     parser.add_argument("-p", "--profile", required=False, help="Profile to use for encoding")
     parser.add_argument("--speed", required=True, help="Speed in the form of 4x (accelerate), 0.1x (slow down)")
@@ -71,6 +72,7 @@ def main():
         sys.exit(1)
 
     def process(input_file: str, options: dict) -> None:
+        """Changes the speed of one video"""
         output = video.speed(filename=input_file, target_speed=speed, output=options.pop(util.OUTPUT_FILE, None), **options)
         util.generated_file(output)
 

@@ -26,6 +26,8 @@ import sys
 from collections.abc import Callable
 
 # For each command, the actions with the "module:function" that implements them and a short description
+SPECS_ACTION: tuple[str, str] = ("mediatools.filespecs:main", "Displays the specs of media files")
+
 VIDEO_ACTIONS: dict[str, tuple[str, str]] = {
     "crop": ("mediatools.crop:main", "Crops a region of a video"),
     "concat": ("mediatools.concat:main", "Concatenates videos"),
@@ -42,7 +44,7 @@ VIDEO_ACTIONS: dict[str, tuple[str, str]] = {
     "rotate": ("mediatools.rotate:main", "Rotates a video"),
     "slideshow": ("mediatools.slideshow:main", "Creates a slideshow video from images"),
     "snap": ("mediatools.video_snap:main", "Snaps photos from a video"),
-    "specs": ("mediatools.filespecs:main", "Displays the specs of media files"),
+    "specs": SPECS_ACTION,
     "speed": ("mediatools.speed:main", "Changes the speed"),
     "stabilize": ("mediatools.stabilize:main", "Stabilizes shaky footage"),
     "volume": ("mediatools.volume:main", "Changes the volume"),
@@ -59,7 +61,7 @@ AUDIO_ACTIONS: dict[str, tuple[str, str]] = {
     "list": ("mediatools.audio_list:main", "Lists audio files"),
     "normalize": ("mediatools.audio_normalize:main", "Normalizes the audio files"),
     "profile-encode": ("mediatools.encode:main", "Encodes with an encoding profile"),
-    "specs": ("mediatools.filespecs:main", "Displays the specs of media files"),
+    "specs": SPECS_ACTION,
     "speed": ("mediatools.audiospeed:main", "Changes the speed"),
     "split": ("mediatools.audiosplit:main", "Splits at the detected tune changes"),
     "volume": ("mediatools.volume:main", "Changes the volume"),
@@ -71,7 +73,7 @@ IMAGE_ACTIONS: dict[str, tuple[str, str]] = {
     "poster": ("mediatools.poster:main", "Creates a poster from images"),
     "scale": ("mediatools.rescale:main", "Rescales images"),
     "shake": ("mediatools.shake:main", "Creates a shake effect"),
-    "specs": ("mediatools.filespecs:main", "Displays the specs of media files"),
+    "specs": SPECS_ACTION,
     "stack": ("mediatools.stack:main", "Stacks images"),
     "to-video": ("mediatools.image2video:main", "Converts images to videos"),
 }
@@ -91,6 +93,7 @@ COMMANDS: dict[str, dict[str, tuple[str, str]]] = {
 
 
 def usage(command: str) -> str:
+    """Returns the usage of a unified command: its actions and their description"""
     actions = COMMANDS[command]
     width = max(len(a) for a in actions)
     lines = [f"usage: {command} <action> [action parameters]", "", "actions:"]
@@ -136,16 +139,20 @@ def run(command: str, args: list[str] | None = None) -> None:
 
 
 def videotool() -> None:
+    """Runs an action of the videotool command"""
     run("videotool")
 
 
 def audiotool() -> None:
+    """Runs an action of the audiotool command"""
     run("audiotool")
 
 
 def imagetool() -> None:
+    """Runs an action of the imagetool command"""
     run("imagetool")
 
 
 def pdftool() -> None:
+    """Runs an action of the pdftool command"""
     run("pdftool")

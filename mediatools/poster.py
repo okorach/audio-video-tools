@@ -24,6 +24,8 @@
 # And with configurable margin padding
 # It requires availability of ffmpeg
 
+"""Tool that creates a poster from images"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.imagefile as image
@@ -33,7 +35,8 @@ USAGE = "image-poster [--layout <rows>x<cols>] [--margin <nb_pixels>] \
 [--background_color [black|white]] [--stretch] [-g 0-4] file1 file2 ... filen"
 
 
-def main():
+def main() -> None:
+    """Creates a poster from images"""
     file_list = []
     util.init("image-poster")
     parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")

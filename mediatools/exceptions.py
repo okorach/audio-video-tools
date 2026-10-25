@@ -19,10 +19,14 @@
 #
 
 
+"""Exceptions of the media tools"""
+
+
 class FileTypeError(Exception):
     """Error when passing a non media file"""
 
     def __init__(self, file: str = "file", expected_type: str = "media", message: str | None = None) -> None:
+        """Creates the error for a file that is not of the expected type"""
         self.file: str = file
         self.message: str
         if message is None:
@@ -36,6 +40,7 @@ class InputError(Exception):
     """Error when passing wrong input arguments for media transformation"""
 
     def __init__(self, message: str | None = None, operation: str | None = None) -> None:
+        """Creates the error for wrong input arguments of an operation"""
         self.message: str
         self.operation: str | None = operation
         if message is None:
@@ -51,6 +56,7 @@ class DimensionError(Exception):
     """Error when copputing image or video dimensions"""
 
     def __init__(self, message: str | None = None, operation: str | None = None) -> None:
+        """Creates the error for wrong dimensions of an operation"""
         self.message: str
         self.operation: str | None = operation
         if message is None:

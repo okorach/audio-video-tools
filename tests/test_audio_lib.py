@@ -19,8 +19,12 @@
 #
 import os
 import platform
-import mediatools.utilities as util
+from pathlib import Path
+
+import pytest
+
 import mediatools.audio_lib as ad
+import mediatools.utilities as util
 import utilities.file as fil
 
 SONG = "it/song.mp3"
@@ -28,38 +32,38 @@ TITLE = "Love Is Stronger Than Pride"
 ARTIST = "Sade"
 
 
-def test_changed_drive():
-    if platform.system() == "Windows":
-        original_file = os.path.abspath(SONG)
-        moved_file = "Z" + original_file[1:]
-        assert ad.search_on_other_drives(moved_file) == original_file
-        moved_file = "Z:\\foo.txt"
-        assert ad.search_on_other_drives(moved_file) is None
-    else:
-        assert True
+def test_changed_drive() -> None:
+    """Changed drive"""
+    if platform.system() != "Windows":
+        pytest.skip("The drives are a Windows feature")
+    original_file = os.path.abspath(SONG)
+    moved_file = "Z" + original_file[1:]
+    assert ad.search_on_other_drives(moved_file) == original_file
+    moved_file = "Z:\\foo.txt"
+    assert ad.search_on_other_drives(moved_file) is None
 
 
-def test_fix_symlink(tmp_path):
+def test_fix_symlink(tmp_path: Path) -> None:
+    """Fix symlink"""
+    if platform.system() != "Windows":
+        pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")
     util.set_debug_level(5)
-    if platform.system() == "Windows":
-        original_file = os.path.abspath(SONG)
-        moved_file = "Z" + original_file[1:]
-        f = fil.File(moved_file)
-        f.create_link(symlink)
-        assert ad.fix_symlink(symlink, moved_file) == original_file
-        f2 = fil.File(symlink)
-        assert f2.read_link() == original_file
-    else:
-        assert True
+    original_file = os.path.abspath(SONG)
+    moved_file = "Z" + original_file[1:]
+    f = fil.File(moved_file)
+    f.create_link(symlink)
+    assert ad.fix_symlink(symlink, moved_file) == original_file
+    f2 = fil.File(symlink)
+    assert f2.read_link() == original_file
 
 
-def test_fix_symlink_2(tmp_path):
+def test_fix_symlink_2(tmp_path: Path) -> None:
+    """Fix symlink 2"""
+    if platform.system() != "Windows":
+        pytest.skip("The shortcuts (.lnk) are a Windows feature")
     symlink = str(tmp_path / "shortcut.lnk")
-    if platform.system() == "Windows":
-        moved_file = "doesnotexit.txt"
-        f = fil.File(moved_file)
-        f.create_link(symlink)
-        assert ad.fix_symlink(symlink, moved_file) is None
-    else:
-        assert True
+    moved_file = "doesnotexit.txt"
+    f = fil.File(moved_file)
+    f.create_link(symlink)
+    assert ad.fix_symlink(symlink, moved_file) is None

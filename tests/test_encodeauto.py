@@ -38,17 +38,19 @@ class Commands(list):
     """The (parameters, duration) of the ffmpeg commands that were run, with the mocks that replace the video functions"""
 
     def __init__(self) -> None:
+        """Creates the list of the commands, with the mocks that replace the video functions"""
         super().__init__()
         self.get_duration = mock.Mock(return_value=7.0)
         self.set_creation_date = mock.Mock()
 
 
 @pytest.fixture
-def fake_ffmpeg(monkeypatch):
+def fake_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> Commands:
     """ffmpeg creates the output file (the last quoted argument) with the content 'encoded'"""
     commands = Commands()
 
-    def run_ffmpeg(params, duration=None):
+    def run_ffmpeg(params: str, duration: float | None = None) -> None:
+        """Records the command and creates its output file (the last quoted argument)"""
         commands.append((params, duration))
         Path(re.findall(r'"([^"]+)"', params)[-1]).write_text("encoded", encoding="utf-8")
 
@@ -60,10 +62,12 @@ def fake_ffmpeg(monkeypatch):
 
 
 def names(folder: Path) -> list[str]:
+    """Returns the sorted names of the files of a folder"""
     return sorted(p.name for p in folder.iterdir())
 
 
-def test_encode_file_replaces_the_file_and_keeps_the_original(fake_ffmpeg, tmp_path):
+def test_encode_file_replaces_the_file_and_keeps_the_original(fake_ffmpeg: Commands, tmp_path: Path) -> None:
+    """Encode file replaces the file and keeps the original"""
     src = tmp_path / "clip.mp4"
     src.write_text("original")
     ea.encode_file(str(src), "-hwaccel cuda", "-c:v hevc_nvenc", True)
@@ -78,7 +82,8 @@ def test_encode_file_replaces_the_file_and_keeps_the_original(fake_ffmpeg, tmp_p
     fake_ffmpeg.set_creation_date.assert_called_once_with(str(tmp_path / "clip.encode.00.mp4"), "THE-DATE")
 
 
-def test_encode_file_given_duration(fake_ffmpeg, tmp_path):
+def test_encode_file_given_duration(fake_ffmpeg: Commands, tmp_path: Path) -> None:
+    """Encode file given duration"""
     src = tmp_path / "clip.mp4"
     src.write_text("original")
     ea.encode_file(str(src), "", "", True, duration=99.0)
@@ -86,7 +91,7 @@ def test_encode_file_given_duration(fake_ffmpeg, tmp_path):
     fake_ffmpeg.get_duration.assert_not_called()
 
 
-def test_encode_file_does_not_overwrite_encoded_files(fake_ffmpeg, tmp_path):
+def test_encode_file_does_not_overwrite_encoded_files(fake_ffmpeg: Commands, tmp_path: Path) -> None:
     """Without force, the output file name gets the next sequence number"""
     src = tmp_path / "clip.mp4"
     src.write_text("original")
@@ -96,7 +101,7 @@ def test_encode_file_does_not_overwrite_encoded_files(fake_ffmpeg, tmp_path):
     assert fake_ffmpeg[0][0].endswith('clip.encode.02.mp4"')
 
 
-def test_encode_file_of_an_original_file(fake_ffmpeg, tmp_path):
+def test_encode_file_of_an_original_file(fake_ffmpeg: Commands, tmp_path: Path) -> None:
     """The encoded version of clip.original.mp4 is named clip.mp4"""
     src = tmp_path / "clip.original.mp4"
     src.write_text("original")
@@ -107,7 +112,8 @@ def test_encode_file_of_an_original_file(fake_ffmpeg, tmp_path):
 
 
 @pytest.mark.parametrize("extension", ["mts", "avi", "mkv"])
-def test_encode_file_converts_to_mp4_and_deinterlaces(fake_ffmpeg, tmp_path, extension):
+def test_encode_file_converts_to_mp4_and_deinterlaces(fake_ffmpeg: Commands, tmp_path: Path, extension: str) -> None:
+    """Encode file converts to mp4 and deinterlaces"""
     src = tmp_path / f"clip.{extension}"
     src.write_text("original")
     ea.encode_file(str(src), "", "-c:a aac", True)
@@ -119,18 +125,21 @@ def test_encode_file_converts_to_mp4_and_deinterlaces(fake_ffmpeg, tmp_path, ext
 
 # Command line
 @pytest.fixture
-def cli(monkeypatch):
+def cli(monkeypatch: pytest.MonkeyPatch) -> mock.Mock:
+    """Replaces the encoding of a file and the durations of the videos (10s if the name is long, 5s otherwise). Returns the mock of the encoding"""
     monkeypatch.setattr(ea, "encode_file", mock.Mock())
     monkeypatch.setattr(ea.video, "get_duration", mock.Mock(side_effect=lambda f: 10.0 if "long" in f else 5.0))
     return ea.encode_file
 
 
 def run_main(*args: str) -> None:
+    """Runs the command with the arguments given"""
     with mock.patch.object(sys, "argv", ["videotool", "encodeauto", *args]):
         tools.videotool()
 
 
-def test_main_encodes_each_video_file(cli, tmp_path):
+def test_main_encodes_each_video_file(cli: mock.Mock, tmp_path: Path) -> None:
+    """Main encodes each video file"""
     (tmp_path / "sub").mkdir()
     for name in ("a.mp4", "sub/b.mkv", "notes.txt", "pic.jpg"):
         (tmp_path / name).write_text("x")
@@ -141,17 +150,20 @@ def test_main_encodes_each_video_file(cli, tmp_path):
     assert first.args[1:4] == ("-y -hwaccel cuda", "-c:v hevc_nvenc", True)
 
 
-def test_main_nooverwrite(cli):
+def test_main_nooverwrite(cli: mock.Mock) -> None:
+    """Main nooverwrite"""
     run_main("-i", "a.mp4", "--nooverwrite", "--before", " ", "--after", "-an -sn")
     assert cli.call_args.args[3] is False
 
 
-def test_main_remaining_duration(cli):
+def test_main_remaining_duration(cli: mock.Mock) -> None:
+    """Main remaining duration"""
     run_main("-i", "short.mp4", "long.mp4", "--before", " ", "--after", "-an -sn")
     assert [c.kwargs["duration"] for c in cli.call_args_list] == [15.0, 10.0]
 
 
-def test_main_without_video_file(cli, tmp_path):
+def test_main_without_video_file(cli: mock.Mock, tmp_path: Path) -> None:
+    """Main without video file"""
     (tmp_path / "notes.txt").write_text("x")
     run_main("-i", str(tmp_path), "--before", " ", "--after", "-an -sn")
     cli.assert_not_called()

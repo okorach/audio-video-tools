@@ -18,19 +18,23 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os
-import sys
-import shutil
+"""Tool that manages audio collections: replaces the files of a collection by links to the master files, copies the files that the links point to"""
+
 import argparse
-from mediatools import log
-from mediatools import metacopy
-import mediatools.utilities as util
-import utilities.file as fil
+import os
+import shutil
+import sys
+
 import mediatools.audiofile as audio
 import mediatools.exceptions as exc
+import mediatools.utilities as util
+import utilities.file as fil
+from mediatools import log, metacopy
 
 
-def link_file(file, directory, hash_data):
+def link_file(file: str, directory: str, hash_data: dict[str, list[str]]) -> str | None:
+    """Creates, in a directory, a link to the file of the master collection that has the same audio hash as an audio file. Returns the link, None if
+    the file is a link or not an audio file, or has no master file"""
     hashes = hash_data["hashes"]
     if fil.is_link(file) or not fil.is_audio_file(file):
         return None
@@ -49,7 +53,8 @@ def link_file(file, directory, hash_data):
     return directory + os.sep + base
 
 
-def copy_file(file, directory, hash_data):
+def copy_file(file: str, directory: str) -> str | None:
+    """Copies the audio file that a link points to in a directory. Returns the copy, None if the file is not a link to an audio file"""
     if not fil.is_link(file):
         return None
     shortcut = fil.File(file)
@@ -65,7 +70,9 @@ def copy_file(file, directory, hash_data):
     return targetfile
 
 
-def main():
+def main() -> None:
+    """Manages audio collections: updates the hashes of the master directory, replaces the files of a collection by links to the master files, and
+    copies the files that the links point to"""
     util.init("audio-linker")
     directory = None
     master_dir = None
@@ -101,11 +108,11 @@ def main():
             link_file(file, directory, hashes)
     elif kwargs["copyFiles"]:
         for file in collection:
-            copy_file(file, directory, hashes)
+            copy_file(file, directory)
     elif kwargs["all"]:
         for file in collection:
             link_file(file, directory, hashes)
-            copy_file(file, directory, hashes)
+            copy_file(file, directory)
 
     sys.exit(0)
 

@@ -37,6 +37,7 @@ EXCLUDED_EXTENSIONS = {".jpg", ".mp3", ".mp4", ".xml"}
 
 
 def tracked_files() -> list[Path]:
+    """Returns the files tracked by git. The test is skipped if the project is not a git repository"""
     git = shutil.which("git")
     if git is None or not (ROOT / ".git").exists():
         pytest.skip("git repository required")
@@ -45,32 +46,37 @@ def tracked_files() -> list[Path]:
 
 
 def files_with_notice() -> list[Path]:
+    """Returns the tracked files that must have a copyright notice"""
     return [f for f in tracked_files() if f.name not in EXCLUDED_NAMES and f.suffix not in EXCLUDED_EXTENSIONS]
 
 
 def read(path: Path) -> str:
+    """Returns the text of a file"""
     return path.read_text(encoding="utf-8", errors="replace")
 
 
-def test_all_the_files_have_a_copyright_notice():
+def test_all_the_files_have_a_copyright_notice() -> None:
+    """All the files have a copyright notice"""
     files = files_with_notice()
     assert len(files) > 200
     missing = [str(f.relative_to(ROOT)) for f in files if not NOTICE.search(read(f))]
     assert not missing, f"Files without copyright notice: {missing}"
 
 
-def test_all_the_notices_cover_the_same_years():
+def test_all_the_notices_cover_the_same_years() -> None:
+    """All the notices cover the same years"""
     years = {}
     for f in files_with_notice():
         for first, last in NOTICE.findall(read(f)):
             years.setdefault((first, last), []).append(str(f.relative_to(ROOT)))
     assert len(years) == 1, {k: v[:5] for k, v in years.items()}
-    ((first, last),) = years
+    first, last = next(iter(years))
     assert int(first) == FIRST_YEAR
     assert int(last) >= LAST_YEAR
 
 
-def test_notices_are_complete_lgpl_headers():
+def test_notices_are_complete_lgpl_headers() -> None:
+    """Notices are complete lgpl headers"""
     for f in files_with_notice():
         text = read(f)
         assert "GNU Lesser General Public" in text, f.name

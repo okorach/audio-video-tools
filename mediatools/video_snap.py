@@ -64,7 +64,8 @@ def snap_file(input_file: str, nbr_photos: int | None = None, every: float | Non
     return photos
 
 
-def main():
+def main() -> None:
+    """Snaps photos from videos"""
     parser = util.get_common_args("video-snap", "Snaps photos from videos")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--nbr_photos", type=int, help="Number of photos to snap, evenly spread in the video (the video is split in n+1 intervals)")
@@ -76,6 +77,7 @@ def main():
         sys.exit(2)
 
     def process(input_file: str, options: dict) -> None:
+        """Snaps photos from one video"""
         snap_file(input_file, nbr_photos, every, options.get(util.OUTPUT_FILE))
 
     util.process_input_files(kwargs, process)

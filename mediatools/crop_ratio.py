@@ -20,18 +20,22 @@
 
 # This script crops an image file
 
+"""Tool that crops images to an aspect ratio"""
+
 import mediatools.utilities as util
 import mediatools.imagefile as image
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Crops images to an aspect ratio"""
     parser = util.get_common_args("image-crop-ratio", "Image cropper")
     parser.add_argument("--align", required=False, default="center", help="How to crop")
     parser.add_argument("--ratio", required=True, help="W/H ratio of picture like 2, 1.5")
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Crops one image to an aspect ratio"""
         util.generated_file(image.ImageFile(input_file).crop_any(options["ratio"], options["align"], options.get(util.OUTPUT_FILE)))
 
     util.process_input_files(kwargs, process)

@@ -21,13 +21,16 @@
 # This script concatenate 2 video files
 # They should have the same video and audio codecs and bitrates
 
+"""Tool that concatenates video files"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
 
 
-def main():
+def main() -> None:
+    """Concatenates video files into a single video file"""
     util.init("video-concat")
     parser = argparse.ArgumentParser(description="Concatenates several videos")
     util.add_input_args(parser, "List of files to concatenate")

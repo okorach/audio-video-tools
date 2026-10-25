@@ -44,11 +44,13 @@ def find_output_file(ffmpeg_params: str) -> str | None:
     if params.endswith('"'):
         opening = params.rfind('"', 0, len(params) - 1)
         if 0 <= opening < len(params) - 2:
-            return params[opening + 1 : -1]
+            content_start = opening + 1
+            return params[content_start:-1]
     return params.rsplit(None, 1)[-1] if params else None
 
 
 def is_media_file(filename: str) -> bool:
+    """Returns True if the file is an existing audio, video or image file"""
     known_type = fil.get_type(filename) in (fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE, fil.FileType.IMAGE_FILE)
     return (known_type or fil.extension(filename).lower() in OTHER_AUDIO_EXTENSIONS) and os.path.isfile(filename)
 
@@ -77,6 +79,7 @@ def _get_gps(exif_data: dict) -> tuple[float, float, float | None] | None:
 
 
 def _set_tags(et: ExifToolHelper, target: str, tags: dict) -> None:
+    """Sets tags of a file with exiftool, without changing the file dates. A failure is logged and ignored"""
     try:
         et.set_tags([target], tags=tags, params=["-P", "-overwrite_original"])
     except Exception as e:
@@ -84,6 +87,7 @@ def _set_tags(et: ExifToolHelper, target: str, tags: dict) -> None:
 
 
 def _set_dates(et: ExifToolHelper, target: str, date_str: str) -> None:
+    """Sets the dates of a file: the EXIF or QuickTime dates according to its format, then the dates of the file itself"""
     ext = fil.extension(target).lower()
     if fil.get_type(target) == fil.FileType.IMAGE_FILE:
         _set_tags(et, target, {"EXIF:DateTimeOriginal": date_str, "EXIF:CreateDate": date_str, "EXIF:ModifyDate": date_str})
@@ -96,6 +100,7 @@ def _set_dates(et: ExifToolHelper, target: str, date_str: str) -> None:
 
 
 def _set_gps(et: ExifToolHelper, target: str, gps: tuple[float, float, float | None]) -> None:
+    """Sets the GPS coordinates (and altitude) of an image, or of a QuickTime file. The other formats can't hold them"""
     lat, lon, alt = gps
     if fil.get_type(target) == fil.FileType.IMAGE_FILE:
         tags = {
@@ -166,6 +171,7 @@ def keeps_dates(func: Callable) -> Callable:
 
     @functools.wraps(func)
     def wrapper(filename: str, *args: object, **kwargs: object) -> object:
+        """Calls the function while keeping the dates of the file given as first argument"""
         with preserve_dates(filename):
             return func(filename, *args, **kwargs)
 

@@ -23,6 +23,8 @@
 # or a set of MP3 files (an album)
 # The image is rescaled to 512x512 if too big
 
+"""Tool that adds an album art to audio files"""
+
 import argparse
 import mediatools.utilities as util
 import mediatools.audiofile as audio
@@ -30,7 +32,8 @@ import mediatools.audiofile as audio
 DEFAULT_RESCALING = "512x512"
 
 
-def main():
+def main() -> None:
+    """Adds an image as the album art of audio files"""
     util.init("album-art")
     parser = argparse.ArgumentParser(description="Adds album art to audio files")
     parser.add_argument(util.INPUT_FILES, metavar="N", type=str, nargs="+", help="List of files to mux")

@@ -17,16 +17,20 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Operations on audio and video files that keep their streams, like cutting"""
+
 from __future__ import annotations
 
-import mediatools.utilities as util
-import mediatools.exceptions as ex
-import utilities.file as fil
 import mediatools.audiofile as audio
+import mediatools.exceptions as ex
+import mediatools.utilities as util
 import mediatools.videofile as video
+import utilities.file as fil
 
 
-def __patch_args(file_type: str, **kwargs) -> dict:
+def __patch_args(file_type: str, **kwargs: object) -> dict:
+    """Returns the options for a cut: the streams are copied unless they are encoded, and the options that don't apply to copied streams are removed
+    Returns the options for a cut: the streams are copied unless they are encoded, and the options that don't apply to copied streams are removed"""
     if file_type == fil.FileType.VIDEO_FILE and "vcodec" not in kwargs:
         kwargs["vcodec"] = "copy"
         kwargs["hw_accel"] = False
@@ -40,15 +44,21 @@ def __patch_args(file_type: str, **kwargs) -> dict:
 
 
 def cut(
-    file: str, output: str | None = None, start: float | str | None = None, stop: float | str | None = None, timeranges: str | None = None, **kwargs
+    file: str,
+    output: str | None = None,
+    start: float | str | None = None,
+    stop: float | str | None = None,
+    timeranges: str | None = None,
+    **kwargs: object,
 ) -> str | None:
+    """Cuts an audio or video file between a start and a stop time, or in several time ranges, without re-encoding. Returns the cut file"""
     t = fil.get_type(file)
     if t not in (fil.FileType.VIDEO_FILE, fil.FileType.AUDIO_FILE):
         raise ex.FileTypeError(file, "video or audio")
     kwargs = __patch_args(t, **kwargs)
     if t == fil.FileType.AUDIO_FILE:
         file_object = audio.AudioFile(file)
-    elif t == fil.FileType.VIDEO_FILE:
+    else:
         file_object = video.VideoFile(file)
         kwargs["vcodec"] = "copy"
         kwargs.pop("vbitrate", None)

@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Command line front-end of the ffmpeg encoder"""
+
 from __future__ import annotations
 
 import os
@@ -30,6 +32,7 @@ import utilities.file as fil
 
 
 def set_and_parse_cli_args() -> dict:
+    """Initializes the logs, defines the command line options of the encoder and returns the parsed options"""
     util.init("encode")
     parser = util.get_common_args("encode", "ffmpeg front-end encoder")
     parser = vf.add_video_args(parser)
@@ -37,6 +40,7 @@ def set_and_parse_cli_args() -> dict:
 
 
 def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
+    """Returns the name of an output file: the input name with a postfix (and a sequence number if the file already exists) and the extension"""
     pieces = file.split(".")
     pieces.pop()
     base = ".".join(pieces)
@@ -49,6 +53,7 @@ def build_file_name(file: str, postfix: str, ext: str = "mp4") -> str:
 
 
 def main() -> None:
+    """Encodes the audio and video files given on the command line, one after the other"""
     kwargs = set_and_parse_cli_args()
     files_to_encode = kwargs.pop(util.INPUT_FILES)
     files_to_encode = [f for f in files_to_encode if fil.is_media_file(f)]

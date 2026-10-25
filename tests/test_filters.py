@@ -24,47 +24,55 @@ import mediatools.exceptions as ex
 ROTATE = "rotate: "
 
 
-def test_rotate_1():
+def test_rotate_1() -> None:
+    """Rotate 1"""
     assert fil.rotate(90) == "transpose=1"
 
 
-def test_rotate_2():
+def test_rotate_2() -> None:
+    """Rotate 2"""
     assert fil.rotate(-90) == "transpose=2"
 
 
-def test_rotate_3():
+def test_rotate_3() -> None:
+    """Rotate 3"""
     assert fil.rotate(1) == "transpose=1"
 
 
-def test_rotate_err_1():
+def test_rotate_err_1() -> None:
+    """Rotate err 1"""
     try:
         _ = fil.rotate(17)
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_2
 
 
-def test_rotate_err_2():
+def test_rotate_err_2() -> None:
+    """Rotate err 2"""
     try:
         _ = fil.rotate("counterclockwise")
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_1
 
 
-def test_rotate_err_3():
+def test_rotate_err_3() -> None:
+    """Rotate err 3"""
     try:
         _ = fil.rotate(1.5)
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
 
-def test_rotate_err_4():
+def test_rotate_err_4() -> None:
+    """Rotate err 4"""
     try:
         _ = fil.rotate([2])
     except ex.InputError as e:
         assert e.message == ROTATE + fil.ERR_ROTATION_ARG_3
 
 
-def test_str():
+def test_str() -> None:
+    """Str"""
     testf = fil.Simple()
     assert str(testf) == ""
     f = fil.rotate(90)

@@ -54,6 +54,7 @@ DEFAULT_PHOTO_FORMAT: str = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {DEVICE}"
 
 
 def get_device(exif_data: dict[str, str]) -> str:
+    """Returns the device (make and model) that generated a file, from its EXIF data"""
     device = ""
     if "EXIF:Make" in exif_data:
         device = exif_data["EXIF:Make"]
@@ -67,6 +68,7 @@ def get_device(exif_data: dict[str, str]) -> str:
 
 
 def get_size(exif_data: dict[str, str]) -> str:
+    """Returns the size (WxH) of a photo or a video from its EXIF data, an empty string if there is none"""
     size = ""
     if "File:ImageWidth" in exif_data and "File:ImageHeight" in exif_data:
         size = f'{exif_data["File:ImageWidth"]}x{exif_data["File:ImageHeight"]}'
@@ -82,6 +84,7 @@ def get_size(exif_data: dict[str, str]) -> str:
 
 
 def get_bitrate(exif_data: dict[str, str]) -> int | None:
+    """Returns the bitrate of a video from its EXIF data"""
     bitrate = None
     if "Composite:AvgBitrate" in exif_data:
         bitrate = round(int(exif_data["Composite:AvgBitrate"]) / 1024 / 1024)
@@ -89,6 +92,7 @@ def get_bitrate(exif_data: dict[str, str]) -> int | None:
 
 
 def get_codec(exif_data: dict[str, str]) -> str:
+    """Returns the codec of a video from its EXIF data"""
     codec = ""
     if "QuickTime:CompressorID" in exif_data:
         codec = exif_data["QuickTime:CompressorID"]
@@ -102,13 +106,15 @@ def get_codec(exif_data: dict[str, str]) -> str:
 
 
 def get_fps(exif_data: dict[str, str]) -> int | None:
+    """Returns the frame rate of a video from its EXIF data"""
     fps = None
     if "QuickTime:VideoFrameRate" in exif_data:
         fps = round(float(exif_data["QuickTime:VideoFrameRate"]))
     return fps
 
 
-def get_formats(nb_photos: int, nb_videos: int, **kwargs) -> tuple[str, str]:
+def get_formats(nb_photos: int, nb_videos: int, **kwargs: object) -> tuple[str, str]:
+    """Returns the formats of the new names of the photos and of the videos: the ones given, or the default ones when there are photos and videos"""
     prefix = kwargs.get("prefix")
     pformat = vformat = SEQ
     if nb_videos > 0:
@@ -131,6 +137,7 @@ def get_formats(nb_photos: int, nb_videos: int, **kwargs) -> tuple[str, str]:
 
 
 def get_file_data(filename: str) -> dict | None:
+    """Returns the data used to rename a photo or a video (creation date, device, bitrate, size, frame rate), None for the other files"""
     if fil.extension(filename).lower() not in fil.IMAGE_AND_VIDEO_EXTENSIONS:
         return None
 
@@ -154,6 +161,8 @@ def get_file_data(filename: str) -> dict | None:
 
 
 def get_files_data(files: list[str], sortby: str) -> dict:
+    """Returns the data used to rename the files, read in parallel and sorted by creation date or by the sortby criteria, with their sequence numbers
+    Returns the data used to rename the files, read in parallel and sorted by creation date or by the sortby criteria, with their sequence numbers"""
     seq = 1
     filelist: dict = {}
     nb_files = len(files)
@@ -182,6 +191,7 @@ def get_files_data(files: list[str], sortby: str) -> dict:
 
 
 def get_fmt(filename: str, photo_format: str, video_format: str, other_format: str) -> str:
+    """Returns the format of the new name of a file: the one of the photos, of the videos or of the other files"""
     fmt = other_format
     if fil.is_image_file(filename):
         fmt = photo_format
@@ -193,6 +203,7 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
 
 
 def __same_path(path1: str, path2: str) -> bool:
+    """Returns True if two paths are the same file path"""
     return os.path.normcase(os.path.abspath(path1)) == os.path.normcase(os.path.abspath(path2))
 
 
@@ -232,8 +243,8 @@ def rename_files(renames: list[tuple[str, str]]) -> bool:
             log.logger.info("Renaming %s into temporary %s", current[i], temp)
             os.rename(current[i], temp)
             current[i] = temp
-        for i, (_, target) in enumerate(renames):
-            log.logger.info("Renaming %s into %s", renames[i][0], target)
+        for i, (source, target) in enumerate(renames):
+            log.logger.info("Renaming %s into %s", source, target)
             os.rename(temps[i], target)
             current[i] = target
     except OSError as e:
@@ -262,6 +273,7 @@ def __restore(renames: list[tuple[str, str]], temps: list[str], current: list[st
 
 
 def main() -> None:
+    """Renames photos and videos with a name made from their creation date, device, size... according to formats"""
     util.init("renamer")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
     util.add_input_args(parser, "Files and/or directories to rename (-f/--files is a deprecated alias)", aliases=("-f", "--files"))

@@ -23,6 +23,8 @@
 # --top, --center, --bottom, --left, --right: Where in the source video the region is taken (default centered)
 # --topleft, --topright, --bottomleft, --bottomright: Shortcuts for --top --left, --top --right, --bottom --left, --bottom --right
 
+"""Tool that crops a region of videos"""
+
 import re
 import sys
 import subprocess
@@ -73,6 +75,7 @@ def main() -> None:
     log.logger.debug("KW=%s", str(kwargs))
 
     def process(input_file: str, options: dict) -> None:
+        """Crops one video"""
         try:
             outputfile = creator.file(input_file).crop(out_file=options.pop(util.OUTPUT_FILE, None), **options)
         except (ValueError, subprocess.CalledProcessError) as e:

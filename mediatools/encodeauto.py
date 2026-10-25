@@ -21,6 +21,8 @@
 # This script applies a configurable before/after ffmpeg command to one or more video files.
 # Accepts a single file or a directory (all video files in the directory are processed).
 
+"""Tool that encodes video files automatically with the ffmpeg options given"""
+
 import os
 import time
 import argparse
@@ -70,7 +72,8 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
         fileutil.rename(outputfile, f"{base}.{new_ext}", force)
 
 
-def main():
+def main() -> None:
+    """Encodes video files automatically with the ffmpeg options given, replacing the originals, and logs the global progress"""
     parser = argparse.ArgumentParser(description="Simple encoder — accepts a file or directory")
     util.add_input_args(parser, "Video files and/or directories to encode")
     util.add_verbosity_arg(parser)

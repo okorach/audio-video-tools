@@ -27,6 +27,7 @@ import utilities.file as fil
 
 
 def main() -> None:
+    """Flips videos: swaps their left and right, or their top and bottom"""
     parser = util.get_common_args("video-flip", "Flips videos (swaps the left and the right, or the top and the bottom)")
     parser.add_argument(
         "--direction",
@@ -41,6 +42,7 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
+        """Flips one video"""
         keep_name = options.pop("keepName", False)
         util.generated_file(video.flip(input_file, options.pop(util.OUTPUT_FILE, None), options.pop("direction"), keep_name, **options))
 

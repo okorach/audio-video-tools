@@ -64,7 +64,8 @@ def test_arnndn(tmp_path: Path) -> None:
     model = tmp_path / "std.rnnn"
     model.write_text("x")
     flt = dn.build_filter("arnndn", model=str(model), mix=0.5)
-    assert flt.startswith("arnndn=m='") and flt.endswith("':mix=0.5")
+    assert flt.startswith("arnndn=m='")
+    assert flt.endswith("':mix=0.5")
     assert "\\" not in flt.replace(r"\:", "")
 
 
@@ -175,6 +176,7 @@ def _fake_ffmpeg(cmd: str, _duration: float | None = None) -> None:
 
 
 def _media() -> mock.Mock:
+    """Returns a mock of a media file of 1 second without audio bitrate"""
     return mock.Mock(duration=1, abitrate=None)
 
 

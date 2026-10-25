@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Python batch tools to transcode and manipulate audio, video, image and PDF files, a wrapper of ffmpeg"""
+
 import sys
 import mediatools.media_config as mediaconf
 

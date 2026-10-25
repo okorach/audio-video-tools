@@ -23,10 +23,13 @@
 import argparse
 import sys
 from pathlib import Path
+from types import ModuleType
 from unittest import mock
 
 import pytest
 
+import mediatools.utilities as util
+import utilities.file as fil
 from mediatools import (
     audio_denoise,
     audio_normalize,
@@ -38,16 +41,14 @@ from mediatools import (
     deshake,
     fix_mp3_meta,
     metadata,
-    rescale,
     renamer,
+    rescale,
     reverse,
     shake,
     speed,
     tools,
     volume,
 )
-import mediatools.utilities as util
-import utilities.file as fil
 
 
 def _tree(root: Path) -> dict:
@@ -68,13 +69,13 @@ def _tree(root: Path) -> dict:
     return files
 
 
-def _argv(module, *args: str) -> list[str]:
+def _argv(module: ModuleType, *args: str) -> list[str]:
     """The command line of a tool: the unified command and action, or the name of the tool if it has none"""
     action = tools.find_action(module.__name__)
     return [*action, *args] if action else [module.__name__, *args]
 
 
-def _call_main(module) -> None:
+def _call_main(module: ModuleType) -> None:
     """Runs a tool the way its command line does: through the unified command if it has one"""
     action = tools.find_action(module.__name__)
     if action:
@@ -83,7 +84,7 @@ def _call_main(module) -> None:
         module.main()
 
 
-def _main_exit_ok(module) -> None:
+def _main_exit_ok(module: ModuleType) -> None:
     """Runs a tool, tolerating an exit with code 0"""
     try:
         _call_main(module)
@@ -92,6 +93,7 @@ def _main_exit_ok(module) -> None:
 
 
 def _names(files: list[str], root: Path) -> list[str]:
+    """Returns the paths of the files relative to a root, with / separators"""
     return [Path(f).relative_to(root).as_posix() for f in files]
 
 
@@ -171,6 +173,7 @@ def test_process_input_files() -> None:
     calls = []
 
     def process(input_file: str, options: dict) -> None:
+        """Records the file and the options it is called with"""
         options["modified"] = True
         calls.append((input_file, sorted(options)))
 
@@ -201,6 +204,7 @@ def test_process_input_files_failure() -> None:
     seen = []
 
     def process(input_file: str, options: dict) -> None:
+        """Records the file and fails for the file b"""
         seen.append(input_file)
         if input_file == "b":
             raise ValueError("boom")
@@ -227,7 +231,8 @@ IMAGE_TOOLS = [
 ]
 
 
-def _run_tool(module, argv: list[str]) -> None:
+def _run_tool(module: ModuleType, argv: list[str]) -> None:
+    """Runs the main function of a tool with the arguments given"""
     with mock.patch.object(sys, "argv", _argv(module, *argv)):
         try:
             _call_main(module)
@@ -241,7 +246,7 @@ def _called_files(target: mock.Mock) -> list[str]:
 
 
 @pytest.mark.parametrize(("module", "target", "extra"), VIDEO_TOOLS, ids=[t[0].__name__ for t in VIDEO_TOOLS])
-def test_video_tools_process_all_inputs(tmp_path: Path, module, target: str, extra: list) -> None:
+def test_video_tools_process_all_inputs(tmp_path: Path, module: ModuleType, target: str, extra: list) -> None:
     """-i file1.mp4 file2.mp4 dir1 processes file1.mp4, file2.mp4 and all the video files of dir1 (recursively)"""
     files = _tree(tmp_path)
     argv = ["-i", files["a.mp4"], files["dir1/z.mp4"], files["dir1"], *extra]
@@ -256,7 +261,7 @@ def test_video_tools_process_all_inputs(tmp_path: Path, module, target: str, ext
 
 
 @pytest.mark.parametrize(("module", "target", "extra"), IMAGE_TOOLS, ids=[t[0].__name__ for t in IMAGE_TOOLS])
-def test_image_tools_process_all_inputs(tmp_path: Path, module, target: str, extra: list) -> None:
+def test_image_tools_process_all_inputs(tmp_path: Path, module: ModuleType, target: str, extra: list) -> None:
     """The image tools process the image files of the directories only"""
     files = _tree(tmp_path)
     (tmp_path / "dir1" / "x.jpg").write_bytes(b"x")
@@ -271,6 +276,7 @@ def test_metadata_processes_all_inputs(tmp_path: Path) -> None:
     instances = []
 
     def new_video(filename: str) -> mock.Mock:
+        """Records the file and returns a mock of the video"""
         instances.append(filename)
         return mock.Mock()
 
@@ -320,6 +326,7 @@ def test_tool_continues_after_failure(tmp_path: Path) -> None:
     files = _tree(tmp_path)
 
     def fail_on_b(filename: str, *args: str) -> str:
+        """Fails for the file b.mp4, succeeds for the other files"""
         if filename.endswith("b.mp4"):
             raise ValueError("boom")
         return "out.mp4"
@@ -440,7 +447,7 @@ def test_datefixer_inputs(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("module", [fix_mp3_meta, audio_normalize], ids=["fix_mp3_meta", "audio_normalize"])
-def test_album_tools_input_option(tmp_path: Path, module) -> None:
+def test_album_tools_input_option(tmp_path: Path, module: ModuleType) -> None:
     """fix-mp3-meta and audio-normalize take -i (and -f as an alias): files and directories, processed album by album"""
     files = _tree(tmp_path)
     for option in ("-i", "-f", "--files"):

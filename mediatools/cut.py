@@ -31,7 +31,8 @@ MISSING_PARAM = """--start and --stop or --timeranges options is mandatory,
 type media-cut -h for more details"""
 
 
-def main():
+def main() -> None:
+    """Cuts a part of audio and video files, between a start and a stop time or in time ranges"""
     parser = util.get_common_args("media-cut", "Cuts a time window of the input video file")
     parser = video.add_video_args(parser)
     parser.add_argument("--start", required=False, help="Cut start timestamp")
@@ -46,6 +47,7 @@ def main():
         sys.exit(2)
 
     def process(ifile: str, options: dict) -> None:
+        """Cuts a part of one audio or video file"""
         if timeranges is not None:
             # start and stop are those of the first time range, av.cut() cuts all the ranges
             options.pop("start", None)

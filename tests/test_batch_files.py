@@ -45,6 +45,7 @@ CONVERTED = (
 
 
 def lines(path: Path) -> list[str]:
+    """Returns the lines of a batch file"""
     return path.read_text(encoding="utf-8", errors="replace").splitlines()
 
 
@@ -54,22 +55,26 @@ def commands(path: Path) -> list[str]:
 
 
 def batch_id(path: Path) -> str:
+    """Returns the id of the test of a batch file: its directory and its name"""
     return f"{path.parent.name}/{path.name}"
 
 
-def test_batch_files_are_found():
+def test_batch_files_are_found() -> None:
+    """Batch files are found"""
     assert len(BATCH_FILES) > 40
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
-def test_batch_files_dont_pause_at_the_end(batch_file):
+def test_batch_files_dont_pause_at_the_end(batch_file: Path) -> None:
+    """Batch files dont pause at the end"""
     non_empty = [line for line in lines(batch_file) if line.strip()]
     assert non_empty, f"{batch_file.name} is empty"
     assert not PAUSE.match(non_empty[-1]), f"{batch_file.name} ends with a pause"
 
 
 @pytest.mark.parametrize("name", CONVERTED)
-def test_converted_batch_files_pass_all_the_files(name):
+def test_converted_batch_files_pass_all_the_files(name: str) -> None:
+    """Converted batch files pass all the files"""
     batch_file = ROOT / f"{name}.bat"
     tool_commands = [line for line in commands(batch_file) if TOOLS_COMMANDS.search(line)]
     assert len(tool_commands) == 1
@@ -78,7 +83,8 @@ def test_converted_batch_files_pass_all_the_files(name):
     assert "%%~F" not in "".join(tool_commands)
 
 
-def test_removed_and_renamed_batch_files():
+def test_removed_and_renamed_batch_files() -> None:
+    """Removed and renamed batch files"""
     names = {p.name for p in BATCH_FILES}
     assert "crop ffmpeg.bat" not in names
     assert "flip-h.bat" not in names
@@ -93,7 +99,7 @@ def test_removed_and_renamed_batch_files():
 
 
 @pytest.mark.parametrize("name,profile", [("aac", "aac128"), ("mp3", "mp3_128k")])
-def test_audio_batch_files_ask_for_the_bitrate(name, profile):
+def test_audio_batch_files_ask_for_the_bitrate(name: str, profile: str) -> None:
     """The audio bitrate is asked (128 by default, with or without the k suffix) and passed to the tool"""
     batch_file = ROOT / "batch-files-audio" / f"{name}.bat"
     content = [line.strip() for line in lines(batch_file)]
@@ -103,7 +109,8 @@ def test_audio_batch_files_ask_for_the_bitrate(name, profile):
     assert f"audiotool profile-encode -i %* -p {profile} --abitrate !bitrate!k" in content
 
 
-def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality():
+def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality() -> None:
+    """Pinnacle 1080p asks for the hardware acceleration and the quality"""
     content = [line.strip() for line in lines(ROOT / "batch-files" / "_Pinnacle 1080p .bat")]
     assert "set hwaccel=auto" in content
     assert "set quality=high" in content
@@ -111,13 +118,14 @@ def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality():
 
 
 @pytest.mark.parametrize("batch_file", BATCH_FILES, ids=batch_id)
-def test_delayed_expansion_is_enabled_when_used(batch_file):
+def test_delayed_expansion_is_enabled_when_used(batch_file: Path) -> None:
     """!variable! is only expanded after setlocal enabledelayedexpansion (and not when this line is a comment)"""
     if any(re.search(r"![A-Za-z_]\w*!", line) for line in commands(batch_file)):
         assert any(re.match(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in commands(batch_file)), batch_file.name
 
 
-def test_custom_encode_asks_the_resolution_and_not_the_width():
+def test_custom_encode_asks_the_resolution_and_not_the_width() -> None:
+    """Custom encode asks the resolution and not the width"""
     content = [line.strip() for line in lines(ROOT / "batch-files" / "_Custom Encode.bat")]
     assert "set resolution=1920x1080" in content
     assert any(line.startswith('set /p "resolution=') for line in content)

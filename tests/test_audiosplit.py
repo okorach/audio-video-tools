@@ -26,34 +26,32 @@ from mediatools import audiosplit
 AUDIO_FILE = "it" + os.sep + "seal.mp3"
 
 
-def test_help():
+def test_help() -> None:
+    """Help"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=["-h"],
-        )
+        util.parse_media_args(parser, args=["-h"])
     assert exc_info.value.code == 0
 
 
-def test_bad_option():
+def test_bad_option() -> None:
+    """Bad option"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=["--nonexistent"],
-        )
+        util.parse_media_args(parser, args=["--nonexistent"])
     assert exc_info.value.code == 2
 
 
-def test_missing_input():
+def test_missing_input() -> None:
+    """Missing input"""
+    parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     with pytest.raises(SystemExit) as exc_info:
-        util.parse_media_args(
-            util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects"),
-            args=[],
-        )
+        util.parse_media_args(parser, args=[])
     assert exc_info.value.code == 2
 
 
-def test_detect_tune_changes(short_audio):
+def test_detect_tune_changes(short_audio: str) -> None:
+    """Detect tune changes"""
     boundaries = audiosplit.detect_tune_changes(short_audio, sensitivity=0.5, min_segment=5)
     assert isinstance(boundaries, list)
     for b in boundaries:
@@ -61,7 +59,8 @@ def test_detect_tune_changes(short_audio):
         assert b > 0
 
 
-def test_dry_run(capsys, short_audio):
+def test_dry_run(capsys: pytest.CaptureFixture[str], short_audio: str) -> None:
+    """Dry run"""
     parser = util.get_common_args("audio-split", "Splits a long audio file at detected tune/song changes with fade effects")
     parser.add_argument("--fade-duration", required=False, type=float, default=1.0)
     parser.add_argument("--min-segment", required=False, type=float, default=30.0)

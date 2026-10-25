@@ -37,9 +37,9 @@ coverage xml -o build/coverage.xml
 pytest tests/test_video.py
 pytest tests/test_video.py::TestClassName::test_method_name
 
-# Linting (ruff + pylint + flake8 + bandit), configuration in pyproject.toml and pylintrc
+# Linting (ruff + pylint + flake8 + bandit), configuration in pyproject.toml and conf/pylintrc
 ruff check .
-pylint ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
+pylint --rcfile conf/pylintrc ./*.py ./*/*.py -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
 flake8 --ignore=W503,E128,C901,W504,E302,E265,E741,W291,W293,W391,F401,E722 --max-line-length=150 .
 bandit --exit-zero -f json --skip B311,B303,B101 -r . -x .vscode,./tests
 
@@ -95,7 +95,7 @@ Profile keys follow the pattern: `<profilename>.cmdline` (FFmpeg args), `<profil
 ### CLI Pattern
 
 Each CLI tool follows this pattern:
-1. `util.get_common_args(name, description)` — creates argparse parser with standard `-i`/`-o`/`-g`/`-s` flags
+1. `util.get_common_args(name, description)` — creates argparse parser with standard `-i`/`-o`/`-v`/`-s` flags
 2. Tool-specific arguments are added to the parser
 3. `util.parse_media_args(parser, input_type=...)` — parses args, resolves resolution, detects hardware acceleration, and expands the directories given to `-i` into the (recursive) list of files of the `input_type` FileType(s)
 4. Core logic runs via the media file classes or utility functions, once per input file with `util.process_input_files(kwargs, process)` (tools combining all the files, like concat, use `kwargs["inputfiles"]` as a whole)
@@ -109,8 +109,9 @@ Requires `ffmpeg` and `ffprobe` on PATH (or configured via properties). Image me
 
 ## Code Style
 
-- **Line length:** 150 (black/flake8), 128 (pylint)
+- **Line length:** 150 (black/flake8), 150 (pylint)
 - **Formatter:** `black --line-length=150`
 - All Python files carry the LGPL v3 license header
-- Python 3.6+ required
+- Python 3.10+ required
 - All new code should be systematically covered by tests
+- All new code should not have any issues reported by ruff, pylint or SonarQube

@@ -18,6 +18,8 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Configuration of the tools, read from the properties file of the home directory"""
+
 import os
 import shutil
 import jprops
@@ -33,10 +35,11 @@ DEFAULT_SLIDESHOW_FPS: int = 50  # Used when the property is missing of the user
 
 
 def load() -> dict:
+    """Loads the configuration from the file of the home directory, created from the default one if it does not exist. Returns the settings"""
     import mediatools.utilities as util
 
     global CONFIG_SETTINGS
-    target_file = "{}{}{}".format(os.path.expanduser("~"), os.sep, CONFIG_FILE)
+    target_file = f"{os.path.expanduser('~')}{os.sep}{CONFIG_FILE}"
     if not os.path.isfile(target_file):
         default_file = util.package_home() / "media-tools.properties"
         if not os.path.isfile(default_file):
@@ -75,7 +78,8 @@ def load() -> dict:
     return CONFIG_SETTINGS
 
 
-def get_property(name: str, settings: dict | None = None):
+def get_property(name: str, settings: dict | None = None) -> str | int | float | bool | None:
+    """Returns a property of the configuration, None if it is not set"""
     if settings is None:
         settings = CONFIG_SETTINGS
     return settings.get(name, None)

@@ -50,7 +50,8 @@ OLD_ETA_RE = re.compile(r"size=.* time=(\d+:\d+:\d+\.\d+)\s+bitrate=.*speed=\s*(
         '-i "a" -map "[v]" "o.mp4"',
     ],
 )
-def test_find_output_file_gives_the_same_results_as_the_regular_expression(params):
+def test_find_output_file_gives_the_same_results_as_the_regular_expression(params: str) -> None:
+    """Find output file gives the same results as the regular expression"""
     m = OLD_OUTPUT_RE.search(params.strip())
     expected = (m.group(1) or m.group(2)) if m else None
     assert metacopy.find_output_file(params) == expected
@@ -67,7 +68,8 @@ def test_find_output_file_gives_the_same_results_as_the_regular_expression(param
         ("what the heck", None),
     ],
 )
-def test_progress_line_gives_the_same_results_as_the_regular_expression(line, expected):
+def test_progress_line_gives_the_same_results_as_the_regular_expression(line: str, expected: tuple[str, str] | None) -> None:
+    """Progress line gives the same results as the regular expression"""
     m = OLD_ETA_RE.search(line)
     assert (m.groups() if m else None) is None or expected is not None
     time_match = util.FFMPEG_TIME_RE.search(line) if "size=" in line else None
@@ -76,7 +78,8 @@ def test_progress_line_gives_the_same_results_as_the_regular_expression(line, ex
     assert found == expected
 
 
-def test_progress_line_is_parsed_fast_on_pathological_lines():
+def test_progress_line_is_parsed_fast_on_pathological_lines() -> None:
+    """Progress line is parsed fast on pathological lines"""
     line = "size=" + " time=" * 20000 + "x"
     start = time.perf_counter()
     assert util.__compute_eta__(line, 10) == ""
@@ -84,16 +87,19 @@ def test_progress_line_is_parsed_fast_on_pathological_lines():
 
 
 @pytest.mark.parametrize("value,expected", [("50%", 0.5), ("-10%", -0.1), ("12.5%", 0.125), ("3", 3.0), ("2.5", 2.5)])
-def test_percent_or_absolute(value, expected):
+def test_percent_or_absolute(value: str, expected: float) -> None:
+    """Percent or absolute"""
     assert util.percent_or_absolute(value) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("value", ["1x5%", "a%", "%"])
-def test_percent_or_absolute_rejects_malformed_percentages(value):
+def test_percent_or_absolute_rejects_malformed_percentages(value: str) -> None:
+    """Percent or absolute rejects malformed percentages"""
     with pytest.raises(ValueError, match="could not convert"):
         util.percent_or_absolute(value)
 
 
-def test_output_file_name_replaces_the_colons_of_the_postfix():
+def test_output_file_name_replaces_the_colons_of_the_postfix() -> None:
+    """Output file name replaces the colons of the postfix"""
     assert util.automatic_output_file_name(None, "dir/video.mp4", "1:2", "mp4").endswith("video.1-2.mp4")
     assert util.automatic_output_file_name("given.mp4", "video.mp4", "1:2") == "given.mp4"

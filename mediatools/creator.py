@@ -18,17 +18,20 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+"""Factory of the media file objects (audio, video or image)"""
+
 from __future__ import annotations
 
-import mediatools.exceptions as ex
-import utilities.file as fil
 import mediatools.audiofile as audio
-import mediatools.videofile as video
+import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.mediafile as media
+import mediatools.videofile as video
+import utilities.file as fil
 
 
 def file(filename: str) -> media.MediaFile:
+    """Returns the media file object (audio, video or image) for a file. Raises a FileTypeError for any other file"""
     if fil.is_audio_file(filename):
         return audio.AudioFile(filename)
     if fil.is_video_file(filename):
