@@ -57,7 +57,7 @@ try:
 except ImportError:
     _PIL_AVAILABLE = False
 
-from mediatools import log
+from mediatools import log, version
 from mediatools.audio_names import title_case, sentence_case, parse_dir_name, parse_file_name, collect_inputs, process_album_directories
 from mediatools import metacopy
 import mediatools.utilities as util
@@ -84,7 +84,7 @@ class AudioTags:
 # ---------------------------------------------------------------------------
 # MusicBrainz setup
 # ---------------------------------------------------------------------------
-musicbrainzngs.set_useragent("audio-video-tools", "0.10", "olivier.korach@gmail.com")
+musicbrainzngs.set_useragent("audio-video-tools", version.MEDIA_TOOLS_VERSION, "olivier.korach@gmail.com")
 
 # ---------------------------------------------------------------------------
 # ID3v1 genres 0–79 (standard) + Winamp extensions 80–147
