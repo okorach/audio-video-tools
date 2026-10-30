@@ -78,6 +78,7 @@ class OptionFfmpeg:
     ACODEC2: str = "c:a"
     ACODEC3: str = "codec:a"
     VBITRATE: str = "b:v"
+    VTAG: str = "tag:v"
     CRF: str = "crf"
     CQ: str = "cq"
     ABITRATE: str = "b:a"

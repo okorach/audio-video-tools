@@ -31,6 +31,7 @@ from pathlib import Path
 from unittest.mock import patch
 import pytest
 import mediatools.exceptions as ex
+import mediatools.media_config as conf
 import mediatools.utilities as util
 import mediatools.videofile as video
 from mediatools import tools
@@ -340,3 +341,21 @@ def test_command_vcodec_option(clip: str) -> None:
     """Command vcodec option"""
     run("-i", clip, "--vcodec", "x265", "--hw_accel", "off")
     assert video_codec(clip.replace("clip.mp4", "clip.r90.mp4")) == "hevc"
+
+
+@pytest.mark.parametrize(("vcodec", "ext", "tagged"), [("h265", "mp4", True), ("h265", "mov", True), ("h264", "mp4", False), ("h265", "mkv", False)])
+def test_rotate_tags_hevc_as_hvc1(clip: str, tmp_path: Path, vcodec: str, ext: str, tagged: bool) -> None:
+    """HEVC videos in mp4 or mov are tagged hvc1, that Windows Explorer and the video editors need (ffmpeg tags hev1 by default)"""
+    with patch.object(util, "run_ffmpeg") as run_ffmpeg:
+        video.rotate(clip, str(tmp_path / f"out.{ext}"), vcodec=vcodec, hw_accel="off")
+    assert ("-tag:v" in run_ffmpeg.call_args.args[0]) is tagged
+    if tagged:
+        assert '-tag:v "hvc1"' in run_ffmpeg.call_args.args[0]
+
+
+def test_rotate_hevc_is_playable_by_the_editors(video_5s: str, tmp_path: Path) -> None:
+    """The rotated HEVC video really has the hvc1 tag"""
+    out = video.rotate(video_5s, str(tmp_path / "out.mp4"), vcodec="h265", hw_accel="off")
+    ffprobe = conf.get_property("binaries.ffprobe") or "ffprobe"
+    cmd = [ffprobe, "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_tag_string", "-of", "csv=p=0", out]
+    assert subprocess.run(cmd, capture_output=True, text=True, check=True).stdout.strip() == "hvc1"
