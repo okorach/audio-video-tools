@@ -49,6 +49,8 @@ if TYPE_CHECKING:
 
 H264_HW_DECODE_MAX_SIZE: int = 4096
 H264_HW_DECODE_PIX_FMTS: tuple[str, ...] = ("yuv420p", "yuvj420p", "nv12")
+HEVC_ENCODERS: tuple[str, ...] = ("libx265", "hevc_nvenc")
+HVC1_CONTAINERS: tuple[str, ...] = ("mp4", "m4v", "mov")
 DEFAULT_CROP_BOX: str = "1920x1080"
 # Names accepted by --box (case insensitive) as aliases of a WxH size
 CROP_BOX_ALIASES: dict[str, str] = {"4k": "3840x2160", "fhd": "1920x1080", "1k": "1920x1080", "hd": "1280x720"}
@@ -499,6 +501,9 @@ class VideoFile(media.MediaFile):
         elif ext in ("m3a", "aac") and output_settings[opt.OptionFfmpeg.ACODEC] != "copy":
             output_settings[opt.OptionFfmpeg.ACODEC] = "aac"
             log.logger.info("Patching codec for AAC audio output")
+        if output_settings.get(opt.Option.VCODEC) in HEVC_ENCODERS and ext in HVC1_CONTAINERS:
+            # ffmpeg tags HEVC as hev1 by default, which Windows Explorer and many video editors don't handle: they need hvc1
+            output_settings[opt.OptionFfmpeg.VTAG] = "hvc1"
 
         output_str = media.build_ffmpeg_options({**raw_settings, **output_settings})
 
