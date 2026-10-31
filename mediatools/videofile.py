@@ -48,6 +48,8 @@ if TYPE_CHECKING:
     import argparse
 
 H264_HW_DECODE_MAX_SIZE: int = 4096
+# The codecs that the GPU (NVDEC) can decode
+HW_DECODE_CODECS: tuple[str, ...] = ("h264", "hevc", "vp8", "vp9", "av1", "mpeg1video", "mpeg2video", "mpeg4", "vc1", "wmv3", "mjpeg")
 H264_HW_DECODE_PIX_FMTS: tuple[str, ...] = ("yuv420p", "yuvj420p", "nv12")
 HEVC_ENCODERS: tuple[str, ...] = ("libx265", "hevc_nvenc")
 HVC1_CONTAINERS: tuple[str, ...] = ("mp4", "m4v", "mov")
@@ -208,9 +210,12 @@ class VideoFile(media.MediaFile):
 
     def can_hw_decode(self) -> bool:
         """Returns False if the video can't be decoded by the GPU (NVDEC), in which case ffmpeg decodes it on the CPU:
-        H.264 is limited to 4096 pixels in each dimension and to 8 bits 4:2:0"""
+        the codec is not supported (eg msmpeg4 of the old AVI files), or H.264 is beyond 4096 pixels in a dimension or not 8 bits 4:2:0"""
         stream = self.__get_first_video_stream__()
-        if stream.get("codec_name") != "h264":
+        codec = stream.get("codec_name")
+        if codec and codec not in HW_DECODE_CODECS:
+            return False
+        if codec != "h264":
             return True
         too_big = max(int(stream.get("width", 0)), int(stream.get("height", 0))) > H264_HW_DECODE_MAX_SIZE
         return not too_big and stream.get("pix_fmt", "yuv420p") in H264_HW_DECODE_PIX_FMTS

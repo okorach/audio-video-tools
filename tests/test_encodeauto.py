@@ -42,6 +42,7 @@ class Commands(list):
         super().__init__()
         self.get_duration = mock.Mock(return_value=7.0)
         self.set_creation_date = mock.Mock()
+        self.can_hw_decode = mock.Mock(return_value=True)
 
 
 @pytest.fixture
@@ -58,6 +59,7 @@ def fake_ffmpeg(monkeypatch: pytest.MonkeyPatch) -> Commands:
     monkeypatch.setattr(ea.video, "get_duration", commands.get_duration)
     monkeypatch.setattr(ea.video, "get_creation_date", mock.Mock(return_value="THE-DATE"))
     monkeypatch.setattr(ea.video, "set_creation_date", commands.set_creation_date)
+    monkeypatch.setattr(ea.video, "VideoFile", lambda _file: mock.Mock(can_hw_decode=commands.can_hw_decode))
     return commands
 
 
@@ -167,3 +169,24 @@ def test_main_without_video_file(cli: mock.Mock, tmp_path: Path) -> None:
     (tmp_path / "notes.txt").write_text("x")
     run_main("-i", str(tmp_path), "--before", " ", "--after", "-an -sn")
     cli.assert_not_called()
+
+
+def test_cpu_decoding() -> None:
+    """The hardware decoding options and the GPU deinterlacing filter are replaced by the CPU ones"""
+    before, after = ea.cpu_decoding("-y -hwaccel cuda -hwaccel_output_format cuda", "-vf yadif_cuda=deint=all -c:v hevc_nvenc")
+    assert before == "-y"
+    assert after == "-vf yadif=deint=all -c:v hevc_nvenc"
+
+
+@pytest.mark.parametrize(("can_decode", "expected"), [(True, True), (False, False)])
+def test_encode_file_decodes_on_the_cpu_what_the_gpu_cant_decode(fake_ffmpeg: Commands, tmp_path: Path, can_decode: bool, expected: bool) -> None:
+    """An avi that the GPU can't decode (eg msmpeg4) is decoded and deinterlaced on the CPU, the encoding stays on the GPU"""
+    src = tmp_path / "old.avi"
+    src.write_text("original", encoding="utf-8")
+    fake_ffmpeg.can_hw_decode.return_value = can_decode
+    ea.encode_file(str(src), "-y -hwaccel cuda -hwaccel_output_format cuda", "-c:v hevc_nvenc", True)
+    cmd = fake_ffmpeg[0][0]
+    assert ("-hwaccel" in cmd) is expected
+    assert ("yadif_cuda" in cmd) is expected
+    assert ("yadif=deint=all" in cmd) is not expected
+    assert "-c:v hevc_nvenc" in cmd
