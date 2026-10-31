@@ -24,7 +24,6 @@
 """Tool that encodes video files automatically with the ffmpeg options given"""
 
 import os
-import re
 import time
 import argparse
 from mediatools.log import logger
@@ -32,12 +31,15 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fileutil
 
+HWACCEL_OPTIONS: tuple[str, ...] = ("-hwaccel", "-hwaccel_output_format")
+
 
 def cpu_decoding(before: str, after: str) -> tuple[str, str]:
     """Returns the ffmpeg options changed to decode the video on the CPU instead of the GPU: no hardware decoding in the options
     that go before the input, and the CPU deinterlacing filter instead of the GPU one in the ones that go after"""
-    before = re.sub(r"\s*-hwaccel(?:_output_format)?\s+\S+", "", before).strip()
-    return before, after.replace("yadif_cuda", "yadif")
+    tokens = before.split()
+    kept = [t for i, t in enumerate(tokens) if t not in HWACCEL_OPTIONS and (i == 0 or tokens[i - 1] not in HWACCEL_OPTIONS)]
+    return " ".join(kept), after.replace("yadif_cuda", "yadif")
 
 
 def encode_file(inputfile: str, before: str, after: str, force: bool, duration: float | None = None) -> None:
