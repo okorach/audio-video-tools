@@ -32,4 +32,4 @@ set fps=!fps:fps=!
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 
-videotool encode -i %* --hw_accel on --vcodec !codec! --quality !quality! --acodec aac --fps !fps! --keepName
+videotool encode -i %* --vcodec !codec! --quality !quality! --acodec aac --fps !fps! --keepName
