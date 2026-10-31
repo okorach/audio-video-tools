@@ -464,15 +464,13 @@ def _must_encode_audio(**kwargs: object) -> bool:
     return False
 
 
-def build_target_file(source_file: str, profile: str | None) -> str:
-    """Returns the name of the file generated from a source file with a profile: the name of the source with the profile as postfix and its extension
-    Returns the name of the file generated from a source file with a profile: the name of the source with the profile as postfix and its extension"""
-    extension = util.get_profile_extension(profile)
-    if extension is None:
-        extension = conf.get_property(f"default.{fil.get_type(source_file)}.format")
-    if extension is None:
-        extension = fil.extension(source_file)
-    return util.add_postfix(source_file, profile, extension)
+def build_target_file(source_file: str, profile: str | None, fmt: str | None = None) -> str:
+    """Returns the name of the file generated from a source file with a profile: the name of the source with the profile as postfix and
+    the requested format (fmt), or else the extension of the profile, or else the one of the source"""
+    extension = util.get_encoding_extension(source_file, profile, fmt)
+    if fmt and extension != fil.extension(source_file).lower():
+        return f"{fil.strip_extension(source_file)}.{extension}"
+    return util.add_postfix(source_file, profile or "encoded", extension)
 
 
 def get_crop_filter_options(width: int, height: int, top: int, left: int) -> str:

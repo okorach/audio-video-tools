@@ -133,6 +133,10 @@ The `--hw_accel auto|on|off` option is in the common arguments. Functions that r
 
 `--quality high|medium|low` sets the constant quality of the video encoding (`-crf`, or `-cq` for the nvenc encoders): x264 18/23/26, x265 23/28/31 (`mediafile.get_quality_settings`). It is `high` by default, unless a video bitrate is given (option or profile) without a quality: the bitrate is then used.
 
+### Format of the Generated Videos
+
+`--format mp4|avi|mkv...` (`video.add_format_arg`) sets the format of the generated video: the one of the output file if given, else the requested one, else the original one. The names come from `util.format_output_file_name` (`<basename>.<format>` when the format changes, no `.original` renaming), and `VideoFile.encode` doesn't force the format to ffmpeg (it deduces it from the extension). See `docs/format.md`.
+
 ### Dates of the Generated Files
 
 A file generated from a source file gets its creation and modification dates and its geotagging. `util.run_ffmpeg` does it for every ffmpeg command (`metacopy.copy_after_ffmpeg`); the code that generates files without ffmpeg calls `metacopy.copy_date_and_geotag`; the code that modifies a file in place uses `metacopy.preserve_dates` or `@metacopy.keeps_dates`.

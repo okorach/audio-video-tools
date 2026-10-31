@@ -27,6 +27,7 @@ import sys
 
 from mediatools import log
 from mediatools import videofile as vf
+import mediatools.options as opt
 import mediatools.utilities as util
 import utilities.file as fil
 
@@ -73,11 +74,17 @@ def main() -> None:
         postfix = "encoded"
     else:
         postfix = postfix[1:]
+    output = kwargs.get(util.OUTPUT_FILE)
     for ifile in files_to_encode:
-        ofile = build_file_name(ifile, postfix)
+        if output is not None and len(files_to_encode) == 1:
+            ofile = output
+        elif kwargs.get(opt.Option.FORMAT) and util.get_output_format(ifile, None, kwargs[opt.Option.FORMAT]) != fil.extension(ifile).lower():
+            ofile = util.format_output_file_name(None, ifile, postfix, kwargs[opt.Option.FORMAT])
+        else:
+            ofile = build_file_name(ifile, postfix, fil.extension(ifile).lower())
         vf.VideoFile(ifile).encode(target_file=ofile, profile=None, **kwargs)
         vf.set_creation_date(ofile, vf.get_creation_date(ifile))
-        if kwargs.get("keepName", False):
+        if kwargs.get("keepName", False) and fil.extension(ofile).lower() == fil.extension(ifile).lower():
             splits = ifile.split(".")
             ext = splits.pop()
             base = ".".join(splits)

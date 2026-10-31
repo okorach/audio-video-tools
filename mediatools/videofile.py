@@ -371,8 +371,7 @@ class VideoFile(media.MediaFile):
         else:
             log.logger.warning("Can't find video bitrate of %s, using encoder default", self.filename)
 
-        ext = fil.extension(self.filename)
-        out_file = util.automatic_output_file_name(out_file, self.filename, "crop", ext)
+        out_file = util.format_output_file_name(out_file, self.filename, "crop", kwargs.get(opt.Option.FORMAT))
         # Decode on GPU but keep frames in system memory since the crop filter is a CPU one
         hw_prefix = "-hwaccel cuda " if hw_accel else ""
         cmd = f'{hw_prefix}-i "{self.filename}" -filter:v:{n} "{filters.crop(width, height, left, top)}" {" ".join(options)} "{out_file}"'
@@ -475,9 +474,11 @@ class VideoFile(media.MediaFile):
         - Profile is the encoding profile as per the VideoTools.properties config file
         - **kwargs accepts at large panel of other optional options"""
         kwargs = util.get_all_options(**kwargs)
+        # The format is the one of the target file: it is not forced to ffmpeg, which deduces it from the extension of the file
+        fmt = kwargs.pop(opt.Option.FORMAT, None)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
         if target_file is None:
-            target_file = media.build_target_file(self.filename, profile)
+            target_file = media.build_target_file(self.filename, profile, fmt)
 
         input_settings = media.get_input_settings(**kwargs)
         if util.HW_ACCEL_PREFIX in input_settings and not self.can_hw_decode():
@@ -804,13 +805,25 @@ def concat(target_file: str, file_list: list[str], with_audio: bool = True, hw_a
 
 
 def add_reencode_args(parser: argparse.ArgumentParser) -> None:
-    """Adds the options of the tools that re-encode a video with the original settings (--vcodec, --quality and --fps) to the parser of a tool"""
+    """Adds the options of the tools that re-encode a video with the original settings (--vcodec, --quality, --fps, --format) to the parser"""
     parser.add_argument(
         "--" + opt.Option.VCODEC, required=False, help="Video codec (h264, h265, mpeg2, xvid...). Default: the codec of the original video"
     )
     add_quality_arg(parser)
     parser.add_argument(
         "-r", "--" + opt.Option.FPS, required=False, help="Video framerate of the output eg 25. Default: the one of the original video"
+    )
+    add_format_arg(parser)
+
+
+def add_format_arg(parser: argparse.ArgumentParser, *short_names: str) -> None:
+    """Adds the --format option (and its short names) to the parser of a tool that generates a video"""
+    parser.add_argument(
+        *short_names,
+        "--" + opt.Option.FORMAT,
+        required=False,
+        help="Format of the output file (mp4, avi, mkv...). Default: the format of the original file. "
+        "When an output file is given, the format is the one of its extension",
     )
 
 
@@ -841,7 +854,7 @@ def add_video_args(parser: argparse.ArgumentParser) -> object:
 
     parser.add_argument("-t", "--timeranges", required=False, help="Ranges of encoding <start>:<end>,<start>:<end>")
 
-    parser.add_argument("-f", "--" + opt.Option.FORMAT, required=False, help="Output file format eg mp4")
+    add_format_arg(parser, "-f")
     parser.add_argument("-r", "--" + opt.Option.FPS, required=False, help="Video framerate of the output eg 25")
 
     parser.add_argument("--asampling", required=False, help="Audio sampling eg 44100")
@@ -932,6 +945,7 @@ def slideshow(
     descriptions: list[dict] | None = None,
     fps: float | str | None = None,
     quality: str | None = None,
+    fmt: str | None = None,
 ) -> tuple[str, list]:
     """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
     with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
@@ -952,8 +966,8 @@ def slideshow(
         resolution = conf.get_property(conf.SLIDESHOW_RESOLUTION_KEY)
     fps = float(fps or conf.get_property(conf.SLIDESHOW_FPS_KEY) or conf.DEFAULT_SLIDESHOW_FPS)
     fps = int(fps) if fps == int(fps) else fps
-    fmt = conf.get_property("default.video.format")
-    outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{fmt}"
+    fmt_default = conf.get_property("default.video.format")
+    outfile = outfile or f"{fil.strip_extension(slideshow_files[0])}.{util.normalize_format(fmt) if fmt else fmt_default}"
     log.logger.info("Final slideshow file will be %s", outfile)
 
     # The steps are the clips of the photos (weight 1 each) and the assemblies of the clips, which are much faster than the clips
@@ -990,7 +1004,7 @@ def slideshow(
                 __build_slideshow__(
                     video_files,
                     resolution=resolution,
-                    outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
+                    outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt_default}",
                     hw_accel=hw_accel,
                     fps=fps,
                     quality=quality,
@@ -1010,7 +1024,7 @@ def slideshow(
         __build_slideshow__(
             video_files,
             resolution=resolution,
-            outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt}",
+            outfile=f"{fil.strip_extension(outfile)}.part{len(slideshows)}.{os.getpid()}.{fmt_default}",
             hw_accel=hw_accel,
             fps=fps,
             quality=quality,
@@ -1028,7 +1042,7 @@ def speed(filename: str, target_speed: str | float, output: str | None = None, m
     speed_str = str(target_speed)
     if not speed_str.endswith(("x", "%")):
         speed_str += "x"
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix=speed_str)
+    output = util.format_output_file_name(output, filename, speed_str, kwargs.get(opt.Option.FORMAT))
     vf = VideoFile(filename)
     if vf.video_bitrate and kwargs.get("vbitrate") is None and kwargs.get("profile") is None:
         kwargs["vbitrate"] = vf.video_bitrate
@@ -1054,12 +1068,12 @@ def __get_source_vcodec__(source: VideoFile) -> str | None:
 def __filter_video__(filename: str, output: str | None, postfix: str, keep_name: bool, **kwargs: object) -> str:
     """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or flip) and returns the generated file.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
-    The output file is <original>.<postfix>.<ext> by default. With keep_name, the output has the name of the original, which is
-    renamed <original>.before_<postfix>.<ext>"""
+    The output file is <original>.<postfix>.<ext> by default, or <original>.<format> if the format option changes the format of the original.
+    With keep_name, the output has the name of the original, which is renamed <original>.before_<postfix>.<ext> (unless the format is changed)"""
     if keep_name and output is not None:
         raise ex.InputError("An output file can't be given with keepName", postfix)
     ext = fil.extension(filename)
-    target = util.automatic_output_file_name(outfile=output, infile=filename, postfix=postfix, extension=ext)
+    target = util.format_output_file_name(output, filename, postfix, kwargs.get(opt.Option.FORMAT))
     source = VideoFile(filename)
     if kwargs.get(opt.Option.VCODEC) is None:
         kwargs.pop(opt.Option.VCODEC, None)
@@ -1067,7 +1081,8 @@ def __filter_video__(filename: str, output: str | None, postfix: str, keep_name:
         if source_codec is not None:
             kwargs[opt.Option.VCODEC] = source_codec
     generated = source.encode(target_file=target, **kwargs)
-    if keep_name:
+    if keep_name and fil.extension(generated).lower() == ext.lower():
+        # When the format is changed the generated file has another name than the original, which is not renamed
         fil.rename(filename, util.add_postfix(filename, f"before_{postfix}", ext))
         fil.rename(generated, filename)
         generated = filename
@@ -1102,7 +1117,7 @@ def flip(filename: str, output: str | None = None, direction: str | None = None,
 def reverse(filename: str, output: str | None = None, mute: bool = True, **kwargs: object) -> str:
     """Reverses a video, in a new file. Returns the name of the new file"""
     kwargs["hw_accel"] = False  # Reverse filter not compatible with HW accel
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="reverse")
+    output = util.format_output_file_name(output, filename, "reverse", kwargs.get(opt.Option.FORMAT))
     return VideoFile(filename).encode(reverse=True, target_file=output, mute=mute, **kwargs)
 
 
@@ -1119,7 +1134,7 @@ def color_enhance(
     """Enhances video colors using the ffmpeg eq filter (saturation, contrast, brightness, gamma)."""
     eq = f"eq=saturation={saturation}:contrast={contrast}:brightness={brightness}:gamma={gamma}"
     log.logger.info("Color enhancing %s: %s", filename, eq)
-    output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="color")
+    output = util.format_output_file_name(output, filename, "color", kwargs.get(opt.Option.FORMAT))
     vf = VideoFile(filename)
     if vf.video_bitrate and "vbitrate" not in kwargs:
         kwargs["vbitrate"] = vf.video_bitrate
@@ -1128,7 +1143,7 @@ def color_enhance(
 
 def deshake(filename: str, output: str | None = None, **kwargs: object) -> str:
     """Removes the shakiness of a video, in a new file. Returns the name of the new file"""
-    output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="deshake")
+    output = util.format_output_file_name(output, filename, "deshake", kwargs.get(opt.Option.FORMAT))
     return VideoFile(filename).encode(target_file=output, **kwargs)
 
 
