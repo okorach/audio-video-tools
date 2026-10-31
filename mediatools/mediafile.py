@@ -210,7 +210,7 @@ class MediaFile(fil.File):
     def get_exif_data(self, force: bool = False) -> dict[str, str]:
         """Returns the EXIF data of the file as a dictionary. They are read only once, unless force is set"""
         if self._exif_data is None or force:
-            with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS) as et:
+            with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
                 self._exif_data = et.get_metadata(self.filename)[0]
         return self._exif_data
 
@@ -220,7 +220,7 @@ class MediaFile(fil.File):
             time_to_set = datetime.strftime(some_datetime, EXIF_DATE_FMT)
         else:
             time_to_set = some_datetime
-        with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS) as et:
+        with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
             et.set_tags([self.filename], tags={"DateTimeOriginal": time_to_set}, params=["-P", "-overwrite_original"])
 
     def get_exif_creation_date(self) -> datetime | None:
@@ -310,7 +310,7 @@ class MediaFile(fil.File):
         if longitude < 0:
             longitude = -longitude
             long_ref = "W"
-        with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS) as et:
+        with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
             et.set_tags(
                 [self.filename],
                 tags={"EXIF:GPSLatitude": latitude, "EXIF:GPSLatitudeRef": lat_ref, "EXIF:GPSLongitude": longitude, "EXIF:GPSLongitudeRef": long_ref},

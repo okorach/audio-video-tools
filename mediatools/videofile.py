@@ -1192,7 +1192,7 @@ def get_creation_date(filename: str) -> datetime.datetime | None:
 
 def get_exif(filename: str) -> None:
     """Logs the EXIF data of a file"""
-    with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS) as et:
+    with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
         for exif_data in et.get_metadata(filename):
             for k, v in exif_data.items():
                 log.logger.info("EXIF - %s = %s", k, v)
