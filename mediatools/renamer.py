@@ -142,7 +142,7 @@ def get_file_data(filename: str) -> dict | None:
         return None
 
     log.logger.info("Reading data for %s", filename)
-    with ExifToolHelper(executable=util.get_exiftool()) as et:
+    with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
         for data in et.get_metadata(filename):
             log.logger.debug("MetaData = %s", util.json_fmt(data))
             creation_date = util.get_creation_date(data)

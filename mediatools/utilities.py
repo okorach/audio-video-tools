@@ -119,6 +119,10 @@ def get_ffprobe() -> str:
     return get_ffbin("binaries.ffprobe")
 
 
+# Arguments of exiftool: the file names are UTF-8 (else exiftool can't find the files whose path has accents on Windows)
+EXIFTOOL_ARGS: list[str] = ["-G", "-n", "-charset", "filename=utf8"]
+
+
 def get_exiftool() -> str:
     """Returns the path of exiftool"""
     return get_media_properties().get("binaries.exiftool", "exiftool")

@@ -123,7 +123,7 @@ def copy_date_and_geotag(source: str, target: str) -> None:
     """Gives to the target file the creation date and the GPS coordinates of the source file, when it has some.
     This never fails: the files formats that can't hold these metadata are left as is"""
     try:
-        with ExifToolHelper(executable=util.get_exiftool(), encoding="utf-8") as et:
+        with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
             exif_data = et.get_metadata(source, params=["-n"])[0]
             creation_date = util.get_creation_date(exif_data)
             gps = _get_gps(exif_data)
@@ -159,7 +159,7 @@ def restore_dates(filename: str, stat: os.stat_result) -> None:
         created = getattr(stat, "st_birthtime", stat.st_ctime)
         if abs(os.stat(filename).st_ctime - created) > 1 and os.name == "nt":
             # The creation date of a file can only be set with exiftool (the file system dates are set last as modifying the file changes them)
-            with ExifToolHelper(executable=util.get_exiftool(), encoding="utf-8") as et:
+            with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
                 _set_tags(et, filename, {"File:FileCreateDate": datetime.fromtimestamp(created).strftime(util.EXIF_DATE_FMT)})
         os.utime(filename, ns=(stat.st_atime_ns, stat.st_mtime_ns))
     except Exception as e:
