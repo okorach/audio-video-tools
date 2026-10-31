@@ -539,6 +539,8 @@ def video_with_stream(**stream: object) -> video.VideoFile:
         ({"width": 2160, "height": 5120}, False),
         ({"pix_fmt": "yuv420p10le"}, False),
         ({"pix_fmt": "yuv422p"}, False),
+        ({"codec_name": "msmpeg4v3"}, False),
+        ({"codec_name": "mpeg2video"}, True),
         ({"codec_name": "hevc", "width": 5184, "height": 2916, "pix_fmt": "yuv420p10le"}, True),
     ],
 )

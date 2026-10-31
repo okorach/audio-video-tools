@@ -31,6 +31,16 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fileutil
 
+HWACCEL_OPTIONS: tuple[str, ...] = ("-hwaccel", "-hwaccel_output_format")
+
+
+def cpu_decoding(before: str, after: str) -> tuple[str, str]:
+    """Returns the ffmpeg options changed to decode the video on the CPU instead of the GPU: no hardware decoding in the options
+    that go before the input, and the CPU deinterlacing filter instead of the GPU one in the ones that go after"""
+    tokens = before.split()
+    kept = [t for i, t in enumerate(tokens) if t not in HWACCEL_OPTIONS and (i == 0 or tokens[i - 1] not in HWACCEL_OPTIONS)]
+    return " ".join(kept), after.replace("yadif_cuda", "yadif")
+
 
 def encode_file(inputfile: str, before: str, after: str, force: bool, duration: float | None = None) -> None:
     """Encode a single video file with the given before/after ffmpeg options."""
@@ -41,11 +51,15 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
     if is_original:
         base = base[: -len(".original")]
 
+    file_before = before
     file_after = after
     new_ext = ext
     if ext in ("mts", "avi", "mkv"):
         file_after = f"-vf yadif_cuda=deint=all {after}"
         new_ext = "mp4"
+    if "-hwaccel" in before and not video.VideoFile(inputfile).can_hw_decode():
+        logger.info("%s can't be decoded by the GPU, decoding it on the CPU", inputfile)
+        file_before, file_after = cpu_decoding(before, file_after)
 
     logger.info("Encoding %s (ext=%s)", inputfile, ext)
     seq = 0
@@ -54,7 +68,7 @@ def encode_file(inputfile: str, before: str, after: str, force: bool, duration: 
             seq += 1
     outputfile = f"{base}.encode.{seq:02}.{new_ext}"
 
-    cmd = f'{before} -i "{inputfile}" {file_after} "{outputfile}"'
+    cmd = f'{file_before} -i "{inputfile}" {file_after} "{outputfile}"'
     logger.info("COMMAND = ffmpeg %s", cmd)
     if duration is None:
         duration = video.get_duration(inputfile)
