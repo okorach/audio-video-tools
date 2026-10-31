@@ -110,6 +110,7 @@ def main() -> None:
         help=f"Frame rate of the video (default: {conf.get_property(conf.SLIDESHOW_FPS_KEY) or conf.DEFAULT_SLIDESHOW_FPS})",
     )
     video.add_quality_arg(parser)
+    video.add_format_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     # -i accepts a YAML file (that describes the slideshow) and photos (that are added at the end of the slideshow)
@@ -136,7 +137,9 @@ def main() -> None:
         except (OSError, ValueError, TypeError, yaml.YAMLError) as e:
             log.logger.error("Can't read %s: %s", yaml_file, e)
             sys.exit(1)
-        outfile = outfile or params.get("output") or f"{fil.strip_extension(yaml_file)}.{conf.get_property('default.video.format')}"
+        outfile = (
+            outfile or params.get("output") or f"{fil.strip_extension(yaml_file)}.{kwargs.get('format') or conf.get_property('default.video.format')}"
+        )
         resolution = resolution or params.get("resolution")
         fps = fps or params.get("fps")
         quality = quality or params.get("quality")
@@ -160,6 +163,7 @@ def main() -> None:
         descriptions=descriptions,
         fps=fps,
         quality=quality,
+        fmt=kwargs.get("format"),
     )
 
     # The description is written in the input YAML file (updated with the added photos), or else next to the video

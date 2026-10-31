@@ -49,7 +49,7 @@ def encode_file(file: str, file_type: str, **kwargs: object) -> str:
         video.set_creation_date(outfile, video.get_creation_date(file))
         return outfile
 
-    ext = util.get_profile_extension(kwargs.get("profile"))
+    ext = util.get_encoding_extension(file, kwargs.get("profile"), kwargs.get("format"))
     count = 0
     filelist: list[str] = []
     timeranges = kwargs.get("timeranges").split(",")
@@ -89,7 +89,7 @@ def main() -> None:
     for i in range(nb_files):
         log.logger.info("%3d/%3d : %3d%% : %s", i + 1, nb_files, (i + 1) * 100 // nb_files, file_list[i])
         ofile = encode_file(file_list[i], fil.get_type(file_list[i]), **kwargs)
-        if kwargs.get("keepName", False):
+        if kwargs.get("keepName", False) and fil.extension(ofile).lower() == fil.extension(file_list[i]).lower():
             splits = file_list[i].split(".")
             ext = splits.pop()
             base = ".".join(splits)

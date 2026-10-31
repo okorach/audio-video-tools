@@ -69,7 +69,7 @@ def cut(
         i = 1
         for r in timeranges.split(","):
             kwargs["start"], kwargs["stop"] = r.split("-", maxsplit=2)
-            outputfile = util.automatic_output_file_name(outfile=output, infile=file, postfix=f"cut{i}")
+            outputfile = util.format_output_file_name(output, file, f"cut{i}", kwargs.get("format"))
             outputfile = file_object.encode(target_file=outputfile, **kwargs)
             util.generated_file(outputfile)
             i += 1
@@ -78,7 +78,7 @@ def cut(
             start = 0
         if stop is None:
             stop = file_object.duration
-        outputfile = util.automatic_output_file_name(outfile=output, infile=file, postfix="cut")
+        outputfile = util.format_output_file_name(output, file, "cut", kwargs.get("format"))
         outputfile = file_object.encode(target_file=outputfile, start=start, stop=stop, **kwargs)
         util.generated_file(outputfile)
     return output

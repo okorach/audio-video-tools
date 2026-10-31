@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument(
         "-k", "--keep_audio", required=False, dest=opt.Option.MUTE, action="store_false", default=True, help="Keep audio track after reverse"
     )
+    video.add_format_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
