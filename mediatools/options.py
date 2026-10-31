@@ -62,8 +62,8 @@ QUALITY_LEVELS: tuple[str, ...] = ("high", "medium", "low")
 DEFAULT_QUALITY: str = "high"
 
 # Constant quality (-crf for the CPU encoders, -cq for the hardware accelerated ones) by quality level, for the h264 and h265 codecs
-CRF_H264: dict[str, int] = {"high": 18, "medium": 23, "low": 28}
-CRF_H265: dict[str, int] = {"high": 23, "medium": 28, "low": 33}
+CRF_H264: dict[str, int] = {"high": 18, "medium": 23, "low": 26}
+CRF_H265: dict[str, int] = {"high": 23, "medium": 28, "low": 31}
 
 
 class OptionFfmpeg:

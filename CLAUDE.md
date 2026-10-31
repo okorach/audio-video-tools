@@ -131,7 +131,7 @@ The `--hw_accel auto|on|off` option is in the common arguments. Functions that r
 
 ### Video Quality
 
-`--quality high|medium|low` sets the constant quality of the video encoding (`-crf`, or `-cq` for the nvenc encoders): x264 18/23/28, x265 23/28/33 (`mediafile.get_quality_settings`). It is `high` by default, unless a video bitrate is given (option or profile) without a quality: the bitrate is then used.
+`--quality high|medium|low` sets the constant quality of the video encoding (`-crf`, or `-cq` for the nvenc encoders): x264 18/23/26, x265 23/28/31 (`mediafile.get_quality_settings`). It is `high` by default, unless a video bitrate is given (option or profile) without a quality: the bitrate is then used.
 
 ### Dates of the Generated Files
 

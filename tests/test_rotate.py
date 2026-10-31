@@ -138,7 +138,7 @@ def test_rotate_quality_is_high_by_default(clip: str, tmp_path: Path) -> None:
     assert "transpose=1" in cmd
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.rotate(clip, quality="low", hw_accel="off")
-    assert re.search(r'-crf "?28', run_ffmpeg.call_args.args[0])
+    assert re.search(r'-crf "?26', run_ffmpeg.call_args.args[0])
 
 
 def test_rotate_is_encoded_by_the_gpu_and_filtered_by_the_cpu(clip: str) -> None:

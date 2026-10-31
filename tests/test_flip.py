@@ -176,7 +176,7 @@ def test_flip_quality_is_high_by_default(clip: str) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.flip(clip, direction="topbottom", quality="low", hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
-    assert re.search(r'-crf "?28', cmd)
+    assert re.search(r'-crf "?26', cmd)
     assert "vflip" in cmd
 
 

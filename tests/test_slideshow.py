@@ -379,7 +379,7 @@ def test_slideshow_clips_use_the_fps_and_quality(commands: mock.MagicMock) -> No
     for effect in ("zoom", "panorama"):
         getattr(image.ImageFile(images_full[0]), effect)(hw_accel="off", framerate=50, quality="low")
     for cmd in run_commands(commands):
-        assert "-crf 28" in cmd
+        assert "-crf 26" in cmd
         assert "-framerate 50" in cmd or '-framerate "50"' in cmd
     commands.reset_mock()
     image.ImageFile(images_full[0]).panorama(hw_accel="on")

@@ -398,7 +398,7 @@ def get_output_settings(file_type: str = fil.FileType.VIDEO_FILE, **kwargs: obje
 def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwargs: object) -> dict:
     """Returns the ffmpeg constant quality setting (-crf, or -cq for the hardware accelerated encoders) of the video quality
     (--quality high, medium or low, high by default), according to the ffmpeg video codec (ffmpeg_codec):
-    h264: 18, 23 and 28 - h265: 23, 28 and 33.
+    h264: 18, 23 and 26 - h265: 23, 28 and 31.
     The quality is not applied (empty settings) when the video is copied, for the codecs without constant quality mode, and by default when
     a video bitrate is given (has_bitrate): a quality explicitly requested takes precedence over a bitrate"""
     quality = kwargs.get(opt.Option.QUALITY)
