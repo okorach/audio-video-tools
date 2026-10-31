@@ -42,12 +42,12 @@ import mediatools.videofile as video
     [
         ("libx264", "high", {"crf": 18}),
         ("libx264", "medium", {"crf": 23}),
-        ("libx264", "low", {"crf": 28}),
+        ("libx264", "low", {"crf": 26}),
         ("libx265", "high", {"crf": 23}),
         ("libx265", "medium", {"crf": 28}),
-        ("libx265", "low", {"crf": 33}),
+        ("libx265", "low", {"crf": 31}),
         ("h264_nvenc", "medium", {"cq": 23}),
-        ("hevc_nvenc", "low", {"cq": 33}),
+        ("hevc_nvenc", "low", {"cq": 31}),
         ("libx264", "HIGH", {"crf": 18}),
     ],
 )
@@ -66,7 +66,7 @@ def test_quality_is_not_used_by_default_with_a_bitrate() -> None:
     """Quality is not used by default with a bitrate"""
     assert not media.get_quality_settings("libx264", True)
     # An explicit quality takes precedence over a bitrate
-    assert media.get_quality_settings("libx264", True, quality="low") == {"crf": 28}
+    assert media.get_quality_settings("libx264", True, quality="low") == {"crf": 26}
 
 
 def test_quality_is_not_applied_to_copied_or_unsupported_codecs() -> None:
@@ -127,14 +127,14 @@ def test_encode_default_quality_is_high(short_video: str, tmp_path: Path, ffmpeg
 
 def test_encode_x265_qualities(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     """Encode x265 qualities"""
-    for quality, expected in (("high", "23"), ("medium", "28"), ("low", "33")):
+    for quality, expected in (("high", "23"), ("medium", "28"), ("low", "31")):
         assert crf(ffmpeg_cmd(short_video, tmp_path, vcodec="x265", quality=quality)) == expected
 
 
 def test_encode_quality_alone_encodes_the_video(short_video: str, tmp_path: Path, ffmpeg_cmd: Callable[..., str]) -> None:
     """Encode quality alone encodes the video"""
     cmd = ffmpeg_cmd(short_video, tmp_path, quality="low")
-    assert crf(cmd) == "28"  # h264 by default
+    assert crf(cmd) == "26"  # h264 by default
     assert "libx264" in cmd
 
 
@@ -160,7 +160,7 @@ def test_encode_with_a_profile_bitrate(short_video: str, tmp_path: Path) -> None
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.VideoFile(short_video).encode(target_file=str(tmp_path / "out.mp4"), profile="720p", vcodec="x264", quality="low", hw_accel="off")
     cmd = run_ffmpeg.call_args.args[0]
-    assert crf(cmd) == "28"
+    assert crf(cmd) == "26"
     assert "-b:v" not in cmd
 
 

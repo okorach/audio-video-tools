@@ -28,7 +28,7 @@ The quality is mapped to the constant quality option of the video encoder (`-crf
 |---|---|---|
 | `high` | 18 | 23 |
 | `medium` | 23 | 28 |
-| `low` | 28 | 33 |
+| `low` | 26 | 31 |
 
 - When neither `--quality` nor a video bitrate (`--vbitrate`, or the bitrate of the profile) is given, the quality is `high`.
 - When a video bitrate is given without `--quality`, the bitrate is used, as before.
