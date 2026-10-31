@@ -31,13 +31,13 @@ do
         do
             let i=$i+1
             let k=(3*$i+1)%2
-            if [ "$k" == "0" ]; then
+            if [[ "$k" == "0" ]]; then
                 d=horizontal
             else
                 d=vertical
             fi
             let k=(7*$i)%2
-            if [ "$k" == "0" ]; then
+            if [[ "$k" == "0" ]]; then
                 c=black
             else
                 c=white
