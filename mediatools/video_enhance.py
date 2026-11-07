@@ -40,10 +40,13 @@ def enhance_file(
     hw_accel: bool | None = None,
     stabilize: bool = True,
     batch_remaining: float | None = None,
+    fmt: str | None = None,
 ) -> None:
     """Color-enhance a single video file, preserve creation date, rename original."""
     creation_date = video.get_creation_date(input_file)
     extra = {} if hw_accel is None else {"hw_accel": hw_accel}
+    if fmt:
+        extra["format"] = fmt
     if batch_remaining is not None:
         extra["batch_remaining"] = batch_remaining
 
@@ -69,7 +72,7 @@ def enhance_file(
             os.unlink(trf_file)
     video.set_creation_date(outfile, creation_date)
 
-    if output_file is None:
+    if output_file is None and fileutil.extension(outfile).lower() == fileutil.extension(input_file).lower():
         base, ext = os.path.splitext(input_file)
         fileutil.rename(input_file, f"{base}.original{ext}")
         fileutil.rename(outfile, input_file)
@@ -97,6 +100,7 @@ def main() -> None:
     parser.add_argument(
         "--no_stabilize", required=False, default=False, action="store_true", help="Skip video stabilization (stabilization is applied by default)"
     )
+    video.add_format_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fileutil.FileType.VIDEO_FILE)
 
     output_file = kwargs.get(util.OUTPUT_FILE, None)
@@ -138,6 +142,7 @@ def main() -> None:
             hw_accel=hw_accel,
             stabilize=do_stabilize,
             batch_remaining=total_dur - processed_dur,
+            fmt=kwargs.get("format"),
         )
         processed_dur += dur
         pct = 100.0 * processed_dur / total_dur if total_dur > 0 else 100.0

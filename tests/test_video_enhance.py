@@ -227,3 +227,11 @@ def test_main_output_file_with_several_files(cli: mock.Mock) -> None:
     """Main output file with several files"""
     run_main("-i", "a.mp4", "b.mp4", "-o", "o.mp4")
     cli.assert_not_called()
+
+
+def test_enhance_with_another_format_does_not_rename_the_original(collab: types.SimpleNamespace) -> None:
+    """When the format changes, the enhanced video has the new format and the original is not renamed"""
+    collab.color_enhance.return_value = "dir/clip.mkv"
+    enhance(fmt="mkv")
+    assert collab.color_enhance.call_args.kwargs["format"] == "mkv"
+    collab.rename.assert_not_called()

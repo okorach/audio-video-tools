@@ -43,7 +43,7 @@ def main() -> None:
 
     def process(input_file: str, options: dict) -> None:
         """Removes the shakiness of one video"""
-        outputfile = video.deshake(input_file, out_file=options.get(util.OUTPUT_FILE), **options)
+        outputfile = video.deshake(input_file, output=options.pop(util.OUTPUT_FILE, None), **options)
         print(f"Generated {outputfile}")
 
     util.process_input_files(kwargs, process)

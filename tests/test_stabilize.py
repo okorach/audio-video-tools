@@ -159,3 +159,9 @@ def test_main_several_files_ignore_the_output_name(cli: mock.MagicMock) -> None:
     """With several files, the name of each output is derived from its input"""
     run_main("-i", "a.mp4", "b.mp4", "-o", "out.mp4")
     assert [(c.args[0], c.kwargs["output"]) for c in cli.call_args_list] == [("a.mp4", None), ("b.mp4", None)]
+
+
+def test_main_format(cli: mock.MagicMock) -> None:
+    """The format option is passed to the stabilization"""
+    run_main("-i", "a.mp4", "--format", "mkv")
+    cli.assert_called_once_with("a.mp4", output=None, shakiness=8, smoothing=30, zoom=0, optzoom=1, sharpen=True, format="mkv")

@@ -63,6 +63,7 @@ def main() -> None:
     parser.add_argument(
         "-k", "--keep_audio", required=False, dest=opt.Option.MUTE, action="store_false", default=True, help="Keep audio track after speed change"
     )
+    video.add_format_arg(parser)
     parser.set_defaults(audio=False)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
     speed = kwargs.pop("speed")

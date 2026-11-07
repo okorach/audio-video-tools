@@ -79,7 +79,7 @@ def stabilize(
     Falls back to FFmpeg's deshake filter when libvidstab is not available.
     Returns the path of the stabilized output file.
     """
-    output = util.automatic_output_file_name(infile=filename, outfile=output, postfix="stabilized")
+    output = util.format_output_file_name(output, filename, "stabilized", kwargs.get("format"))
 
     if not has_vidstab():
         log.logger.warning("libvidstab not found in FFmpeg — falling back to deshake filter")
@@ -151,6 +151,7 @@ def main() -> None:
         default=True,
         help="Skip the unsharp-mask pass applied after stabilization",
     )
+    video.add_format_arg(parser)
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
 
     input_files = kwargs[util.INPUT_FILES]
@@ -161,6 +162,8 @@ def main() -> None:
         "optzoom": kwargs.get("optzoom", 1),
         "sharpen": kwargs.get("sharpen", True),
     }
+    if kwargs.get("format"):
+        stab_kwargs["format"] = kwargs["format"]
     # Only pass an explicit output path when processing a single file; for multiple
     # files (or a directory) each output is derived automatically from the input name.
     single = len(input_files) == 1
