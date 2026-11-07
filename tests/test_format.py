@@ -132,3 +132,16 @@ def test_encode_with_a_format(clip: str, tmp_path: Path) -> None:
     with patch.object(util, "run_ffmpeg") as run_ffmpeg:
         video.VideoFile(clip).encode(hw_accel="off")
     assert run_ffmpeg.call_args.args[0].endswith(f'"{tmp_path / "clip.encoded.mp4"}"')
+
+
+def test_cli_encode_formats(clip: str, tmp_path: Path) -> None:
+    """The cli encoder generates the format requested, the one of the output file, or the original one"""
+    with patch.object(util, "run_ffmpeg") as run_ffmpeg:
+        for args, expected in (
+            (["--format", "mkv"], "clip.mkv"),
+            ([], "clip.encoded.mp4"),
+            (["-o", str(tmp_path / "out.avi"), "--format", "mkv"], "out.avi"),
+        ):
+            with patch.object(sys, "argv", ["videotool", "encode", "-i", clip, "--hw_accel", "off", *args]), pytest.raises(SystemExit):
+                tools.videotool()
+            assert run_ffmpeg.call_args.args[0].endswith(f'"{tmp_path / expected}"')

@@ -477,8 +477,7 @@ class VideoFile(media.MediaFile):
         # The format is the one of the target file: it is not forced to ffmpeg, which deduces it from the extension of the file
         fmt = kwargs.pop(opt.Option.FORMAT, None)
         log.logger.debug("Encoding %s with profile %s and args %s", self.filename, profile, str(kwargs))
-        if target_file is None:
-            target_file = media.build_target_file(self.filename, profile, fmt)
+        target_file = target_file or media.build_target_file(self.filename, profile, fmt)
 
         input_settings = media.get_input_settings(**kwargs)
         if util.HW_ACCEL_PREFIX in input_settings and not self.can_hw_decode():
