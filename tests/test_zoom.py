@@ -19,6 +19,9 @@
 #
 
 import os
+
+import pytest
+
 import mediatools.utilities as util
 import mediatools.imagefile as image
 import mediatools.videofile as video
@@ -69,3 +72,15 @@ def test_zoom_glob_2() -> None:
     vid_o = video.VideoFile(vid)
     assert vid_o.duration == 5
     os.remove(vid)
+
+
+def test_zoom_uses_perspective_not_zoompan(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The zoom effect is smoothed with the perspective filter (sub-pixel), not zoompan (whole pixel positions, which make it jitter)"""
+    img = get_img(4000, 3000)
+    commands = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_args, **_kwargs: commands.append(cmd))
+    img.zoom(effect=(1, 1.3), duration=3, resolution="720x400", hw_accel="off")
+    assert "zoompan=" not in commands[0]
+    assert "perspective=" in commands[0]
+    assert "eval=frame" in commands[0]
+    os.remove(img.filename)

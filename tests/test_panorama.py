@@ -138,3 +138,14 @@ def test_pan_portrait() -> None:
     assert vid_o.duration == 3
     os.remove(vid)
     os.remove(img.filename)
+
+
+def test_panorama_uses_perspective_not_crop(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The moving window of the panorama is smoothed with the perspective filter (sub-pixel), not crop (whole pixel positions, which jitter)"""
+    img = get_img(4000, 3000)
+    commands = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_args, **_kwargs: commands.append(cmd))
+    img.panorama(duration=3, speed=0.1, resolution="720x400", hw_accel="off")
+    assert "perspective=" in commands[0]
+    assert "eval=frame" in commands[0]
+    os.remove(img.filename)

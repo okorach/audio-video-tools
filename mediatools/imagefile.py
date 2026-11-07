@@ -283,16 +283,20 @@ class ImageFile(media.MediaFile):
             vfilters.append(filters.scale(scale_res.width, -1))
         vfilters.append(filters.crop(scale_res.width, scale_res.height))
 
-        step = (zstop - zstart) / duration / fps
-        if zstop < zstart:
-            zformula = f"if(lte(zoom,1.0),{zstart},max({zstop}+0.001,zoom-{-step}))"
-        else:
-            zformula = f"min(zoom+{step},{zstop})"
-        vfilters.append(filters.zoompan("iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)", zformula, d=int(duration * fps), fps=fps))
-        vfilters.append(filters.trim(duration=duration))
+        # The zoom level linearly goes from zstart to zstop over the frames of the clip, clamped in case a frame falls slightly beyond it.
+        # perspective (with eval=frame) moves the zoomed window, not zoompan: zoompan positions it in whole pixels, which makes it jitter.
+        # perspective has no "t" (time) variable, only "on" (the output frame number), hence the ratio to the number of frames
+        nb_frames = max(1, round(duration * fps))
+        zformula = f"min({max(zstart, zstop)},max({min(zstart, zstop)},{zstart}+({zstop - zstart})*on/{max(1, nb_frames - 1)}))"
+        width_formula, height_formula = f"W/({zformula})", f"H/({zformula})"
+        x_formula, y_formula = f"(W-({width_formula}))/2", f"(H-({height_formula}))/2"
+        vfilters.append(filters.perspective_crop(x_formula, y_formula, width_formula, height_formula, interpolation="cubic"))
         vf_string = ",".join(vfilters)
         encoder = _encoder_options(**kwargs)
-        cmd = f'-i "{self.filename}" -framerate "{fps}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" {encoder} -s "{resolution}" "{out_file}"'
+        cmd = (
+            f'-framerate "{fps}" -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_string}[v]" '
+            f'-map "[v]" -t {duration} {encoder} -s "{resolution}" "{out_file}"'
+        )
         util.run_ffmpeg(cmd, duration)
         effect = "zoom-in" if zstop >= zstart else "zoom-out"
         return (
@@ -397,16 +401,19 @@ class ImageFile(media.MediaFile):
         log.logger.debug("Duration = %s, Speed = %s", str(duration), str(speed))
 
         vfilters.append(filters.crop(needed_width, needed_height))
+        # The moving window is positioned by perspective (with eval=frame), not crop: crop only takes whole pixel positions, which makes
+        # the pan jitter. perspective has no "t" (time) variable, only "on" (the output frame number), hence the "on/framerate" in its place
+        t_expr = f"(on/{framerate})"
         if speed < 0:
-            x_formula = f"'(iw-ow)-(ow*{round(-speed, 5)}*t)'"
+            x_formula = f"({needed_width}-{scale_res.width})-({scale_res.width}*{round(-speed, 5)}*{t_expr})"
         else:
-            x_formula = f"'ow*{round(speed, 5)}*t'"
+            x_formula = f"{scale_res.width}*{round(speed, 5)}*{t_expr}"
         if vspeed < 0:
-            y_formula = f"'(ih-oh)-(oh*{round(-vspeed, 5)}*t)'"
+            y_formula = f"({needed_height}-{scale_res.height})-({scale_res.height}*{round(-vspeed, 5)}*{t_expr})"
         else:
-            y_formula = f"'oh*{round(vspeed, 5)}*t'"
+            y_formula = f"{scale_res.height}*{round(vspeed, 5)}*{t_expr}"
 
-        vfilters.append(filters.crop(scale_res.width, scale_res.height, x_formula, y_formula))
+        vfilters.append(filters.perspective_crop(x_formula, y_formula, str(scale_res.width), str(scale_res.height), interpolation="cubic"))
 
         vf_str = ",".join(vfilters)
         encoder = _encoder_options(**kwargs)
