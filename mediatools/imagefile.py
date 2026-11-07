@@ -36,6 +36,7 @@ from mediatools import exceptions as ex
 from mediatools import log, metacopy
 from mediatools import media_config as conf
 from mediatools import mediafile as media
+from mediatools import options as opt
 from mediatools import resolution as res
 from mediatools import utilities as util
 
@@ -269,11 +270,23 @@ class ImageFile(media.MediaFile):
         duration = float(kwargs.get("duration", 5))
         resolution = res.Resolution(resolution=kwargs.get("resolution", conf.get_property(conf.VIDEO_RESOLUTION_KEY)))
         scale_res = resolution * 2
-        out_file = kwargs.get("out_file")
-        log.logger.debug("zoom video of image %s", self.filename)
-        out_file = util.automatic_output_file_name(
-            out_file, self.filename, f"zoom-{zstart}-{zstop}", extension=conf.get_property("default.video.format")
+        effect = "zoom_in" if zstop >= zstart else "zoom_out"
+        zoom_level_pct = round(max(zstart, zstop) * 100, 1)
+        info = {"photo": self.filename, "effect": effect, "duration": round(duration, 2), "zoom_level_pct": zoom_level_pct}
+
+        out_file, reused = _reuse_or_name(
+            self.filename,
+            resolution,
+            info,
+            kwargs.get("out_file"),
+            fps=fps,
+            quality=kwargs.get(opt.Option.QUALITY) or opt.DEFAULT_QUALITY,
+            effect=effect,
+            extra=zoom_level_pct,
+            duration=duration,
         )
+        if reused is not None:
+            return out_file, reused
         log.logger.debug("zoom(%s,%s) of image %s", str(zstart), str(zstop), self.filename)
 
         vfilters = []
@@ -298,18 +311,7 @@ class ImageFile(media.MediaFile):
             f'-map "[v]" -t {duration} {encoder} -s "{resolution}" "{out_file}"'
         )
         util.run_ffmpeg(cmd, duration)
-        effect = "zoom_in" if zstop >= zstart else "zoom_out"
-        return (
-            out_file,
-            {
-                "photo": self.filename,
-                "output": out_file,
-                "effect": effect,
-                "duration": round(duration, 2),
-                # zoom_in goes from 100% to zoom_level_pct, zoom_out from zoom_level_pct to 100%: the other end is always 100%
-                "zoom_level_pct": round(max(zstart, zstop) * 100, 1),
-            },
-        )
+        return out_file, {**info, "output": out_file}
 
     def __compute_total_frame__(self, needed_width: int, needed_height: int) -> tuple[str, float, float]:
         """Returns the scale filter, the width and the height of the image enlarged to cover the area that a panorama needs"""
@@ -355,8 +357,6 @@ class ImageFile(media.MediaFile):
         if "effect" not in kwargs:
             kwargs["effect"] = (0, 1, 0.45, 0.55)
 
-        out_file = util.automatic_output_file_name(kwargs.get("out_file"), self.filename, "pan", extension=conf.get_property("default.video.format"))
-
         if self.orientation == "portrait":
             rot_args = kwargs.copy()
             rot_args.pop("out_file", None)
@@ -382,6 +382,25 @@ class ImageFile(media.MediaFile):
             _, _, ystart, ystop = [float(x) for x in kwargs["effect"]]
             if self.resolution.ratio < 16 / 9:
                 vspeed = (ystop - ystart) / self.resolution.ratio * 16 / 9 / duration
+
+        effect = "pan_right" if speed >= 0 else "pan_left"
+        # Vertical travel in % of the height of the photo (positive = downwards), only for the photos that are not as wide as 16:9
+        vertical_drift_pct = round((ystop - ystart) * 100, 1) if vspeed else 0.0
+        info = {"photo": self.filename, "effect": effect, "duration": round(duration, 2), "vertical_drift_pct": vertical_drift_pct}
+
+        out_file, reused = _reuse_or_name(
+            self.filename,
+            v_res,
+            info,
+            kwargs.get("out_file"),
+            fps=framerate,
+            quality=kwargs.get(opt.Option.QUALITY) or opt.DEFAULT_QUALITY,
+            effect=effect,
+            extra=vertical_drift_pct,
+            duration=duration,
+        )
+        if reused is not None:
+            return out_file, reused
 
         needed_width = int(scale_res.width * (1 + abs(speed) * duration))
         needed_height = int(scale_res.height * (1 + abs(vspeed) * duration))
@@ -419,18 +438,7 @@ class ImageFile(media.MediaFile):
         encoder = _encoder_options(**kwargs)
         cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} {encoder} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd, duration)
-        effect = "pan_right" if speed >= 0 else "pan_left"
-        return (
-            out_file,
-            {
-                "photo": self.filename,
-                "output": out_file,
-                "effect": effect,
-                "duration": round(duration, 2),
-                # Vertical travel in % of the height of the photo (positive = downwards), only for the photos that are not as wide as 16:9
-                "vertical_drift_pct": round((ystop - ystart) * 100, 1) if vspeed else 0.0,
-            },
-        )
+        return out_file, {**info, "output": out_file}
 
     def to_video(self, with_effect: bool = True, **kwargs: object) -> tuple[str, dict]:
         """Converts an image to a video.
@@ -648,6 +656,41 @@ def _encoder_options(**kwargs: object) -> str:
     hw_accel = util.use_hardware_accel(**kwargs)
     ((_, value),) = media.get_quality_settings("h264_nvenc" if hw_accel else "libx264", False, **kwargs).items()
     return f"-c:v h264_nvenc -cq {value}" if hw_accel else f"-c:v libx264 -crf {value}"
+
+
+def _format_num(value: float | str) -> str:
+    """Returns a number formatted for a file name: without a decimal point when it is a whole number"""
+    value = float(value)
+    return str(int(value)) if value == int(value) else str(round(value, 2))
+
+
+def _clip_file_name(image_file: str, resolution: object, *, fps: float | str, quality: str, effect: str, extra: float, duration: float) -> str:
+    """Returns the deterministic name of the video clip generated from a photo with a zoom or pan effect: the resolution, fps, quality,
+    effect, zoom level or vertical drift, and duration are all encoded in the name, so the same settings always produce the same name,
+    which lets a previously generated clip be reused (see _reuse_or_name()) instead of generating it again"""
+    ext = conf.get_property("default.video.format")
+    parts = (
+        fil.strip_extension(image_file),
+        str(resolution),
+        _format_num(fps),
+        str(quality).lower(),
+        effect,
+        _format_num(extra),
+        _format_num(duration),
+    )
+    return ".".join(parts) + "." + ext
+
+
+def _reuse_or_name(image_file: str, resolution: object, info: dict, out_file: str | None, **settings: object) -> tuple[str, dict | None]:
+    """Returns the output file (out_file if given, else the deterministic name for the settings: fps, quality, effect, extra, duration),
+    and the info of an already generated clip with the same settings when there is one (it is then reused, not generated again)"""
+    if out_file is not None:
+        return out_file, None
+    out_file = _clip_file_name(image_file, resolution, **settings)
+    if os.path.isfile(out_file):
+        log.logger.info("Reusing %s, already generated with the same settings", out_file)
+        return out_file, {**info, "output": out_file}
+    return out_file, None
 
 
 def _compute_duration(ratio: float) -> float:
