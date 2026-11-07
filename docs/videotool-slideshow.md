@@ -40,5 +40,9 @@ videotool slideshow -i <file.yaml> [<more photos>] [same options]
 A YAML file describing the slideshow is generated next to the video. Its `slideshow` section holds the general parameters (`output`, `resolution`, `fps`, `quality`) and
 `photos` the effect of each photo. The paths are relative to the YAML file.
 
+The clip generated from each photo is a temporary file named after its settings (photo, resolution, fps, quality, effect, zoom level or vertical drift, duration),
+in the OS default temp directory. Regenerating the same slideshow (eg from its YAML file) reuses a clip already generated with the same settings instead of
+re-encoding it.
+
 When a YAML file is given in `-i`, it is the description of the slideshow, in the format below. The options of the command line take precedence over the settings of the file, and the file is not modified for them.
 The YAML file is updated in place: the photos added in `-i` are appended to its `photos`, and the generated video is set in `slideshow.output` if the file had none.
