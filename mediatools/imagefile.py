@@ -22,11 +22,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import random
 import re
 import shutil
+import tempfile
 
 import exifread
 
@@ -665,12 +667,14 @@ def _format_num(value: float | str) -> str:
 
 
 def _clip_file_name(image_file: str, resolution: object, *, fps: float | str, quality: str, effect: str, extra: float, duration: float) -> str:
-    """Returns the deterministic name of the video clip generated from a photo with a zoom or pan effect: the resolution, fps, quality,
-    effect, zoom level or vertical drift, and duration are all encoded in the name, so the same settings always produce the same name,
-    which lets a previously generated clip be reused (see _reuse_or_name()) instead of generating it again"""
+    """Returns the deterministic name of the video clip generated from a photo with a zoom or pan effect, in the OS default temp directory:
+    the resolution, fps, quality, effect, zoom level or vertical drift, and duration are all encoded in the name, so the same settings
+    always produce the same name, which lets a previously generated clip be reused (see _reuse_or_name()) instead of generating it again.
+    The name is also prefixed by a hash of the photo's directory, so that photos with the same name in different folders don't collide"""
     ext = conf.get_property("default.video.format")
+    dir_hash = hashlib.md5(os.path.dirname(os.path.abspath(image_file)).encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
     parts = (
-        fil.strip_extension(image_file),
+        f"{dir_hash}-{fil.basename(image_file)}",
         str(resolution),
         _format_num(fps),
         str(quality).lower(),
@@ -678,7 +682,7 @@ def _clip_file_name(image_file: str, resolution: object, *, fps: float | str, qu
         _format_num(extra),
         _format_num(duration),
     )
-    return ".".join(parts) + "." + ext
+    return os.path.join(tempfile.gettempdir(), ".".join(parts) + "." + ext)
 
 
 def _reuse_or_name(image_file: str, resolution: object, info: dict, out_file: str | None, **settings: object) -> tuple[str, dict | None]:

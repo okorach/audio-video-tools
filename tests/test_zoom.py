@@ -19,6 +19,7 @@
 #
 
 import os
+import tempfile
 
 import pytest
 
@@ -93,6 +94,26 @@ def test_zoom_default_name_encodes_the_settings() -> None:
     assert vid == image._clip_file_name(img.filename, "640x360", fps=25, quality="low", effect="zoom_in", extra=120.0, duration=2)
     os.remove(vid)
     os.remove(img.filename)
+
+
+def test_zoom_default_name_is_in_the_os_temp_directory() -> None:
+    """Without an explicit output file, the clip is stored in the OS default temp directory, not next to the photo"""
+    img = get_img(4000, 3000)
+    vid, _ = img.zoom(effect=(1, 1.2), duration=2, resolution="640x360", hw_accel="off")
+    assert os.path.normpath(os.path.dirname(vid)) == os.path.normpath(tempfile.gettempdir())
+    os.remove(vid)
+    os.remove(img.filename)
+
+
+def test_zoom_default_name_does_not_collide_across_folders() -> None:
+    """Two photos with the same name in different folders get different clip names (the folder is hashed into the name)"""
+    name_a = image._clip_file_name(  # pylint: disable=protected-access
+        os.path.join("folderA", "photo.jpg"), "640x360", fps=25, quality="low", effect="zoom_in", extra=120.0, duration=2
+    )
+    name_b = image._clip_file_name(  # pylint: disable=protected-access
+        os.path.join("folderB", "photo.jpg"), "640x360", fps=25, quality="low", effect="zoom_in", extra=120.0, duration=2
+    )
+    assert name_a != name_b
 
 
 def test_zoom_reuses_an_existing_clip_with_the_same_settings(monkeypatch: pytest.MonkeyPatch) -> None:
