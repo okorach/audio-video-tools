@@ -311,7 +311,7 @@ class ImageFile(media.MediaFile):
             f'-map "[v]" -t {duration} {encoder} -s "{resolution}" "{out_file}"'
         )
         util.run_ffmpeg(cmd, duration)
-        return out_file, {**info, "output": out_file}
+        return out_file, info
 
     def __compute_total_frame__(self, needed_width: int, needed_height: int) -> tuple[str, float, float]:
         """Returns the scale filter, the width and the height of the image enlarged to cover the area that a panorama needs"""
@@ -438,7 +438,7 @@ class ImageFile(media.MediaFile):
         encoder = _encoder_options(**kwargs)
         cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} {encoder} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd, duration)
-        return out_file, {**info, "output": out_file}
+        return out_file, info
 
     def to_video(self, with_effect: bool = True, **kwargs: object) -> tuple[str, dict]:
         """Converts an image to a video.
@@ -689,7 +689,7 @@ def _reuse_or_name(image_file: str, resolution: object, info: dict, out_file: st
     out_file = _clip_file_name(image_file, resolution, **settings)
     if os.path.isfile(out_file):
         log.logger.info("Reusing %s, already generated with the same settings", out_file)
-        return out_file, {**info, "output": out_file}
+        return out_file, info
     return out_file, None
 
 

@@ -134,6 +134,8 @@ def test_main_yaml_in_inputs_with_photos(images: tuple[str, ...], tmp_path: Path
     assert content["title"] == "Trip"
     assert [os.path.basename(p["photo"]) for p in content["photos"]] == [os.path.basename(images[0]), os.path.basename(images[2])]
     assert content["photos"][0]["effect"] == "zoom_in"
+    # The clip of a photo is named after its settings: its name is implicit, not written in the YAML
+    assert all("output" not in p for p in content["photos"])
 
 
 def test_main_two_yaml_files(tmp_path: Path) -> None:

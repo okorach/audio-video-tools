@@ -33,6 +33,7 @@ import pytest
 
 import mediatools.exceptions as ex
 import mediatools.mediafile as media
+import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
 
@@ -186,3 +187,28 @@ def test_encode_real_video_low_quality_is_smaller(short_video: str, tmp_path: Pa
         out = video.VideoFile(short_video).encode(target_file=str(tmp_path / f"{quality}.mp4"), vcodec="x264", quality=quality, hw_accel="off")
         sizes[quality] = video.VideoFile(out).size()
     assert 0 < sizes["low"] < sizes["high"]
+
+
+@pytest.mark.parametrize(
+    ("given", "expected"),
+    [("h", "high"), ("H", "high"), ("m", "medium"), ("M", "medium"), ("l", "low"), ("L", "low"), ("HIGH", "high"), (" medium ", "medium")],
+)
+def test_normalize_quality(given: str, expected: str) -> None:
+    """The one-letter shortcuts (h, m, l) and the full names are case insensitive"""
+    assert opt.normalize_quality(given) == expected
+
+
+def test_quality_arg_accepts_shortcuts() -> None:
+    """--quality accepts the one-letter shortcuts, case insensitive"""
+    for given, expected in (("m", "medium"), ("M", "medium"), ("h", "high"), ("l", "low")):
+        parser = argparse.ArgumentParser()
+        video.add_quality_arg(parser)
+        assert parser.parse_args(["--quality", given]).quality == expected
+
+
+def test_quality_arg_rejects_invalid_shortcut() -> None:
+    """An invalid quality (not a full name nor a known shortcut) is rejected"""
+    parser = argparse.ArgumentParser()
+    video.add_quality_arg(parser)
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--quality", "x"])

@@ -83,10 +83,11 @@ def relative_path(path: str, folder: str) -> str:
 
 
 def write_yaml(yaml_file: str, output: str, parameters: dict, operations: list[dict], previous: dict | None = None) -> None:
-    """Writes the description of a slide show: its general parameters (the generated video is the output), then its photos.
+    """Writes the description of a slide show: its general parameters (the generated video is the output), then its photos. A photo has
+    no "output": the clip generated from it is named after its settings (see imagefile._clip_file_name()), so its name is implicit.
     The paths are relative to the folder of the YAML file. The other items of the previous content of the file are kept"""
     folder = os.path.dirname(os.path.abspath(yaml_file))
-    photos = [{k: relative_path(v, folder) if k in ("photo", "output") else v for k, v in op.items()} for op in operations]
+    photos = [{k: relative_path(v, folder) if k == "photo" else v for k, v in op.items()} for op in operations]
     others = {k: v for k, v in (previous or {}).items() if k not in ("output", "slideshow", "photos")}
     content = {"slideshow": {"output": relative_path(output, folder), **parameters}, "photos": photos, **others}
     with open(yaml_file, "w", encoding="utf-8") as f:
@@ -151,7 +152,7 @@ def main() -> None:
             raise ValueError
     except ValueError:
         parser.error(f"invalid fps '{fps}': it must be a positive number")
-    quality = str(quality or opt.DEFAULT_QUALITY).lower()
+    quality = opt.normalize_quality(quality or opt.DEFAULT_QUALITY)
     if quality not in opt.QUALITY_LEVELS:
         parser.error(f"invalid quality '{quality}': it must be one of {', '.join(opt.QUALITY_LEVELS)}")
 

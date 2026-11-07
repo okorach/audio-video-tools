@@ -404,7 +404,7 @@ def get_quality_settings(ffmpeg_codec: str, has_bitrate: bool = False, /, **kwar
     quality = kwargs.get(opt.Option.QUALITY)
     if ffmpeg_codec == "copy" or (quality is None and has_bitrate):
         return {}
-    quality = (quality or opt.DEFAULT_QUALITY).lower()
+    quality = opt.normalize_quality(quality or opt.DEFAULT_QUALITY)
     if quality not in opt.QUALITY_LEVELS:
         raise ex.InputError(f"Invalid quality '{quality}', must be one of {', '.join(opt.QUALITY_LEVELS)}", "quality")
     if ffmpeg_codec in ("libx264", "h264_nvenc"):

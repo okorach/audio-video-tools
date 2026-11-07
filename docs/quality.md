@@ -20,7 +20,7 @@
 
 # Video quality
 
-The video encoding tools (`videotool encode`, `profile-encode`...) accept `--quality high|medium|low`, which is a better way than a bitrate to control the quality of the encoded video: the encoder spends the bits where the video needs them.
+The video encoding tools (`videotool encode`, `profile-encode`...) accept `--quality high|medium|low`, which is a better way than a bitrate to control the quality of the encoded video: the encoder spends the bits where the video needs them. It is case insensitive, and the one-letter shortcuts `h`, `m`, `l` are also accepted.
 
 The quality is mapped to the constant quality option of the video encoder (`-crf` for the CPU encoders, `-cq` for the hardware accelerated ones):
 
