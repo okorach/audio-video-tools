@@ -159,6 +159,15 @@ def zoompan(x_formula: str, y_formula: str, z_formula: str, **kwargs: object) ->
     return f"zoompan=z='{z_formula}':x='{x_formula}':y='{y_formula}':{opts}"
 
 
+def perspective_crop(x_formula: str, y_formula: str, width_formula: str, height_formula: str, interpolation: str = "linear") -> str:
+    """Returns a perspective filter that crops the rectangle, given by the formulas of its top left corner and of its width and height,
+    to the full frame: unlike the crop filter, the rectangle can move and be resized with a sub-pixel (floating point) precision, which
+    removes the jitter of an animated crop or zoom (eg a panorama or a zoom effect). eval=frame re-evaluates the formulas at each frame"""
+    x0, y0 = f"({x_formula})", f"({y_formula})"
+    x1, y1 = f"{x0}+({width_formula})", f"{y0}+({height_formula})"
+    return f"perspective=x0='{x0}':y0='{y0}':x1='{x1}':y1='{y0}':x2='{x0}':y2='{y1}':x3='{x1}':y3='{y1}':interpolation={interpolation}:eval=frame"
+
+
 def format(pix_fmts: list[str] | str) -> str:  # noqa: A001
     """Returns the format filter with one or several pixel formats"""
     if isinstance(pix_fmts, list):
