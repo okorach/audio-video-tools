@@ -60,6 +60,15 @@ DEFAULT_FLIP_DIRECTION: str = "leftright"
 
 QUALITY_LEVELS: tuple[str, ...] = ("high", "medium", "low")
 DEFAULT_QUALITY: str = "high"
+QUALITY_SHORTCUTS: dict[str, str] = {"h": "high", "m": "medium", "l": "low"}
+
+
+def normalize_quality(quality: str) -> str:
+    """Returns a quality level in its canonical lowercase form: a one-letter shortcut (h, m, l) is expanded to its full name,
+    case insensitive. An invalid quality is returned as is (lowercased), for the caller to reject it"""
+    quality = str(quality).strip().lower()
+    return QUALITY_SHORTCUTS.get(quality, quality)
+
 
 # Constant quality (-crf for the CPU encoders, -cq for the hardware accelerated ones) by quality level, for the h264 and h265 codecs
 CRF_H264: dict[str, int] = {"high": 18, "medium": 23, "low": 26}

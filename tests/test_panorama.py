@@ -149,3 +149,27 @@ def test_panorama_uses_perspective_not_crop(monkeypatch: pytest.MonkeyPatch) -> 
     assert "perspective=" in commands[0]
     assert "eval=frame" in commands[0]
     os.remove(img.filename)
+
+
+def test_panorama_default_name_encodes_the_settings() -> None:
+    """Without an explicit output file, the clip is named after its settings: resolution, fps, quality, effect, vertical drift, duration"""
+    img = get_img(4000, 3000)
+    vid, _ = img.panorama(effect=(0, 1, 0.5, 0.5), duration=2, framerate=25, quality="low", speed=0.1, resolution="640x360", hw_accel="off")
+    assert vid == image._clip_file_name(img.filename, "640x360", fps=25, quality="low", effect="pan_right", extra=0.0, duration=2)
+    os.remove(vid)
+    os.remove(img.filename)
+
+
+def test_panorama_reuses_an_existing_clip_with_the_same_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A clip already generated with the same settings is reused: ffmpeg is not run again"""
+    img = get_img(4000, 3000)
+    vid, details = img.panorama(effect=(0, 1, 0.5, 0.5), duration=2, speed=0.1, resolution="640x360", hw_accel="off")
+    calls = []
+    real_run_ffmpeg = util.run_ffmpeg
+    monkeypatch.setattr(util, "run_ffmpeg", lambda *a, **kw: calls.append(a) or real_run_ffmpeg(*a, **kw))
+    vid2, details2 = img.panorama(effect=(0, 1, 0.5, 0.5), duration=2, speed=0.1, resolution="640x360", hw_accel="off")
+    assert vid2 == vid
+    assert details2 == details
+    assert not calls
+    os.remove(vid)
+    os.remove(img.filename)

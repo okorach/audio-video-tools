@@ -827,14 +827,14 @@ def add_format_arg(parser: argparse.ArgumentParser, *short_names: str) -> None:
 
 
 def add_quality_arg(parser: argparse.ArgumentParser) -> None:
-    """Adds the --quality option to the parser of a tool"""
+    """Adds the --quality option to the parser of a tool: high, medium or low, case insensitive, or their one-letter shortcut (h, m, l)"""
     parser.add_argument(
         "--" + opt.Option.QUALITY,
         required=False,
-        type=str.lower,
+        type=opt.normalize_quality,
         choices=opt.QUALITY_LEVELS,
         help=f"Video quality (constant quality, better than a bitrate to keep the quality), {opt.DEFAULT_QUALITY} by default "
-        "when no video bitrate is given: x264 crf 18/23/28, x265 crf 23/28/33",
+        "when no video bitrate is given: x264 crf 18/23/28, x265 crf 23/28/33 (h, m, l shortcuts accepted)",
     )
 
 
