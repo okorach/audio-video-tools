@@ -298,7 +298,7 @@ class ImageFile(media.MediaFile):
             f'-map "[v]" -t {duration} {encoder} -s "{resolution}" "{out_file}"'
         )
         util.run_ffmpeg(cmd, duration)
-        effect = "zoom-in" if zstop >= zstart else "zoom-out"
+        effect = "zoom_in" if zstop >= zstart else "zoom_out"
         return (
             out_file,
             {
@@ -306,7 +306,7 @@ class ImageFile(media.MediaFile):
                 "output": out_file,
                 "effect": effect,
                 "duration": round(duration, 2),
-                # zoom-in goes from 100% to zoom_level_pct, zoom-out from zoom_level_pct to 100%: the other end is always 100%
+                # zoom_in goes from 100% to zoom_level_pct, zoom_out from zoom_level_pct to 100%: the other end is always 100%
                 "zoom_level_pct": round(max(zstart, zstop) * 100, 1),
             },
         )
@@ -419,7 +419,7 @@ class ImageFile(media.MediaFile):
         encoder = _encoder_options(**kwargs)
         cmd = f'-framerate {framerate} -loop 1 -i "{self.filename}" -filter_complex "[0:v]{vf_str}" -t {duration} {encoder} -s {v_res!s} "{out_file}"'
         util.run_ffmpeg(cmd, duration)
-        effect = "pan-right" if speed >= 0 else "pan-left"
+        effect = "pan_right" if speed >= 0 else "pan_left"
         return (
             out_file,
             {
@@ -480,14 +480,14 @@ class ImageFile(media.MediaFile):
             return self.to_video(**options, **kwargs)
         kwargs["resolution"] = kwargs.get("resolution", conf.get_property(conf.VIDEO_RESOLUTION_KEY))
         duration = float(description.get("duration") or _compute_duration(self.resolution.ratio))
-        if effect in ("zoom-in", "zoom-out"):
-            # zoom-in goes from 100% to zoom_level_pct, zoom-out from zoom_level_pct to 100%
+        if effect in ("zoom_in", "zoom_out"):
+            # zoom_in goes from 100% to zoom_level_pct, zoom_out from zoom_level_pct to 100%
             zoom_level = float(description.get("zoom_level_pct", 120)) / 100
-            zoom_levels = (1.0, zoom_level) if effect == "zoom-in" else (zoom_level, 1.0)
+            zoom_levels = (1.0, zoom_level) if effect == "zoom_in" else (zoom_level, 1.0)
             return self.zoom(effect=zoom_levels, duration=duration, **kwargs)
-        if effect not in ("pan-left", "pan-right"):
+        if effect not in ("pan_left", "pan_right"):
             raise ex.InputError(f"Unsupported effect '{effect}'", "slideshow")
-        speed = DEFAULT_PAN_SPEED if effect == "pan-right" else -DEFAULT_PAN_SPEED
+        speed = DEFAULT_PAN_SPEED if effect == "pan_right" else -DEFAULT_PAN_SPEED
         vertical_drift = float(description.get("vertical_drift_pct", 0)) / 100
         return self.panorama(effect=(0, 1, 0.5 - vertical_drift / 2, 0.5 + vertical_drift / 2), duration=duration, speed=speed, **kwargs)
 

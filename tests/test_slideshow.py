@@ -105,8 +105,8 @@ def test_main_yaml_input(images: tuple[str, ...], tmp_path: Path) -> None:
     out_file = str(tmp_path / "from-yaml.mp4")
     yaml_in = tmp_path / "in.yaml"
     photos = [
-        {"photo": os.path.abspath(images[0]), "effect": "pan-left", "duration": 3.0, "vertical_drift_pct": 2.5},
-        {"photo": os.path.abspath(images[2]), "effect": "zoom-in", "duration": 3.0, "zoom_level_pct": 120.0},
+        {"photo": os.path.abspath(images[0]), "effect": "pan_left", "duration": 3.0, "vertical_drift_pct": 2.5},
+        {"photo": os.path.abspath(images[2]), "effect": "zoom_in", "duration": 3.0, "zoom_level_pct": 120.0},
     ]
     yaml_in.write_text(yaml.safe_dump({"slideshow": {"output": out_file, "resolution": "320x180"}, "photos": photos}), encoding="utf-8")
     with patch.object(sys, "argv", ["videotool", "slideshow", "-y", str(yaml_in)]):
@@ -114,7 +114,7 @@ def test_main_yaml_input(images: tuple[str, ...], tmp_path: Path) -> None:
     assert os.path.isfile(out_file)
     assert not os.path.exists(fil.strip_extension(out_file) + ".yaml")
     written = yaml.safe_load(yaml_in.read_text(encoding="utf-8"))["photos"]
-    assert [p["effect"] for p in written] == ["pan-left", "zoom-in"]
+    assert [p["effect"] for p in written] == ["pan_left", "zoom_in"]
     assert [p["duration"] for p in written] == [3.0, 3.0]
     assert written[0]["vertical_drift_pct"] == pytest.approx(2.5, abs=0.2)
 
@@ -122,7 +122,7 @@ def test_main_yaml_input(images: tuple[str, ...], tmp_path: Path) -> None:
 def test_main_yaml_in_inputs_with_photos(images: tuple[str, ...], tmp_path: Path) -> None:
     """A YAML file and photos in -i: the photos are added at the end of the slideshow and of the YAML file, which gets the video name"""
     yaml_in = tmp_path / "trip.yaml"
-    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom-in", "duration": 3.0}]
+    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom_in", "duration": 3.0}]
     yaml_in.write_text(yaml.safe_dump({"slideshow": {"resolution": "320x180"}, "photos": photos, "title": "Trip"}), encoding="utf-8")
     with patch.object(sys, "argv", ["videotool", "slideshow", "-i", str(yaml_in), images[2]]):
         tools.videotool()
@@ -133,7 +133,7 @@ def test_main_yaml_in_inputs_with_photos(images: tuple[str, ...], tmp_path: Path
     assert content["slideshow"]["resolution"] == "320x180"
     assert content["title"] == "Trip"
     assert [os.path.basename(p["photo"]) for p in content["photos"]] == [os.path.basename(images[0]), os.path.basename(images[2])]
-    assert content["photos"][0]["effect"] == "zoom-in"
+    assert content["photos"][0]["effect"] == "zoom_in"
 
 
 def test_main_two_yaml_files(tmp_path: Path) -> None:
@@ -156,11 +156,11 @@ def test_is_yaml() -> None:
 def test_write_yaml_keeps_other_items(tmp_path: Path) -> None:
     """The items of the YAML file that are not the slideshow are kept, the paths are relative to the file"""
     yaml_file = str(tmp_path / "s.yaml")
-    ops = [{"photo": str(tmp_path / "p.jpg"), "effect": "zoom-in", "duration": 3.0}]
+    ops = [{"photo": str(tmp_path / "p.jpg"), "effect": "zoom_in", "duration": 3.0}]
     slideshow.write_yaml(yaml_file, str(tmp_path / "s.mp4"), {"fps": 25}, ops, {"title": "T", "photos": [], "output": "x"})
     assert yaml.safe_load(Path(yaml_file).read_text(encoding="utf-8")) == {
         "slideshow": {"output": "s.mp4", "fps": 25},
-        "photos": [{"photo": "p.jpg", "effect": "zoom-in", "duration": 3.0}],
+        "photos": [{"photo": "p.jpg", "effect": "zoom_in", "duration": 3.0}],
         "title": "T",
     }
 
@@ -347,7 +347,7 @@ def test_slideshow_fps_and_quality_from_the_yaml(images: tuple[str, ...], tmp_pa
     """Slideshow fps and quality from the yaml"""
     out_file = str(tmp_path / "from-yaml.mp4")
     yaml_in = tmp_path / "in.yaml"
-    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom-in", "duration": 2.0}]
+    photos = [{"photo": os.path.abspath(images[0]), "effect": "zoom_in", "duration": 2.0}]
     yaml_in.write_text(yaml.safe_dump({"slideshow": {"output": out_file, "resolution": "320x180", "fps": 20, "quality": "medium"}, "photos": photos}))
     content = run_slideshow_command(out_file, "-y", str(yaml_in))
     assert float(video.VideoFile(out_file).get_fps()) == 20
