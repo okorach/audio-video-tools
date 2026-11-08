@@ -31,6 +31,7 @@ import pathlib
 import platform
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -263,14 +264,26 @@ def run_os_cmd(cmd: str, total_time: float | str | None = None) -> None:
 
 
 def run_ffmpeg(params: str, duration: float | None = None) -> None:
-    """Runs ffmpeg with some parameters, then copies the date and the geotagging of the source file to the generated file"""
+    """Runs ffmpeg with some parameters: the output file is first generated in the OS temp directory, then the date and the
+    geotagging of the source file are copied to it, and only then (the last operation) is it moved to its real destination"""
     commands = _hw_command_run.get()
     if commands is not None and HW_ACCEL_COMMAND_REGEXP.search(params):
         commands.append(params)  # Remember that a hardware accelerated command was run, see hw_accel_fallback()
+
+    final_target = metacopy.find_output_file(params)
+    staging_target = None
+    if final_target and fil.is_media_file(final_target):
+        staging_target = get_tmp_file() + "." + fil.extension(final_target)
+        params = metacopy.replace_output_file(params, staging_target)
+
     quot = '"' if platform.system() == "Windows" else ""
     cmd = f"{quot}{get_ffmpeg()}{quot} -y -stats_period {FFMPEG_STATS_PERIOD} {params}"
     run_os_cmd(cmd, duration)
     metacopy.copy_after_ffmpeg(params)
+    if staging_target is not None and final_target is not None and os.path.isfile(staging_target):
+        if os.path.exists(final_target):
+            os.remove(final_target)
+        shutil.move(staging_target, final_target)
 
 
 def build_ffmpeg_complex_prep(input_file_list: list) -> str:

@@ -20,12 +20,15 @@
 
 import os
 import platform
+import tempfile
+from pathlib import Path
 
 import pytest
 
 import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
+from mediatools import metacopy
 
 CMD = "test_utilities"
 VIDEO = "it" + os.sep + "video-720p.mp4"
@@ -235,3 +238,46 @@ def test_hw_accel_without_gpu(monkeypatch: pytest.MonkeyPatch) -> None:
         assert auto_accel
     else:
         assert not auto_accel
+
+
+def test_run_ffmpeg_stages_the_output_in_the_os_temp_dir_then_moves_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """run_ffmpeg() generates the output in the OS temp directory (not in the final destination), and only moves it to its
+    final destination (in the same directory as the source) once it is fully generated"""
+    final = str(tmp_path / "out.mp4")
+    staging_seen = {}
+
+    def fake_run_os_cmd(cmd: str, duration: float | None = None) -> None:
+        staging = metacopy.find_output_file(cmd)
+        staging_seen["path"] = staging
+        with open(staging, "wb") as f:
+            f.write(b"fake")
+        assert not os.path.isfile(final)  # The final file does not exist yet while ffmpeg is still generating the staging one
+
+    monkeypatch.setattr(util, "run_os_cmd", fake_run_os_cmd)
+    util.run_ffmpeg(f'-i "{VIDEO}" "{final}"')
+    assert os.path.normpath(os.path.dirname(staging_seen["path"])) == os.path.normpath(tempfile.gettempdir())
+    assert staging_seen["path"] != final
+    assert os.path.isfile(final)
+    assert not os.path.isfile(staging_seen["path"])
+
+
+def test_run_ffmpeg_overwrites_an_existing_final_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """run_ffmpeg() overwrites a final file that already exists when it moves the staged file to it"""
+    final = tmp_path / "out.mp4"
+    final.write_bytes(b"old content")
+
+    def fake_run_os_cmd(cmd: str, duration: float | None = None) -> None:
+        with open(metacopy.find_output_file(cmd), "wb") as f:
+            f.write(b"new content")
+
+    monkeypatch.setattr(util, "run_os_cmd", fake_run_os_cmd)
+    util.run_ffmpeg(f'-i "{VIDEO}" "{final}"')
+    assert final.read_bytes() == b"new content"
+
+
+def test_run_ffmpeg_does_not_stage_non_media_outputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """run_ffmpeg() does not redirect to the OS temp directory a command whose output is not a media file (eg a probe/stats file)"""
+    seen_cmd = {}
+    monkeypatch.setattr(util, "run_os_cmd", lambda cmd, *_args, **_kwargs: seen_cmd.update(cmd=cmd))
+    util.run_ffmpeg(f'-i "{VIDEO}" -f null -')
+    assert seen_cmd["cmd"].rstrip().endswith("-f null -")

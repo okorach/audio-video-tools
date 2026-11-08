@@ -141,6 +141,11 @@ The `--hw_accel auto|on|off` option is in the common arguments. Functions that r
 
 A file generated from a source file gets its creation and modification dates and its geotagging. `util.run_ffmpeg` does it for every ffmpeg command (`metacopy.copy_after_ffmpeg`); the code that generates files without ffmpeg calls `metacopy.copy_date_and_geotag`; the code that modifies a file in place uses `metacopy.preserve_dates` or `@metacopy.keeps_dates`.
 
+`util.run_ffmpeg` redirects the output of the ffmpeg command to a staging file in the OS default temp directory (`metacopy.replace_output_file`):
+ffmpeg writes there, not at the final destination. Once the date and the geotag are copied (the last operation), the staging file is moved
+to its real destination (the one the caller asked for, normally next to the source file(s)). A command whose output is not a media file
+(eg a probe) is not redirected.
+
 ### Progress
 
 `util.GlobalProgress` logs the global progress and ETA of the tools that process several files (steps can have different weights, like the clips and the assembly of a slideshow). The ffmpeg progress lines (every 2 seconds) end with the progress and ETA of the file and the global ones.
