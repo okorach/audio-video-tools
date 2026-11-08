@@ -90,20 +90,14 @@ def write_yaml(yaml_file: str, output: str, parameters: dict, columns: list[dict
         yaml.safe_dump(content, f, sort_keys=False, default_flow_style=False)
 
 
-def main() -> None:
-    """Creates a poster from images and/or from the YAML file that describes it, and writes the YAML file that describes it"""
-    util.init("image-poster")
-    parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")
-    util.add_input_args(parser, "Images, directories and/or one YAML file describing the poster", required=False)
-    util.add_output_args(parser, "Output file to generate")
-    util.add_verbosity_arg(parser)
-    util.add_hw_accel_arg(parser)
+def __add_poster_args__(parser: argparse.ArgumentParser) -> None:
+    """Adds the options of the poster tool (besides the common -i/-o/-v/--hw_accel ones) to the parser"""
     parser.add_argument("-y", "--yaml", required=False, help="Same as giving the YAML file in -i")
     parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], help="Background color of the gutter")
     parser.add_argument(
         "--gutter",
         required=False,
-        help="Gutter between the images: a number of pixels (eg 64px), or a percentage of the width of the top-left image " "(eg 5%%). Default: 80px",
+        help="Gutter between the images: a number of pixels (eg 64px), or a percentage of the top-left image's width (eg 5%%). Default: 80px",
     )
     parser.add_argument("--extra_margin_top", required=False, type=int, help="Extra margin (pixels) above the images, eg for a title")
     parser.add_argument("--extra_margin_bottom", required=False, type=int, help="Extra margin (pixels) below the images")
@@ -121,9 +115,11 @@ def main() -> None:
         "common poster printing format",
     )
     parser.add_argument("-l", "--layout", required=False, help="Layout of the images: rows x columns, eg 2x3")
-    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
-    # -i accepts a YAML file (that describes the poster) and photos (that are distributed into the columns)
+
+def __resolve_poster_input__(parser: argparse.ArgumentParser, kwargs: dict) -> tuple[dict, list[dict] | None, dict | None, str | None, list[str]]:
+    """Resolves -i/-y into (params, columns, previous, yaml_file, photos): reads the YAML file when one is given (columns is None
+    otherwise, to be built by auto_poster_columns). Exits (via parser.error or sys.exit) on an invalid input"""
     inputs = kwargs.get(util.INPUT_FILES) or []
     yaml_files = ([kwargs["yaml"]] if kwargs.get("yaml") else []) + [f for f in inputs if is_yaml(f)]
     photos = [f for f in inputs if not is_yaml(f)]
@@ -143,17 +139,38 @@ def main() -> None:
         except (OSError, ValueError, TypeError, yaml.YAMLError) as e:
             log.logger.error("Can't read %s: %s", yaml_file, e)
             sys.exit(1)
+    return params, columns, previous, yaml_file, photos
 
-    background_color = kwargs.get("background_color") or params.get("background_color") or "black"
-    gutter = kwargs.get("gutter", params.get("gutter", 80))
-    extra_margin_top = kwargs.get("extra_margin_top", params.get("extra_margin_top", 0))
-    extra_margin_bottom = kwargs.get("extra_margin_bottom", params.get("extra_margin_bottom", 0))
-    orientation = kwargs.get("orientation") or params.get("orientation")
-    aspect_ratio = kwargs.get("aspect_ratio") or params.get("aspect_ratio")
-    layout = kwargs.get("layout") or params.get("layout")
+
+def __poster_settings__(kwargs: dict, params: dict) -> dict:
+    """Returns the poster's settings merged from the command line (kwargs) and the YAML file (params), the former taking precedence"""
+    return {
+        "background_color": kwargs.get("background_color") or params.get("background_color") or "black",
+        "gutter": kwargs.get("gutter", params.get("gutter", 80)),
+        "extra_margin_top": kwargs.get("extra_margin_top", params.get("extra_margin_top", 0)),
+        "extra_margin_bottom": kwargs.get("extra_margin_bottom", params.get("extra_margin_bottom", 0)),
+        "orientation": kwargs.get("orientation") or params.get("orientation"),
+        "aspect_ratio": kwargs.get("aspect_ratio") or params.get("aspect_ratio"),
+        "layout": kwargs.get("layout") or params.get("layout"),
+    }
+
+
+def main() -> None:
+    """Creates a poster from images and/or from the YAML file that describes it, and writes the YAML file that describes it"""
+    util.init("image-poster")
+    parser = argparse.ArgumentParser(description="Creates a mosaic of images for posters")
+    util.add_input_args(parser, "Images, directories and/or one YAML file describing the poster", required=False)
+    util.add_output_args(parser, "Output file to generate")
+    util.add_verbosity_arg(parser)
+    util.add_hw_accel_arg(parser)
+    __add_poster_args__(parser)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
+
+    params, columns, previous, yaml_file, photos = __resolve_poster_input__(parser, kwargs)
+    settings = __poster_settings__(kwargs, params)
 
     if columns is None:
-        auto_kwargs = {k: v for k, v in {"orientation": orientation, "aspect_ratio": aspect_ratio, "layout": layout}.items() if v}
+        auto_kwargs = {k: settings[k] for k in ("orientation", "aspect_ratio", "layout") if settings[k]}
         columns = image.auto_poster_columns(*photos, **auto_kwargs)
     elif photos:
         columns = image.append_to_columns(columns, *photos)
@@ -165,27 +182,18 @@ def main() -> None:
     output = image.posterize_columns(
         columns,
         out_file=outfile,
-        background_color=background_color,
-        gutter=gutter,
-        extra_margin_top=extra_margin_top,
-        extra_margin_bottom=extra_margin_bottom,
+        background_color=settings["background_color"],
+        gutter=settings["gutter"],
+        extra_margin_top=settings["extra_margin_top"],
+        extra_margin_bottom=settings["extra_margin_bottom"],
     )
 
     # The description is written in the input YAML file (updated with the added photos), or else next to the poster
     yaml_file = yaml_file or fil.strip_extension(output) + ".yaml"
     rows_count, cols_count = image.poster_rows_and_columns(columns)
-    settings = {
-        "rows": rows_count,
-        "columns": cols_count,
-        "background_color": background_color,
-        "gutter": gutter,
-        "extra_margin_top": extra_margin_top,
-        "extra_margin_bottom": extra_margin_bottom,
-        "orientation": orientation,
-        "aspect_ratio": aspect_ratio,
-    }
-    settings = {k: v for k, v in settings.items() if v}
-    write_yaml(yaml_file, params.get("output") or output, settings, columns, previous)
+    yaml_settings = {"rows": rows_count, "columns": cols_count, **{k: v for k, v in settings.items() if k != "layout"}}
+    yaml_settings = {k: v for k, v in yaml_settings.items() if v}
+    write_yaml(yaml_file, params.get("output") or output, yaml_settings, columns, previous)
     log.logger.info("Poster description written to %s", yaml_file)
     util.generated_file(output)
 

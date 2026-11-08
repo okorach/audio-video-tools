@@ -30,6 +30,7 @@ import re
 import shutil
 import tempfile
 from collections import Counter
+from typing import NamedTuple
 
 import exifread
 
@@ -681,6 +682,16 @@ def __parse_aspect_ratio__(aspect_ratio: str | float) -> float:
     return float(aspect_ratio)
 
 
+def __should_flip_ratio__(orientation: str | None, aspect_ratio: object, target_ratio: float, avg_ratio: float) -> bool:
+    """Returns True if the target ratio must be flipped (1 / target_ratio) to match a requested portrait/landscape orientation, or,
+    when neither orientation nor aspect_ratio is given, to whichever of the 2 standard poster orientations best fits the images"""
+    if orientation == "portrait":
+        return target_ratio > 1
+    if orientation == "landscape":
+        return target_ratio < 1
+    return orientation is None and aspect_ratio is None and avg_ratio < 1
+
+
 def __auto_layout__(files: list[ImageFile], **kwargs: object) -> tuple[int, int]:
     """Returns the number of rows and columns of a poster for a number of images: given by rows/columns or layout (RxC) if present
     (see __get_layout__), else the number of columns that best approximates a target aspect ratio (the images are distributed
@@ -695,10 +706,7 @@ def __auto_layout__(files: list[ImageFile], **kwargs: object) -> tuple[int, int]
     target_ratio = __parse_aspect_ratio__(aspect_ratio) if aspect_ratio is not None else DEFAULT_POSTER_ASPECT_RATIO
     avg_ratio = sum(f.width / f.height for f in files) / len(files)
 
-    if (orientation == "portrait" and target_ratio > 1) or (orientation == "landscape" and target_ratio < 1):
-        target_ratio = 1 / target_ratio
-    elif orientation is None and aspect_ratio is None and avg_ratio < 1:
-        # No orientation nor aspect_ratio given: default to whichever of the 2 standard poster orientations best fits the images
+    if __should_flip_ratio__(orientation, aspect_ratio, target_ratio, avg_ratio):
         target_ratio = 1 / target_ratio
 
     best_cols, best_diff = 1, None
@@ -758,6 +766,97 @@ def __crop_to_ratio__(width: int, height: int, ratio: float) -> tuple[int, int]:
     return width, round(width / ratio)
 
 
+class _PosterGeometry(NamedTuple):
+    """The computed geometry of a poster (see __poster_geometry__): the pixel width of each column, the (width, height) each image is
+    cropped to before scaling, the scaled height of each image, the gutter, extra_margin_top/bottom, and the full width and height"""
+
+    col_widths: list[int]
+    eff_dims: list[list[tuple[int, int]]]
+    scaled_heights: list[list[int]]
+    gutter: int
+    extra_top: int
+    extra_bottom: int
+    full_w: int
+    full_h: int
+
+
+def __poster_geometry__(col_images: list[list[ImageFile]], columns: list[dict], gutter: int, extra_top: int, extra_bottom: int) -> _PosterGeometry:
+    """Computes the geometry of a poster (see posterize_columns), reduced if needed to stay within ffmpeg's max frame size
+    (see __reduction_factor__)"""
+    all_images = [im for col in col_images for im in col]
+    max_w = max(im.width for im in all_images)
+    col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * len(columns) * max_w / 100) for col in columns]
+
+    target_ratio = __common_aspect_ratio__(all_images)
+    # eff_dims holds, for each image, the (width, height) it is cropped to before scaling: unchanged unless it needs normalizing
+    eff_dims = [
+        [__crop_to_ratio__(im.width, im.height, target_ratio) if target_ratio is not None else (im.width, im.height) for im in imgs]
+        for imgs in col_images
+    ]
+    scaled_heights = [[int(eh * w / ew) for ew, eh in dims] for dims, w in zip(eff_dims, col_widths, strict=True)]
+
+    full_w = sum(col_widths) + (len(columns) + 1) * gutter
+    full_h = extra_top + max((sum(h) + (len(h) + 1) * gutter for h in scaled_heights), default=0) + extra_bottom
+
+    factor = __reduction_factor__(full_w, full_h)
+    if factor == 1:
+        return _PosterGeometry(col_widths, eff_dims, scaled_heights, gutter, extra_top, extra_bottom, full_w, full_h)
+
+    log.logger.debug("Target poster too big, reducing by a factor %4.2f", factor)
+    return _PosterGeometry(
+        [int(w * factor) for w in col_widths],
+        eff_dims,
+        [[int(h * factor) for h in heights] for heights in scaled_heights],
+        int(gutter * factor),
+        int(extra_top * factor),
+        int(extra_bottom * factor),
+        int(full_w * factor),
+        int(full_h * factor),
+    )
+
+
+def __scale_poster_images__(fcomplex: filters.Complex, col_images: list[list[ImageFile]], geometry: _PosterGeometry) -> dict[int, str]:
+    """Adds a crop (if needed, to normalize mismatched aspect ratios) and a scale filtergraph for each image of the poster, scaling it
+    to its column's pixel width. Returns, for each image's input index, the name of its final (scaled) output stream"""
+    img_outs: dict[int, str] = {}
+    idx = 1
+    for imgs, dims, w, heights in zip(col_images, geometry.eff_dims, geometry.col_widths, geometry.scaled_heights, strict=True):
+        for im, (ew, eh), h in zip(imgs, dims, heights, strict=True):
+            src = idx
+            if (ew, eh) != (im.width, im.height):
+                src = fcomplex.add_filtergraph([idx], filters.crop(ew, eh))
+            img_outs[idx] = fcomplex.add_filtergraph([src], filters.scale(w, h))
+            idx += 1
+    return img_outs
+
+
+def __overlay_poster_images__(fcomplex: filters.Complex, geometry: _PosterGeometry, bg_out: str, img_outs: dict[int, str]) -> str:
+    """Overlays the scaled images of the poster onto the background, column by column, top to bottom. Returns the final output stream"""
+    out_stream = bg_out
+    idx = 1
+    x = geometry.gutter
+    for w, heights in zip(geometry.col_widths, geometry.scaled_heights, strict=True):
+        y = geometry.extra_top + geometry.gutter
+        for h in heights:
+            out_stream = fcomplex.add_filtergraph([out_stream, img_outs[idx]], filters.overlay(x, y))
+            y += h + geometry.gutter
+            idx += 1
+        x += w + geometry.gutter
+    return out_stream
+
+
+def __build_poster_filtergraph__(col_images: list[list[ImageFile]], geometry: _PosterGeometry, background_color: str) -> tuple[filters.Complex, str]:
+    """Builds the complex filter graph of a poster: a background canvas, each image cropped (if needed) and scaled to its column's
+    pixel width, and overlaid at its column/row position (see posterize_columns). Returns the filter graph and its final output stream"""
+    all_images = [im for col in col_images for im in col]
+    fcomplex = filters.Complex(*all_images)
+    fcomplex.insert_input(0, ImageFile(__get_background__(background_color)))
+    bg_out = fcomplex.add_filtergraph([0], filters.scale(geometry.full_w, geometry.full_h))
+    img_outs = __scale_poster_images__(fcomplex, col_images, geometry)
+    out_stream = __overlay_poster_images__(fcomplex, geometry, bg_out, img_outs)
+    return fcomplex, out_stream
+
+
 def posterize_columns(
     columns: list[dict],
     *,
@@ -782,61 +881,11 @@ def posterize_columns(
     if not all_images:
         raise ex.InputError("No image to posterize", "poster")
 
-    max_w = max(img.width for img in all_images)
     gutter = __parse_gutter__(gutter, all_images[0].width)
+    geometry = __poster_geometry__(col_images, columns, gutter, int(extra_margin_top or 0), int(extra_margin_bottom or 0))
+    log.logger.debug("Poster %d x %d, gutter = %d, column widths = %s", geometry.full_w, geometry.full_h, geometry.gutter, str(geometry.col_widths))
 
-    content_width_total = len(columns) * max_w
-    col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * content_width_total / 100) for col in columns]
-
-    target_ratio = __common_aspect_ratio__(all_images)
-    # eff_dims holds, for each image, the (width, height) it is cropped to before scaling: unchanged unless it needs normalizing
-    eff_dims = [
-        [__crop_to_ratio__(im.width, im.height, target_ratio) if target_ratio is not None else (im.width, im.height) for im in imgs]
-        for imgs in col_images
-    ]
-
-    scaled_heights = [[int(eh * w / ew) for ew, eh in dims] for dims, w in zip(eff_dims, col_widths, strict=True)]
-    col_heights = [sum(heights) + (len(heights) + 1) * gutter for heights in scaled_heights]
-
-    extra_top = int(extra_margin_top or 0)
-    extra_bottom = int(extra_margin_bottom or 0)
-    full_w = sum(col_widths) + (len(columns) + 1) * gutter
-    full_h = extra_top + max(col_heights, default=0) + extra_bottom
-
-    reduction_factor = __reduction_factor__(full_w, full_h)
-    if reduction_factor != 1:
-        log.logger.debug("Target poster too big, reducing by a factor %4.2f", reduction_factor)
-        full_w, full_h = int(full_w * reduction_factor), int(full_h * reduction_factor)
-        gutter = int(gutter * reduction_factor)
-        col_widths = [int(w * reduction_factor) for w in col_widths]
-        extra_top, extra_bottom = int(extra_top * reduction_factor), int(extra_bottom * reduction_factor)
-        scaled_heights = [[int(h * reduction_factor) for h in heights] for heights in scaled_heights]
-    log.logger.debug("Poster %d x %d, gutter = %d, column widths = %s", full_w, full_h, gutter, str(col_widths))
-
-    fcomplex = filters.Complex(*all_images)
-    fcomplex.insert_input(0, ImageFile(__get_background__(background_color)))
-    bg_out = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
-
-    img_outs = {}
-    idx = 1
-    for imgs, dims, w, heights in zip(col_images, eff_dims, col_widths, scaled_heights, strict=True):
-        for im, (ew, eh), h in zip(imgs, dims, heights, strict=True):
-            src = idx
-            if (ew, eh) != (im.width, im.height):
-                src = fcomplex.add_filtergraph([idx], filters.crop(ew, eh))
-            img_outs[idx] = fcomplex.add_filtergraph([src], filters.scale(w, h))
-            idx += 1
-
-    out_stream = bg_out
-    idx = 1
-    x = gutter
-    for w, heights in zip(col_widths, scaled_heights, strict=True):
-        y = extra_top + gutter
-        for h in heights:
-            out_stream = fcomplex.add_filtergraph([out_stream, img_outs[idx]], filters.overlay(x, y))
-            y += h + gutter
-            idx += 1
-        x += w + gutter
+    fcomplex, out_stream = __build_poster_filtergraph__(col_images, geometry, background_color)
 
     out_file = util.automatic_output_file_name(out_file, all_images[0].filename, "poster")
     util.run_ffmpeg(f'{fcomplex.format_inputs()} {fcomplex!s} -map "[{out_stream}]" "{out_file}"')
