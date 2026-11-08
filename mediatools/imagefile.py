@@ -653,9 +653,9 @@ def stack(*files: str, out_file: str | None = None, **kwargs: object) -> str:
     return posterize(*files_to_stack, out_file=out_file, rows=rows, columns=cols, **kwargs)
 
 
-def __parse_margin__(value: str | float, reference: float) -> int:
-    """Returns a margin in pixels: a plain number or "NNpx" (an absolute number of pixels), or "NN%" (a percentage of a reference value,
-    normally the width of the top-left image of the poster)"""
+def __parse_gutter__(value: str | float, reference: float) -> int:
+    """Returns a gutter (the spacing between images) in pixels: a plain number or "NNpx" (an absolute number of pixels), or "NN%" (a
+    percentage of a reference value, normally the width of the top-left image of the poster)"""
     if isinstance(value, str):
         v = value.strip()
         if v.endswith("%"):
@@ -763,16 +763,16 @@ def posterize_columns(
     *,
     out_file: str | None = None,
     background_color: str = "black",
-    margin: str | float = 50,
+    gutter: str | float = 80,
     extra_margin_top: str | float = 0,
     extra_margin_bottom: str | float = 0,
     **kwargs: object,
 ) -> str:
     """Creates a poster image from an explicit column layout: a list of {"width": <percent>, "images": [files...]}. Each column is a
     vertical stack of its images, scaled to the column's pixel width; the width of a column is a percentage of the poster's content
-    width (excluding the margins). When the images don't all share the same aspect ratio, the odd ones out are cropped (centered) to
+    width (excluding the gutters). When the images don't all share the same aspect ratio, the odd ones out are cropped (centered) to
     the ratio shared by most of them, so that every image of the poster ends up the same shape (see __common_aspect_ratio__); otherwise
-    each image keeps its own aspect ratio. The margin between the images is a number of pixels or a percentage of the width of the
+    each image keeps its own aspect ratio. The gutter between the images is a number of pixels or a percentage of the width of the
     top-left image of the poster. A column shorter than the tallest one is padded with the background color at the bottom.
     extra_margin_top/extra_margin_bottom add blank background (eg to overlay a title), in pixels, above/below the grid of images.
     Returns the generated file"""
@@ -783,7 +783,7 @@ def posterize_columns(
         raise ex.InputError("No image to posterize", "poster")
 
     max_w = max(img.width for img in all_images)
-    gap = __parse_margin__(margin, all_images[0].width)
+    gutter = __parse_gutter__(gutter, all_images[0].width)
 
     content_width_total = len(columns) * max_w
     col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * content_width_total / 100) for col in columns]
@@ -796,22 +796,22 @@ def posterize_columns(
     ]
 
     scaled_heights = [[int(eh * w / ew) for ew, eh in dims] for dims, w in zip(eff_dims, col_widths, strict=True)]
-    col_heights = [sum(heights) + (len(heights) + 1) * gap for heights in scaled_heights]
+    col_heights = [sum(heights) + (len(heights) + 1) * gutter for heights in scaled_heights]
 
     extra_top = int(extra_margin_top or 0)
     extra_bottom = int(extra_margin_bottom or 0)
-    full_w = sum(col_widths) + (len(columns) + 1) * gap
+    full_w = sum(col_widths) + (len(columns) + 1) * gutter
     full_h = extra_top + max(col_heights, default=0) + extra_bottom
 
     reduction_factor = __reduction_factor__(full_w, full_h)
     if reduction_factor != 1:
         log.logger.debug("Target poster too big, reducing by a factor %4.2f", reduction_factor)
         full_w, full_h = int(full_w * reduction_factor), int(full_h * reduction_factor)
-        gap = int(gap * reduction_factor)
+        gutter = int(gutter * reduction_factor)
         col_widths = [int(w * reduction_factor) for w in col_widths]
         extra_top, extra_bottom = int(extra_top * reduction_factor), int(extra_bottom * reduction_factor)
         scaled_heights = [[int(h * reduction_factor) for h in heights] for heights in scaled_heights]
-    log.logger.debug("Poster %d x %d, gap = %d, column widths = %s", full_w, full_h, gap, str(col_widths))
+    log.logger.debug("Poster %d x %d, gutter = %d, column widths = %s", full_w, full_h, gutter, str(col_widths))
 
     fcomplex = filters.Complex(*all_images)
     fcomplex.insert_input(0, ImageFile(__get_background__(background_color)))
@@ -829,14 +829,14 @@ def posterize_columns(
 
     out_stream = bg_out
     idx = 1
-    x = gap
+    x = gutter
     for w, heights in zip(col_widths, scaled_heights, strict=True):
-        y = extra_top + gap
+        y = extra_top + gutter
         for h in heights:
             out_stream = fcomplex.add_filtergraph([out_stream, img_outs[idx]], filters.overlay(x, y))
-            y += h + gap
+            y += h + gutter
             idx += 1
-        x += w + gap
+        x += w + gutter
 
     out_file = util.automatic_output_file_name(out_file, all_images[0].filename, "poster")
     util.run_ffmpeg(f'{fcomplex.format_inputs()} {fcomplex!s} -map "[{out_stream}]" "{out_file}"')

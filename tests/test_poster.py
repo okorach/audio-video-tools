@@ -55,7 +55,7 @@ def _remove_with_yaml(out_file: str) -> None:
 
 def test_main() -> None:
     """Main"""
-    with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "--gutter", "10", "-i", IMG1, IMG2, IMG3, IMG4, IMG5, IMG6]):
         try:
             assert tools.imagetool() is None
         except SystemExit as e:
@@ -88,7 +88,7 @@ def test_main_bad_option() -> None:
 
 def test_main_no_file() -> None:
     """Main no file"""
-    with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "-m", "10"]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-g", "4", "-b", "black", "--gutter", "10"]):
         with pytest.raises(SystemExit) as e:
             tools.imagetool()
         assert int(str(e.value)) == 2
@@ -96,7 +96,7 @@ def test_main_no_file() -> None:
 
 def test_main_other_options() -> None:
     """Main other options"""
-    with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "-m", "50", "--layout", "1x2", "-i", IMG1, IMG2]):
+    with patch.object(sys, "argv", ["imagetool", "poster", "-b", "white", "--gutter", "50", "--layout", "1x2", "-i", IMG1, IMG2]):
         try:
             assert tools.imagetool() is None
         except SystemExit as e:
@@ -118,7 +118,7 @@ def test_main_with_output() -> None:
 def test_main_with_output2() -> None:
     """Main with output2: orientation and aspect_ratio drive the automatic number of columns"""
     with patch.object(
-        sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-b", "white", "-m", "50", "--orientation", "landscape", "-o", TMP1, "-g", "4"]
+        sys, "argv", ["imagetool", "poster", "-i", IMG1, IMG2, "-b", "white", "--gutter", "50", "--orientation", "landscape", "-o", TMP1, "-g", "4"]
     ):
         try:
             tools.imagetool()
@@ -174,12 +174,12 @@ def test_auto_layout_defaults_to_poster_aspect_ratio() -> None:
     assert img.__auto_layout__(portrait_files) == (2, 3)
 
 
-def test_parse_margin() -> None:
-    """A margin is a number of pixels (plain or "NNpx"), or a percentage of a reference value"""
-    assert img.__parse_margin__("64px", 1000) == 64
-    assert img.__parse_margin__("5%", 1000) == 50
-    assert img.__parse_margin__(20, 1000) == 20
-    assert img.__parse_margin__("20", 1000) == 20
+def test_parse_gutter() -> None:
+    """A gutter is a number of pixels (plain or "NNpx"), or a percentage of a reference value"""
+    assert img.__parse_gutter__("64px", 1000) == 64
+    assert img.__parse_gutter__("5%", 1000) == 50
+    assert img.__parse_gutter__(20, 1000) == 20
+    assert img.__parse_gutter__("20", 1000) == 20
 
 
 def test_parse_percent() -> None:
@@ -215,19 +215,19 @@ def test_posterize_columns_rescales_images_to_column_width(monkeypatch: pytest.M
     commands: list[str] = []
     monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
     columns = [{"width": "60%", "images": [IMG1]}, {"width": "40%", "images": [IMG6]}]
-    img.posterize_columns(columns, out_file=TMP1, margin=0)
+    img.posterize_columns(columns, out_file=TMP1, gutter=0)
     assert "scale=8000:3600" in commands[0]  # Background canvas
     assert "scale=4800:3600" in commands[0]  # IMG1 (640x480) scaled to 60% of the content width
     assert "scale=3200:2400" in commands[0]  # IMG6 (4000x3000) scaled to 40% of the content width
 
 
-def test_posterize_columns_default_margin_is_50px(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The margin between images defaults to 50px; extra_margin_top adds background space above the images on top of it"""
+def test_posterize_columns_default_gutter_is_80px(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The gutter between images defaults to 80px; extra_margin_top adds background space above the images on top of it"""
     commands: list[str] = []
     monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
     img.posterize_columns([{"width": "100%", "images": [IMG1]}], out_file=TMP1, extra_margin_top=100)
-    assert "scale=740:680" in commands[0]  # 640 + 2*50 wide, 100 (extra top) + 480 + 2*50 tall
-    assert "overlay=50:150" in commands[0]  # x = margin (50), y = extra_margin_top (100) + margin (50)
+    assert "scale=800:740" in commands[0]  # 640 + 2*80 wide, 100 (extra top) + 480 + 2*80 tall
+    assert "overlay=80:180" in commands[0]  # x = gutter (80), y = extra_margin_top (100) + gutter (80)
 
 
 def test_short_column_is_padded_with_background(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -237,10 +237,10 @@ def test_short_column_is_padded_with_background(monkeypatch: pytest.MonkeyPatch)
     columns = [{"width": "50%", "images": [IMG3, IMG3]}, {"width": "50%", "images": [IMG1]}]
     img.posterize_columns(columns, out_file=TMP1)
     # The 1st column (2 stacked images) is taller than the 2nd (1 image): the background covers the full height of the poster
-    assert "scale=8150:6150" in commands[0]
-    assert "overlay=50:50" in commands[0]
-    assert "overlay=50:3100" in commands[0]
-    assert "overlay=4100:50" in commands[0]  # 2nd column starts where the 1st one (4000 wide + margin) ends
+    assert "scale=8240:6240" in commands[0]
+    assert "overlay=80:80" in commands[0]
+    assert "overlay=80:3160" in commands[0]
+    assert "overlay=4160:80" in commands[0]  # 2nd column starts where the 1st one (4000 wide + gutter) ends
 
 
 def test_posterize_columns_no_image_raises() -> None:
@@ -272,7 +272,7 @@ def test_posterize_columns_crops_mismatched_ratios_to_the_common_one(monkeypatch
     commands: list[str] = []
     monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
     # IMG1 (640x480) and IMG6 (4000x3000) share a 4:3 ratio; IMG4 (3000x1682, ~16:9) doesn't and gets cropped to 4:3
-    img.posterize_columns([{"width": "100%", "images": [IMG1, IMG6, IMG4]}], out_file=TMP1, margin=0)
+    img.posterize_columns([{"width": "100%", "images": [IMG1, IMG6, IMG4]}], out_file=TMP1, gutter=0)
     assert "crop=2243:1682" in commands[0]
     assert "crop=640:480" not in commands[0]
     assert "crop=4000:3000" not in commands[0]
@@ -282,7 +282,7 @@ def test_posterize_columns_no_crop_when_ratios_already_match(monkeypatch: pytest
     """No crop filter is added when every image already shares the same aspect ratio"""
     commands: list[str] = []
     monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
-    img.posterize_columns([{"width": "100%", "images": [IMG1, IMG6]}], out_file=TMP1, margin=0)
+    img.posterize_columns([{"width": "100%", "images": [IMG1, IMG6]}], out_file=TMP1, gutter=0)
     assert "crop=" not in commands[0]
 
 

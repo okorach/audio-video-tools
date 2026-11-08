@@ -25,7 +25,7 @@ own width. When the photos don't all share the same aspect ratio, the odd ones o
 of them, so every photo of the poster ends up the same shape; otherwise each photo keeps its own aspect ratio.
 
 ```
-imagetool poster -i <photos and/or directories> [-o <output>] [--background_color black|white] [--margin <px or %>]
+imagetool poster -i <photos and/or directories> [-o <output>] [--background_color black|white] [--gutter <px or %>]
                   [--extra_margin_top <px>] [--extra_margin_bottom <px>] [--orientation portrait|landscape] [--aspect_ratio <W/H or W:H>]
                   [--layout <rows>x<cols>] [--hw_accel auto|on|off]
 imagetool poster -i <file.yaml> [<more photos>] [same options]
@@ -36,8 +36,8 @@ imagetool poster -i <file.yaml> [<more photos>] [same options]
 | `-i` | Photos and/or directories (processed recursively), and/or one YAML file (`.yaml` or `.yml`) describing the poster. Photos given with a YAML file are distributed into its columns, round-robin, starting with the shortest column |
 | `-y`, `--yaml` | Same as giving the YAML file in `-i` |
 | `-o` | Output image. Default: the `output` of the YAML file, else the name of the YAML file (or of the first photo) with the image extension |
-| `-b`, `--background_color` | `black` (default) or `white`: the color of the margins and of the padding under a column shorter than the tallest one |
-| `-m`, `--margin` | Margin between the images: a number of pixels (eg `64px`), or a percentage of the width of the top-left image (eg `5%`). Default: `50px` |
+| `-b`, `--background_color` | `black` (default) or `white`: the color of the gutter and of the padding under a column shorter than the tallest one |
+| `--gutter` | Gutter between the images: a number of pixels (eg `64px`), or a percentage of the width of the top-left image (eg `5%`). Default: `80px` |
 | `--extra_margin_top` | Extra margin (pixels) of background color above the images, eg to overlay a title. Default: 0 |
 | `--extra_margin_bottom` | Extra margin (pixels) of background color below the images. Default: 0 |
 | `--orientation` | `portrait` or `landscape`: used, with `--aspect_ratio`, to pick the number of columns when the poster is generated from a flat list of photos (no YAML, no `--layout`) |
@@ -50,8 +50,8 @@ is picked so that the poster approximates the most common poster printing format
 best fits the photos (landscape if they are mostly landscape, portrait otherwise).
 
 A YAML file describing the poster is generated next to the image. Its `poster` section holds the global parameters (`output`, `rows`,
-`columns`, `background_color`, `margin`, `extra_margin_top`, `extra_margin_bottom`, `orientation`, `aspect_ratio`), and `columns` the
-list of its columns, each with a `width` (a percentage of the poster's content width, excluding the margins) and the list of its
+`columns`, `background_color`, `gutter`, `extra_margin_top`, `extra_margin_bottom`, `orientation`, `aspect_ratio`), and `columns` the
+list of its columns, each with a `width` (a percentage of the poster's content width, excluding the gutters) and the list of its
 `images`. The paths are relative to the YAML file. By default, when the poster is generated from a flat list of photos, every column
 gets an equal share of the width (50% each for 2 columns, 33.33% for 3, 25% for 4...) and the photos are distributed into the columns
 round-robin; editing the YAML file lets a column be given a different width, or a different set of images.
@@ -70,7 +70,7 @@ poster:
   rows: 3
   columns: 2
   background_color: black
-  margin: 5%
+  gutter: 5%
   extra_margin_top: 120
   orientation: landscape
 columns:
