@@ -49,6 +49,7 @@ VIDEO_PROPS: list[str] = [
     opt.Option.LANGUAGE,
     opt.Option.ASAMPLING,
     opt.Option.AUTHOR,
+    "nb_audio_streams",
 ]
 
 AUDIO_PROPS: list[str] = [
@@ -114,7 +115,8 @@ def __to_std__(specs: dict, all_props: list[str]) -> str:
         if v is None:
             s += f"{prop:<20}: - {u}\n"
             continue
-        if prop not in UNITS:
+        if prop not in UNITS or (isinstance(v, str) and "," in v):
+            # A property of several audio streams (eg abitrate) is a comma separated list of values, not a single number: no unit conversion
             s += f"{prop:<20}: {v} {u}\n"
             continue
         if UNITS[prop] in ("bytes", "bits", "pix", "bytes/s", "bits/s"):

@@ -95,6 +95,7 @@ class VideoFile(media.MediaFile):
         self.audio_codec: str | None = None
         self.audio_language: str | None = None
         self.audio_sample_rate: int | None = None
+        self.audio_streams: list[dict] | None = None
         self.year: int | None = None
         super().__init__(filename)
         self.get_specs()
@@ -134,23 +135,29 @@ class VideoFile(media.MediaFile):
             log.logger.info("%s has no copyright", self.filename)
         return self.specs
 
+    def __get_one_audio_stream_specs__(self, stream: dict) -> dict:
+        """Returns the codec, bitrate, sample rate and language of one audio stream"""
+        codec = self.__get_audio_stream_attribute__("codec_name", stream)
+        bitrate = self.__get_audio_stream_attribute__("bit_rate", stream)
+        sample_rate = self.__get_audio_stream_attribute__("sample_rate", stream)
+        language = None
+        if "tags" in stream and "language" in stream["tags"]:
+            language = stream["tags"]["language"]
+            if bitrate is None:
+                bitrate = stream["tags"]["BPS-eng"]
+            language = util.LANGUAGE_MAPPING.get(language, language)
+        if bitrate is not None:
+            bitrate = int(bitrate)
+        return {"codec": codec, "bitrate": bitrate, "sample_rate": sample_rate, "language": language}
+
     def get_audio_specs(self) -> dict:
-        """Returns video file audio specs as dict"""
-        for stream in self.specs["streams"]:
-            if stream["codec_type"] != "audio":
-                continue
-            self.audio_codec = self.__get_audio_stream_attribute__("codec_name", stream)
-            self.audio_bitrate = self.__get_audio_stream_attribute__("bit_rate", stream)
-            self.audio_sample_rate = self.__get_audio_stream_attribute__("sample_rate", stream)
-            if "tags" in stream and "language" in stream["tags"]:
-                self.audio_language = stream["tags"]["language"]
-                if self.audio_bitrate is None:
-                    self.audio_bitrate = stream["tags"]["BPS-eng"]
-                if self.audio_language in util.LANGUAGE_MAPPING:
-                    self.audio_language = util.LANGUAGE_MAPPING[self.audio_language]
-            if self.audio_bitrate is not None:
-                self.audio_bitrate = int(self.audio_bitrate)
-            break
+        """Returns video file audio specs as dict: every audio stream is read (see get_audio_properties()), and the attributes of
+        the file (audio_codec, audio_bitrate...) are set from its first audio stream, None if the video has no audio stream"""
+        self.audio_streams = [self.__get_one_audio_stream_specs__(stream) for stream in self.specs["streams"] if stream["codec_type"] == "audio"]
+        if self.audio_streams:
+            first = self.audio_streams[0]
+            self.audio_codec, self.audio_bitrate = first["codec"], first["bitrate"]
+            self.audio_sample_rate, self.audio_language = first["sample_rate"], first["language"]
         return self.specs
 
     def get_aspect_ratio(self) -> str | None:
@@ -293,15 +300,25 @@ class VideoFile(media.MediaFile):
         """Returns the width and the height in pixels from a width and a height given in pixels or in percent of the video"""
         return self.resolution.calc_resolution(w, h)
 
+    def __joined_audio_attribute__(self, key: str) -> object | None:
+        """Returns an attribute (codec, bitrate, sample_rate or language) of the audio streams: the value of the only stream,
+        or the values of all the streams (comma separated) when the video has several audio streams, None if it has none"""
+        values = [stream[key] for stream in self.audio_streams or []]
+        if not values:
+            return None
+        return values[0] if len(values) == 1 else ", ".join(str(v) for v in values)
+
     def get_audio_properties(self) -> dict:
-        """Returns the audio properties of the video: codec, bitrate, sample rate..."""
-        if self.audio_codec is None:
+        """Returns the audio properties of the video: codec, bitrate, sample rate and language of its audio stream(s), and their
+        number (nb_audio_streams). A property of several audio streams lists the value of each of them, comma separated"""
+        if self.audio_streams is None:
             self.get_specs()
         return {
-            opt.Option.ABITRATE: self.audio_bitrate,
-            opt.Option.ACODEC: self.audio_codec,
-            "audio_language": self.audio_language,
-            "audio_sample_rate": self.audio_sample_rate,
+            opt.Option.ABITRATE: self.__joined_audio_attribute__("bitrate"),
+            opt.Option.ACODEC: self.__joined_audio_attribute__("codec"),
+            "audio_language": self.__joined_audio_attribute__("language"),
+            "audio_sample_rate": self.__joined_audio_attribute__("sample_rate"),
+            "nb_audio_streams": len(self.audio_streams or []),
         }
 
     def get_video_properties(self) -> dict:

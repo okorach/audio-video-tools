@@ -89,6 +89,48 @@ def video_5s(tmp_path_factory: pytest.TempPathFactory) -> str:
 
 
 @pytest.fixture(scope="session")
+def video_no_audio(tmp_path_factory: pytest.TempPathFactory) -> str:
+    """A 1 second video with no audio track at all"""
+    path = tmp_path_factory.mktemp("media") / "video-no-audio.mp4"
+    _ffmpeg("-f", "lavfi", "-i", "testsrc=size=320x180:rate=25:duration=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path))
+    return str(path)
+
+
+@pytest.fixture(scope="session")
+def video_two_audio_tracks(tmp_path_factory: pytest.TempPathFactory) -> str:
+    """A 1 second video with 2 audio tracks (different frequencies), for the tests of multiple audio streams"""
+    path = tmp_path_factory.mktemp("media") / "video-two-audio-tracks.mp4"
+    _ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=320x180:rate=25:duration=1",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=1",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=880:duration=1",
+        "-map",
+        "0:v",
+        "-map",
+        "1:a",
+        "-map",
+        "2:a",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        str(path),
+    )
+    return str(path)
+
+
+@pytest.fixture(scope="session")
 def short_audio(tmp_path_factory: pytest.TempPathFactory) -> str:
     """A 40 seconds excerpt of the test song, to test the audio analysis without analyzing a whole song"""
     path = tmp_path_factory.mktemp("media") / "short-audio.mp3"

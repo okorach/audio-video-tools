@@ -19,8 +19,12 @@
 #
 
 import os
+import sys
+from unittest.mock import patch
+
 import mediatools.audiofile as audio
 import mediatools.filespecs as spec
+import mediatools.videofile as video
 
 FILE = "it/seal.mp3"
 
@@ -44,3 +48,37 @@ def test_2() -> None:
     std = spec.__to_std__(specs, allp)
     assert "abitrate            : 187.5 kbits/s" in std
     assert "duration            : 00:05:57.094" in std
+
+
+def test_specs_on_video_without_audio_does_not_crash(video_no_audio: str) -> None:
+    """media-specs does not crash on a video with no audio stream at all (#209)"""
+    allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
+    v = video.VideoFile(video_no_audio)
+    specs = v.get_properties()
+    assert specs["nb_audio_streams"] == 0
+    assert specs["acodec"] is None
+    assert v.get_audio_codec() is None
+    assert v.get_audio_bitrate() is None
+    # Neither of the output formats crashes
+    spec.__to_csv__(specs, allp)
+    assert "nb_audio_streams    : 0" in spec.__to_std__(specs, allp)
+    with patch.object(sys, "argv", ["media-specs", "-i", video_no_audio]):
+        spec.main()
+
+
+def test_specs_supports_multiple_audio_streams(video_two_audio_tracks: str) -> None:
+    """media-specs reports every audio stream of a video, not just the first one (#210)"""
+    allp = list(set(spec.VIDEO_PROPS + spec.AUDIO_PROPS + spec.IMAGE_PROPS))
+    v = video.VideoFile(video_two_audio_tracks)
+    specs = v.get_properties()
+    assert specs["nb_audio_streams"] == 2
+    assert specs["acodec"] == "aac, aac"
+    assert len(specs["abitrate"].split(", ")) == 2
+    # get_audio_codec()/get_audio_bitrate() (used eg to decide how to re-encode) keep reporting the first stream only
+    assert v.get_audio_codec() == "aac"
+    assert isinstance(v.get_audio_bitrate(), int)
+    # Neither of the output formats crashes on the comma separated, multi-stream abitrate
+    spec.__to_csv__(specs, allp)
+    assert "nb_audio_streams    : 2" in spec.__to_std__(specs, allp)
+    with patch.object(sys, "argv", ["media-specs", "-i", video_two_audio_tracks]):
+        spec.main()
