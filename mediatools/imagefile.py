@@ -605,8 +605,11 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs: object) ->
     img_outs = list(range(len(fcomplex.inputs)))
     img_outs[0] = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
     if kwargs.get("stretch", True):
+        # A single column (eg a vertical stack) is rescaled to the same width, a single row (eg a horizontal stack) or a
+        # multi-row/multi-column grid to the same height
+        scale_filter = filters.scale(max_w, -1) if cols == 1 else filters.scale(-1, max_h)
         for i in range(1, len(fcomplex.inputs)):
-            img_outs[i] = fcomplex.add_filtergraph([i], filters.scale(-1, max_h))
+            img_outs[i] = fcomplex.add_filtergraph([i], scale_filter)
 
     y = gap
     x = gap
@@ -631,7 +634,8 @@ def posterize(*file_list: str, out_file: str | None = None, **kwargs: object) ->
 
 
 def stack(*files: str, out_file: str | None = None, **kwargs: object) -> str:
-    """Stacks images in a single image, in a row or in a column. Returns the generated file"""
+    """Stacks images in a single image, in a row or in a column: the images are rescaled to the same width (a column)
+    or height (a row) before being stacked. Returns the generated file"""
     log.logger.debug("stack(%s, %s)", str(files), str(kwargs))
     out_file = util.automatic_output_file_name(out_file, files[0], "stack")
     files_to_stack = fil.file_list(*files, file_type=fil.FileType.IMAGE_FILE)

@@ -35,7 +35,7 @@ TMP1 = util.get_tmp_file() + ".jpg"
 
 def test_main() -> None:
     """Main"""
-    with patch.object(sys, "argv", ["imagetool", "stack", "-g", "4", "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2]):
+    with patch.object(sys, "argv", ["imagetool", "stack", "-g", "4", "-b", "black", "-m", "10", "-d", "vertical", "-i", IMG1, IMG2]):
         with pytest.raises(SystemExit) as e:
             tools.imagetool()
         assert int(str(e.value)) == 0
@@ -43,10 +43,18 @@ def test_main() -> None:
 
 def test_main_help() -> None:
     """Main help"""
-    with patch.object(sys, "argv", ["imagetool", "stack", "-b", "black", "-m", "10", "--stretch", "-d", "vertical", "-i", IMG1, IMG2, "-h"]):
+    with patch.object(sys, "argv", ["imagetool", "stack", "-b", "black", "-m", "10", "-d", "vertical", "-i", IMG1, IMG2, "-h"]):
         with pytest.raises(SystemExit) as e:
             tools.imagetool()
         assert int(str(e.value)) == 0
+
+
+def test_main_stretch_option_was_removed() -> None:
+    """--stretch was removed: rescaling to the same width/height is now always on (#323)"""
+    with patch.object(sys, "argv", ["imagetool", "stack", "-d", "vertical", "--stretch", "-i", IMG1, IMG2]):
+        with pytest.raises(SystemExit) as e:
+            tools.imagetool()
+        assert int(str(e.value)) == 2
 
 
 def test_main_bad_option() -> None:
@@ -91,3 +99,25 @@ def test_main_with_output2() -> None:
         assert int(str(e.value)) == 0
         assert img.ImageFile(TMP1).width > 0
         os.remove(TMP1)
+
+
+def test_vertical_stack_rescales_images_to_the_same_width(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A vertical stack rescales every image to the same width (the widest one) before stacking them (#323)"""
+    commands = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_args, **_kwargs: commands.append(cmd))
+    with patch.object(sys, "argv", ["imagetool", "stack", "-d", "vertical", "-i", IMG1, IMG2]):
+        with pytest.raises(SystemExit) as e:
+            tools.imagetool()
+        assert int(str(e.value)) == 0
+    assert "scale=1770:-1" in commands[0]
+
+
+def test_horizontal_stack_rescales_images_to_the_same_height(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A horizontal stack rescales every image to the same height (the tallest one) before stacking them"""
+    commands = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_args, **_kwargs: commands.append(cmd))
+    with patch.object(sys, "argv", ["imagetool", "stack", "-d", "horizontal", "-i", IMG1, IMG2]):
+        with pytest.raises(SystemExit) as e:
+            tools.imagetool()
+        assert int(str(e.value)) == 0
+    assert "scale=-1:1291" in commands[0]
