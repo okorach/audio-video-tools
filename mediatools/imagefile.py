@@ -29,6 +29,7 @@ import random
 import re
 import shutil
 import tempfile
+from collections import Counter
 
 import exifread
 
@@ -740,22 +741,41 @@ def poster_rows_and_columns(columns: list[dict]) -> tuple[int, int]:
     return max((len(col["images"]) for col in columns), default=0), len(columns)
 
 
+def __common_aspect_ratio__(images: list[ImageFile]) -> float | None:
+    """Returns the aspect ratio (width / height) shared by most of the images (grouped by rounding to 2 decimals), as the exact ratio
+    of one of them; None when the images already all share the same (rounded) aspect ratio, so none of them need cropping"""
+    ratios = [round(i.width / i.height, 2) for i in images]
+    if len(set(ratios)) <= 1:
+        return None
+    mode = Counter(ratios).most_common(1)[0][0]
+    return next(i.width / i.height for i, r in zip(images, ratios, strict=True) if r == mode)
+
+
+def __crop_to_ratio__(width: int, height: int, ratio: float) -> tuple[int, int]:
+    """Returns the (width, height) of the largest centered crop of a width x height image that matches a target aspect ratio"""
+    if width / height > ratio:
+        return round(height * ratio), height
+    return width, round(width / ratio)
+
+
 def posterize_columns(
     columns: list[dict],
     *,
     out_file: str | None = None,
     background_color: str = "black",
-    margin: str | float = 0,
+    margin: str | float = 50,
     extra_margin_top: str | float = 0,
     extra_margin_bottom: str | float = 0,
     **kwargs: object,
 ) -> str:
     """Creates a poster image from an explicit column layout: a list of {"width": <percent>, "images": [files...]}. Each column is a
-    vertical stack of its images, scaled to the column's pixel width and kept at their own aspect ratio; the width of a column is a
-    percentage of the poster's content width (excluding the margins). The margin between the images is a number of pixels or a
-    percentage of the width of the top-left image of the poster. A column shorter than the tallest one is padded with the background
-    color at the bottom. extra_margin_top/extra_margin_bottom add blank background (eg to overlay a title), in pixels, above/below the
-    grid of images. Returns the generated file"""
+    vertical stack of its images, scaled to the column's pixel width; the width of a column is a percentage of the poster's content
+    width (excluding the margins). When the images don't all share the same aspect ratio, the odd ones out are cropped (centered) to
+    the ratio shared by most of them, so that every image of the poster ends up the same shape (see __common_aspect_ratio__); otherwise
+    each image keeps its own aspect ratio. The margin between the images is a number of pixels or a percentage of the width of the
+    top-left image of the poster. A column shorter than the tallest one is padded with the background color at the bottom.
+    extra_margin_top/extra_margin_bottom add blank background (eg to overlay a title), in pixels, above/below the grid of images.
+    Returns the generated file"""
     log.logger.debug("posterize_columns(%s)", str(columns))
     col_images = [[ImageFile(f) for f in fil.file_list(*col["images"], file_type=fil.FileType.IMAGE_FILE)] for col in columns]
     all_images = [img for col in col_images for img in col]
@@ -768,7 +788,14 @@ def posterize_columns(
     content_width_total = len(columns) * max_w
     col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * content_width_total / 100) for col in columns]
 
-    scaled_heights = [[int(img.height * w / img.width) for img in imgs] for imgs, w in zip(col_images, col_widths, strict=True)]
+    target_ratio = __common_aspect_ratio__(all_images)
+    # eff_dims holds, for each image, the (width, height) it is cropped to before scaling: unchanged unless it needs normalizing
+    eff_dims = [
+        [__crop_to_ratio__(im.width, im.height, target_ratio) if target_ratio is not None else (im.width, im.height) for im in imgs]
+        for imgs in col_images
+    ]
+
+    scaled_heights = [[int(eh * w / ew) for ew, eh in dims] for dims, w in zip(eff_dims, col_widths, strict=True)]
     col_heights = [sum(heights) + (len(heights) + 1) * gap for heights in scaled_heights]
 
     extra_top = int(extra_margin_top or 0)
@@ -792,9 +819,12 @@ def posterize_columns(
 
     img_outs = {}
     idx = 1
-    for imgs, w, heights in zip(col_images, col_widths, scaled_heights, strict=True):
-        for _, h in zip(imgs, heights, strict=True):
-            img_outs[idx] = fcomplex.add_filtergraph([idx], filters.scale(w, h))
+    for imgs, dims, w, heights in zip(col_images, eff_dims, col_widths, scaled_heights, strict=True):
+        for im, (ew, eh), h in zip(imgs, dims, heights, strict=True):
+            src = idx
+            if (ew, eh) != (im.width, im.height):
+                src = fcomplex.add_filtergraph([idx], filters.crop(ew, eh))
+            img_outs[idx] = fcomplex.add_filtergraph([src], filters.scale(w, h))
             idx += 1
 
     out_stream = bg_out

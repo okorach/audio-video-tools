@@ -21,7 +21,8 @@
 # imagetool poster
 
 Creates a poster image from several photos, arranged in columns: each column is a vertical stack of its images, scaled to the column's
-own width while keeping each image's aspect ratio.
+own width. When the photos don't all share the same aspect ratio, the odd ones out are cropped (centered) to the ratio shared by most
+of them, so every photo of the poster ends up the same shape; otherwise each photo keeps its own aspect ratio.
 
 ```
 imagetool poster -i <photos and/or directories> [-o <output>] [--background_color black|white] [--margin <px or %>]
@@ -36,7 +37,7 @@ imagetool poster -i <file.yaml> [<more photos>] [same options]
 | `-y`, `--yaml` | Same as giving the YAML file in `-i` |
 | `-o` | Output image. Default: the `output` of the YAML file, else the name of the YAML file (or of the first photo) with the image extension |
 | `-b`, `--background_color` | `black` (default) or `white`: the color of the margins and of the padding under a column shorter than the tallest one |
-| `-m`, `--margin` | Margin between the images: a number of pixels (eg `64px`), or a percentage of the width of the top-left image (eg `5%`). Default: 0 |
+| `-m`, `--margin` | Margin between the images: a number of pixels (eg `64px`), or a percentage of the width of the top-left image (eg `5%`). Default: `50px` |
 | `--extra_margin_top` | Extra margin (pixels) of background color above the images, eg to overlay a title. Default: 0 |
 | `--extra_margin_bottom` | Extra margin (pixels) of background color below the images. Default: 0 |
 | `--orientation` | `portrait` or `landscape`: used, with `--aspect_ratio`, to pick the number of columns when the poster is generated from a flat list of photos (no YAML, no `--layout`) |

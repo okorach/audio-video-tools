@@ -104,7 +104,7 @@ def main() -> None:
         "-m",
         "--margin",
         required=False,
-        help="Margin between the images: a number of pixels (eg 64px), or a percentage of the width of the top-left image (eg 5%%)",
+        help="Margin between the images: a number of pixels (eg 64px), or a percentage of the width of the top-left image " "(eg 5%%). Default: 50px",
     )
     parser.add_argument("--extra_margin_top", required=False, type=int, help="Extra margin (pixels) above the images, eg for a title")
     parser.add_argument("--extra_margin_bottom", required=False, type=int, help="Extra margin (pixels) below the images")
@@ -146,7 +146,7 @@ def main() -> None:
             sys.exit(1)
 
     background_color = kwargs.get("background_color") or params.get("background_color") or "black"
-    margin = kwargs.get("margin", params.get("margin", 0))
+    margin = kwargs.get("margin", params.get("margin", 50))
     extra_margin_top = kwargs.get("extra_margin_top", params.get("extra_margin_top", 0))
     extra_margin_bottom = kwargs.get("extra_margin_bottom", params.get("extra_margin_bottom", 0))
     orientation = kwargs.get("orientation") or params.get("orientation")
