@@ -32,12 +32,7 @@ import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
 
-YAML_EXTENSIONS: tuple[str, ...] = (".yaml", ".yml")
-
-
-def is_yaml(path: str) -> bool:
-    """Returns True if a file is a YAML file: it has the extension .yaml or .yml (case insensitive)"""
-    return Path(path).suffix.lower() in YAML_EXTENSIONS
+is_yaml = fil.is_yaml
 
 
 def load_yaml(yaml_file: str) -> dict:
@@ -74,12 +69,7 @@ def read_yaml(yaml_file: str) -> tuple[dict, list[dict]]:
     return params, photos
 
 
-def relative_path(path: str, folder: str) -> str:
-    """Returns the path relative to the folder (with / separators), or the absolute path if it can't be relative (other drive)"""
-    try:
-        return os.path.relpath(path, folder).replace(os.sep, "/")
-    except ValueError:
-        return os.path.abspath(path)
+relative_path = fil.relative_path
 
 
 def write_yaml(yaml_file: str, output: str, parameters: dict, operations: list[dict], previous: dict | None = None) -> None:
