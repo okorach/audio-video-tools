@@ -58,6 +58,26 @@ def test_find_output_file_gives_the_same_results_as_the_regular_expression(param
 
 
 @pytest.mark.parametrize(
+    ("params", "input_marker", "trailing_ws"),
+    [
+        ('-i "in put.mp4" -vf scale=1:1 "out put.mp4"', "in put.mp4", ""),
+        ("-i in.mp4 out.mp4", "in.mp4", ""),
+        ("-i in.mp4 out.mp4  ", "in.mp4", "  "),
+        ('-i "in.mp4" "out.mp4"   ', "in.mp4", "   "),
+        ('-i "a" -map "[v]" "o.mp4"', "[v]", ""),
+    ],
+)
+def test_replace_output_file_changes_only_the_output_file(params: str, input_marker: str, trailing_ws: str) -> None:
+    """replace_output_file() only changes the output file (as found by find_output_file()): the other parameters and the
+    trailing whitespace are unchanged"""
+    new_target = "staged file.mp4"
+    rewritten = metacopy.replace_output_file(params, new_target)
+    assert metacopy.find_output_file(rewritten) == new_target
+    assert input_marker in rewritten
+    assert rewritten.endswith(trailing_ws)
+
+
+@pytest.mark.parametrize(
     "line,expected",
     [
         ("frame=30608 fps=197 q=25.0 size=  330kB time=00:00:10.00 bitrate=2261.3kbits/s speed=10x", ("00:00:10.00", "10")),

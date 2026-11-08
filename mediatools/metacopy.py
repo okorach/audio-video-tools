@@ -49,6 +49,19 @@ def find_output_file(ffmpeg_params: str) -> str | None:
     return params.rsplit(None, 1)[-1] if params else None
 
 
+def replace_output_file(ffmpeg_params: str, new_target: str) -> str:
+    """Returns the ffmpeg parameters with their output file (as found by find_output_file()) replaced by new_target"""
+    params = ffmpeg_params.rstrip()
+    stripped_length = len(params)
+    trailing_ws = ffmpeg_params[stripped_length:]
+    if params.endswith('"'):
+        opening = params.rfind('"', 0, len(params) - 1)
+        if 0 <= opening < len(params) - 2:
+            return f'{params[:opening]}"{new_target}"{trailing_ws}'
+    head, _, _ = params.rpartition(" ")
+    return (f'{head} "{new_target}"' if head else f'"{new_target}"') + trailing_ws
+
+
 def is_media_file(filename: str) -> bool:
     """Returns True if the file is an existing audio, video or image file"""
     known_type = fil.get_type(filename) in (fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE, fil.FileType.IMAGE_FILE)
