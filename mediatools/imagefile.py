@@ -47,6 +47,7 @@ INPUT_FILE_FMT: str = ' -i "%s"'
 MAX_INT: int = 2000000000
 DEFAULT_PAN_SPEED: float = 0.02  # 2% of image width traveled per second
 MAX_VERTICAL_DRIFT: float = 0.05  # Max vertical travel of a panorama, in proportion of the height of the photo, up or down
+DEFAULT_POSTER_ASPECT_RATIO: float = 70 / 50  # The most common poster printing format (70x50 or 50x70 cm)
 
 
 class ImageFile(media.MediaFile):
@@ -670,28 +671,35 @@ def __parse_percent__(value: str | float) -> float:
 
 
 def __parse_aspect_ratio__(aspect_ratio: str | float) -> float:
-    """Returns an aspect ratio (width / height) given as "W:H" (eg "16:9") or as a number"""
-    if isinstance(aspect_ratio, str) and ":" in aspect_ratio:
-        w, h = aspect_ratio.split(":")
-        return float(w) / float(h)
+    """Returns an aspect ratio (width / height) given as "W:H" or "W/H" (eg "16:9" or "4/3"), or as a number (eg 1.3333)"""
+    if isinstance(aspect_ratio, str):
+        for sep in (":", "/"):
+            if sep in aspect_ratio:
+                w, h = aspect_ratio.split(sep)
+                return float(w) / float(h)
     return float(aspect_ratio)
 
 
 def __auto_layout__(files: list[ImageFile], **kwargs: object) -> tuple[int, int]:
     """Returns the number of rows and columns of a poster for a number of images: given by rows/columns or layout (RxC) if present
-    (see __get_layout__), else, when an orientation or a target aspect_ratio is given, the number of columns that best approximates it
-    (the images are distributed round-robin into the columns, and their average aspect ratio is used to estimate the resulting poster's
-    own aspect ratio for each candidate number of columns), else the default square-ish grid (see __get_layout__)"""
-    orientation = kwargs.get("orientation")
-    aspect_ratio = kwargs.get("aspect_ratio")
-    if ("rows" in kwargs and "columns" in kwargs) or kwargs.get("layout") or (orientation is None and aspect_ratio is None):
+    (see __get_layout__), else the number of columns that best approximates a target aspect ratio (the images are distributed
+    round-robin into the columns, and their average aspect ratio is used to estimate the resulting poster's own aspect ratio for each
+    candidate number of columns). The target ratio is aspect_ratio if given, else the most common poster printing format
+    (DEFAULT_POSTER_ASPECT_RATIO, 70/50), in the orientation given, else whichever of the 2 (70/50 or 50/70) best fits the images"""
+    if ("rows" in kwargs and "columns" in kwargs) or kwargs.get("layout"):
         return __get_layout__(len(files), **kwargs)
 
-    target_ratio = __parse_aspect_ratio__(aspect_ratio) if aspect_ratio is not None else 16 / 9
+    orientation = kwargs.get("orientation")
+    aspect_ratio = kwargs.get("aspect_ratio")
+    target_ratio = __parse_aspect_ratio__(aspect_ratio) if aspect_ratio is not None else DEFAULT_POSTER_ASPECT_RATIO
+    avg_ratio = sum(f.width / f.height for f in files) / len(files)
+
     if (orientation == "portrait" and target_ratio > 1) or (orientation == "landscape" and target_ratio < 1):
         target_ratio = 1 / target_ratio
+    elif orientation is None and aspect_ratio is None and avg_ratio < 1:
+        # No orientation nor aspect_ratio given: default to whichever of the 2 standard poster orientations best fits the images
+        target_ratio = 1 / target_ratio
 
-    avg_ratio = sum(f.width / f.height for f in files) / len(files)
     best_cols, best_diff = 1, None
     for cols in range(1, len(files) + 1):
         rows = math.ceil(len(files) / cols)

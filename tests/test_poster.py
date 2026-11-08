@@ -151,16 +151,27 @@ def test_auto_poster_columns_width_for_three_and_four_columns() -> None:
 
 
 def test_auto_layout_picks_columns_to_approximate_orientation() -> None:
-    """Without a layout, the number of columns is picked to approximate the target orientation (default aspect ratio 16:9)"""
+    """Without a layout, the number of columns is picked to approximate the target orientation (default aspect ratio 70/50, the most
+    common poster printing format)"""
     files = [img.ImageFile(IMG1)] * 4  # 4 landscape (4:3) images
     assert img.__auto_layout__(files, orientation="portrait") == (4, 1)
-    assert img.__auto_layout__(files, orientation="landscape") == (2, 3)
+    assert img.__auto_layout__(files, orientation="landscape") == (2, 2)
 
 
 def test_auto_layout_uses_aspect_ratio_string() -> None:
-    """A "W:H" aspect ratio string is used as the target ratio"""
+    """A "W:H" or "W/H" aspect ratio string is used as the target ratio"""
     files = [img.ImageFile(IMG1)] * 4
     assert img.__auto_layout__(files, aspect_ratio="1:4") == (4, 1)
+    assert img.__auto_layout__(files, aspect_ratio="1/4") == (4, 1)
+
+
+def test_auto_layout_defaults_to_poster_aspect_ratio() -> None:
+    """Without orientation, aspect_ratio nor layout, the poster defaults to whichever of the 2 standard printing formats
+    (70/50 landscape or 50/70 portrait) best fits the images"""
+    landscape_files = [img.ImageFile(IMG1)] * 6  # 640x480, ratio 1.333 (> 1)
+    assert img.__auto_layout__(landscape_files) == (3, 2)
+    portrait_files = [img.ImageFile(DIR + "img-2320x4000.jpg")] * 6  # Genuinely portrait pixels (2320x4000, ratio 0.58 < 1)
+    assert img.__auto_layout__(portrait_files) == (2, 3)
 
 
 def test_parse_margin() -> None:
@@ -175,6 +186,13 @@ def test_parse_percent() -> None:
     """A percentage is a number, or a string with a trailing %"""
     assert img.__parse_percent__("33.33%") == 33.33
     assert img.__parse_percent__(50) == 50.0
+
+
+def test_parse_aspect_ratio() -> None:
+    """An aspect ratio is a number, or a "W:H" or "W/H" string"""
+    assert img.__parse_aspect_ratio__("4:3") == pytest.approx(4 / 3)
+    assert img.__parse_aspect_ratio__("4/3") == pytest.approx(4 / 3)
+    assert img.__parse_aspect_ratio__(1.3333) == pytest.approx(1.3333)
 
 
 def test_append_to_columns_round_robin_from_shortest() -> None:

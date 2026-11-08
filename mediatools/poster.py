@@ -38,7 +38,7 @@ import utilities.file as fil
 from mediatools import log
 
 USAGE = "image-poster [--background_color black|white] [--margin <px or %>] [--extra_margin_top <px>] [--extra_margin_bottom <px>] \
-[--orientation portrait|landscape] [--aspect_ratio <W:H>] [--layout <rows>x<cols>] [-g 0-4] file1 file2 ... filen"
+[--orientation portrait|landscape] [--aspect_ratio <W/H or W:H>] [--layout <rows>x<cols>] [-g 0-4] file1 file2 ... filen"
 
 is_yaml = fil.is_yaml
 relative_path = fil.relative_path
@@ -108,8 +108,19 @@ def main() -> None:
     )
     parser.add_argument("--extra_margin_top", required=False, type=int, help="Extra margin (pixels) above the images, eg for a title")
     parser.add_argument("--extra_margin_bottom", required=False, type=int, help="Extra margin (pixels) below the images")
-    parser.add_argument("--orientation", required=False, choices=["portrait", "landscape"], help="Orientation of the poster")
-    parser.add_argument("--aspect_ratio", required=False, help="Target aspect ratio of the poster, eg 16:9, 4:3, 1.5")
+    parser.add_argument(
+        "--orientation",
+        required=False,
+        choices=["portrait", "landscape"],
+        help="Orientation of the poster (no YAML file, no --aspect_ratio/--layout): default picks whichever of the 2 standard "
+        "printing formats (70/50 or 50/70) best fits the images",
+    )
+    parser.add_argument(
+        "--aspect_ratio",
+        required=False,
+        help="Target aspect ratio of the poster (no YAML file, no --layout), eg 4/3, 16:9 or 1.3333. Default: 70/50, the most "
+        "common poster printing format",
+    )
     parser.add_argument("-l", "--layout", required=False, help="Layout of the images: rows x columns, eg 2x3")
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
