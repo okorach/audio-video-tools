@@ -52,6 +52,8 @@ MEDIA_FILE_EXTENSIONS: tuple[str, ...] = (
 
 IMAGE_AND_VIDEO_EXTENSIONS: tuple[str, ...] = FileType.FILE_EXTENSIONS[FileType.VIDEO_FILE] + FileType.FILE_EXTENSIONS[FileType.IMAGE_FILE]
 
+YAML_EXTENSIONS: tuple[str, ...] = ("yaml", "yml")
+
 
 class File:
     """File abstraction"""
@@ -361,6 +363,19 @@ def is_image_file(file: str) -> bool:
 def is_media_file(file: str) -> bool:
     """Returns whether the file has an extension corresponding to media (audio/video/image) files"""
     return __match_extension(file, MEDIA_FILE_EXTENSIONS)
+
+
+def is_yaml(file: str) -> bool:
+    """Returns True if the file has the extension of a YAML file (.yaml or .yml, case insensitive)"""
+    return __match_extension(file, YAML_EXTENSIONS)
+
+
+def relative_path(path: str, folder: str) -> str:
+    """Returns the path relative to the folder (with / separators), or the absolute path if it can't be made relative (other drive)"""
+    try:
+        return os.path.relpath(path, folder).replace(os.sep, "/")
+    except ValueError:
+        return os.path.abspath(path)
 
 
 def get_type(file: str) -> str:

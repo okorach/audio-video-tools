@@ -548,16 +548,20 @@ def __get_layout__(nb_files: int, **kwargs: object) -> tuple[int, int]:
     return (rows, cols)
 
 
+def __reduction_factor__(full_w: int, full_h: int) -> float:
+    """Returns the factor by which a poster's dimensions must be reduced to stay within ffmpeg's max frame size (MAX_INT pixels),
+    1 if it already is within that limit"""
+    full_pix = (full_w * 8 + 1024) * (full_h + 128)
+    return math.sqrt(MAX_INT / full_pix) if full_pix > MAX_INT else 1
+
+
 def __downsize__(full_w: int, full_h: int, max_w: int, max_h: int, gap: int) -> tuple[int, int, int, int, int, float]:
     """Returns the dimensions of the images and of the gap of a poster reduced so that it does not exceed the maximum number of pixels, and the
     reduction factor"""
-    full_pix = (full_w * 8 + 1024) * (full_h + 128)
-    log.logger.debug("Before reduction Max W x H + G = %d x %d + %d, Total poster pixels = %d", max_w, max_h, gap, full_pix)
-
-    reduction_factor = 1
-    if full_pix > MAX_INT:
-        log.logger.debug("Target image too big by %6.2f%%, reducing", full_pix / MAX_INT)
-        reduction_factor = math.sqrt(MAX_INT / full_pix)
+    log.logger.debug("Before reduction Max W x H + G = %d x %d + %d", max_w, max_h, gap)
+    reduction_factor = __reduction_factor__(full_w, full_h)
+    if reduction_factor != 1:
+        log.logger.debug("Target image too big, reducing by a factor %4.2f", reduction_factor)
         if max_h != -1:
             max_h = int(reduction_factor * max_h)
         if max_w != -1:
@@ -645,6 +649,160 @@ def stack(*files: str, out_file: str | None = None, **kwargs: object) -> str:
     else:
         cols = len(files_to_stack)
     return posterize(*files_to_stack, out_file=out_file, rows=rows, columns=cols, **kwargs)
+
+
+def __parse_margin__(value: str | float, reference: float) -> int:
+    """Returns a margin in pixels: a plain number or "NNpx" (an absolute number of pixels), or "NN%" (a percentage of a reference value,
+    normally the width of the top-left image of the poster)"""
+    if isinstance(value, str):
+        v = value.strip()
+        if v.endswith("%"):
+            return int(float(v[:-1]) * reference / 100)
+        return int(float(v.removesuffix("px")))
+    return int(value)
+
+
+def __parse_percent__(value: str | float) -> float:
+    """Returns a percentage (0-100) given as a number or as a string with a trailing % (eg "33.33%")"""
+    if isinstance(value, str) and value.strip().endswith("%"):
+        return float(value.strip()[:-1])
+    return float(value)
+
+
+def __parse_aspect_ratio__(aspect_ratio: str | float) -> float:
+    """Returns an aspect ratio (width / height) given as "W:H" (eg "16:9") or as a number"""
+    if isinstance(aspect_ratio, str) and ":" in aspect_ratio:
+        w, h = aspect_ratio.split(":")
+        return float(w) / float(h)
+    return float(aspect_ratio)
+
+
+def __auto_layout__(files: list[ImageFile], **kwargs: object) -> tuple[int, int]:
+    """Returns the number of rows and columns of a poster for a number of images: given by rows/columns or layout (RxC) if present
+    (see __get_layout__), else, when an orientation or a target aspect_ratio is given, the number of columns that best approximates it
+    (the images are distributed round-robin into the columns, and their average aspect ratio is used to estimate the resulting poster's
+    own aspect ratio for each candidate number of columns), else the default square-ish grid (see __get_layout__)"""
+    orientation = kwargs.get("orientation")
+    aspect_ratio = kwargs.get("aspect_ratio")
+    if ("rows" in kwargs and "columns" in kwargs) or kwargs.get("layout") or (orientation is None and aspect_ratio is None):
+        return __get_layout__(len(files), **kwargs)
+
+    target_ratio = __parse_aspect_ratio__(aspect_ratio) if aspect_ratio is not None else 16 / 9
+    if (orientation == "portrait" and target_ratio > 1) or (orientation == "landscape" and target_ratio < 1):
+        target_ratio = 1 / target_ratio
+
+    avg_ratio = sum(f.width / f.height for f in files) / len(files)
+    best_cols, best_diff = 1, None
+    for cols in range(1, len(files) + 1):
+        rows = math.ceil(len(files) / cols)
+        diff = abs((cols * avg_ratio / rows) - target_ratio)
+        if best_diff is None or diff < best_diff:
+            best_cols, best_diff = cols, diff
+    return math.ceil(len(files) / best_cols), best_cols
+
+
+def auto_poster_columns(*photos: str, **kwargs: object) -> list[dict]:
+    """Returns the column layout (a list of {"width": <percent>, "images": [files]}) of a poster generated from a flat list of photos:
+    the number of columns is given (rows/columns or layout), or computed to approximate a target orientation/aspect_ratio (see
+    __auto_layout__), else the default square-ish grid. The photos are distributed into the columns round-robin, with an equal default
+    width each (eg 50% each for 2 columns, 33.33% for 3)"""
+    files = [ImageFile(f) for f in fil.file_list(*photos, file_type=fil.FileType.IMAGE_FILE)]
+    if not files:
+        raise ex.InputError("No image to posterize", "poster")
+    _, cols = __auto_layout__(files, **kwargs)
+    cols = max(1, min(cols, len(files)))
+    buckets: list[list[str]] = [[] for _ in range(cols)]
+    for i, f in enumerate(files):
+        buckets[i % cols].append(f.filename)
+    width = f"{round(100 / cols, 2):g}%"
+    return [{"width": width, "images": bucket} for bucket in buckets]
+
+
+def append_to_columns(columns: list[dict], *photos: str) -> list[dict]:
+    """Appends photos into the columns of a poster, round-robin, starting with the column that has the fewest images. Returns the columns"""
+    files = fil.file_list(*photos, file_type=fil.FileType.IMAGE_FILE)
+    order = sorted(range(len(columns)), key=lambda i: len(columns[i]["images"]))
+    for i, f in enumerate(files):
+        columns[order[i % len(columns)]]["images"].append(f)
+    return columns
+
+
+def poster_rows_and_columns(columns: list[dict]) -> tuple[int, int]:
+    """Returns the number of rows (the length of the longest column) and columns of a poster's column layout"""
+    return max((len(col["images"]) for col in columns), default=0), len(columns)
+
+
+def posterize_columns(
+    columns: list[dict],
+    *,
+    out_file: str | None = None,
+    background_color: str = "black",
+    margin: str | float = 0,
+    extra_margin_top: str | float = 0,
+    extra_margin_bottom: str | float = 0,
+    **kwargs: object,
+) -> str:
+    """Creates a poster image from an explicit column layout: a list of {"width": <percent>, "images": [files...]}. Each column is a
+    vertical stack of its images, scaled to the column's pixel width and kept at their own aspect ratio; the width of a column is a
+    percentage of the poster's content width (excluding the margins). The margin between the images is a number of pixels or a
+    percentage of the width of the top-left image of the poster. A column shorter than the tallest one is padded with the background
+    color at the bottom. extra_margin_top/extra_margin_bottom add blank background (eg to overlay a title), in pixels, above/below the
+    grid of images. Returns the generated file"""
+    log.logger.debug("posterize_columns(%s)", str(columns))
+    col_images = [[ImageFile(f) for f in fil.file_list(*col["images"], file_type=fil.FileType.IMAGE_FILE)] for col in columns]
+    all_images = [img for col in col_images for img in col]
+    if not all_images:
+        raise ex.InputError("No image to posterize", "poster")
+
+    max_w = max(img.width for img in all_images)
+    gap = __parse_margin__(margin, all_images[0].width)
+
+    content_width_total = len(columns) * max_w
+    col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * content_width_total / 100) for col in columns]
+
+    scaled_heights = [[int(img.height * w / img.width) for img in imgs] for imgs, w in zip(col_images, col_widths, strict=True)]
+    col_heights = [sum(heights) + (len(heights) + 1) * gap for heights in scaled_heights]
+
+    extra_top = int(extra_margin_top or 0)
+    extra_bottom = int(extra_margin_bottom or 0)
+    full_w = sum(col_widths) + (len(columns) + 1) * gap
+    full_h = extra_top + max(col_heights, default=0) + extra_bottom
+
+    reduction_factor = __reduction_factor__(full_w, full_h)
+    if reduction_factor != 1:
+        log.logger.debug("Target poster too big, reducing by a factor %4.2f", reduction_factor)
+        full_w, full_h = int(full_w * reduction_factor), int(full_h * reduction_factor)
+        gap = int(gap * reduction_factor)
+        col_widths = [int(w * reduction_factor) for w in col_widths]
+        extra_top, extra_bottom = int(extra_top * reduction_factor), int(extra_bottom * reduction_factor)
+        scaled_heights = [[int(h * reduction_factor) for h in heights] for heights in scaled_heights]
+    log.logger.debug("Poster %d x %d, gap = %d, column widths = %s", full_w, full_h, gap, str(col_widths))
+
+    fcomplex = filters.Complex(*all_images)
+    fcomplex.insert_input(0, ImageFile(__get_background__(background_color)))
+    bg_out = fcomplex.add_filtergraph([0], filters.scale(full_w, full_h))
+
+    img_outs = {}
+    idx = 1
+    for imgs, w, heights in zip(col_images, col_widths, scaled_heights, strict=True):
+        for _, h in zip(imgs, heights, strict=True):
+            img_outs[idx] = fcomplex.add_filtergraph([idx], filters.scale(w, h))
+            idx += 1
+
+    out_stream = bg_out
+    idx = 1
+    x = gap
+    for w, heights in zip(col_widths, scaled_heights, strict=True):
+        y = extra_top + gap
+        for h in heights:
+            out_stream = fcomplex.add_filtergraph([out_stream, img_outs[idx]], filters.overlay(x, y))
+            y += h + gap
+            idx += 1
+        x += w + gap
+
+    out_file = util.automatic_output_file_name(out_file, all_images[0].filename, "poster")
+    util.run_ffmpeg(f'{fcomplex.format_inputs()} {fcomplex!s} -map "[{out_stream}]" "{out_file}"')
+    return out_file
 
 
 def zoom(file: str, zoom_level: float, **kwargs: object) -> tuple[str, dict]:
