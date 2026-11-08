@@ -30,12 +30,12 @@ import mediatools.imagefile as image
 import mediatools.utilities as util
 import utilities.file as fil
 
-USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] \
-[--stretch] [-g 0-4] file1 file2 ... filen"
+USAGE = "image-stack [--direction vertical|horizontal] [--margin <nb_pixels>] [-g 0-4] file1 file2 ... filen"
 
 
 def main() -> None:
-    """Stacks images vertically or horizontally in a single image"""
+    """Stacks images vertically or horizontally in a single image, rescaled to the same width (vertical stack)
+    or height (horizontal stack)"""
     files = []
     util.init("image-stack")
     parser = argparse.ArgumentParser(description="Stacks images vertically or horizontally")
@@ -46,14 +46,6 @@ def main() -> None:
     parser.add_argument("-d", "--direction", required=False, choices=["vertical", "horizontal"], default="vertical", help="How to stack images")
     parser.add_argument("-b", "--background_color", required=False, choices=["black", "white"], default="black", help="Background color of frame")
     parser.add_argument("-m", "--margin", required=False, default=0, help="Width of frame")
-    parser.add_argument(
-        "--stretch",
-        required=False,
-        dest="stretch",
-        action="store_true",
-        default=False,
-        help="Stretch images so that they have the same width or height",
-    )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
     files = kwargs[util.INPUT_FILES]
     output = image.stack(*files, out_file=kwargs.get(util.OUTPUT_FILE, None), **kwargs)
