@@ -70,6 +70,7 @@ AUDIO_ACTIONS: dict[str, tuple[str, str]] = {
 IMAGE_ACTIONS: dict[str, tuple[str, str]] = {
     "blinds": ("mediatools.blindify:main", "Creates a window blinds effect"),
     "crop-ratio": ("mediatools.crop_ratio:main", "Crops to an aspect ratio"),
+    "inventory": ("mediatools.image_inventory:main", "Inventories photos (EXIF, GPS, dates...) into a CSV file"),
     "poster": ("mediatools.poster:main", "Creates a poster from images"),
     "scale": ("mediatools.rescale:main", "Rescales images"),
     "shake": ("mediatools.shake:main", "Creates a shake effect"),
