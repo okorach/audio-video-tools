@@ -125,9 +125,11 @@ def test_photo_row_matches_the_csv_header_order(tmp_path: Path) -> None:
     assert values["fingerprint"] is None  # Not a real image, so it can't be read as one
 
 
-def test_fingerprint_is_identical_for_the_same_image() -> None:
-    """The fingerprint only depends on the pixels, so it is the same for the same photo, computed twice"""
-    assert image_inventory.compute_fingerprint(REAL_IMAGE) == image_inventory.compute_fingerprint(REAL_IMAGE)
+def test_fingerprint_is_identical_for_a_renamed_copy(tmp_path: Path) -> None:
+    """The fingerprint only depends on the pixels, so a byte-for-byte copy under a different name has the same one"""
+    copy = tmp_path / "same-photo-different-name.jpg"
+    copy.write_bytes(Path(REAL_IMAGE).read_bytes())
+    assert image_inventory.compute_fingerprint(str(copy)) == image_inventory.compute_fingerprint(REAL_IMAGE)
 
 
 def test_fingerprint_returns_none_for_a_file_that_is_not_an_image(tmp_path: Path) -> None:
