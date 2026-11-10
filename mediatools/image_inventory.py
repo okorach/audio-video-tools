@@ -19,7 +19,8 @@
 #
 
 """Tool that inventories the photos found in directories and/or disk drives into a CSV file: full path, short name, size,
-dimensions, dates (taken, created, modified), GPS coordinates, device and other common EXIF metadata"""
+dimensions, a perceptual fingerprint (to later detect duplicates), dates (taken, created, modified), GPS coordinates, device
+and other common EXIF metadata"""
 
 from __future__ import annotations
 
@@ -33,6 +34,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from exiftool import ExifToolHelper
+from PIL import Image, ImageOps
 
 import mediatools.utilities as util
 import utilities.file as fil
@@ -45,6 +47,7 @@ PROGRESS_PERIOD: int = 10  # Seconds between 2 progress log lines
 DEFAULT_WORKERS: int = 8
 DEFAULT_OUTPUT: str = "photo-inventory.csv"
 DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
+FINGERPRINT_GRID: int = 16  # Side of the grayscale thumbnail the fingerprint is computed from: 256 bits long
 
 CSV_HEADER: tuple[str, ...] = (
     "full_path",
@@ -52,6 +55,7 @@ CSV_HEADER: tuple[str, ...] = (
     "size_bytes",
     "width",
     "height",
+    "fingerprint",
     "date_taken",
     "date_created",
     "date_modified",
@@ -135,6 +139,37 @@ def _get_date_taken(exif_data: dict) -> datetime | None:
     return None
 
 
+def compute_fingerprint(filename: str) -> str | None:
+    """Returns a perceptual fingerprint of a photo, as a hex string, computed only from its pixels (not from its file name
+    or its metadata): a difference hash of a small grayscale thumbnail of the photo (after applying its EXIF orientation),
+    so that it is identical for the exact same image, and close (small hamming_distance()) for the same image resized or
+    cropped a bit, which can later be used to compute a match probability between two photos. None if the photo can't be
+    read as an image"""
+    try:
+        with Image.open(filename) as img:
+            resample = getattr(Image, "Resampling", Image).LANCZOS
+            thumbnail = ImageOps.exif_transpose(img).convert("L").resize((FINGERPRINT_GRID + 1, FINGERPRINT_GRID), resample)
+            pixels = list(getattr(thumbnail, "get_flattened_data", thumbnail.getdata)())
+    except Exception as e:
+        log.logger.warning("Could not compute the fingerprint of %s: %s", filename, e)
+        return None
+    width = FINGERPRINT_GRID + 1
+    bits = "".join(
+        "1" if pixels[row * width + col] > pixels[row * width + col + 1] else "0"
+        for row in range(FINGERPRINT_GRID)
+        for col in range(FINGERPRINT_GRID)
+    )
+    return f"{int(bits, 2):0{len(bits) // 4}x}"
+
+
+def hamming_distance(fingerprint_1: str | None, fingerprint_2: str | None) -> int | None:
+    """Returns the number of bits that differ between two fingerprints returned by compute_fingerprint(), a measure of how
+    close two photos are (0 for identical fingerprints), None if either fingerprint is None or they are not the same length"""
+    if fingerprint_1 is None or fingerprint_2 is None or len(fingerprint_1) != len(fingerprint_2):
+        return None
+    return (int(fingerprint_1, 16) ^ int(fingerprint_2, 16)).bit_count()
+
+
 def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
     """Returns the (size in bytes, creation date, modification date) of a file, None values if it can't be stat'ed"""
     try:
@@ -163,6 +198,7 @@ def photo_row(et: ExifToolHelper, filename: str) -> list[object]:
         size_bytes,
         width,
         height,
+        compute_fingerprint(filename),
         date_taken.strftime(DATE_FMT) if date_taken else None,
         date_created,
         date_modified,
@@ -202,10 +238,10 @@ def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[
 
 
 def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
-    """Writes a CSV inventory of the photos (full path, size, dimensions, dates, GPS coordinates, device and other common
-    EXIF metadata) to out_file. The photos are read in parallel, max_workers threads each reading a chunk of them with its
-    own exiftool process. The progress (count/total and percentage) is logged at most every PROGRESS_PERIOD seconds.
-    Returns the number of photos inventoried"""
+    """Writes a CSV inventory of the photos (full path, size, dimensions, a perceptual fingerprint, dates, GPS coordinates,
+    device and other common EXIF metadata) to out_file. The photos are read in parallel, max_workers threads each reading a
+    chunk of them with its own exiftool process. The progress (count/total and percentage) is logged at most every
+    PROGRESS_PERIOD seconds. Returns the number of photos inventoried"""
     total = len(files)
     progress_done = _progress_logger(total)
     log.logger.info("Inventorying %d photos into %s", total, out_file)

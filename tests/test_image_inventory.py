@@ -33,11 +33,13 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from PIL import Image
 
 import mediatools.utilities as util
 from mediatools import image_inventory, tools
 
 REAL_IMAGE = os.path.join("it", "img-640x480.jpg")
+OTHER_IMAGE = os.path.join("it", "img-superwide.jpg")
 
 
 def fake_exiftool(data: dict) -> types.SimpleNamespace:
@@ -120,6 +122,52 @@ def test_photo_row_matches_the_csv_header_order(tmp_path: Path) -> None:
     assert values["gps_latitude"] == 10.5
     assert values["device"] == "Canon EOS R5"
     assert values["iso"] == 100
+    assert values["fingerprint"] is None  # Not a real image, so it can't be read as one
+
+
+def test_fingerprint_is_identical_for_a_renamed_copy(tmp_path: Path) -> None:
+    """The fingerprint only depends on the pixels, so a byte-for-byte copy under a different name has the same one"""
+    copy = tmp_path / "same-photo-different-name.jpg"
+    copy.write_bytes(Path(REAL_IMAGE).read_bytes())
+    assert image_inventory.compute_fingerprint(str(copy)) == image_inventory.compute_fingerprint(REAL_IMAGE)
+
+
+def test_fingerprint_returns_none_for_a_file_that_is_not_an_image(tmp_path: Path) -> None:
+    """A file that can't be read as an image has no fingerprint, instead of raising"""
+    f = tmp_path / "not-a-photo.jpg"
+    f.write_bytes(b"this is not a jpeg")
+    assert image_inventory.compute_fingerprint(str(f)) is None
+
+
+def test_fingerprint_is_closer_for_a_resized_copy_than_for_a_different_photo(tmp_path: Path) -> None:
+    """A resized copy of a photo keeps a fingerprint close to the original one, much closer than an unrelated photo"""
+    resized = tmp_path / "resized.jpg"
+    with Image.open(REAL_IMAGE) as img:
+        img.resize((img.width // 2, img.height // 2)).save(resized)
+    original_fp = image_inventory.compute_fingerprint(REAL_IMAGE)
+    resized_fp = image_inventory.compute_fingerprint(str(resized))
+    other_fp = image_inventory.compute_fingerprint(OTHER_IMAGE)
+    assert image_inventory.hamming_distance(original_fp, resized_fp) < image_inventory.hamming_distance(original_fp, other_fp)
+
+
+def test_fingerprint_is_closer_for_a_cropped_copy_than_for_a_different_photo(tmp_path: Path) -> None:
+    """A photo cropped a bit keeps a fingerprint close to the original one, much closer than an unrelated photo"""
+    cropped = tmp_path / "cropped.jpg"
+    with Image.open(REAL_IMAGE) as img:
+        img.crop((10, 10, img.width - 10, img.height - 10)).save(cropped)
+    original_fp = image_inventory.compute_fingerprint(REAL_IMAGE)
+    cropped_fp = image_inventory.compute_fingerprint(str(cropped))
+    other_fp = image_inventory.compute_fingerprint(OTHER_IMAGE)
+    assert image_inventory.hamming_distance(original_fp, cropped_fp) < image_inventory.hamming_distance(original_fp, other_fp)
+
+
+def test_hamming_distance_counts_the_differing_bits() -> None:
+    """The hamming distance is the number of bits that differ, None if a fingerprint is missing or they are not comparable"""
+    assert image_inventory.hamming_distance("ff", "ff") == 0
+    assert image_inventory.hamming_distance("ff", "00") == 8
+    assert image_inventory.hamming_distance(None, "ff") is None
+    assert image_inventory.hamming_distance("ff", None) is None
+    assert image_inventory.hamming_distance("ff", "fff") is None
 
 
 def test_chunks_splits_preserving_order() -> None:
@@ -160,6 +208,7 @@ def test_inventory_writes_a_csv_with_one_row_per_photo(tmp_path: Path) -> None:
     assert values["width"] == "640"
     assert values["height"] == "480"
     assert int(values["size_bytes"]) == Path(REAL_IMAGE).stat().st_size
+    assert values["fingerprint"] == image_inventory.compute_fingerprint(REAL_IMAGE)
 
 
 def test_inventory_handles_several_photos_across_threads(tmp_path: Path) -> None:
