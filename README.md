@@ -41,4 +41,4 @@ Videos can be flipped (left/right or top/bottom) with `videotool flip`: see [doc
 
 Posters are created from photos arranged in columns with `imagetool poster`: see [docs/imagetool-poster.md](docs/imagetool-poster.md).
 
-Photos found in directories and/or disk drives can be inventoried (size, dimensions, dates, GPS coordinates, device, EXIF metadata) into a CSV file with `imagetool inventory`: see [docs/imagetool-inventory.md](docs/imagetool-inventory.md).
+Photos found in directories and/or disk drives can be inventoried (size, dimensions, a perceptual fingerprint for duplicate detection, dates, GPS coordinates, device, EXIF metadata) into a CSV file with `imagetool inventory`: see [docs/imagetool-inventory.md](docs/imagetool-inventory.md).
