@@ -27,6 +27,7 @@ import csv
 import os
 import shutil
 import sys
+import types
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -39,16 +40,9 @@ from mediatools import image_inventory, tools
 REAL_IMAGE = os.path.join("it", "img-640x480.jpg")
 
 
-class FakeExifToolHelper:
-    """A fake ExifToolHelper that returns canned EXIF data instead of running exiftool"""
-
-    def __init__(self, data: dict) -> None:
-        """Creates a fake ExifToolHelper that returns data for any file given to get_metadata()"""
-        self.data = data
-
-    def get_metadata(self, _filename: str) -> list[dict]:
-        """Returns the canned EXIF data, as exiftool would for a single file"""
-        return [self.data]
+def fake_exiftool(data: dict) -> types.SimpleNamespace:
+    """Returns a fake ExifToolHelper that returns data (as a single-element list) for any file given to get_metadata()"""
+    return types.SimpleNamespace(get_metadata=lambda _filename: [data])
 
 
 def test_get_dimensions_falls_back_across_tags() -> None:
@@ -114,7 +108,7 @@ def test_photo_row_matches_the_csv_header_order(tmp_path: Path) -> None:
         "EXIF:Model": "EOS R5",
         "EXIF:ISO": 100,
     }
-    row = image_inventory.photo_row(FakeExifToolHelper(exif_data), str(f))
+    row = image_inventory.photo_row(fake_exiftool(exif_data), str(f))
     assert len(row) == len(image_inventory.CSV_HEADER)
     values = dict(zip(image_inventory.CSV_HEADER, row, strict=True))
     assert values["full_path"] == os.path.abspath(str(f))
