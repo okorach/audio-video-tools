@@ -26,7 +26,7 @@ The tools are also available as actions of 4 commands, which are followed by the
 |---|---|---|
 | `videotool` | videos | `crop`, `concat`, `cut`, `deshake`, `encode`, `encodeauto`, `enhance`, `flip`, `metadata`, `mux`, `profile-encode`, `reverse`, `rotate`, `slideshow`, `snap`, `specs`, `speed`, `stabilize`, `volume` |
 | `audiotool` | audio files | `album-art`, `concat`, `cut`, `denoise`, `encode`, `fix-mp3-meta`, `lib`, `list`, `normalize`, `profile-encode`, `specs`, `speed`, `split`, `volume` |
-| `imagetool` | images | `blinds`, `crop-ratio`, `poster`, `scale`, `shake`, `specs`, `stack`, `to-video` |
+| `imagetool` | images | `blinds`, `crop-ratio`, `inventory`, `poster`, `scale`, `shake`, `specs`, `stack`, `to-video` |
 | `pdftool` | PDF files | `compress`, `merge`, `split` |
 
 For instance: `videotool crop -i <file> --box 1920x1080 --center`.
