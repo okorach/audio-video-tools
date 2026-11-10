@@ -687,6 +687,32 @@ class VideoFile(media.MediaFile):
         log.logger.debug("vfilters = %s", str(vfilters))
         return vfilters
 
+    def to_slide(self, resolution: object = None, out_file: str | None = None, **kwargs: object) -> tuple[str, dict]:
+        """Converts the video into a slide of a slideshow: scaled and cropped (centered) to fill the resolution, re-encoded at the
+        requested fps, with no soundtrack (a slideshow has none). kwargs accepts duration (trims the clip to its first seconds,
+        the whole video by default), framerate, quality and hw_accel (see panorama()/zoom() of ImageFile for the photo equivalent).
+        Returns the (output file, slide description) tuple, written as an entry of the slideshow's YAML file"""
+        v_res = res.Resolution(resolution=resolution or conf.get_property(conf.VIDEO_RESOLUTION_KEY))
+        fps = kwargs.get("framerate") or conf.get_property(conf.VIDEO_FPS_KEY)
+        duration = float(kwargs["duration"]) if kwargs.get("duration") else self.duration
+        info = {"photo": self.filename, "duration": round(duration, 2)}
+        out_file = out_file or f"{util.get_tmp_file()}.{conf.get_property('default.video.format')}"
+
+        if self.resolution.ratio > v_res.ratio:
+            vfilters = [filters.scale(-1, v_res.height)]
+        else:
+            vfilters = [filters.scale(v_res.width, -1)]
+        vfilters.append(filters.crop(v_res.width, v_res.height))
+        vf_string = ",".join(vfilters)
+
+        hw_accel = util.use_hardware_accel(**kwargs)
+        ((_, quality),) = media.get_quality_settings("h264_nvenc" if hw_accel else "libx264", False, **kwargs).items()
+        encoder = f"-c:v h264_nvenc -cq {quality}" if hw_accel else f"-crf {quality} -preset slow"
+
+        cmd = f'-i "{self.filename}" -filter_complex "[0:v]{vf_string}[v]" -map "[v]" -t {duration} -r {fps} {encoder} -s "{v_res}" "{out_file}"'
+        util.run_ffmpeg(cmd, duration)
+        return out_file, info
+
 
 def normalize_rotation_angle(angle: int | str | None) -> int:
     """Returns the clockwise rotation angle (90, 180 or 270) of an angle given in degrees: -90, 90, 180 or 270 (90 by default).
@@ -952,6 +978,24 @@ def __assembly_weight__(resolution: str, nb_clips: int) -> float:
     return nb_clips * 0.08 * (width * height / (1920 * 1080)) ** 0.65
 
 
+def __slide_clip__(slide_file: str, description: dict | None, **kwargs: object) -> tuple[str, dict] | None:
+    """Converts one slide (a photo or a video clip) of a slideshow into a clip: a photo is converted to a short video with a
+    zoom or panorama effect, a video clip is scaled, cropped (centered) and stripped of its soundtrack. kwargs is forwarded to
+    the conversion (resolution, hw_accel, framerate, quality). Returns the (clip file, slide description) tuple, None if the
+    slide can't be used (it failed, or the file is neither an image nor a video)"""
+    try:
+        if fil.is_image_file(slide_file):
+            img = image.ImageFile(slide_file)
+            return img.to_video(with_effect=True, **kwargs) if description is None else img.from_description(description, **kwargs)
+        if fil.is_video_file(slide_file):
+            return VideoFile(slide_file).to_slide(duration=description.get("duration") if description else None, **kwargs)
+    except OSError:
+        log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
+        return None
+    log.logger.info("File %s is neither an image not a video, skipped", slide_file)
+    return None
+
+
 @util.hw_accel_fallback
 def slideshow(
     *inputs: str,
@@ -963,13 +1007,14 @@ def slideshow(
     quality: str | None = None,
     fmt: str | None = None,
 ) -> tuple[str, list]:
-    """Builds a high quality video slide show from a set of photos: each photo is converted to a short video
-    with a slow zoom or panorama effect, slides are cross-faded into each other, and the output fades in/out at the
-    start/end. outfile defaults to the basename of the first input photo with the video extension.
-    descriptions is the list of the photos (as generated in the YAML file by a previous slideshow), with the effect and duration
-    to apply to each of them. The inputs are added at the end of the slideshow, after the described photos.
+    """Builds a high quality video slide show from a set of photos and/or video clips: each photo is converted to a short video
+    with a slow zoom or panorama effect, each video clip is scaled and cropped (centered) to fill the resolution and stripped of
+    its soundtrack, slides are cross-faded into each other, and the output fades in/out at the start/end. outfile defaults to the
+    basename of the first input with the video extension.
+    descriptions is the list of the slides (as generated in the YAML file by a previous slideshow), with the effect and duration
+    to apply to each of them. The inputs are added at the end of the slideshow, after the described slides.
     fps is the frame rate of the video (default.slideshow.fps, 50 by default), quality is the video quality: high (default), medium or low.
-    Returns the (output file, list of per-photo operations) tuple"""
+    Returns the (output file, list of per-slide operations) tuple"""
     log.logger.info("slideshow(%s)", str(descriptions or inputs))
     MAX_SLIDESHOW_AT_ONCE = 30
     slides = [(d["photo"], d) for d in descriptions or []] + [(f, None) for f in fil.file_list(*inputs)]
@@ -993,26 +1038,13 @@ def slideshow(
     assembly_weight = __assembly_weight__(resolution, nb_slides)
     progress = util.GlobalProgress(nb_slides + assembly_weight * (1 if nb_slides <= MAX_SLIDESHOW_AT_ONCE else 1.5))
     for slide_file, description in slides:
-        if fil.is_image_file(slide_file):
-            try:
-                img = image.ImageFile(slide_file)
-                if description is None:
-                    out_file, details = img.to_video(with_effect=True, resolution=resolution, hw_accel=hw_accel, framerate=fps, quality=quality)
-                else:
-                    out_file, details = img.from_description(description, resolution=resolution, hw_accel=hw_accel, framerate=fps, quality=quality)
-                video_files.append(out_file)
-                operations.append(details)
-            except OSError:
-                log.logger.error("Failed to use %s for slideshow, skipped", slide_file)
-            progress.done()
-        elif fil.is_video_file(slide_file):
-            # video_files.append(slide_file)
-            log.logger.info("File %s is a video, skipped", slide_file)
-            progress.done()
-        else:
-            log.logger.info("File %s is neither an image not a video, skipped", slide_file)
-            progress.done()
+        clip = __slide_clip__(slide_file, description, resolution=resolution, hw_accel=hw_accel, framerate=fps, quality=quality)
+        progress.done()
+        if clip is None:
             continue
+        out_file, details = clip
+        video_files.append(out_file)
+        operations.append(details)
         if len(video_files) >= MAX_SLIDESHOW_AT_ONCE:
             part_weight = __assembly_weight__(resolution, len(video_files))
             progress.next_weight = part_weight

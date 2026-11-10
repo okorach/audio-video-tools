@@ -90,6 +90,36 @@ def test_slideshow_without_resolution(images: tuple[str, ...], small_default_res
     os.remove(vid2_o.filename)
 
 
+def test_to_slide_scales_crops_and_strips_audio(short_video: str, tmp_path: Path) -> None:
+    """A video clip used as a slide is scaled and cropped (centered) to the slideshow resolution, with no soundtrack,
+    and keeps its own duration by default"""
+    out_file, info = video.VideoFile(short_video).to_slide(resolution="160x160", out_file=str(tmp_path / "slide.mp4"))
+    clip = video.VideoFile(out_file)
+    assert clip.resolution.width == 160
+    assert clip.resolution.height == 160
+    assert clip.audio_codec is None
+    assert clip.duration == pytest.approx(1.5, abs=0.2)
+    assert info["photo"] == video.VideoFile(short_video).filename
+    assert info["duration"] == pytest.approx(1.5, abs=0.05)
+
+
+def test_to_slide_respects_an_explicit_duration(short_video: str, tmp_path: Path) -> None:
+    """An explicit duration (eg reloaded from the YAML file) trims the clip instead of using the whole video"""
+    out_file, info = video.VideoFile(short_video).to_slide(resolution="160x160", out_file=str(tmp_path / "slide.mp4"), duration=0.5)
+    assert video.VideoFile(out_file).duration == pytest.approx(0.5, abs=0.1)
+    assert info["duration"] == 0.5
+
+
+def test_slideshow_mixes_photos_and_video_clips(images: tuple[str, ...], short_video: str) -> None:
+    """A slideshow can be built from a mix of photos and video clips, the result having no soundtrack"""
+    out_file, operations = video.slideshow(images[0], short_video, resolution="320x180")
+    clip = video.VideoFile(out_file)
+    assert clip.audio_codec is None
+    assert clip.duration > 1.5
+    assert any(fil.is_video_file(op["photo"]) for op in operations)
+    os.remove(out_file)
+
+
 def test_main(images: tuple[str, ...]) -> None:
     """Main"""
     file1, file2 = images[2], images[0]
@@ -98,6 +128,21 @@ def test_main(images: tuple[str, ...]) -> None:
         tools.videotool()
     os.remove(out_file)
     os.remove(fil.strip_extension(out_file) + ".yaml")
+
+
+def test_main_video_input_round_trips_in_the_yaml(images: tuple[str, ...], short_video: str, tmp_path: Path) -> None:
+    """A video clip given in -i is accepted like a photo, and round-trips in the generated YAML file with its duration"""
+    out_file = str(tmp_path / "mixed.mp4")
+    with patch.object(sys, "argv", ["videotool", "slideshow", "-i", images[0], short_video, "--resolution", "320x180", "-o", out_file]):
+        tools.videotool()
+    assert os.path.isfile(out_file)
+    content = yaml.safe_load((tmp_path / "mixed.yaml").read_text(encoding="utf-8"))
+    basenames = [os.path.basename(p["photo"]) for p in content["photos"]]
+    assert os.path.basename(short_video) in basenames
+    video_entry = next(p for p in content["photos"] if os.path.basename(p["photo"]) == os.path.basename(short_video))
+    assert video_entry["duration"] == pytest.approx(1.5, abs=0.2)
+    os.remove(out_file)
+    os.remove(tmp_path / "mixed.yaml")
 
 
 def test_main_yaml_input(images: tuple[str, ...], tmp_path: Path) -> None:
@@ -229,6 +274,19 @@ def test_slideshow_passes_the_mode_to_the_clips(commands: mock.MagicMock) -> Non
     ):
         video.slideshow(images_full[0], outfile="out.mp4", hw_accel="on")
     assert to_video.call_args.kwargs["hw_accel"] == "on"
+    commands.assert_not_called()
+
+
+def test_slideshow_passes_the_mode_to_the_video_clips(commands: mock.MagicMock, short_video: str) -> None:
+    """Slideshow passes the mode and the fps/quality to the video clips too"""
+    with (
+        patch.object(video, "__build_slideshow__", return_value="out.mp4", create=True),
+        patch.object(video.VideoFile, "to_slide", return_value=("clip.mp4", {"photo": short_video})) as to_slide,
+    ):
+        video.slideshow(short_video, outfile="out.mp4", hw_accel="on", fps=30, quality="low")
+    assert to_slide.call_args.kwargs["hw_accel"] == "on"
+    assert to_slide.call_args.kwargs["framerate"] == 30
+    assert to_slide.call_args.kwargs["quality"] == "low"
     commands.assert_not_called()
 
 
