@@ -73,6 +73,8 @@ near-duplicate photos across the inventory:
 - `image_inventory.hamming_distance(fingerprint_1, fingerprint_2)` returns the number of bits that differ between two
   fingerprints (0 for identical photos), which can be turned into a match probability between two photos.
 
-The fingerprint of a photo that can't be read as an image (corrupted file, unsupported format) is empty.
+The fingerprint of a photo that can't be read as an image (corrupted file, unsupported format) is empty. A very large photo
+(more pixels than Pillow's decompression bomb safety limit) logs a warning naming the file, since Pillow's own warning about
+it doesn't.
 
 Requires `exiftool` on PATH.

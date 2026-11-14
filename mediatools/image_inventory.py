@@ -179,6 +179,10 @@ def compute_fingerprint(filename: str) -> str | None:
     read as an image"""
     try:
         with Image.open(filename) as img:
+            nb_pixels = img.width * img.height
+            if Image.MAX_IMAGE_PIXELS and nb_pixels > Image.MAX_IMAGE_PIXELS:
+                # Pillow itself only warns about this (without naming the file), decoding such a large image may be slow
+                log.logger.warning("%s is a very large image (%d pixels), its fingerprint may take a while to compute", filename, nb_pixels)
             resample = getattr(Image, "Resampling", Image).LANCZOS
             thumbnail = ImageOps.exif_transpose(img).convert("L").resize((FINGERPRINT_GRID + 1, FINGERPRINT_GRID), resample)
             pixels = list(getattr(thumbnail, "get_flattened_data", thumbnail.getdata)())
@@ -261,11 +265,13 @@ def _chunks(files: list[str], nb_chunks: int) -> list[list[str]]:
 def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[list[object]]:
     """Returns the CSV rows of a chunk of photos, their EXIF data read with a single exiftool process kept open for the whole
     chunk: spawning one exiftool process per photo, instead of per chunk, would make the inventory of a large photo
-    collection much slower"""
+    collection much slower. progress_done() is called after each photo, not only once the whole chunk is done, so the
+    progress is reported as the photos are actually processed, not in bursts of a whole chunk at a time"""
+    rows = []
     with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
-        rows = [photo_row(et, f) for f in files]
-    for _ in files:
-        progress_done()
+        for f in files:
+            rows.append(photo_row(et, f))
+            progress_done()
     return rows
 
 

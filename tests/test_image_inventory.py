@@ -139,6 +139,14 @@ def test_fingerprint_returns_none_for_a_file_that_is_not_an_image(tmp_path: Path
     assert image_inventory.compute_fingerprint(str(f)) is None
 
 
+def test_fingerprint_logs_the_file_name_of_a_very_large_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pillow's own DecompressionBombWarning doesn't name the file: a very large image logs a warning naming it"""
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1)  # Any real photo now exceeds the limit
+    with mock.patch.object(image_inventory.log.logger, "warning") as log_warning:
+        image_inventory.compute_fingerprint(REAL_IMAGE)
+    assert any(REAL_IMAGE in call.args for call in log_warning.call_args_list)
+
+
 def test_fingerprint_is_closer_for_a_resized_copy_than_for_a_different_photo(tmp_path: Path) -> None:
     """A resized copy of a photo keeps a fingerprint close to the original one, much closer than an unrelated photo"""
     resized = tmp_path / "resized.jpg"
@@ -176,6 +184,27 @@ def test_chunks_splits_preserving_order() -> None:
     chunks = image_inventory._chunks(files, 3)
     assert [f for chunk in chunks for f in chunk] == files
     assert len(chunks) <= 3
+
+
+def test_process_chunk_reports_progress_after_each_photo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """progress_done() is called right after each photo is processed, not only once the whole chunk is done, so the progress
+    is reported as the photos are actually processed instead of in one burst at the end of the chunk"""
+    order = []
+
+    class FakeHelper:
+        """A fake ExifToolHelper usable as a context manager"""
+
+        def __enter__(self) -> None:
+            return None
+
+        def __exit__(self, *_args: object) -> bool:
+            return False
+
+    monkeypatch.setattr(image_inventory, "photo_row", lambda _et, f: order.append(f"row:{f}") or [f])
+    monkeypatch.setattr(image_inventory, "ExifToolHelper", lambda **_kwargs: FakeHelper())
+    rows = image_inventory._process_chunk(["a", "b", "c"], lambda: order.append("done"))
+    assert order == ["row:a", "done", "row:b", "done", "row:c", "done"]
+    assert rows == [["a"], ["b"], ["c"]]
 
 
 def test_progress_logs_every_period_and_on_completion_with_eta(monkeypatch: pytest.MonkeyPatch) -> None:
