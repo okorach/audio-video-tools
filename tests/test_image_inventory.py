@@ -139,6 +139,14 @@ def test_fingerprint_returns_none_for_a_file_that_is_not_an_image(tmp_path: Path
     assert image_inventory.compute_fingerprint(str(f)) is None
 
 
+def test_fingerprint_logs_the_file_name_of_a_very_large_image(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pillow's own DecompressionBombWarning doesn't name the file: a very large image logs a warning naming it"""
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1)  # Any real photo now exceeds the limit
+    with mock.patch.object(image_inventory.log.logger, "warning") as log_warning:
+        image_inventory.compute_fingerprint(REAL_IMAGE)
+    assert any(REAL_IMAGE in call.args for call in log_warning.call_args_list)
+
+
 def test_fingerprint_is_closer_for_a_resized_copy_than_for_a_different_photo(tmp_path: Path) -> None:
     """A resized copy of a photo keeps a fingerprint close to the original one, much closer than an unrelated photo"""
     resized = tmp_path / "resized.jpg"
@@ -178,17 +186,82 @@ def test_chunks_splits_preserving_order() -> None:
     assert len(chunks) <= 3
 
 
-def test_progress_logs_every_period_and_on_completion(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The progress is logged once the period has elapsed, and always for the last photo, even if the period has not elapsed"""
-    times = iter([0, 5, 11, 11.5])
+def test_process_chunk_reports_progress_after_each_photo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """progress_done() is called right after each photo is processed, not only once the whole chunk is done, so the progress
+    is reported as the photos are actually processed instead of in one burst at the end of the chunk"""
+    order = []
+
+    class FakeHelper:
+        """A fake ExifToolHelper usable as a context manager"""
+
+        def __enter__(self) -> None:
+            return None
+
+        def __exit__(self, *_args: object) -> bool:
+            return False
+
+    monkeypatch.setattr(image_inventory, "photo_row", lambda _et, f: order.append(f"row:{f}") or [f])
+    monkeypatch.setattr(image_inventory, "ExifToolHelper", lambda **_kwargs: FakeHelper())
+    rows = image_inventory._process_chunk(["a", "b", "c"], lambda: order.append("done"))
+    assert order == ["row:a", "done", "row:b", "done", "row:c", "done"]
+    assert rows == [["a"], ["b"], ["c"]]
+
+
+def test_progress_logs_every_period_and_on_completion_with_eta(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The progress and its ETA are logged once the period has elapsed, and always for the last photo, even if the period
+    has not elapsed; the ETA is the time to process the remaining photos at the average speed observed so far"""
+    times = iter([0, 10, 35, 36])  # 0: _progress_logger() start, then one value per done() call
     monkeypatch.setattr(image_inventory.time, "monotonic", lambda: next(times))
     with mock.patch.object(image_inventory.log.logger, "info") as log_info:
         done = image_inventory._progress_logger(3)
-        done()  # elapsed = 5, not logged
-        done()  # elapsed = 11, logged
-        done()  # elapsed = 0.5, but last photo, logged
+        done()  # elapsed since start = 10, not logged (period is 30s)
+        done()  # elapsed since start = 35, logged: 1 photo remaining at 35/2 s/photo = ETA 17.5s
+        done()  # elapsed since last log = 1s, but last photo, logged regardless
     assert log_info.call_count == 2
-    assert log_info.call_args_list[-1].args[1:] == (3, 3, 100.0)
+    assert log_info.call_args_list[0].args[1:] == (2, 3, "00:00:17.500")
+    assert log_info.call_args_list[1].args[1:] == (3, 3, "00:00:00.000")
+
+
+def test_collect_photos_keeps_files_and_expands_directories(tmp_path: Path) -> None:
+    """Files given directly are kept whatever their extension, directories are walked recursively for image files only"""
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "photo.jpg").write_bytes(b"0")
+    (tmp_path / "sub" / "notes.txt").write_bytes(b"0")
+    given_file = tmp_path / "given.txt"
+    given_file.write_bytes(b"0")
+    files = image_inventory._collect_photos([str(given_file), str(tmp_path / "sub")])
+    assert set(files) == {str(given_file), str(tmp_path / "sub" / "photo.jpg")}
+
+
+def test_collect_photos_exits_when_nothing_is_found(tmp_path: Path) -> None:
+    """Exits with code 1 when no photo is found in the given paths"""
+    with pytest.raises(SystemExit) as exc:
+        image_inventory._collect_photos([str(tmp_path)])
+    assert exc.value.code == 1
+
+
+def test_collect_photos_logs_a_final_message_once_complete(tmp_path: Path) -> None:
+    """Once the collection is complete, a distinct final message announces the total count and the next step"""
+    (tmp_path / "photo.jpg").write_bytes(b"0")
+    with mock.patch.object(image_inventory.log.logger, "info") as log_info:
+        files = image_inventory._collect_photos([str(tmp_path)])
+    assert len(files) == 1
+    assert log_info.call_args_list[-1].args == ("%d images collected, now processing...", 1)
+
+
+def test_collect_photos_logs_progress_every_period(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The number of photos collected so far is logged every COLLECT_PROGRESS_PERIOD seconds while walking the directories"""
+    names = [f"photo{i}.jpg" for i in range(3)]
+    monkeypatch.setattr(image_inventory.os, "walk", lambda _path: [("root", [], names)])
+    monkeypatch.setattr(image_inventory.fil, "is_image_file", lambda _name: True)
+    times = iter([0, 4, 11, 12])  # 0: start, then one value per file collected
+    monkeypatch.setattr(image_inventory.time, "monotonic", lambda: next(times))
+    with mock.patch.object(image_inventory.log.logger, "info") as log_info:
+        files = image_inventory._collect_photos([str(tmp_path)])
+    assert len(files) == 3
+    assert log_info.call_count == 2  # Once at 11s (>= 10s period), once at the end
+    assert log_info.call_args_list[0].args[1] == 2
+    assert log_info.call_args_list[-1].args[1] == 3
 
 
 pytestmark = pytest.mark.skipif(shutil.which(util.get_exiftool()) is None, reason="exiftool is not installed")
