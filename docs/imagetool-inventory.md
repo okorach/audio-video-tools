@@ -35,10 +35,14 @@ imagetool inventory -i <photos, directories and/or disk drives> [-o <output.csv>
 | `--threads` | Number of threads reading the photos' metadata in parallel. Default: 8 |
 | `-v` | Verbosity, see [verbosity.md](verbosity.md) |
 
-The photos are read in parallel: the list of photos is split into `--threads` chunks, each chunk read by its own thread with a
-single `exiftool` process kept open for the whole chunk (spawning one `exiftool` process per photo would be much slower on a large
-photo collection, such as a whole disk drive). The progress (count/total and percentage) is logged at most every 10 seconds, eg
-`1346/3384 pictures 39.8%`.
+Finding all the photos under a directory or a disk drive can itself take a while before the inventory can start: the number of
+photos found so far is logged at most every 10 seconds, eg `Collected 1346 images for inventory`.
+
+The photos are then read in parallel: the list of photos is split into `--threads` chunks, each chunk read by its own thread with
+a single `exiftool` process kept open for the whole chunk (spawning one `exiftool` process per photo would be much slower on a
+large photo collection, such as a whole disk drive). The processing progress and its ETA (estimated from the average time per
+photo processed so far, applied to the remaining photos) are logged at most every 30 seconds, eg
+`Processed 1346/3384 images - ETA 00:12:34.567`.
 
 The CSV file has one row per photo, with the columns below (in this order). A column is empty when the corresponding metadata is
 not present in the photo:

@@ -547,10 +547,13 @@ def remove_nones(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = None, input_type: str | tuple[str, ...] | None = None) -> dict:
+def parse_media_args(
+    parser: argparse.ArgumentParser, args: list[str] | None = None, input_type: str | tuple[str, ...] | None = None, expand_inputs: bool = True
+) -> dict:
     """Parses the command line arguments.
     The input files (-i) may be files and/or directories: the directories are replaced by the files they contain (recursively),
-    which are of type input_type (a FileType or a tuple of FileTypes), any audio/video/image file by default"""
+    which are of type input_type (a FileType or a tuple of FileTypes), any audio/video/image file by default. expand_inputs can
+    be set to False to leave the input files and directories as given, for a caller that needs to expand them itself"""
     if args is None:
         kwargs = vars(parser.parse_args())
     else:
@@ -564,7 +567,7 @@ def parse_media_args(parser: argparse.ArgumentParser, args: list[str] | None = N
     if kwargs.get(opt.Option.RESOLUTION):
         # The aliases (4k, 2.7k, fhd, hd, 2160p, 1520p, 1080p, 720p...) are converted to WxH: ffmpeg has its own, different, meaning for some of them
         kwargs[opt.Option.RESOLUTION] = res.canonical(kwargs[opt.Option.RESOLUTION])
-    if isinstance(kwargs.get(INPUT_FILES), list):
+    if expand_inputs and isinstance(kwargs.get(INPUT_FILES), list):
         kwargs[INPUT_FILES] = expand_input_files(kwargs[INPUT_FILES], input_type)
     timerange = kwargs.get("timeranges")
     if timerange:

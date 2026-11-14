@@ -28,6 +28,7 @@ import argparse
 import concurrent.futures
 import csv
 import os
+import sys
 import threading
 import time
 from datetime import datetime
@@ -43,7 +44,8 @@ from mediatools import log
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-PROGRESS_PERIOD: int = 10  # Seconds between 2 progress log lines
+COLLECT_PROGRESS_PERIOD: int = 10  # Seconds between 2 progress log lines while collecting the photos to inventory
+PROGRESS_PERIOD: int = 30  # Seconds between 2 progress log lines while processing the photos
 DEFAULT_WORKERS: int = 8
 DEFAULT_OUTPUT: str = "photo-inventory.csv"
 DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
@@ -80,21 +82,51 @@ DATE_TAKEN_TAGS: tuple[str, ...] = ("EXIF:DateTimeOriginal", "EXIF:CreateDate")
 
 
 def _progress_logger(total: int) -> Callable[[], None]:
-    """Returns a thread-safe function that records one more photo done out of total, and logs the progress
-    (count/total and percentage) at most once every PROGRESS_PERIOD seconds, and always for the last photo"""
+    """Returns a thread-safe function that records one more photo processed out of total, and logs the progress and the ETA
+    (estimated from the average time per photo processed so far, applied to the remaining photos) at most once every
+    PROGRESS_PERIOD seconds, and always for the last photo"""
     lock = threading.Lock()
-    state = {"count": 0, "last_log": time.monotonic()}
+    start = time.monotonic()
+    state = {"count": 0, "last_log": start}
 
     def done() -> None:
-        """Records that a photo has been inventoried, and logs the progress if due"""
+        """Records that a photo has been inventoried, and logs the progress and the ETA if due"""
         with lock:
             state["count"] += 1
             now = time.monotonic()
             if now - state["last_log"] >= PROGRESS_PERIOD or state["count"] >= total:
-                log.logger.info("%d/%d pictures %.1f%%", state["count"], total, 100 * state["count"] / total)
+                eta = (total - state["count"]) * (now - start) / state["count"]
+                log.logger.info("Processed %d/%d images - ETA %s", state["count"], total, util.to_hms_str(eta))
                 state["last_log"] = now
 
     return done
+
+
+def _collect_photos(paths: list[str]) -> list[str]:
+    """Expands the files, directories and/or disk drives given in paths into the list of photos they contain (directories are
+    walked recursively, files are kept as given whatever their extension). Logs the number of photos collected so far every
+    COLLECT_PROGRESS_PERIOD seconds, since walking a whole disk drive can take a while before the inventory itself starts.
+    Exits with code 1 if no photo is found"""
+    files: list[str] = []
+    last_log = time.monotonic()
+    for path in paths:
+        if not os.path.isdir(path):
+            files.append(path)
+            continue
+        for root, _, names in os.walk(path):
+            for name in names:
+                if not fil.is_image_file(name):
+                    continue
+                files.append(os.path.join(root, name))
+                now = time.monotonic()
+                if now - last_log >= COLLECT_PROGRESS_PERIOD:
+                    log.logger.info("Collected %d images for inventory", len(files))
+                    last_log = now
+    if not files:
+        log.logger.error("No input file found in %s", ", ".join(paths))
+        sys.exit(1)
+    log.logger.info("Collected %d images for inventory", len(files))
+    return files
 
 
 def _get_dimensions(exif_data: dict) -> tuple[int | None, int | None]:
@@ -240,8 +272,8 @@ def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[
 def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
     """Writes a CSV inventory of the photos (full path, size, dimensions, a perceptual fingerprint, dates, GPS coordinates,
     device and other common EXIF metadata) to out_file. The photos are read in parallel, max_workers threads each reading a
-    chunk of them with its own exiftool process. The progress (count/total and percentage) is logged at most every
-    PROGRESS_PERIOD seconds. Returns the number of photos inventoried"""
+    chunk of them with its own exiftool process. The progress and the ETA are logged at most every PROGRESS_PERIOD seconds.
+    Returns the number of photos inventoried"""
     total = len(files)
     progress_done = _progress_logger(total)
     log.logger.info("Inventorying %d photos into %s", total, out_file)
@@ -268,10 +300,11 @@ def main() -> None:
     parser.add_argument(
         "--threads", type=int, default=DEFAULT_WORKERS, help=f"Number of threads reading the photos metadata in parallel (default: {DEFAULT_WORKERS})"
     )
-    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
+    kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE, expand_inputs=False)
 
     out_file = kwargs.get(util.OUTPUT_FILE) or DEFAULT_OUTPUT
-    nb_photos = inventory(kwargs[util.INPUT_FILES], out_file, max_workers=kwargs.get("threads", DEFAULT_WORKERS))
+    photos = _collect_photos(kwargs[util.INPUT_FILES])
+    nb_photos = inventory(photos, out_file, max_workers=kwargs.get("threads", DEFAULT_WORKERS))
     util.generated_file(out_file)
     log.logger.info("%d photos inventoried", nb_photos)
 
