@@ -36,7 +36,8 @@ imagetool inventory -i <photos, directories and/or disk drives> [-o <output.csv>
 | `-v` | Verbosity, see [verbosity.md](verbosity.md) |
 
 Finding all the photos under a directory or a disk drive can itself take a while before the inventory can start: the number of
-photos found so far is logged at most every 10 seconds, eg `Collected 1346 images for inventory`.
+photos found so far is logged at most every 10 seconds, eg `Collected 1346 images for inventory`, and once more when the
+collection is complete, eg `3384 images collected, now processing...`.
 
 The photos are then read in parallel: the list of photos is split into `--threads` chunks, each chunk read by its own thread with
 a single `exiftool` process kept open for the whole chunk (spawning one `exiftool` process per photo would be much slower on a

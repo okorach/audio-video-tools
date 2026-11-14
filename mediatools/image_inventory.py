@@ -125,7 +125,7 @@ def _collect_photos(paths: list[str]) -> list[str]:
     if not files:
         log.logger.error("No input file found in %s", ", ".join(paths))
         sys.exit(1)
-    log.logger.info("Collected %d images for inventory", len(files))
+    log.logger.info("%d images collected, now processing...", len(files))
     return files
 
 

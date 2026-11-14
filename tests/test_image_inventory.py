@@ -211,6 +211,15 @@ def test_collect_photos_exits_when_nothing_is_found(tmp_path: Path) -> None:
     assert exc.value.code == 1
 
 
+def test_collect_photos_logs_a_final_message_once_complete(tmp_path: Path) -> None:
+    """Once the collection is complete, a distinct final message announces the total count and the next step"""
+    (tmp_path / "photo.jpg").write_bytes(b"0")
+    with mock.patch.object(image_inventory.log.logger, "info") as log_info:
+        files = image_inventory._collect_photos([str(tmp_path)])
+    assert len(files) == 1
+    assert log_info.call_args_list[-1].args == ("%d images collected, now processing...", 1)
+
+
 def test_collect_photos_logs_progress_every_period(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The number of photos collected so far is logged every COLLECT_PROGRESS_PERIOD seconds while walking the directories"""
     names = [f"photo{i}.jpg" for i in range(3)]
