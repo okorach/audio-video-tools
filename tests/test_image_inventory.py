@@ -470,6 +470,42 @@ def test_dedup_deletes_the_recommended_photo_on_enter(tmp_path: Path, monkeypatc
     assert [row["full_path"] for row in rows] == [str(file_a)]
 
 
+def test_dedup_auto_deletes_a_100_percent_match_without_asking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 100% likelihood pair with a recommendation is deleted automatically, without asking the user"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x" * 1000)
+    file_b.write_bytes(b"x" * 100)
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", size_bytes="1000", duplicate_likelihood="100", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", size_bytes="100", duplicate_likelihood="100", duplicate_of=str(file_a)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask for a 100% match"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
+
+
+def test_dedup_asks_for_a_100_percent_match_with_no_recommendation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 100% likelihood pair is still asked about when no rule can recommend one over the other"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x")
+    file_b.write_bytes(b"x")
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="100", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="100", duplicate_of=str(file_a)),
+    )
+    asked = []
+    monkeypatch.setattr("builtins.input", lambda prompt: (asked.append(prompt), "0")[1])
+    image_inventory.dedup(str(csv_file))
+    assert asked
+    assert file_a.exists()
+    assert file_b.exists()
+
+
 def test_dedup_keeps_both_when_answer_is_0(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Answering 0 keeps both photos of a pair"""
     file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"

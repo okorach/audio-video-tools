@@ -128,6 +128,10 @@ original name, size and GPS coordinates (eg the same phone photo backed up to 2 
 one from the other. For each pair, answer `1` or `2` to delete that photo, `0` to keep both, or just press `Enter` to
 go with the recommendation (nothing happens on `Enter` when there is none).
 
+A pair at 100% duplicate likelihood with a recommendation is deleted automatically, without asking: there is no
+reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
+copies with the same original name), is still asked about.
+
 A photo chosen for deletion is removed from disk and from the CSV, which is rewritten after each removal so an
 interrupted review can be resumed later without going through the pairs already handled. A photo already missing on
 disk (eg deleted by some other means since the inventory was made) is removed from the CSV too; one that still exists

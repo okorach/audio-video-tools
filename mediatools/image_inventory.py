@@ -551,14 +551,18 @@ def _dedup_pairs(rows: list[dict[str, str]]) -> list[tuple[str, dict[str, str], 
     return pairs
 
 
+AUTO_DELETE_LIKELIHOOD: int = 100  # A pair at this duplicate_likelihood is deleted automatically, without asking, see dedup()
+
+
 def dedup(csv_file: str) -> None:
     """Interactively reviews, from the highest to the lowest duplicate_likelihood, the pairs of photos of csv_file that
     may be duplicates (as computed by add_duplicate_likelihood()), and lets the user delete one of each pair, or
     neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
-    delete (see _recommend_deletion()). A photo chosen for deletion is removed from disk and, whether it was actually
-    deleted or was already missing, also from csv_file (which is written back after each removal so an interrupted
-    review can be resumed later without re-reviewing already handled pairs); it is kept in csv_file if it exists but
-    could not be deleted"""
+    delete (see _recommend_deletion()). A pair at AUTO_DELETE_LIKELIHOOD (100%) with a recommendation is deleted
+    automatically, without asking, since there is no reasonable doubt they are the same photo; every other pair is
+    asked about. A photo chosen for deletion is removed from disk and, whether it was actually deleted or was already
+    missing, also from csv_file (which is written back after each removal so an interrupted review can be resumed
+    later without re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted"""
     with open(csv_file, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     if not any(row.get("duplicate_likelihood") for row in rows):
@@ -569,12 +573,16 @@ def dedup(csv_file: str) -> None:
     print(f"{total} potential duplicate pair(s) to review, highest likelihood first")
     deleted: set[str] = set()
     for index, pair in enumerate(pairs, start=1):
-        _, row_a, row_b = pair
+        likelihood, row_a, row_b = pair
         if row_a["full_path"] in deleted or row_b["full_path"] in deleted:
             continue
         recommended = _recommend_deletion(row_a, row_b)
         _print_pair(index, total, pair, recommended)
-        choice = _ask_which_to_delete(recommended)
+        if recommended is not None and int(likelihood) >= AUTO_DELETE_LIKELIHOOD:
+            print(f"  100% match: automatically deleting [{recommended}]")
+            choice = recommended
+        else:
+            choice = _ask_which_to_delete(recommended)
         if choice == 0:
             continue
         to_delete = row_a if choice == 1 else row_b
