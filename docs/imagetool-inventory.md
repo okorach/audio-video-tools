@@ -25,7 +25,7 @@ its full path, short name, size, dimensions, a perceptual fingerprint, dates, GP
 metadata and a duplicate likelihood (see below) to help detect duplicates and near-duplicates.
 
 GIF files are never inventoried (not photos: animations, screenshots...), whether found under a scanned directory or given
-directly in `-i`.
+directly in `-i`. The Windows recycle bin (`$RECYCLE.BIN`) is never walked into when scanning a directory or disk drive.
 
 ```
 imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [--dedup] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]

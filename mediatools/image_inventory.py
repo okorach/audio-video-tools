@@ -111,6 +111,7 @@ def _progress_logger(total: int) -> Callable[[], None]:
 
 
 EXCLUDED_EXTENSIONS: tuple[str, ...] = ("gif",)  # Not photos: animations, screenshots... never inventoried, even if given directly
+EXCLUDED_DIRS: tuple[str, ...] = ("$recycle.bin",)  # The Windows recycle bin: never walked into when scanning a directory/drive
 
 
 def _is_excluded(filename: str) -> bool:
@@ -118,11 +119,17 @@ def _is_excluded(filename: str) -> bool:
     return filename.lower().rsplit(".", 1)[-1] in EXCLUDED_EXTENSIONS
 
 
+def _is_excluded_dir(dirname: str) -> bool:
+    """Returns whether dirname (a directory name, not a path) is one of EXCLUDED_DIRS, never walked into"""
+    return dirname.lower() in EXCLUDED_DIRS
+
+
 def _collect_photos(paths: list[str]) -> list[str]:
     """Expands the files, directories and/or disk drives given in paths into the list of photos they contain (directories are
-    walked recursively, files are kept as given whatever their extension, except EXCLUDED_EXTENSIONS which are always skipped).
-    Logs the number of photos collected so far every COLLECT_PROGRESS_PERIOD seconds, since walking a whole disk drive can take
-    a while before the inventory itself starts. Exits with code 1 if no photo is found"""
+    walked recursively, except into EXCLUDED_DIRS, and files are kept as given whatever their extension, except
+    EXCLUDED_EXTENSIONS which are always skipped). Logs the number of photos collected so far every COLLECT_PROGRESS_PERIOD
+    seconds, since walking a whole disk drive can take a while before the inventory itself starts. Exits with code 1 if no
+    photo is found"""
     files: list[str] = []
     last_log = time.monotonic()
     for path in paths:
@@ -130,7 +137,8 @@ def _collect_photos(paths: list[str]) -> list[str]:
             if not _is_excluded(path):
                 files.append(path)
             continue
-        for root, _, names in os.walk(path):
+        for root, dirs, names in os.walk(path):
+            dirs[:] = [d for d in dirs if not _is_excluded_dir(d)]
             for name in names:
                 if not fil.is_image_file(name) or _is_excluded(name):
                     continue

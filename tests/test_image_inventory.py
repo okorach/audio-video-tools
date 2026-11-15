@@ -655,6 +655,17 @@ def test_collect_photos_excludes_gif_files(tmp_path: Path) -> None:
     assert set(files) == {str(tmp_path / "sub" / "photo.jpg")}
 
 
+def test_collect_photos_excludes_the_recycle_bin(tmp_path: Path) -> None:
+    """The Windows recycle bin is never walked into when scanning a directory or disk drive"""
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "photo.jpg").write_bytes(b"0")
+    recycle_bin = tmp_path / "$RECYCLE.BIN" / "S-1-5-21"
+    recycle_bin.mkdir(parents=True)
+    (recycle_bin / "deleted-photo.jpg").write_bytes(b"0")
+    files = image_inventory._collect_photos([str(tmp_path)])
+    assert set(files) == {str(tmp_path / "sub" / "photo.jpg")}
+
+
 def test_collect_photos_exits_when_nothing_is_found(tmp_path: Path) -> None:
     """Exits with code 1 when no photo is found in the given paths"""
     with pytest.raises(SystemExit) as exc:
