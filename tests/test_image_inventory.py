@@ -321,6 +321,7 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "DSCN1234.JPG",
         "100_1234.jpg",
         "P1010001.jpg",
+        "20130804_174038.jpg",  # Date_time name with no camera prefix
     ):
         assert image_inventory._is_original_filename(name), name
 
