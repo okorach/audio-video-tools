@@ -21,7 +21,8 @@
 """Tool that inventories the photos found in directories and/or disk drives into a CSV file: full path, short name, size,
 dimensions, a perceptual fingerprint, dates (taken, created, modified), GPS coordinates, device and other common EXIF
 metadata, and a duplicate likelihood (how much a photo looks like another one of the inventory, based on its fingerprint
-and its metadata) to help detect duplicates and near-duplicates"""
+and its metadata) to help detect duplicates and near-duplicates. --dedup interactively reviews these likely duplicates,
+from an existing inventory CSV, and deletes one of each pair"""
 
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ import concurrent.futures
 import csv
 import itertools
 import os
+import re
 import sys
 import threading
 import time
@@ -109,6 +111,7 @@ def _progress_logger(total: int) -> Callable[[], None]:
 
 
 EXCLUDED_EXTENSIONS: tuple[str, ...] = ("gif",)  # Not photos: animations, screenshots... never inventoried, even if given directly
+EXCLUDED_DIRS: tuple[str, ...] = ("$recycle.bin",)  # The Windows recycle bin: never walked into when scanning a directory/drive
 
 
 def _is_excluded(filename: str) -> bool:
@@ -116,11 +119,17 @@ def _is_excluded(filename: str) -> bool:
     return filename.lower().rsplit(".", 1)[-1] in EXCLUDED_EXTENSIONS
 
 
+def _is_excluded_dir(dirname: str) -> bool:
+    """Returns whether dirname (a directory name, not a path) is one of EXCLUDED_DIRS, never walked into"""
+    return dirname.lower() in EXCLUDED_DIRS
+
+
 def _collect_photos(paths: list[str]) -> list[str]:
     """Expands the files, directories and/or disk drives given in paths into the list of photos they contain (directories are
-    walked recursively, files are kept as given whatever their extension, except EXCLUDED_EXTENSIONS which are always skipped).
-    Logs the number of photos collected so far every COLLECT_PROGRESS_PERIOD seconds, since walking a whole disk drive can take
-    a while before the inventory itself starts. Exits with code 1 if no photo is found"""
+    walked recursively, except into EXCLUDED_DIRS, and files are kept as given whatever their extension, except
+    EXCLUDED_EXTENSIONS which are always skipped). Logs the number of photos collected so far every COLLECT_PROGRESS_PERIOD
+    seconds, since walking a whole disk drive can take a while before the inventory itself starts. Exits with code 1 if no
+    photo is found"""
     files: list[str] = []
     last_log = time.monotonic()
     for path in paths:
@@ -128,7 +137,8 @@ def _collect_photos(paths: list[str]) -> list[str]:
             if not _is_excluded(path):
                 files.append(path)
             continue
-        for root, _, names in os.walk(path):
+        for root, dirs, names in os.walk(path):
+            dirs[:] = [d for d in dirs if not _is_excluded_dir(d)]
             for name in names:
                 if not fil.is_image_file(name) or _is_excluded(name):
                     continue
@@ -376,6 +386,223 @@ def _read_inventory_csv(csv_file: str) -> list[list[object]]:
     return rows
 
 
+DEDUP_SIZE_RATIO_THRESHOLD: float = 0.8  # A photo is "significantly smaller" than the other one if below this ratio of its size
+
+# Unedited camera/phone original file names, as opposed to a descriptive name a photo was renamed to: eg IMG_1234.jpg,
+# IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
+# DSC_0001.jpg, 100_1234.jpg (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix)
+_ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"^img[-_]?\d[\d_]*(_hdr)?$",
+        r"^img-\d{8}-wa\d+$",
+        r"^dsc[fn]?[-_]?\d[\d_]*$",
+        r"^pxl[-_]?\d[\d_]*$",
+        r"^vid[-_]?\d[\d_]*$",
+        r"^mov[-_]?\d[\d_]*$",
+        r"^mvimg[-_]?\d[\d_]*$",
+        r"^p\d{7,}$",
+        r"^gopr\d{3,}$",
+        r"^\d{3,4}[-_]\d{3,}$",
+        r"^\d{8}[-_]\d{6}$",
+        r"^signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?$",
+        r"^wa\d{10,}$",
+    )
+)
+
+
+def _to_float(value: str | None) -> float | None:
+    """Returns value as a float, None if it is empty or missing"""
+    return float(value) if value else None
+
+
+def _is_original_filename(file_name: str) -> bool:
+    """Returns whether file_name (without its path) looks like an unedited camera/phone original name, as opposed to a
+    descriptive name it was renamed to, matching one of the _ORIGINAL_FILENAME_PATTERNS"""
+    stem = os.path.splitext(file_name)[0]
+    return any(pattern.match(stem) for pattern in _ORIGINAL_FILENAME_PATTERNS)
+
+
+def _size_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo significantly smaller (DEDUP_SIZE_RATIO_THRESHOLD) than the other one, None if neither
+    is, or either size is missing"""
+    size_a, size_b = _to_float(row_a.get("size_bytes")), _to_float(row_b.get("size_bytes"))
+    if not size_a or not size_b:
+        return None
+    if size_a < size_b * DEDUP_SIZE_RATIO_THRESHOLD:
+        return 1
+    if size_b < size_a * DEDUP_SIZE_RATIO_THRESHOLD:
+        return 2
+    return None
+
+
+def _original_filename_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo with an unedited camera/phone original file name while the other one was renamed to
+    something more descriptive, None if both or neither have one"""
+    original_a, original_b = _is_original_filename(row_a["file_name"]), _is_original_filename(row_b["file_name"])
+    if original_a and not original_b:
+        return 1
+    if original_b and not original_a:
+        return 2
+    return None
+
+
+def _gps_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo missing GPS coordinates while the other one has them, None if both or neither have them"""
+    gps_a, gps_b = _to_float(row_a.get("gps_latitude")), _to_float(row_b.get("gps_latitude"))
+    if gps_a is not None and gps_b is None:
+        return 2
+    if gps_b is not None and gps_a is None:
+        return 1
+    return None
+
+
+# Rules deciding which photo of a pair to recommend for deletion, checked in this order, the first conclusive one wins
+_DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (_size_rule, _original_filename_rule, _gps_rule)
+
+
+def _recommend_deletion(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo of the pair (row_a, row_b) recommended for deletion, by the first conclusive rule of
+    _DEDUP_RULES, None if none of them is"""
+    for rule in _DEDUP_RULES:
+        recommendation = rule(row_a, row_b)
+        if recommendation is not None:
+            return recommendation
+    return None
+
+
+def _format_size(size_bytes: str | None) -> str:
+    """Returns a human readable file size (eg '3.2 MB'), 'N/A' if size_bytes is empty"""
+    size = _to_float(size_bytes)
+    if size is None:
+        return "N/A"
+    for unit in ("B", "KB", "MB"):
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} GB"
+
+
+def _format_gps(row: dict[str, str]) -> str:
+    """Returns the GPS coordinates of row as 'latitude, longitude' rounded to 4 decimal digits, 'N/A' if missing"""
+    lat, lon = _to_float(row.get("gps_latitude")), _to_float(row.get("gps_longitude"))
+    return f"{lat:.4f}, {lon:.4f}" if lat is not None and lon is not None else "N/A"
+
+
+def _print_pair(index: int, total: int, pair: tuple[str, dict[str, str], dict[str, str]], recommended: int | None) -> None:
+    """Prints a pair of candidate duplicate photos, with their key metadata, marking the one recommended for deletion"""
+    likelihood, row_a, row_b = pair
+    print(f"\n[{index}/{total}] duplicate likelihood: {likelihood}%")
+    for i, row in ((1, row_a), (2, row_b)):
+        mark = "  <<< SUGGESTED FOR DELETION" if i == recommended else ""
+        print(f"  [{i}] {row['full_path']}{mark}")
+        print(
+            f"      size={_format_size(row.get('size_bytes'))}  date_taken={row.get('date_taken') or 'N/A'}  "
+            f"device={row.get('device') or 'N/A'}  gps={_format_gps(row)}"
+        )
+    if recommended is None:
+        print("  No recommendation: the 2 photos are equally likely to be the original")
+
+
+def _ask_which_to_delete(recommended: int | None) -> int:
+    """Asks the user which of the 2 photos just printed by _print_pair() to delete, returns 1, 2, or 0 for neither.
+    Pressing Enter without typing anything answers recommended (or 0 if there is none)"""
+    default = recommended if recommended is not None else 0
+    while True:
+        answer = input(f"Delete [1], [2], or [0] to keep both (Enter = {default}): ").strip()
+        if answer == "":
+            return default
+        if answer in ("0", "1", "2"):
+            return int(answer)
+        print("Please answer 1, 2, or 0")
+
+
+def _delete_photo(path: str) -> bool:
+    """Deletes path from disk, returns True if it was deleted or was already missing (either way, it should no longer
+    be in the inventory), False if it exists but could not be deleted (eg permission denied), logging accordingly"""
+    try:
+        os.remove(path)
+        log.logger.info("Deleted %s", path)
+        return True
+    except FileNotFoundError:
+        log.logger.warning("%s was already missing", path)
+        return True
+    except OSError as e:
+        log.logger.warning("Could not delete %s: %s", path, e)
+        return False
+
+
+def _write_dict_rows(rows: list[dict[str, str]], out_file: str) -> None:
+    """Writes rows (dicts keyed by CSV_HEADER, as read back by csv.DictReader) to out_file, in CSV_HEADER column order"""
+    with open(out_file, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(CSV_HEADER), dialect="excel", quoting=csv.QUOTE_MINIMAL)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _dedup_pairs(rows: list[dict[str, str]]) -> list[tuple[str, dict[str, str], dict[str, str]]]:
+    """Returns the (duplicate_likelihood, row_a, row_b) pairs of rows having a duplicate_likelihood and an existing
+    duplicate_of, sorted by decreasing likelihood, each pair appearing once even if both rows point to each other"""
+    by_path = {row["full_path"]: row for row in rows}
+    seen: set[frozenset[str]] = set()
+    pairs: list[tuple[str, dict[str, str], dict[str, str]]] = []
+    for row in rows:
+        likelihood = row.get("duplicate_likelihood")
+        other_path = row.get("duplicate_of")
+        if not likelihood or not other_path or other_path not in by_path:
+            continue
+        key = frozenset((row["full_path"], other_path))
+        if key in seen:
+            continue
+        seen.add(key)
+        pairs.append((likelihood, row, by_path[other_path]))
+    pairs.sort(key=lambda pair: int(pair[0]), reverse=True)
+    return pairs
+
+
+AUTO_DELETE_LIKELIHOOD: int = 100  # A pair at this duplicate_likelihood is deleted automatically, without asking, see dedup()
+
+
+def dedup(csv_file: str) -> None:
+    """Interactively reviews, from the highest to the lowest duplicate_likelihood, the pairs of photos of csv_file that
+    may be duplicates (as computed by add_duplicate_likelihood()), and lets the user delete one of each pair, or
+    neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
+    delete (see _recommend_deletion()). A pair at AUTO_DELETE_LIKELIHOOD (100%) with a recommendation is deleted
+    automatically, without asking, since there is no reasonable doubt they are the same photo; every other pair is
+    asked about. A photo chosen for deletion is removed from disk and, whether it was actually deleted or was already
+    missing, also from csv_file (which is written back after each removal so an interrupted review can be resumed
+    later without re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted"""
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    if not any(row.get("duplicate_likelihood") for row in rows):
+        log.logger.error("%s has no duplicate_likelihood column: run 'imagetool inventory -i %s' first", csv_file, csv_file)
+        sys.exit(1)
+    pairs = _dedup_pairs(rows)
+    total = len(pairs)
+    print(f"{total} potential duplicate pair(s) to review, highest likelihood first")
+    deleted: set[str] = set()
+    for index, pair in enumerate(pairs, start=1):
+        likelihood, row_a, row_b = pair
+        if row_a["full_path"] in deleted or row_b["full_path"] in deleted:
+            continue
+        recommended = _recommend_deletion(row_a, row_b)
+        _print_pair(index, total, pair, recommended)
+        if recommended is not None and int(likelihood) >= AUTO_DELETE_LIKELIHOOD:
+            print(f"  100% match: automatically deleting [{recommended}]")
+            choice = recommended
+        else:
+            choice = _ask_which_to_delete(recommended)
+        if choice == 0:
+            continue
+        to_delete = row_a if choice == 1 else row_b
+        if not _delete_photo(to_delete["full_path"]):
+            continue
+        deleted.add(to_delete["full_path"])
+        rows = [row for row in rows if row["full_path"] != to_delete["full_path"]]
+        _write_dict_rows(rows, csv_file)
+    print(f"{len(deleted)} photo(s) deleted")
+
+
 def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
     """Returns the (size in bytes, creation date, modification date) of a file, None values if it can't be stat'ed"""
     try:
@@ -469,7 +696,9 @@ def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKER
 def main() -> None:
     """Inventories the photos found in directories, disk drives and/or files given in -i into a CSV file. -i can instead be
     a single, already existing inventory CSV file: its duplicate_likelihood and duplicate_of columns are then (re)computed
-    from the metadata and fingerprints it already has, without rescanning any photo"""
+    from the metadata and fingerprints it already has, without rescanning any photo. With --dedup, -i must be such a CSV
+    file, already having its duplicate_likelihood computed: the likely duplicates it lists are then interactively
+    reviewed, highest likelihood first, and the chosen one of each pair deleted, see dedup()"""
     util.init("image-inventory")
     parser = argparse.ArgumentParser(description="Inventories photos (size, dimensions, dates, GPS coordinates, device...) into a CSV file")
     util.add_input_args(
@@ -482,8 +711,21 @@ def main() -> None:
     parser.add_argument(
         "--threads", type=int, default=DEFAULT_WORKERS, help=f"Number of threads reading the photos metadata in parallel (default: {DEFAULT_WORKERS})"
     )
+    parser.add_argument(
+        "--dedup",
+        action="store_true",
+        help="Interactively review the pairs of likely duplicate photos of an existing inventory CSV given in -i, from the "
+        "highest duplicate_likelihood down, and delete one of each pair (or neither)",
+    )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE, expand_inputs=False)
     inputs = kwargs[util.INPUT_FILES]
+
+    if kwargs.get("dedup"):
+        if len(inputs) != 1 or not inputs[0].lower().endswith(".csv") or not os.path.isfile(inputs[0]):
+            log.logger.error("--dedup requires a single existing inventory CSV file as -i")
+            sys.exit(1)
+        dedup(inputs[0])
+        return
 
     if len(inputs) == 1 and inputs[0].lower().endswith(".csv") and os.path.isfile(inputs[0]):
         out_file = kwargs.get(util.OUTPUT_FILE) or inputs[0]

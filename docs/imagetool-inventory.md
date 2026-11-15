@@ -25,10 +25,10 @@ its full path, short name, size, dimensions, a perceptual fingerprint, dates, GP
 metadata and a duplicate likelihood (see below) to help detect duplicates and near-duplicates.
 
 GIF files are never inventoried (not photos: animations, screenshots...), whether found under a scanned directory or given
-directly in `-i`.
+directly in `-i`. The Windows recycle bin (`$RECYCLE.BIN`) is never walked into when scanning a directory or disk drive.
 
 ```
-imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
+imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [--dedup] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
 ```
 
 | Option | Description |
@@ -36,6 +36,7 @@ imagetool inventory -i <photos, directories, disk drives, or a single existing i
 | `-i` | Photos, directories and/or disk drives to inventory (directories are scanned recursively), or a single existing inventory CSV file (see below) |
 | `-o` | CSV file to write. Default: `photo-inventory.csv`, or the input CSV file itself when `-i` is one |
 | `--threads` | Number of threads reading the photos' metadata in parallel. Default: 8 |
+| `--dedup` | Interactively review the likely duplicates of an existing inventory CSV given in `-i`, and delete one of each pair, see below |
 | `-v` | Verbosity, see [verbosity.md](verbosity.md) |
 
 Finding all the photos under a directory or a disk drive can itself take a while before the inventory can start: the number of
@@ -107,5 +108,34 @@ amended in place.
 ```
 imagetool inventory -i photo-inventory.csv
 ```
+
+## Deduplication
+
+`imagetool inventory -i photo-inventory.csv --dedup` interactively reviews the pairs of photos likely to be duplicates
+of an existing inventory CSV (one that already has its `duplicate_likelihood` and `duplicate_of` columns computed),
+from the highest likelihood down to the lowest, and lets you delete one of each pair.
+
+For each pair, it prints their size, date taken, device and GPS coordinates (rounded to 4 decimal digits), and a
+recommendation of which one to delete, decided by the first of these rules that applies:
+
+1. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
+2. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`, `DSC_0001.jpg`,
+   `20130804_174038.jpg`) while the other was renamed to something more descriptive: the one with the original name
+   is recommended.
+3. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
+
+If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
+original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes
+one from the other. For each pair, answer `1` or `2` to delete that photo, `0` to keep both, or just press `Enter` to
+go with the recommendation (nothing happens on `Enter` when there is none).
+
+A pair at 100% duplicate likelihood with a recommendation is deleted automatically, without asking: there is no
+reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
+copies with the same original name), is still asked about.
+
+A photo chosen for deletion is removed from disk and from the CSV, which is rewritten after each removal so an
+interrupted review can be resumed later without going through the pairs already handled. A photo already missing on
+disk (eg deleted by some other means since the inventory was made) is removed from the CSV too; one that still exists
+but could not be deleted (eg permission denied) is kept in the CSV.
 
 Requires `exiftool` on PATH.
