@@ -334,9 +334,12 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "PANO_20190415_103823.jpg",  # Android panorama
         "DSC_0001.jpg",
         "DSCN1234.JPG",
+        "HPIM1234.jpg",  # HP camera
+        "HPIM0001234.jpg",  # HP camera, with arbitrarily many digits
         "100_1234.jpg",
         "P1010001.jpg",
         "20130804_174038.jpg",  # Date_time name with no camera prefix
+        "25-12-2011 16-46-10_0021.JPG",  # DD-MM-YYYY HH-MM-SS_sequence
     ):
         assert image_inventory._is_original_filename(name), name
 
@@ -395,6 +398,26 @@ def test_duplicate_folder_rule_recommends_the_photo_filed_as_a_duplicate() -> No
     assert image_inventory._duplicate_folder_rule(in_duplicates, elsewhere) == 1
     assert image_inventory._duplicate_folder_rule(elsewhere, in_duplicates) == 2
     assert image_inventory._duplicate_folder_rule(in_duplicates, in_duplicates) is None
+
+
+def test_in_to_sort_folder_matches_a_trier_case_and_accent_insensitively() -> None:
+    """The French 'a_trier'/'a trier' ('to be sorted') folder is detected whatever its case, accent, or
+    underscore/space spelling; the file name itself doesn't count, and an unrelated folder doesn't match"""
+    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "a_trier", "a.jpg"))
+    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "a trier", "a.jpg"))
+    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "À_Trier", "a.jpg"))
+    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "A TRIER", "a.jpg"))
+    assert not image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "2020", "a_trier.jpg"))
+    assert not image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "2020", "a.jpg"))
+
+
+def test_to_sort_folder_rule_recommends_the_photo_not_yet_sorted() -> None:
+    """The photo still sitting in an 'a_trier' folder is recommended for deletion"""
+    to_sort = _csv_row(full_path=os.path.join("C:", "Photos", "a_trier", "a.jpg"))
+    elsewhere = _csv_row(full_path=os.path.join("C:", "Photos", "2020", "a.jpg"))
+    assert image_inventory._to_sort_folder_rule(to_sort, elsewhere) == 1
+    assert image_inventory._to_sort_folder_rule(elsewhere, to_sort) == 2
+    assert image_inventory._to_sort_folder_rule(to_sort, to_sort) is None
 
 
 def test_recommend_deletion_checks_rules_in_order() -> None:

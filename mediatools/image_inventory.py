@@ -37,6 +37,7 @@ import re
 import sys
 import threading
 import time
+import unicodedata
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -414,14 +415,16 @@ DEDUP_SIZE_RATIO_THRESHOLD: float = 0.8  # A photo is "significantly smaller" th
 
 # Unedited camera/phone original file names, as opposed to a descriptive name a photo was renamed to: eg IMG_1234.jpg,
 # IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
-# PANO_20190415_103823.jpg (Android panorama), DSC_0001.jpg, 100_1234.jpg (point-and-shoot cameras),
-# 20130804_174038.jpg (date_time, no camera prefix)
+# PANO_20190415_103823.jpg (Android panorama), DSC_0001.jpg, HPIM1234.jpg (HP cameras), 100_1234.jpg
+# (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix), "25-12-2011 16-46-10_0021.JPG"
+# (DD-MM-YYYY HH-MM-SS_sequence, used by some photo management software)
 _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
         r"^img[-_]?\d[\d_]*(_hdr)?$",
         r"^img-\d{8}-wa\d+$",
         r"^dsc[fn]?[-_]?\d[\d_]*$",
+        r"^hpim\d+$",
         r"^pxl[-_]?\d[\d_]*$",
         r"^pano[-_]?\d{8}[-_]\d{6}$",
         r"^vid[-_]?\d[\d_]*$",
@@ -433,6 +436,7 @@ _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
         r"^\d{8}[-_]\d{6}$",
         r"^signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?$",
         r"^wa\d{10,}$",
+        r"^\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}_\d+$",
     )
 )
 
@@ -449,11 +453,26 @@ def _is_original_filename(file_name: str) -> bool:
     return any(pattern.match(stem) for pattern in _ORIGINAL_FILENAME_PATTERNS)
 
 
+def _normalize_folder_name(name: str) -> str:
+    """Returns name lowercased, with its accented characters replaced by their unaccented equivalent and its
+    underscores by spaces, so a folder name can be matched case, accent and underscore/space insensitively
+    (eg "À_Trier", "a trier" and "A_TRIER" all normalize to "a trier")"""
+    unaccented = "".join(c for c in unicodedata.normalize("NFKD", name) if not unicodedata.combining(c))
+    return unaccented.replace("_", " ").lower()
+
+
 def _in_duplicate_folder(full_path: str) -> bool:
     """Returns whether any folder of full_path (not its file name itself) has "duplicate" in its name, as commonly
     used for folders already known to hold duplicate photos (eg "Duplicates", "Duplicate Photos", "zzz_duplicates")"""
     folders = re.split(r"[\\/]", full_path)[:-1]
-    return any("duplicate" in folder.lower() for folder in folders)
+    return any("duplicate" in _normalize_folder_name(folder) for folder in folders)
+
+
+def _in_to_sort_folder(full_path: str) -> bool:
+    """Returns whether any folder of full_path (not its file name itself) is a French "a trier" ("to be sorted")
+    folder (see _normalize_folder_name() for how it is matched case, accent and underscore/space insensitively)"""
+    folders = re.split(r"[\\/]", full_path)[:-1]
+    return any(_normalize_folder_name(folder) == "a trier" for folder in folders)
 
 
 def _duplicate_folder_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
@@ -461,6 +480,18 @@ def _duplicate_folder_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int 
     _in_duplicate_folder()), None if both or neither is. Checked first among _DEDUP_RULES: a photo deliberately
     filed away as a duplicate is the strongest signal of which one to delete"""
     in_a, in_b = _in_duplicate_folder(row_a["full_path"]), _in_duplicate_folder(row_b["full_path"])
+    if in_a and not in_b:
+        return 1
+    if in_b and not in_a:
+        return 2
+    return None
+
+
+def _to_sort_folder_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo still sitting in an "a_trier"/"a trier" folder (see _in_to_sort_folder()), None if
+    both or neither is. Checked alongside _duplicate_folder_rule, before every other rule: once it is confirmed to
+    duplicate a photo elsewhere, a photo not yet sorted out of such a folder is a priority candidate for deletion"""
+    in_a, in_b = _in_to_sort_folder(row_a["full_path"]), _in_to_sort_folder(row_b["full_path"])
     if in_a and not in_b:
         return 1
     if in_b and not in_a:
@@ -505,6 +536,7 @@ def _gps_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
 # Rules deciding which photo of a pair to recommend for deletion, checked in this order, the first conclusive one wins
 _DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
     _duplicate_folder_rule,
+    _to_sort_folder_rule,
     _size_rule,
     _original_filename_rule,
     _gps_rule,

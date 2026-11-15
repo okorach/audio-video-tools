@@ -161,11 +161,14 @@ recommendation of which one to delete, decided by the first of these rules that 
 
 1. One is in a folder whose name contains "duplicate" (anywhere in its full path, eg `Duplicates`, `Duplicate Photos`),
    the strongest signal since it was deliberately filed away as one: that one is recommended.
-2. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
-3. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
-   `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `20130804_174038.jpg`) while the other was renamed to something more
-   descriptive: the one with the original name is recommended.
-4. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
+2. One is in an `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space
+   insensitively, anywhere in its full path): that one is recommended, as still awaiting review.
+3. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
+4. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
+   `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`,
+   `25-12-2011 16-46-10_0021.JPG`) while the other was renamed to something more descriptive: the one with the
+   original name is recommended.
+5. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
 
 If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
 original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes
