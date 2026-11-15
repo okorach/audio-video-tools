@@ -334,6 +334,8 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "PANO_20190415_103823.jpg",  # Android panorama
         "DSC_0001.jpg",
         "DSCN1234.JPG",
+        "HPIM1234.jpg",  # HP camera
+        "HPIM0001234.jpg",  # HP camera, with arbitrarily many digits
         "100_1234.jpg",
         "P1010001.jpg",
         "20130804_174038.jpg",  # Date_time name with no camera prefix
