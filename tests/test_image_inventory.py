@@ -111,8 +111,8 @@ def test_photo_row_matches_the_csv_header_order(tmp_path: Path) -> None:
         "EXIF:ISO": 100,
     }
     row = image_inventory.photo_row(fake_exiftool(exif_data), str(f))
-    assert len(row) == len(image_inventory.CSV_HEADER)
-    values = dict(zip(image_inventory.CSV_HEADER, row, strict=True))
+    assert len(row) == len(image_inventory.PHOTO_CSV_HEADER)
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, row, strict=True))
     assert values["full_path"] == os.path.abspath(str(f))
     assert values["file_name"] == "photo.jpg"
     assert values["size_bytes"] == 10
@@ -176,6 +176,132 @@ def test_hamming_distance_counts_the_differing_bits() -> None:
     assert image_inventory.hamming_distance(None, "ff") is None
     assert image_inventory.hamming_distance("ff", None) is None
     assert image_inventory.hamming_distance("ff", "fff") is None
+
+
+def _row(**values: object) -> list[object]:
+    """Returns a row of PHOTO_CSV_HEADER columns, defaulting every column not given in values to None"""
+    return [values.get(column) for column in image_inventory.PHOTO_CSV_HEADER]
+
+
+def test_similarity_is_high_when_fingerprint_and_metadata_all_match() -> None:
+    """2 photos with an identical fingerprint and matching metadata get a high duplicate likelihood"""
+    common = {
+        "fingerprint": "ff00ff00",
+        "size_bytes": 12345,
+        "width": 640,
+        "height": 480,
+        "date_taken": "2020-06-15 10:30:00",
+        "device": "Canon EOS R5",
+        "gps_latitude": 10.5,
+        "gps_longitude": -20.25,
+    }
+    assert image_inventory._similarity(_row(**common), _row(**common)) == 100
+
+
+def test_similarity_ignores_criteria_missing_on_either_photo() -> None:
+    """Metadata missing on either photo is not counted against the likelihood, it is simply ignored"""
+    row_a = _row(fingerprint="ff00ff00", size_bytes=12345)
+    row_b = _row(fingerprint="ff00ff00")  # No size_bytes at all
+    assert image_inventory._similarity(row_a, row_b) == 100
+
+
+def test_similarity_decreases_with_the_fingerprint_hamming_distance() -> None:
+    """The fingerprint contribution decreases as the 2 fingerprints get further apart"""
+    close = image_inventory._similarity(_row(fingerprint="00000000"), _row(fingerprint="00000001"))
+    far = image_inventory._similarity(_row(fingerprint="00000000"), _row(fingerprint="ffffffff"))
+    assert close > far
+
+
+def test_similarity_returns_none_when_not_enough_criteria_are_applicable() -> None:
+    """2 photos with no fingerprint and a single weak matching criterion can't say much about being duplicates"""
+    assert image_inventory._similarity(_row(device="Canon"), _row(device="Canon")) is None
+    assert image_inventory._similarity(_row(), _row()) is None
+
+
+def test_duplicate_candidates_groups_rows_sharing_size_date_or_fingerprint_prefix() -> None:
+    """Rows sharing an exact size, an exact date taken, or a fingerprint prefix become candidate pairs, unrelated rows don't"""
+    rows = [
+        _row(size_bytes=100),
+        _row(size_bytes=100),
+        _row(date_taken="2020-06-15 10:30:00"),
+        _row(date_taken="2020-06-15 10:30:00"),
+        _row(fingerprint="ff00ff00"),
+        _row(fingerprint="ff001234"),
+        _row(size_bytes=200),
+    ]
+    pairs = image_inventory._duplicate_candidates(rows)
+    assert (0, 1) in pairs
+    assert (2, 3) in pairs
+    assert (4, 5) in pairs
+    assert not any(6 in pair for pair in pairs)
+
+
+def test_add_duplicate_likelihood_picks_the_best_match_and_appends_columns() -> None:
+    """Each row is amended with the likelihood and the full path of its most likely duplicate among the candidates"""
+    rows = [
+        _row(full_path="a.jpg", fingerprint="00000000"),
+        _row(full_path="b.jpg", fingerprint="00000001"),  # Close to a.jpg
+        _row(full_path="c.jpg", fingerprint="ffffffff"),  # Far from both
+    ]
+    image_inventory.add_duplicate_likelihood(rows)
+    for row in rows:
+        assert len(row) == len(image_inventory.CSV_HEADER)
+    values_a = dict(zip(image_inventory.CSV_HEADER, rows[0], strict=True))
+    assert values_a["duplicate_of"] == "b.jpg"
+    assert values_a["duplicate_likelihood"] > 0
+
+
+def test_add_duplicate_likelihood_leaves_empty_values_when_no_duplicate_is_found() -> None:
+    """A photo with no candidate duplicate gets empty duplicate_likelihood and duplicate_of columns"""
+    rows = [_row(full_path="a.jpg", device="Canon")]
+    image_inventory.add_duplicate_likelihood(rows)
+    values = dict(zip(image_inventory.CSV_HEADER, rows[0], strict=True))
+    assert values["duplicate_likelihood"] == ""
+    assert values["duplicate_of"] == ""
+
+
+def test_write_then_read_inventory_csv_roundtrips_the_photo_columns(tmp_path: Path) -> None:
+    """A CSV written by _write_csv() can be read back by _read_inventory_csv(), ignoring the duplicate columns"""
+    rows = [_row(full_path="a.jpg", file_name="a.jpg", size_bytes=10, width=640, height=480, gps_latitude=10.5, gps_longitude=-20.25)]
+    image_inventory.add_duplicate_likelihood(rows)
+    out_file = str(tmp_path / "inventory.csv")
+    image_inventory._write_csv(rows, out_file)
+    read_back = image_inventory._read_inventory_csv(out_file)
+    assert len(read_back) == 1
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, read_back[0], strict=True))
+    assert values["full_path"] == "a.jpg"
+    assert values["size_bytes"] == "10"
+    assert values["gps_latitude"] == 10.5  # Cast back to float
+
+
+def test_main_computes_duplicate_likelihood_from_an_existing_csv_without_rescanning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """imagetool inventory -i <existing csv> amends it with the duplicate columns, without collecting or scanning any photo"""
+    monkeypatch.setattr(image_inventory, "_collect_photos", lambda _paths: pytest.fail("Should not rescan photos from a CSV input"))
+    in_file = str(tmp_path / "in.csv")
+    with open(in_file, "w", newline="", encoding="utf-8") as fh:
+        csv_writer = csv.writer(fh)
+        csv_writer.writerow(image_inventory.PHOTO_CSV_HEADER)
+        csv_writer.writerow(_row(full_path="a.jpg", file_name="a.jpg", fingerprint="00000000"))
+        csv_writer.writerow(_row(full_path="b.jpg", file_name="b.jpg", fingerprint="00000001"))
+    with patch.object(sys, "argv", ["imagetool", "inventory", "-i", in_file]):
+        tools.imagetool()
+    with open(in_file, encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))
+    assert rows[0] == list(image_inventory.CSV_HEADER)
+    values_a = dict(zip(image_inventory.CSV_HEADER, rows[1], strict=True))
+    assert values_a["duplicate_of"] == "b.jpg"
+
+
+def test_main_csv_input_defaults_the_output_to_the_input_file(tmp_path: Path) -> None:
+    """Without -o, a CSV input is amended in place rather than written to the default output file"""
+    in_file = str(tmp_path / "in.csv")
+    with open(in_file, "w", newline="", encoding="utf-8") as fh:
+        csv_writer = csv.writer(fh)
+        csv_writer.writerow(image_inventory.PHOTO_CSV_HEADER)
+        csv_writer.writerow(_row(full_path="a.jpg", file_name="a.jpg"))
+    with patch.object(sys, "argv", ["imagetool", "inventory", "-i", in_file]):
+        tools.imagetool()
+    assert not (tmp_path / image_inventory.DEFAULT_OUTPUT).exists()
 
 
 def test_chunks_splits_preserving_order() -> None:

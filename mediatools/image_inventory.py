@@ -19,14 +19,16 @@
 #
 
 """Tool that inventories the photos found in directories and/or disk drives into a CSV file: full path, short name, size,
-dimensions, a perceptual fingerprint (to later detect duplicates), dates (taken, created, modified), GPS coordinates, device
-and other common EXIF metadata"""
+dimensions, a perceptual fingerprint, dates (taken, created, modified), GPS coordinates, device and other common EXIF
+metadata, and a duplicate likelihood (how much a photo looks like another one of the inventory, based on its fingerprint
+and its metadata) to help detect duplicates and near-duplicates"""
 
 from __future__ import annotations
 
 import argparse
 import concurrent.futures
 import csv
+import itertools
 import os
 import sys
 import threading
@@ -51,7 +53,8 @@ DEFAULT_OUTPUT: str = "photo-inventory.csv"
 DATE_FMT: str = "%Y-%m-%d %H:%M:%S"
 FINGERPRINT_GRID: int = 16  # Side of the grayscale thumbnail the fingerprint is computed from: 256 bits long
 
-CSV_HEADER: tuple[str, ...] = (
+# Columns computed for each photo on its own, before any other photo is known
+PHOTO_CSV_HEADER: tuple[str, ...] = (
     "full_path",
     "file_name",
     "size_bytes",
@@ -73,6 +76,9 @@ CSV_HEADER: tuple[str, ...] = (
     "orientation",
     "software",
 )
+# Columns computed last, by comparing every photo to the others, see add_duplicate_likelihood()
+DUPLICATE_CSV_HEADER: tuple[str, ...] = ("duplicate_likelihood", "duplicate_of")
+CSV_HEADER: tuple[str, ...] = PHOTO_CSV_HEADER + DUPLICATE_CSV_HEADER
 
 WIDTH_HEIGHT_TAGS: tuple[tuple[str, str], ...] = (
     ("File:ImageWidth", "File:ImageHeight"),
@@ -206,6 +212,161 @@ def hamming_distance(fingerprint_1: str | None, fingerprint_2: str | None) -> in
     return (int(fingerprint_1, 16) ^ int(fingerprint_2, 16)).bit_count()
 
 
+FP_MAX_DISTANCE: int = 40  # Hamming distance (out of 256 bits) at or above which 2 fingerprints are considered unrelated
+FP_BUCKET_CHARS: int = 4  # Leading hex characters (16 bits) of the fingerprint shared by 2 photos to consider them duplicate candidates
+GPS_MAX_DISTANCE_DEGREES: float = 0.0005  # ~ 50m, close enough to consider 2 GPS coordinates the same place
+MIN_APPLICABLE_WEIGHT: float = 0.3  # Minimum total weight of the applicable criteria to compute a duplicate likelihood at all
+# How much each criterion weighs in the duplicate likelihood, when applicable (ie present on both photos compared)
+SIMILARITY_WEIGHTS: dict[str, float] = {
+    "fingerprint": 0.5,
+    "size_bytes": 0.15,
+    "dimensions": 0.1,
+    "date_taken": 0.15,
+    "device": 0.05,
+    "gps": 0.05,
+}
+
+
+def _row_value(row: list[object], column: str) -> object:
+    """Returns the value of column in row (a row of PHOTO_CSV_HEADER columns), None if it is empty"""
+    value = row[PHOTO_CSV_HEADER.index(column)]
+    return value if value not in ("", None) else None
+
+
+def _dimensions_match(row_a: list[object], row_b: list[object]) -> float | None:
+    """Returns 1.0/0.0 for matching/differing (width, height), None if either photo is missing one of them"""
+    size_a = (_row_value(row_a, "width"), _row_value(row_a, "height"))
+    size_b = (_row_value(row_b, "width"), _row_value(row_b, "height"))
+    if None in size_a or None in size_b:
+        return None
+    return float((str(size_a[0]), str(size_a[1])) == (str(size_b[0]), str(size_b[1])))
+
+
+def _gps_match(row_a: list[object], row_b: list[object]) -> float | None:
+    """Returns 1.0/0.0 for GPS coordinates within GPS_MAX_DISTANCE_DEGREES of each other, None if either is missing"""
+    coords_a = (_row_value(row_a, "gps_latitude"), _row_value(row_a, "gps_longitude"))
+    coords_b = (_row_value(row_b, "gps_latitude"), _row_value(row_b, "gps_longitude"))
+    if None in coords_a or None in coords_b:
+        return None
+    return float(all(abs(float(a) - float(b)) <= GPS_MAX_DISTANCE_DEGREES for a, b in zip(coords_a, coords_b, strict=True)))
+
+
+def _exact_match(column: str) -> Callable[[list[object], list[object]], float | None]:
+    """Returns a function comparing the column of 2 rows for an exact match, None if either row is missing it"""
+
+    def compare(row_a: list[object], row_b: list[object]) -> float | None:
+        """Returns 1.0/0.0 for a matching/differing column, None if either row is missing it"""
+        value_a, value_b = _row_value(row_a, column), _row_value(row_b, column)
+        return None if value_a is None or value_b is None else float(str(value_a) == str(value_b))
+
+    return compare
+
+
+def _fingerprint_match(row_a: list[object], row_b: list[object]) -> float | None:
+    """Returns the fingerprint similarity (1.0 for identical, decreasing to 0.0 at FP_MAX_DISTANCE), None if either
+    photo has no fingerprint"""
+    distance = hamming_distance(_row_value(row_a, "fingerprint"), _row_value(row_b, "fingerprint"))
+    return None if distance is None else max(0.0, 1 - distance / FP_MAX_DISTANCE)
+
+
+# One match function per criterion of SIMILARITY_WEIGHTS, each returning 1.0/0.0 (or a similarity in between for the
+# fingerprint), None when the criterion is not applicable (missing on either photo)
+_MATCH_FUNCTIONS: dict[str, Callable[[list[object], list[object]], float | None]] = {
+    "fingerprint": _fingerprint_match,
+    "size_bytes": _exact_match("size_bytes"),
+    "dimensions": _dimensions_match,
+    "date_taken": _exact_match("date_taken"),
+    "device": _exact_match("device"),
+    "gps": _gps_match,
+}
+
+
+def _similarity(row_a: list[object], row_b: list[object]) -> int | None:
+    """Returns the duplicate likelihood (0-100) between 2 photo rows: a weighted average (SIMILARITY_WEIGHTS) of how
+    close their fingerprint is and how many of their other metadata match, computed only over the criteria applicable
+    to both photos (missing metadata does not count against the likelihood, it is just ignored). None if too few
+    criteria are applicable to say anything meaningful"""
+    applicable_weight = 0.0
+    matched_weight = 0.0
+    for key, weight in SIMILARITY_WEIGHTS.items():
+        match = _MATCH_FUNCTIONS[key](row_a, row_b)
+        if match is not None:
+            applicable_weight += weight
+            matched_weight += weight * match
+    if applicable_weight < MIN_APPLICABLE_WEIGHT:
+        return None
+    return round(100 * matched_weight / applicable_weight)
+
+
+def _duplicate_candidates(rows: list[list[object]]) -> set[tuple[int, int]]:
+    """Returns the (i, j) index pairs (i < j) of rows worth comparing in detail with _similarity(), because they share an
+    exact size, an exact date taken, or the first FP_BUCKET_CHARS of their fingerprint. Comparing every photo to every
+    other one does not scale to a large inventory, so only the photos sharing one of these cheap-to-index, exact criteria
+    are considered duplicate candidates"""
+    buckets: dict[tuple[str, object], list[int]] = {}
+    for i, row in enumerate(rows):
+        size, date_taken, fingerprint = _row_value(row, "size_bytes"), _row_value(row, "date_taken"), _row_value(row, "fingerprint")
+        if size is not None:
+            buckets.setdefault(("size", size), []).append(i)
+        if date_taken is not None:
+            buckets.setdefault(("date", date_taken), []).append(i)
+        if fingerprint is not None:
+            buckets.setdefault(("fp", fingerprint[:FP_BUCKET_CHARS]), []).append(i)
+    pairs: set[tuple[int, int]] = set()
+    for indices in buckets.values():
+        for i, j in itertools.combinations(indices, 2):
+            pairs.add((i, j) if i < j else (j, i))
+    return pairs
+
+
+def add_duplicate_likelihood(rows: list[list[object]]) -> None:
+    """Appends, to each row of PHOTO_CSV_HEADER columns, its duplicate likelihood (0-100, empty if none found) with the
+    most likely duplicate among the other rows, and the full path of that most likely duplicate (empty if none), turning
+    each row into a row of CSV_HEADER columns. See _similarity() for how the likelihood is computed, and
+    _duplicate_candidates() for which pairs of rows are actually compared with each other"""
+    full_path_idx = PHOTO_CSV_HEADER.index("full_path")
+    best_score = [0] * len(rows)
+    best_match: list[object] = [None] * len(rows)
+    for i, j in _duplicate_candidates(rows):
+        score = _similarity(rows[i], rows[j])
+        if score is None:
+            continue
+        if score > best_score[i]:
+            best_score[i], best_match[i] = score, rows[j][full_path_idx]
+        if score > best_score[j]:
+            best_score[j], best_match[j] = score, rows[i][full_path_idx]
+    for row, score, match in zip(rows, best_score, best_match, strict=True):
+        row.append(score or "")
+        row.append(match or "")
+
+
+def _write_csv(rows: list[list[object]], out_file: str) -> None:
+    """Writes rows (of CSV_HEADER columns) to out_file, with the CSV header as the first line"""
+    with open(out_file, "w", newline="", encoding="utf-8") as fh:
+        csv_writer = csv.writer(fh, dialect="excel", quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(CSV_HEADER)
+        csv_writer.writerows(rows)
+
+
+_CSV_FLOAT_COLUMNS: tuple[str, ...] = ("gps_latitude", "gps_longitude", "gps_altitude")
+
+
+def _read_inventory_csv(csv_file: str) -> list[list[object]]:
+    """Reads an existing photo inventory CSV (as written by inventory() or this function's caller, with or without the
+    duplicate_likelihood and duplicate_of columns) and returns its rows as rows of PHOTO_CSV_HEADER columns, ready for
+    add_duplicate_likelihood() to amend, without rescanning the photos themselves"""
+    rows = []
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        for record in csv.DictReader(fh):
+            row = [record.get(column) or None for column in PHOTO_CSV_HEADER]
+            for column in _CSV_FLOAT_COLUMNS:
+                value = row[PHOTO_CSV_HEADER.index(column)]
+                if value is not None:
+                    row[PHOTO_CSV_HEADER.index(column)] = float(value)
+            rows.append(row)
+    return rows
+
+
 def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
     """Returns the (size in bytes, creation date, modification date) of a file, None values if it can't be stat'ed"""
     try:
@@ -217,7 +378,7 @@ def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
 
 
 def photo_row(et: ExifToolHelper, filename: str) -> list[object]:
-    """Returns the CSV row (in CSV_HEADER order) of a photo, with its EXIF data read with an already open ExifToolHelper
+    """Returns the row (in PHOTO_CSV_HEADER order) of a photo, with its EXIF data read with an already open ExifToolHelper
     (a single exiftool process is kept open for a whole chunk of photos, see inventory())"""
     try:
         exif_data = et.get_metadata(filename)[0]
@@ -277,40 +438,55 @@ def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[
 
 def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
     """Writes a CSV inventory of the photos (full path, size, dimensions, a perceptual fingerprint, dates, GPS coordinates,
-    device and other common EXIF metadata) to out_file. The photos are read in parallel, max_workers threads each reading a
-    chunk of them with its own exiftool process. The progress and the ETA are logged at most every PROGRESS_PERIOD seconds.
-    Returns the number of photos inventoried"""
+    device, other common EXIF metadata and a duplicate likelihood with the most similar other photo) to out_file. The
+    photos are read in parallel, max_workers threads each reading a chunk of them with its own exiftool process. The
+    progress and the ETA are logged at most every PROGRESS_PERIOD seconds. Returns the number of photos inventoried"""
     total = len(files)
     progress_done = _progress_logger(total)
     log.logger.info("Inventorying %d photos into %s", total, out_file)
     chunks = _chunks(files, max(1, min(max_workers, total)))
-    with open(out_file, "w", newline="", encoding="utf-8") as fh:
-        csv_writer = csv.writer(fh, dialect="excel", quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(CSV_HEADER)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="PhotoInventory") as executor:
-            futures = [executor.submit(_process_chunk, chunk, progress_done) for chunk in chunks]
-            for future in concurrent.futures.as_completed(futures):
-                for row in future.result():
-                    csv_writer.writerow(row)
+    rows: list[list[object]] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="PhotoInventory") as executor:
+        futures = [executor.submit(_process_chunk, chunk, progress_done) for chunk in chunks]
+        for future in concurrent.futures.as_completed(futures):
+            rows.extend(future.result())
+    log.logger.info("Computing the duplicate likelihood of %d photos...", total)
+    add_duplicate_likelihood(rows)
+    _write_csv(rows, out_file)
     log.logger.info("Inventory of %d photos written to %s", total, out_file)
     return total
 
 
 def main() -> None:
-    """Inventories the photos found in directories, disk drives and/or files given in -i into a CSV file"""
+    """Inventories the photos found in directories, disk drives and/or files given in -i into a CSV file. -i can instead be
+    a single, already existing inventory CSV file: its duplicate_likelihood and duplicate_of columns are then (re)computed
+    from the metadata and fingerprints it already has, without rescanning any photo"""
     util.init("image-inventory")
     parser = argparse.ArgumentParser(description="Inventories photos (size, dimensions, dates, GPS coordinates, device...) into a CSV file")
-    util.add_input_args(parser, "Directories, disk drives and/or photo files to inventory (directories are scanned recursively)")
-    util.add_output_args(parser, f"CSV file to write (default: {DEFAULT_OUTPUT})")
+    util.add_input_args(
+        parser,
+        "Directories, disk drives and/or photo files to inventory (directories are scanned recursively), "
+        "or a single existing inventory CSV file to only (re)compute the duplicate likelihood of",
+    )
+    util.add_output_args(parser, f"CSV file to write (default: {DEFAULT_OUTPUT}, or the input CSV file itself when -i is one)")
     util.add_verbosity_arg(parser)
     parser.add_argument(
         "--threads", type=int, default=DEFAULT_WORKERS, help=f"Number of threads reading the photos metadata in parallel (default: {DEFAULT_WORKERS})"
     )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE, expand_inputs=False)
+    inputs = kwargs[util.INPUT_FILES]
 
-    out_file = kwargs.get(util.OUTPUT_FILE) or DEFAULT_OUTPUT
-    photos = _collect_photos(kwargs[util.INPUT_FILES])
-    nb_photos = inventory(photos, out_file, max_workers=kwargs.get("threads", DEFAULT_WORKERS))
+    if len(inputs) == 1 and inputs[0].lower().endswith(".csv") and os.path.isfile(inputs[0]):
+        out_file = kwargs.get(util.OUTPUT_FILE) or inputs[0]
+        rows = _read_inventory_csv(inputs[0])
+        log.logger.info("Computing the duplicate likelihood of %d photos read from %s...", len(rows), inputs[0])
+        add_duplicate_likelihood(rows)
+        _write_csv(rows, out_file)
+        nb_photos = len(rows)
+    else:
+        out_file = kwargs.get(util.OUTPUT_FILE) or DEFAULT_OUTPUT
+        photos = _collect_photos(inputs)
+        nb_photos = inventory(photos, out_file, max_workers=kwargs.get("threads", DEFAULT_WORKERS))
     util.generated_file(out_file)
     log.logger.info("%d photos inventoried", nb_photos)
 
