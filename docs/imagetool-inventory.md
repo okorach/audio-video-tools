@@ -20,23 +20,26 @@
 
 # imagetool inventory
 
-Inventories the photos found in directories and/or disk drives (processed recursively) into a CSV file: one row per photo, with
-its full path, short name, size, dimensions, a perceptual fingerprint, dates, GPS coordinates, device, other common EXIF
-metadata and a duplicate likelihood (see below) to help detect duplicates and near-duplicates.
+Inventories the photos found in directories and/or disk drives (processed recursively), or picked from a Google Photos
+library (`--google`), into a CSV file: one row per photo, with its full path, short name, size, dimensions, a perceptual
+fingerprint, dates, GPS coordinates, device, other common EXIF metadata and a duplicate likelihood (see below) to help
+detect duplicates and near-duplicates.
 
 GIF files are never inventoried (not photos: animations, screenshots...), whether found under a scanned directory or given
 directly in `-i`. The Windows recycle bin (`$RECYCLE.BIN`) is never walked into when scanning a directory or disk drive.
 
 ```
 imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [--dedup] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
+imagetool inventory --google [-o <output.csv>] [--threads <n>]
 ```
 
 | Option | Description |
 |---|---|
-| `-i` | Photos, directories and/or disk drives to inventory (directories are scanned recursively), or a single existing inventory CSV file (see below) |
-| `-o` | CSV file to write. Default: `photo-inventory.csv`, or the input CSV file itself when `-i` is one |
-| `--threads` | Number of threads reading the photos' metadata in parallel. Default: 8 |
+| `-i` | Photos, directories and/or disk drives to inventory (directories are scanned recursively), or a single existing inventory CSV file (see below). Not used with `--google` |
+| `-o` | CSV file to write. Default: `photo-inventory.csv`, or the input CSV file itself when `-i` is one, or `<Pictures>/google-photos-inventory.csv` with `--google` |
+| `--threads` | Number of threads reading the photos' metadata (or, with `--google`, downloading them) in parallel. Default: 8 |
 | `--dedup` | Interactively review the likely duplicates of an existing inventory CSV given in `-i`, and delete one of each pair, see below |
+| `--google` | Inventory photos picked from a Google Photos library instead of local files, see below |
 | `-v` | Verbosity, see [verbosity.md](verbosity.md) |
 
 Finding all the photos under a directory or a disk drive can itself take a while before the inventory can start: the number of
@@ -109,6 +112,39 @@ amended in place.
 imagetool inventory -i photo-inventory.csv
 ```
 
+## Google Photos
+
+`imagetool inventory --google` inventories photos picked from a Google Photos library instead of local files, using
+the Google Photos [Picker API](https://developers.google.com/photos/picker/guides/get-started). Google restricts its
+older Library API, since 2025, to the media a third-party app itself uploaded, so listing an existing library needs
+the Picker API instead: each run opens a page in your browser where you select the photos and/or albums to inventory
+(selecting whole albums, or your whole library, is possible in a single pick), then click Done.
+
+One-time setup, in the [Google Cloud console](https://console.cloud.google.com/):
+
+1. Create a project (or reuse one), enable the **Google Photos Picker API** for it.
+2. Create an OAuth 2.0 client ID of type **Desktop app**, and download its credentials JSON file.
+3. Save that file as `~/.mediatools-google-credentials.json`, or point the `google.credentials_file` property of
+   `~/.mediatools.properties` to wherever you saved it.
+
+The first run opens a browser for you to sign in and consent; the resulting token is cached (`google.token_file`
+property, default `~/.mediatools-google-token.json`) so later runs don't ask again, until the token is revoked.
+
+The columns the Picker API does not expose for a picked photo are left empty: GPS coordinates, the file's own
+creation/modification dates (as opposed to the date it was taken), lens model, orientation and software. `date_taken`
+is the photo's `createTime` (its closest available equivalent). The duplicate likelihood (see above) is computed
+across the picked photos only, not against any local inventory.
+
+Without `-o`, the CSV is written to `google-photos-inventory.csv` in the OS pictures folder (`%USERPROFILE%\Pictures`
+on Windows) rather than the current directory, since there is no input directory to default it from. `--dedup` works
+on a Google Photos inventory CSV like any other, but since a Google Photos row has no local file, the photo recommended
+for deletion is only ever removed from the CSV, never from your Google Photos library.
+
+The Google Photos picker limits a single selection to a few thousand items, so inventorying a large library takes
+several runs. Running `--google` again with the same `-o` (or its default) is cumulative: the existing CSV is
+extended, not replaced, a picked photo already in it is skipped (neither re-downloaded nor added again), and the
+duplicate likelihood is recomputed across the whole, now larger, CSV.
+
 ## Deduplication
 
 `imagetool inventory -i photo-inventory.csv --dedup` interactively reviews the pairs of photos likely to be duplicates
@@ -138,4 +174,4 @@ interrupted review can be resumed later without going through the pairs already 
 disk (eg deleted by some other means since the inventory was made) is removed from the CSV too; one that still exists
 but could not be deleted (eg permission denied) is kept in the CSV.
 
-Requires `exiftool` on PATH.
+Requires `exiftool` on PATH, or, with `--google`, a Google Cloud OAuth2 client (see above).

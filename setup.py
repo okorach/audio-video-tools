@@ -59,6 +59,7 @@ setuptools.setup(
         "mutagen",
         "Pillow>=10.3.0",
         "PyYAML",
+        "requests",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

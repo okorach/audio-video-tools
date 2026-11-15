@@ -147,6 +147,19 @@ def test_fingerprint_logs_the_file_name_of_a_very_large_image(monkeypatch: pytes
     assert any(REAL_IMAGE in call.args for call in log_warning.call_args_list)
 
 
+def test_fingerprint_from_bytes_matches_the_file_based_one() -> None:
+    """compute_fingerprint_from_bytes() computes the exact same fingerprint as compute_fingerprint() for the same pixels,
+    since it shares the same underlying logic, just fed from in-memory bytes (as downloaded from Google Photos) instead
+    of a local file"""
+    data = Path(REAL_IMAGE).read_bytes()
+    assert image_inventory.compute_fingerprint_from_bytes(data, "context.jpg") == image_inventory.compute_fingerprint(REAL_IMAGE)
+
+
+def test_fingerprint_from_bytes_returns_none_for_bytes_that_are_not_an_image() -> None:
+    """Bytes that can't be read as an image have no fingerprint, instead of raising"""
+    assert image_inventory.compute_fingerprint_from_bytes(b"not an image", "context.jpg") is None
+
+
 def test_fingerprint_is_closer_for_a_resized_copy_than_for_a_different_photo(tmp_path: Path) -> None:
     """A resized copy of a photo keeps a fingerprint close to the original one, much closer than an unrelated photo"""
     resized = tmp_path / "resized.jpg"
@@ -587,6 +600,173 @@ def test_main_dedup_invokes_dedup_on_the_given_csv(tmp_path: Path, monkeypatch: 
     with patch.object(sys, "argv", ["imagetool", "inventory", "-i", str(csv_file), "--dedup"]):
         tools.imagetool()
     assert called["path"] == str(csv_file)
+
+
+def test_main_requires_input_unless_google_or_dedup_is_given() -> None:
+    """Without -i, --google or --dedup, main() exits instead of crashing trying to collect photos from nothing"""
+    with patch.object(sys, "argv", ["imagetool", "inventory"]), pytest.raises(SystemExit):
+        tools.imagetool()
+
+
+def test_default_pictures_dir_is_the_users_pictures_folder(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The default output directory of --google is <home>/Pictures, the OS default pictures folder on Windows"""
+    monkeypatch.setattr(image_inventory.os.path, "expanduser", lambda _p: os.path.join("C:", "Users", "someone"))
+    assert image_inventory._default_pictures_dir() == os.path.join("C:", "Users", "someone", "Pictures")
+
+
+def test_google_dimensions_returns_width_and_height() -> None:
+    """The dimensions of a picked Google Photos item are read from its mediaFileMetadata, (None, None) if missing"""
+    assert image_inventory._google_dimensions({"width": "640", "height": "480"}) == (640, 480)
+    assert image_inventory._google_dimensions({}) == (None, None)
+
+
+def test_google_device_combines_make_and_model() -> None:
+    """The device of a picked Google Photos item combines its cameraMake and cameraModel"""
+    assert image_inventory._google_device({"cameraMake": "Google", "cameraModel": "Pixel 5"}) == "Google Pixel 5"
+    assert image_inventory._google_device({}) is None
+
+
+def test_google_date_taken_parses_create_time() -> None:
+    """The date taken of a picked Google Photos item is read from its createTime, None if missing or unparseable"""
+    assert image_inventory._google_date_taken({"createTime": "2013-08-04T17:40:38Z"}) == "2013-08-04 17:40:38"
+    assert image_inventory._google_date_taken({"createTime": "not-a-date"}) is None
+    assert image_inventory._google_date_taken({}) is None
+
+
+def test_google_photo_row_matches_the_csv_header_order(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Google Photos row has one value per column of PHOTO_CSV_HEADER, built from the Picker API item, with the
+    columns the Picker API does not expose left empty"""
+    item = {
+        "id": "ABC123",
+        "createTime": "2013-08-04T17:40:38Z",
+        "mediaFile": {
+            "baseUrl": "https://photos.example/base",
+            "filename": "IMG_1234.jpg",
+            "mediaFileMetadata": {
+                "width": "640",
+                "height": "480",
+                "photoMetadata": {"cameraMake": "Google", "cameraModel": "Pixel 5", "isoEquivalent": 100, "apertureFNumber": 1.7},
+            },
+        },
+    }
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda _token, _url, _params: b"thumbnail-bytes")
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_size", lambda _token, _url: 54321)
+    monkeypatch.setattr(image_inventory, "compute_fingerprint_from_bytes", lambda data, _context: "deadbeef" if data == b"thumbnail-bytes" else None)
+    row = image_inventory.google_photo_row("token", item)
+    assert len(row) == len(image_inventory.PHOTO_CSV_HEADER)
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, row, strict=True))
+    assert values["full_path"] == "googlephotos:ABC123"
+    assert values["file_name"] == "IMG_1234.jpg"
+    assert values["size_bytes"] == 54321
+    assert values["width"] == 640
+    assert values["height"] == 480
+    assert values["fingerprint"] == "deadbeef"
+    assert values["date_taken"] == "2013-08-04 17:40:38"
+    assert values["device"] == "Google Pixel 5"
+    assert values["iso"] == 100
+    assert values["aperture"] == 1.7
+    assert values["gps_latitude"] is None
+    assert values["lens_model"] is None
+
+
+def test_google_photo_row_handles_an_item_without_a_base_url() -> None:
+    """An item without mediaFile.baseUrl (should not happen, but defensively) gets no fingerprint and no size, instead of raising"""
+    row = image_inventory.google_photo_row("token", {"id": "X", "mediaFile": {"filename": "x.jpg"}})
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, row, strict=True))
+    assert values["fingerprint"] is None
+    assert values["size_bytes"] is None
+
+
+def _fake_picker_setup(monkeypatch: pytest.MonkeyPatch, items: list[dict], deleted: list[str]) -> None:
+    """Monkeypatches the whole google_photos module as used by google_inventory(), with items as the picked photos"""
+    monkeypatch.setattr(image_inventory.google_photos, "get_access_token", lambda: "token")
+    monkeypatch.setattr(image_inventory.google_photos, "create_picker_session", lambda _token: {"id": "s1", "pickerUri": "https://pick"})
+    monkeypatch.setattr(image_inventory.google_photos, "wait_for_selection", lambda _token, _session: {"id": "s1", "mediaItemsSet": True})
+    monkeypatch.setattr(image_inventory.google_photos, "list_picked_media_items", lambda _token, _session_id: iter(items))
+    monkeypatch.setattr(image_inventory.google_photos, "delete_picker_session", lambda _token, session_id: deleted.append(session_id))
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda _token, _url, _params: None)
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_size", lambda _token, _url: None)
+
+
+def test_google_inventory_writes_the_csv_and_deletes_the_session(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """google_inventory() lists the picked items, writes them to the CSV with their duplicate likelihood, and deletes
+    the now unneeded picker session"""
+    items = [
+        {"id": "1", "mediaFile": {"filename": "a.jpg"}},
+        {"id": "2", "mediaFile": {"filename": "b.jpg"}},
+    ]
+    deleted: list[str] = []
+    _fake_picker_setup(monkeypatch, items, deleted)
+    out_file = str(tmp_path / "out.csv")
+    nb_photos = image_inventory.google_inventory(out_file, max_workers=2)
+    assert nb_photos == 2
+    assert deleted == ["s1"]
+    with open(out_file, encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))
+    assert rows[0] == list(image_inventory.CSV_HEADER)
+    full_paths = {row[0] for row in rows[1:]}
+    assert full_paths == {"googlephotos:1", "googlephotos:2"}
+
+
+def test_google_inventory_exits_when_nothing_was_picked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """google_inventory() exits instead of writing an empty, useless CSV when the user picked nothing"""
+    _fake_picker_setup(monkeypatch, [], [])
+    with pytest.raises(SystemExit):
+        image_inventory.google_inventory(str(tmp_path / "out.csv"))
+
+
+def test_google_inventory_extends_an_existing_csv_without_duplicating_photos(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 2nd run (eg because the picker limits a single selection) extends the CSV of a 1st run instead of replacing it,
+    and a photo already in it (re-picked, or picked again by mistake) is neither re-fetched nor added a 2nd time"""
+    out_file = str(tmp_path / "out.csv")
+    item_1 = {"id": "1", "mediaFile": {"filename": "a.jpg", "baseUrl": "https://photos.example/1"}}
+    item_2 = {"id": "2", "mediaFile": {"filename": "b.jpg", "baseUrl": "https://photos.example/2"}}
+    _fake_picker_setup(monkeypatch, [item_1], [])
+    assert image_inventory.google_inventory(out_file) == 1
+
+    _fake_picker_setup(monkeypatch, [item_1, item_2], [])
+    fetched_urls: list[str] = []
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda _token, url, _params: fetched_urls.append(url) or None)
+    nb_new = image_inventory.google_inventory(out_file)
+    assert nb_new == 1  # Only "2" is new, "1" is skipped
+    assert fetched_urls == ["https://photos.example/2"]  # "1" is not re-fetched
+
+    with open(out_file, encoding="utf-8") as fh:
+        rows = list(csv.reader(fh))
+    full_paths = [row[0] for row in rows[1:]]
+    assert sorted(full_paths) == ["googlephotos:1", "googlephotos:2"]  # "1" is not duplicated
+
+
+def test_google_inventory_returns_zero_when_every_picked_photo_is_already_inventoried(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Re-picking only photos already in the CSV does nothing (no fetch, no rewrite), rather than erroring out"""
+    out_file = str(tmp_path / "out.csv")
+    item = {"id": "1", "mediaFile": {"filename": "a.jpg", "baseUrl": "https://photos.example/1"}}
+    _fake_picker_setup(monkeypatch, [item], [])
+    image_inventory.google_inventory(out_file)
+
+    _fake_picker_setup(monkeypatch, [item], [])
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda *_a: pytest.fail("Should not re-fetch an already inventoried photo"))
+    assert image_inventory.google_inventory(out_file) == 0
+
+
+def test_main_google_defaults_the_output_to_the_pictures_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """--google, without -o, writes to <Pictures>/google-photos-inventory.csv, and does not require -i"""
+    monkeypatch.setattr(image_inventory, "_default_pictures_dir", lambda: str(tmp_path))
+    called = {}
+    monkeypatch.setattr(image_inventory, "google_inventory", lambda out_file, **_kwargs: called.setdefault("out_file", out_file) or 0)
+    with patch.object(sys, "argv", ["imagetool", "inventory", "--google"]):
+        tools.imagetool()
+    assert called["out_file"] == str(tmp_path / image_inventory.DEFAULT_GOOGLE_OUTPUT)
+
+
+def test_main_google_honors_the_output_option(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """--google -o <file> writes to the given file instead of the Pictures directory default"""
+    out_file = str(tmp_path / "custom.csv")
+    called = {}
+    monkeypatch.setattr(image_inventory, "google_inventory", lambda out, **_kwargs: called.setdefault("out_file", out) or 0)
+    with patch.object(sys, "argv", ["imagetool", "inventory", "--google", "-o", out_file]):
+        tools.imagetool()
+    assert called["out_file"] == out_file
 
 
 def test_chunks_splits_preserving_order() -> None:
