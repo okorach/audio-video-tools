@@ -449,6 +449,25 @@ def _is_original_filename(file_name: str) -> bool:
     return any(pattern.match(stem) for pattern in _ORIGINAL_FILENAME_PATTERNS)
 
 
+def _in_duplicate_folder(full_path: str) -> bool:
+    """Returns whether any folder of full_path (not its file name itself) has "duplicate" in its name, as commonly
+    used for folders already known to hold duplicate photos (eg "Duplicates", "Duplicate Photos", "zzz_duplicates")"""
+    folders = re.split(r"[\\/]", full_path)[:-1]
+    return any("duplicate" in folder.lower() for folder in folders)
+
+
+def _duplicate_folder_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo located in a folder whose name indicates it already holds known duplicates (see
+    _in_duplicate_folder()), None if both or neither is. Checked first among _DEDUP_RULES: a photo deliberately
+    filed away as a duplicate is the strongest signal of which one to delete"""
+    in_a, in_b = _in_duplicate_folder(row_a["full_path"]), _in_duplicate_folder(row_b["full_path"])
+    if in_a and not in_b:
+        return 1
+    if in_b and not in_a:
+        return 2
+    return None
+
+
 def _size_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
     """Returns 1 or 2, the photo significantly smaller (DEDUP_SIZE_RATIO_THRESHOLD) than the other one, None if neither
     is, or either size is missing"""
@@ -484,7 +503,12 @@ def _gps_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
 
 
 # Rules deciding which photo of a pair to recommend for deletion, checked in this order, the first conclusive one wins
-_DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (_size_rule, _original_filename_rule, _gps_rule)
+_DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
+    _duplicate_folder_rule,
+    _size_rule,
+    _original_filename_rule,
+    _gps_rule,
+)
 
 
 def _recommend_deletion(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
