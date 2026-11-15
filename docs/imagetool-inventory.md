@@ -24,6 +24,9 @@ Inventories the photos found in directories and/or disk drives (processed recurs
 its full path, short name, size, dimensions, a perceptual fingerprint, dates, GPS coordinates, device, other common EXIF
 metadata and a duplicate likelihood (see below) to help detect duplicates and near-duplicates.
 
+GIF files are never inventoried (not photos: animations, screenshots...), whether found under a scanned directory or given
+directly in `-i`.
+
 ```
 imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
 ```

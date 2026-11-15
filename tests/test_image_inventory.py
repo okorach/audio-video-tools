@@ -359,6 +359,17 @@ def test_collect_photos_keeps_files_and_expands_directories(tmp_path: Path) -> N
     assert set(files) == {str(given_file), str(tmp_path / "sub" / "photo.jpg")}
 
 
+def test_collect_photos_excludes_gif_files(tmp_path: Path) -> None:
+    """GIF files are never inventoried, whether found under a scanned directory or given directly in -i"""
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "photo.jpg").write_bytes(b"0")
+    (tmp_path / "sub" / "animation.gif").write_bytes(b"0")
+    given_gif = tmp_path / "given.gif"
+    given_gif.write_bytes(b"0")
+    files = image_inventory._collect_photos([str(given_gif), str(tmp_path / "sub")])
+    assert set(files) == {str(tmp_path / "sub" / "photo.jpg")}
+
+
 def test_collect_photos_exits_when_nothing_is_found(tmp_path: Path) -> None:
     """Exits with code 1 when no photo is found in the given paths"""
     with pytest.raises(SystemExit) as exc:

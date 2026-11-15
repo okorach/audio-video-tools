@@ -108,20 +108,29 @@ def _progress_logger(total: int) -> Callable[[], None]:
     return done
 
 
+EXCLUDED_EXTENSIONS: tuple[str, ...] = ("gif",)  # Not photos: animations, screenshots... never inventoried, even if given directly
+
+
+def _is_excluded(filename: str) -> bool:
+    """Returns whether filename has one of the EXCLUDED_EXTENSIONS, always skipped by the inventory"""
+    return filename.lower().rsplit(".", 1)[-1] in EXCLUDED_EXTENSIONS
+
+
 def _collect_photos(paths: list[str]) -> list[str]:
     """Expands the files, directories and/or disk drives given in paths into the list of photos they contain (directories are
-    walked recursively, files are kept as given whatever their extension). Logs the number of photos collected so far every
-    COLLECT_PROGRESS_PERIOD seconds, since walking a whole disk drive can take a while before the inventory itself starts.
-    Exits with code 1 if no photo is found"""
+    walked recursively, files are kept as given whatever their extension, except EXCLUDED_EXTENSIONS which are always skipped).
+    Logs the number of photos collected so far every COLLECT_PROGRESS_PERIOD seconds, since walking a whole disk drive can take
+    a while before the inventory itself starts. Exits with code 1 if no photo is found"""
     files: list[str] = []
     last_log = time.monotonic()
     for path in paths:
         if not os.path.isdir(path):
-            files.append(path)
+            if not _is_excluded(path):
+                files.append(path)
             continue
         for root, _, names in os.walk(path):
             for name in names:
-                if not fil.is_image_file(name):
+                if not fil.is_image_file(name) or _is_excluded(name):
                     continue
                 files.append(os.path.join(root, name))
                 now = time.monotonic()
