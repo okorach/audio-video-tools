@@ -27,6 +27,7 @@ import csv
 import os
 import shutil
 import sys
+import time
 import types
 from pathlib import Path
 from unittest import mock
@@ -877,6 +878,48 @@ def test_collect_photos_logs_progress_every_period(tmp_path: Path, monkeypatch: 
     assert log_info.call_args_list[-1].args[1] == 3
 
 
+def test_load_reusable_rows_returns_empty_when_the_csv_doesnt_exist_yet(tmp_path: Path) -> None:
+    """Without an existing CSV at out_file, there is nothing to reuse: every photo is (re)computed"""
+    assert image_inventory._load_reusable_rows(str(tmp_path / "missing.csv")) == ({}, None)
+
+
+def test_load_reusable_rows_reads_existing_rows_keyed_by_full_path(tmp_path: Path) -> None:
+    """An existing CSV's rows are indexed by their full_path, for _reusable_row() to look up by file"""
+    out_file = tmp_path / "inventory.csv"
+    with open(out_file, "w", newline="", encoding="utf-8") as fh:
+        csv_writer = csv.writer(fh)
+        csv_writer.writerow(image_inventory.PHOTO_CSV_HEADER)
+        csv_writer.writerow(_row(full_path="a.jpg", file_name="a.jpg", fingerprint="00000000"))
+    reusable, csv_mtime = image_inventory._load_reusable_rows(str(out_file))
+    assert set(reusable) == {"a.jpg"}
+    assert csv_mtime == out_file.stat().st_mtime
+
+
+def test_reusable_row_reuses_a_photo_unchanged_since_the_csv(tmp_path: Path) -> None:
+    """A photo not modified since the existing CSV was written reuses its row, unchanged"""
+    photo = tmp_path / "photo.jpg"
+    photo.write_bytes(b"0")
+    row = ["anything"]
+    future_mtime = photo.stat().st_mtime + 10
+    assert image_inventory._reusable_row(str(photo), {os.path.abspath(str(photo)): row}, future_mtime) is row
+
+
+def test_reusable_row_returns_none_when_the_photo_was_modified_after_the_csv(tmp_path: Path) -> None:
+    """A photo modified after the existing CSV was written must be recomputed, not reused"""
+    photo = tmp_path / "photo.jpg"
+    photo.write_bytes(b"0")
+    past_mtime = photo.stat().st_mtime - 10
+    assert image_inventory._reusable_row(str(photo), {os.path.abspath(str(photo)): ["anything"]}, past_mtime) is None
+
+
+def test_reusable_row_returns_none_when_there_is_nothing_to_reuse(tmp_path: Path) -> None:
+    """A new photo, or no existing CSV at all, is always (re)computed"""
+    photo = tmp_path / "photo.jpg"
+    photo.write_bytes(b"0")
+    assert image_inventory._reusable_row(str(photo), {}, time.time() + 10) is None  # Not in the existing CSV
+    assert image_inventory._reusable_row(str(photo), {os.path.abspath(str(photo)): ["anything"]}, None) is None  # No existing CSV
+
+
 pytestmark = pytest.mark.skipif(shutil.which(util.get_exiftool()) is None, reason="exiftool is not installed")
 
 
@@ -908,6 +951,37 @@ def test_inventory_handles_several_photos_across_threads(tmp_path: Path) -> None
     assert len(rows) == 4
     file_names = {row[1] for row in rows[1:]}
     assert file_names == {"img-640x480.jpg", "img-large.jpg", "img-superwide.jpg"}
+
+
+def test_inventory_reuses_an_unchanged_photo_without_recomputing_its_fingerprint(tmp_path: Path) -> None:
+    """Re-running inventory() over the same photo, with the same out_file, reuses its row from the existing CSV
+    instead of recomputing its fingerprint and metadata, since the photo has not changed since"""
+    photo = tmp_path / "photo.jpg"
+    photo.write_bytes(Path(REAL_IMAGE).read_bytes())
+    out_file = str(tmp_path / "inventory.csv")
+    image_inventory.inventory([str(photo)], out_file, max_workers=2)
+
+    with mock.patch.object(image_inventory, "photo_row", wraps=image_inventory.photo_row) as spy:
+        nb_photos = image_inventory.inventory([str(photo)], out_file, max_workers=2)
+    assert nb_photos == 1
+    spy.assert_not_called()
+    with open(out_file, encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+    assert dict(zip(image_inventory.CSV_HEADER, rows[1], strict=True))["fingerprint"] == image_inventory.compute_fingerprint(REAL_IMAGE)
+
+
+def test_inventory_recomputes_a_photo_modified_after_the_csv(tmp_path: Path) -> None:
+    """A photo modified after the existing CSV was written is recomputed, not reused, even though it was already in it"""
+    photo = tmp_path / "photo.jpg"
+    photo.write_bytes(Path(REAL_IMAGE).read_bytes())
+    out_file = str(tmp_path / "inventory.csv")
+    image_inventory.inventory([str(photo)], out_file, max_workers=2)
+
+    future = time.time() + 10
+    os.utime(photo, (future, future))
+    with mock.patch.object(image_inventory, "photo_row", wraps=image_inventory.photo_row) as spy:
+        image_inventory.inventory([str(photo)], out_file, max_workers=2)
+    spy.assert_called_once()
 
 
 def test_main_inventories_photos_given_in_dash_i(tmp_path: Path) -> None:

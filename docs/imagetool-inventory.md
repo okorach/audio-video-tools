@@ -52,6 +52,11 @@ large photo collection, such as a whole disk drive). The processing progress and
 photo processed so far, applied to the remaining photos) are logged at most every 30 seconds, eg
 `Processed 1346/3384 images - ETA 00:12:34.567`.
 
+If the output CSV already exists (eg from a previous run over the same directory or drive), a photo already in it that has
+not been modified since (its own modification date is not after the CSV file's) reuses its fingerprint and metadata from
+there instead of being read again: only the new or modified photos are actually processed, which makes re-inventorying a
+large, mostly unchanged collection much faster.
+
 The CSV file has one row per photo, with the columns below (in this order). A column is empty when the corresponding metadata is
 not present in the photo:
 

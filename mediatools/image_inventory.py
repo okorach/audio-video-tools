@@ -683,15 +683,51 @@ def _chunks(files: list[str], nb_chunks: int) -> list[list[str]]:
     return chunks
 
 
-def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[list[object]]:
+def _load_reusable_rows(out_file: str) -> tuple[dict[str, list[object]], float | None]:
+    """Returns ({full_path: row}, the modification time) of an existing inventory CSV already at out_file, used by
+    inventory() to reuse the fingerprint and metadata of a photo that has not changed since it was written, instead
+    of recomputing them. ({}, None) if out_file does not exist yet"""
+    if not os.path.isfile(out_file):
+        return {}, None
+    full_path_idx = PHOTO_CSV_HEADER.index("full_path")
+    rows = _read_inventory_csv(out_file)
+    return {row[full_path_idx]: row for row in rows}, os.path.getmtime(out_file)
+
+
+def _reusable_row(filename: str, reusable: dict[str, list[object]], csv_mtime: float | None) -> list[object] | None:
+    """Returns the row already in reusable (see _load_reusable_rows()) for filename, if it has not been modified
+    since csv_mtime (the existing CSV's own modification time), None if it must be (re)computed instead: it is new,
+    it was modified since, or there is no existing CSV (csv_mtime is None)"""
+    if csv_mtime is None:
+        return None
+    existing = reusable.get(os.path.abspath(filename))
+    if existing is None:
+        return None
+    try:
+        if os.path.getmtime(filename) > csv_mtime:
+            return None
+    except OSError:
+        return None
+    return existing
+
+
+def _process_chunk(
+    files: list[str],
+    progress_done: Callable[[], None],
+    reusable: dict[str, list[object]] | None = None,
+    csv_mtime: float | None = None,
+) -> list[list[object]]:
     """Returns the CSV rows of a chunk of photos, their EXIF data read with a single exiftool process kept open for the whole
     chunk: spawning one exiftool process per photo, instead of per chunk, would make the inventory of a large photo
-    collection much slower. progress_done() is called after each photo, not only once the whole chunk is done, so the
-    progress is reported as the photos are actually processed, not in bursts of a whole chunk at a time"""
+    collection much slower. A photo already in reusable that has not changed since csv_mtime (see _reusable_row()) reuses
+    its existing row as-is, without recomputing its fingerprint or metadata. progress_done() is called after each photo,
+    not only once the whole chunk is done, so the progress is reported as the photos are actually processed, not in
+    bursts of a whole chunk at a time"""
     rows = []
     with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
         for f in files:
-            rows.append(photo_row(et, f))
+            row = _reusable_row(f, reusable or {}, csv_mtime)
+            rows.append(row if row is not None else photo_row(et, f))
             progress_done()
     return rows
 
@@ -699,15 +735,21 @@ def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[
 def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
     """Writes a CSV inventory of the photos (full path, size, dimensions, a perceptual fingerprint, dates, GPS coordinates,
     device, other common EXIF metadata and a duplicate likelihood with the most similar other photo) to out_file. The
-    photos are read in parallel, max_workers threads each reading a chunk of them with its own exiftool process. The
-    progress and the ETA are logged at most every PROGRESS_PERIOD seconds. Returns the number of photos inventoried"""
+    photos are read in parallel, max_workers threads each reading a chunk of them with its own exiftool process. If
+    out_file already exists (eg a previous run over the same directory/drive), a photo that has not changed since
+    then (see _reusable_row()) reuses its fingerprint and metadata from it, instead of recomputing them: only the new
+    or modified photos are actually read. The progress and the ETA are logged at most every PROGRESS_PERIOD seconds.
+    Returns the number of photos inventoried"""
     total = len(files)
     progress_done = _progress_logger(total)
     log.logger.info("Inventorying %d photos into %s", total, out_file)
+    reusable, csv_mtime = _load_reusable_rows(out_file)
+    if reusable:
+        log.logger.info("Reusing the metadata already in %s for the photos that have not changed since", out_file)
     chunks = _chunks(files, max(1, min(max_workers, total)))
     rows: list[list[object]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="PhotoInventory") as executor:
-        futures = [executor.submit(_process_chunk, chunk, progress_done) for chunk in chunks]
+        futures = [executor.submit(_process_chunk, chunk, progress_done, reusable, csv_mtime) for chunk in chunks]
         for future in concurrent.futures.as_completed(futures):
             rows.extend(future.result())
     log.logger.info("Computing the duplicate likelihood of %d photos...", total)
