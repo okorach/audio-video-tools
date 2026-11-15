@@ -21,17 +21,17 @@
 # imagetool inventory
 
 Inventories the photos found in directories and/or disk drives (processed recursively) into a CSV file: one row per photo, with
-its full path, short name, size, dimensions, a perceptual fingerprint, dates, GPS coordinates, device and other common EXIF
-metadata.
+its full path, short name, size, dimensions, a perceptual fingerprint, dates, GPS coordinates, device, other common EXIF
+metadata and a duplicate likelihood (see below) to help detect duplicates and near-duplicates.
 
 ```
-imagetool inventory -i <photos, directories and/or disk drives> [-o <output.csv>] [--threads <n>] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
+imagetool inventory -i <photos, directories, disk drives, or a single existing inventory CSV> [-o <output.csv>] [--threads <n>] [-v CRITICAL|ERROR|WARNING|INFO|DEBUG]
 ```
 
 | Option | Description |
 |---|---|
-| `-i` | Photos, directories and/or disk drives to inventory (directories are scanned recursively) |
-| `-o` | CSV file to write. Default: `photo-inventory.csv` |
+| `-i` | Photos, directories and/or disk drives to inventory (directories are scanned recursively), or a single existing inventory CSV file (see below) |
+| `-o` | CSV file to write. Default: `photo-inventory.csv`, or the input CSV file itself when `-i` is one |
 | `--threads` | Number of threads reading the photos' metadata in parallel. Default: 8 |
 | `-v` | Verbosity, see [verbosity.md](verbosity.md) |
 
@@ -60,6 +60,8 @@ not present in the photo:
 | `gps_latitude`, `gps_longitude`, `gps_altitude` | GPS coordinates the photo was taken at |
 | `device` | Make and model of the camera or phone that took the photo |
 | `lens_model`, `iso`, `aperture`, `exposure_time`, `focal_length`, `orientation`, `software` | Other common EXIF metadata |
+| `duplicate_likelihood` | Likelihood (0-100) that this photo is a duplicate of another one of the inventory, see below |
+| `duplicate_of` | Full path of the most likely duplicate (empty if `duplicate_likelihood` is empty) |
 
 ## Fingerprint
 
@@ -76,5 +78,31 @@ near-duplicate photos across the inventory:
 The fingerprint of a photo that can't be read as an image (corrupted file, unsupported format) is empty. A very large photo
 (more pixels than Pillow's decompression bomb safety limit) logs a warning naming the file, since Pillow's own warning about
 it doesn't.
+
+## Duplicate detection
+
+`duplicate_likelihood` (0-100) and `duplicate_of` estimate how likely a photo is a duplicate, or a near-duplicate, of another
+photo of the inventory, and point to that most likely duplicate. They are computed as the last phase of the inventory, by
+comparing each photo to the others on:
+
+- How close their fingerprints are (`hamming_distance()`, the main criterion).
+- Whether their file size, dimensions, date taken, device and GPS coordinates match.
+
+Only the criteria present on both photos being compared count, so missing metadata never lowers the likelihood: a photo with
+little or no EXIF metadata can still be matched on its fingerprint alone. `duplicate_likelihood` and `duplicate_of` are empty
+when a photo has too little in common with any other one to say anything meaningful, or none at all.
+
+To keep this phase fast on a large inventory, photos are only compared to the others sharing an exact file size, an exact
+date taken, or the leading bits of their fingerprint: comparing every photo to every other one would not scale to a disk
+drive's worth of photos. As a result, a duplicate with none of these in common with the original (eg a heavily re-edited copy,
+saved on a different date, with its metadata stripped) may be missed.
+
+`duplicate_likelihood` and `duplicate_of` can also be (re)computed on their own, from an existing inventory CSV, without
+rescanning any photo: pass that CSV file as the single `-i` of a new `imagetool inventory` run. Without `-o`, the CSV is
+amended in place.
+
+```
+imagetool inventory -i photo-inventory.csv
+```
 
 Requires `exiftool` on PATH.
