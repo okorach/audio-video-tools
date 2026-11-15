@@ -377,8 +377,33 @@ def test_gps_rule_recommends_the_photo_without_gps() -> None:
     assert image_inventory._gps_rule(with_gps, with_gps) is None
 
 
+def test_in_duplicate_folder_matches_a_folder_name_containing_duplicate() -> None:
+    """A folder with 'duplicate' anywhere in its name, anywhere in the path, is detected: case-insensitively (eg
+    'DUpliCates'), and whether singular or plural, since it's a plain substring match, not an exact word; the file
+    name itself doesn't count"""
+    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "Duplicates", "a.jpg"))
+    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "DUpliCates", "a.jpg"))
+    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "zzz_Duplicate Photos", "a.jpg"))
+    assert not image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "2020", "duplicate.jpg"))
+    assert not image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "2020", "a.jpg"))
+
+
+def test_duplicate_folder_rule_recommends_the_photo_filed_as_a_duplicate() -> None:
+    """The photo located in a folder whose name indicates known duplicates is recommended for deletion"""
+    in_duplicates = _csv_row(full_path=os.path.join("C:", "Photos", "Duplicates", "a.jpg"))
+    elsewhere = _csv_row(full_path=os.path.join("C:", "Photos", "2020", "a.jpg"))
+    assert image_inventory._duplicate_folder_rule(in_duplicates, elsewhere) == 1
+    assert image_inventory._duplicate_folder_rule(elsewhere, in_duplicates) == 2
+    assert image_inventory._duplicate_folder_rule(in_duplicates, in_duplicates) is None
+
+
 def test_recommend_deletion_checks_rules_in_order() -> None:
-    """The size rule wins over the file name and GPS rules when it is conclusive"""
+    """The duplicate-folder rule wins over every other rule when it is conclusive, and the size rule wins over the
+    file name and GPS rules when it is conclusive"""
+    in_duplicates = _csv_row(full_path=os.path.join("Duplicates", "a.jpg"), size_bytes="1000000")  # Much larger, but filed as a duplicate
+    elsewhere = _csv_row(full_path=os.path.join("Elsewhere", "a.jpg"), size_bytes="100")
+    assert image_inventory._recommend_deletion(in_duplicates, elsewhere) == 1
+
     row_a = _csv_row(size_bytes="1000", file_name="Chicago 2018 55.jpg", gps_latitude="10.5")
     row_b = _csv_row(size_bytes="100", file_name="IMG_1234.jpg")  # Smaller, but with an original name and no GPS
     assert image_inventory._recommend_deletion(row_a, row_b) == 2
