@@ -380,20 +380,23 @@ def _read_inventory_csv(csv_file: str) -> list[list[object]]:
 
 DEDUP_SIZE_RATIO_THRESHOLD: float = 0.8  # A photo is "significantly smaller" than the other one if below this ratio of its size
 
-# Unedited camera/phone original file names (eg IMG_1234.jpg, PXL_20210101_123456.jpg, DSC_0001.jpg), as opposed to a
-# descriptive name a photo was renamed to
+# Unedited camera/phone original file names, as opposed to a descriptive name a photo was renamed to: eg IMG_1234.jpg,
+# IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
+# DSC_0001.jpg, 100_1234.jpg (point-and-shoot cameras)
 _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
-        r"^img[-_]?\d{3,}$",
-        r"^dsc[fn]?[-_]?\d{3,}$",
-        r"^pxl[-_]?\d{8}[-_]\d+$",
-        r"^vid[-_]?\d{3,}$",
-        r"^mov[-_]?\d{3,}$",
+        r"^img[-_]?\d[\d_]*(_hdr)?$",
+        r"^img-\d{8}-wa\d+$",
+        r"^dsc[fn]?[-_]?\d[\d_]*$",
+        r"^pxl[-_]?\d[\d_]*$",
+        r"^vid[-_]?\d[\d_]*$",
+        r"^mov[-_]?\d[\d_]*$",
+        r"^mvimg[-_]?\d[\d_]*$",
         r"^p\d{7,}$",
         r"^gopr\d{3,}$",
-        r"^\d{3,4}[-_]?\d{3,}$",
-        r"^signal-\d{4}-\d{2}-\d{2}-\d{6}$",
+        r"^\d{3,4}[-_]\d{3,}$",
+        r"^signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?$",
         r"^wa\d{10,}$",
     )
 )
@@ -482,12 +485,14 @@ def _print_pair(index: int, total: int, pair: tuple[str, dict[str, str], dict[st
     likelihood, row_a, row_b = pair
     print(f"\n[{index}/{total}] duplicate likelihood: {likelihood}%")
     for i, row in ((1, row_a), (2, row_b)):
-        mark = " <-- suggested for deletion" if i == recommended else ""
+        mark = "  <<< SUGGESTED FOR DELETION" if i == recommended else ""
         print(f"  [{i}] {row['full_path']}{mark}")
         print(
             f"      size={_format_size(row.get('size_bytes'))}  date_taken={row.get('date_taken') or 'N/A'}  "
             f"device={row.get('device') or 'N/A'}  gps={_format_gps(row)}"
         )
+    if recommended is None:
+        print("  No recommendation: the 2 photos are equally likely to be the original")
 
 
 def _ask_which_to_delete(recommended: int | None) -> int:
@@ -503,13 +508,19 @@ def _ask_which_to_delete(recommended: int | None) -> int:
         print("Please answer 1, 2, or 0")
 
 
-def _delete_photo(path: str) -> None:
-    """Deletes path from disk, logging a warning instead of raising if it can't be deleted"""
+def _delete_photo(path: str) -> bool:
+    """Deletes path from disk, returns True if it was deleted or was already missing (either way, it should no longer
+    be in the inventory), False if it exists but could not be deleted (eg permission denied), logging accordingly"""
     try:
         os.remove(path)
         log.logger.info("Deleted %s", path)
+        return True
+    except FileNotFoundError:
+        log.logger.warning("%s was already missing", path)
+        return True
     except OSError as e:
         log.logger.warning("Could not delete %s: %s", path, e)
+        return False
 
 
 def _write_dict_rows(rows: list[dict[str, str]], out_file: str) -> None:
@@ -544,8 +555,10 @@ def dedup(csv_file: str) -> None:
     """Interactively reviews, from the highest to the lowest duplicate_likelihood, the pairs of photos of csv_file that
     may be duplicates (as computed by add_duplicate_likelihood()), and lets the user delete one of each pair, or
     neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
-    delete (see _recommend_deletion()). A deleted photo is removed from disk and from csv_file, written back after
-    each deletion so an interrupted review can be resumed later without re-reviewing already handled pairs"""
+    delete (see _recommend_deletion()). A photo chosen for deletion is removed from disk and, whether it was actually
+    deleted or was already missing, also from csv_file (which is written back after each removal so an interrupted
+    review can be resumed later without re-reviewing already handled pairs); it is kept in csv_file if it exists but
+    could not be deleted"""
     with open(csv_file, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     if not any(row.get("duplicate_likelihood") for row in rows):
@@ -565,7 +578,8 @@ def dedup(csv_file: str) -> None:
         if choice == 0:
             continue
         to_delete = row_a if choice == 1 else row_b
-        _delete_photo(to_delete["full_path"])
+        if not _delete_photo(to_delete["full_path"]):
+            continue
         deleted.add(to_delete["full_path"])
         rows = [row for row in rows if row["full_path"] != to_delete["full_path"]]
         _write_dict_rows(rows, csv_file)

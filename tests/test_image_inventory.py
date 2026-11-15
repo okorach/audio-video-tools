@@ -311,7 +311,17 @@ def test_main_csv_input_defaults_the_output_to_the_input_file(tmp_path: Path) ->
 
 def test_is_original_filename_recognizes_common_camera_patterns() -> None:
     """Common unedited camera/phone file names are recognized as such"""
-    for name in ("IMG_1234.jpg", "PXL_20210101_123456.jpg", "DSC_0001.jpg", "DSCN1234.JPG", "100_1234.jpg", "P1010001.jpg"):
+    for name in (
+        "IMG_1234.jpg",
+        "IMG_20180706_125922.jpg",  # Android date_time name
+        "IMG_20180709_201308_HDR.jpg",  # Android date_time name, HDR suffix
+        "IMG-20200101-WA0001.jpg",  # WhatsApp
+        "PXL_20210101_123456.jpg",
+        "DSC_0001.jpg",
+        "DSCN1234.JPG",
+        "100_1234.jpg",
+        "P1010001.jpg",
+    ):
         assert image_inventory._is_original_filename(name), name
 
 
@@ -408,16 +418,28 @@ def test_ask_which_to_delete_defaults_to_0_when_no_recommendation(monkeypatch: p
 
 
 def test_delete_photo_removes_the_file(tmp_path: Path) -> None:
-    """_delete_photo() removes the file from disk"""
+    """_delete_photo() removes the file from disk and returns True"""
     file_path = tmp_path / "a.jpg"
     file_path.write_bytes(b"x")
-    image_inventory._delete_photo(str(file_path))
+    assert image_inventory._delete_photo(str(file_path)) is True
     assert not file_path.exists()
 
 
-def test_delete_photo_does_not_raise_when_the_file_is_missing(tmp_path: Path) -> None:
-    """_delete_photo() logs a warning instead of raising when the file can't be deleted"""
-    image_inventory._delete_photo(str(tmp_path / "missing.jpg"))
+def test_delete_photo_returns_true_when_the_file_is_already_missing(tmp_path: Path) -> None:
+    """A photo already missing is reported as deleted too, so a stale entry still gets removed from the inventory"""
+    assert image_inventory._delete_photo(str(tmp_path / "missing.jpg")) is True
+
+
+def test_delete_photo_returns_false_when_it_exists_but_cannot_be_deleted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A photo that exists but can't be deleted (eg permission denied) is not reported as deleted"""
+    file_path = tmp_path / "a.jpg"
+    file_path.write_bytes(b"x")
+
+    def _raise(_path: str) -> None:
+        raise PermissionError("Access is denied")
+
+    monkeypatch.setattr(image_inventory.os, "remove", _raise)
+    assert image_inventory._delete_photo(str(file_path)) is False
 
 
 def _write_dedup_csv(csv_file: Path, *rows: dict[str, str]) -> None:
@@ -463,6 +485,42 @@ def test_dedup_keeps_both_when_answer_is_0(tmp_path: Path, monkeypatch: pytest.M
     image_inventory.dedup(str(csv_file))
     assert file_a.exists()
     assert file_b.exists()
+
+
+def test_dedup_removes_an_already_missing_photo_from_the_csv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Choosing a photo that is already missing on disk still removes it from the CSV"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_b.write_bytes(b"x")  # file_a is never created: already missing
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="60", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="60", duplicate_of=str(file_a)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1")
+    image_inventory.dedup(str(csv_file))
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert [row["full_path"] for row in rows] == [str(file_b)]
+
+
+def test_dedup_keeps_the_csv_row_when_deletion_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A photo that exists but can't be deleted stays in the CSV"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x")
+    file_b.write_bytes(b"x")
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="60", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="60", duplicate_of=str(file_a)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "1")
+    monkeypatch.setattr(image_inventory, "_delete_photo", lambda _path: False)
+    image_inventory.dedup(str(csv_file))
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert {row["full_path"] for row in rows} == {str(file_a), str(file_b)}
 
 
 def test_dedup_exits_when_csv_has_no_duplicate_likelihood_column(tmp_path: Path) -> None:

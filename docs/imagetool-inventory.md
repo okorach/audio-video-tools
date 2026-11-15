@@ -123,10 +123,14 @@ recommendation of which one to delete, decided by the first of these rules that 
    while the other was renamed to something more descriptive: the one with the original name is recommended.
 3. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
 
-If none of these rules applies, no recommendation is made. For each pair, answer `1` or `2` to delete that photo, `0`
-to keep both, or just press `Enter` to go with the recommendation (nothing happens on `Enter` when there is none).
+If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
+original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes
+one from the other. For each pair, answer `1` or `2` to delete that photo, `0` to keep both, or just press `Enter` to
+go with the recommendation (nothing happens on `Enter` when there is none).
 
-A deleted photo is removed from disk and from the CSV, which is rewritten after each deletion so an interrupted
-review can be resumed later without going through the pairs already handled.
+A photo chosen for deletion is removed from disk and from the CSV, which is rewritten after each removal so an
+interrupted review can be resumed later without going through the pairs already handled. A photo already missing on
+disk (eg deleted by some other means since the inventory was made) is removed from the CSV too; one that still exists
+but could not be deleted (eg permission denied) is kept in the CSV.
 
 Requires `exiftool` on PATH.
