@@ -331,6 +331,7 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "IMG_20180709_201308_HDR.jpg",  # Android date_time name, HDR suffix
         "IMG-20200101-WA0001.jpg",  # WhatsApp
         "PXL_20210101_123456.jpg",
+        "PANO_20190415_103823.jpg",  # Android panorama
         "DSC_0001.jpg",
         "DSCN1234.JPG",
         "100_1234.jpg",
