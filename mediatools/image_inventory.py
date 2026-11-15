@@ -18,17 +18,19 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""Tool that inventories the photos found in directories and/or disk drives into a CSV file: full path, short name, size,
-dimensions, a perceptual fingerprint, dates (taken, created, modified), GPS coordinates, device and other common EXIF
-metadata, and a duplicate likelihood (how much a photo looks like another one of the inventory, based on its fingerprint
-and its metadata) to help detect duplicates and near-duplicates. --dedup interactively reviews these likely duplicates,
-from an existing inventory CSV, and deletes one of each pair"""
+"""Tool that inventories the photos found in directories and/or disk drives, or picked from a Google Photos library
+(--google), into a CSV file: full path, short name, size, dimensions, a perceptual fingerprint, dates (taken, created,
+modified), GPS coordinates, device and other common EXIF metadata, and a duplicate likelihood (how much a photo looks
+like another one of the inventory, based on its fingerprint and its metadata) to help detect duplicates and
+near-duplicates. --dedup interactively reviews these likely duplicates, from an existing inventory CSV, and deletes
+one of each pair"""
 
 from __future__ import annotations
 
 import argparse
 import concurrent.futures
 import csv
+import io
 import itertools
 import os
 import re
@@ -43,7 +45,7 @@ from PIL import Image, ImageOps
 
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools import log
+from mediatools import google_photos, log
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -196,23 +198,20 @@ def _get_date_taken(exif_data: dict) -> datetime | None:
     return None
 
 
-def compute_fingerprint(filename: str) -> str | None:
-    """Returns a perceptual fingerprint of a photo, as a hex string, computed only from its pixels (not from its file name
-    or its metadata): a difference hash of a small grayscale thumbnail of the photo (after applying its EXIF orientation),
-    so that it is identical for the exact same image, and close (small hamming_distance()) for the same image resized or
-    cropped a bit, which can later be used to compute a match probability between two photos. None if the photo can't be
-    read as an image"""
+def _fingerprint_from_image(img: Image.Image, context: str) -> str | None:
+    """Returns the perceptual fingerprint (see compute_fingerprint()) of an already opened Pillow image, a difference
+    hash of a small grayscale thumbnail of it (after applying its EXIF orientation). context only names the photo in
+    the warning logged if its pixels can't be processed, None in that case"""
     try:
-        with Image.open(filename) as img:
-            nb_pixels = img.width * img.height
-            if Image.MAX_IMAGE_PIXELS and nb_pixels > Image.MAX_IMAGE_PIXELS:
-                # Pillow itself only warns about this (without naming the file), decoding such a large image may be slow
-                log.logger.warning("%s is a very large image (%d pixels), its fingerprint may take a while to compute", filename, nb_pixels)
-            resample = getattr(Image, "Resampling", Image).LANCZOS
-            thumbnail = ImageOps.exif_transpose(img).convert("L").resize((FINGERPRINT_GRID + 1, FINGERPRINT_GRID), resample)
-            pixels = list(getattr(thumbnail, "get_flattened_data", thumbnail.getdata)())
+        nb_pixels = img.width * img.height
+        if Image.MAX_IMAGE_PIXELS and nb_pixels > Image.MAX_IMAGE_PIXELS:
+            # Pillow itself only warns about this (without naming the file), decoding such a large image may be slow
+            log.logger.warning("%s is a very large image (%d pixels), its fingerprint may take a while to compute", context, nb_pixels)
+        resample = getattr(Image, "Resampling", Image).LANCZOS
+        thumbnail = ImageOps.exif_transpose(img).convert("L").resize((FINGERPRINT_GRID + 1, FINGERPRINT_GRID), resample)
+        pixels = list(getattr(thumbnail, "get_flattened_data", thumbnail.getdata)())
     except Exception as e:
-        log.logger.warning("Could not compute the fingerprint of %s: %s", filename, e)
+        log.logger.warning("Could not compute the fingerprint of %s: %s", context, e)
         return None
     width = FINGERPRINT_GRID + 1
     bits = "".join(
@@ -221,6 +220,31 @@ def compute_fingerprint(filename: str) -> str | None:
         for col in range(FINGERPRINT_GRID)
     )
     return f"{int(bits, 2):0{len(bits) // 4}x}"
+
+
+def compute_fingerprint(filename: str) -> str | None:
+    """Returns a perceptual fingerprint of a photo, as a hex string, computed only from its pixels (not from its file name
+    or its metadata): a difference hash of a small grayscale thumbnail of the photo (after applying its EXIF orientation),
+    so that it is identical for the exact same image, and close (small hamming_distance()) for the same image resized or
+    cropped a bit, which can later be used to compute a match probability between two photos. None if the photo can't be
+    read as an image"""
+    try:
+        with Image.open(filename) as img:
+            return _fingerprint_from_image(img, filename)
+    except Exception as e:
+        log.logger.warning("Could not compute the fingerprint of %s: %s", filename, e)
+        return None
+
+
+def compute_fingerprint_from_bytes(data: bytes, context: str) -> str | None:
+    """Same as compute_fingerprint(), but from image bytes already in memory (eg downloaded from a Google Photos
+    thumbnail URL) instead of a local file; context names the photo in the warning logged if anything goes wrong"""
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            return _fingerprint_from_image(img, context)
+    except Exception as e:
+        log.logger.warning("Could not compute the fingerprint of %s: %s", context, e)
+        return None
 
 
 def hamming_distance(fingerprint_1: str | None, fingerprint_2: str | None) -> int | None:
@@ -659,15 +683,51 @@ def _chunks(files: list[str], nb_chunks: int) -> list[list[str]]:
     return chunks
 
 
-def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[list[object]]:
+def _load_reusable_rows(out_file: str) -> tuple[dict[str, list[object]], float | None]:
+    """Returns ({full_path: row}, the modification time) of an existing inventory CSV already at out_file, used by
+    inventory() to reuse the fingerprint and metadata of a photo that has not changed since it was written, instead
+    of recomputing them. ({}, None) if out_file does not exist yet"""
+    if not os.path.isfile(out_file):
+        return {}, None
+    full_path_idx = PHOTO_CSV_HEADER.index("full_path")
+    rows = _read_inventory_csv(out_file)
+    return {row[full_path_idx]: row for row in rows}, os.path.getmtime(out_file)
+
+
+def _reusable_row(filename: str, reusable: dict[str, list[object]], csv_mtime: float | None) -> list[object] | None:
+    """Returns the row already in reusable (see _load_reusable_rows()) for filename, if it has not been modified
+    since csv_mtime (the existing CSV's own modification time), None if it must be (re)computed instead: it is new,
+    it was modified since, or there is no existing CSV (csv_mtime is None)"""
+    if csv_mtime is None:
+        return None
+    existing = reusable.get(os.path.abspath(filename))
+    if existing is None:
+        return None
+    try:
+        if os.path.getmtime(filename) > csv_mtime:
+            return None
+    except OSError:
+        return None
+    return existing
+
+
+def _process_chunk(
+    files: list[str],
+    progress_done: Callable[[], None],
+    reusable: dict[str, list[object]] | None = None,
+    csv_mtime: float | None = None,
+) -> list[list[object]]:
     """Returns the CSV rows of a chunk of photos, their EXIF data read with a single exiftool process kept open for the whole
     chunk: spawning one exiftool process per photo, instead of per chunk, would make the inventory of a large photo
-    collection much slower. progress_done() is called after each photo, not only once the whole chunk is done, so the
-    progress is reported as the photos are actually processed, not in bursts of a whole chunk at a time"""
+    collection much slower. A photo already in reusable that has not changed since csv_mtime (see _reusable_row()) reuses
+    its existing row as-is, without recomputing its fingerprint or metadata. progress_done() is called after each photo,
+    not only once the whole chunk is done, so the progress is reported as the photos are actually processed, not in
+    bursts of a whole chunk at a time"""
     rows = []
     with ExifToolHelper(executable=util.get_exiftool(), common_args=util.EXIFTOOL_ARGS, encoding="utf-8") as et:
         for f in files:
-            rows.append(photo_row(et, f))
+            row = _reusable_row(f, reusable or {}, csv_mtime)
+            rows.append(row if row is not None else photo_row(et, f))
             progress_done()
     return rows
 
@@ -675,15 +735,21 @@ def _process_chunk(files: list[str], progress_done: Callable[[], None]) -> list[
 def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
     """Writes a CSV inventory of the photos (full path, size, dimensions, a perceptual fingerprint, dates, GPS coordinates,
     device, other common EXIF metadata and a duplicate likelihood with the most similar other photo) to out_file. The
-    photos are read in parallel, max_workers threads each reading a chunk of them with its own exiftool process. The
-    progress and the ETA are logged at most every PROGRESS_PERIOD seconds. Returns the number of photos inventoried"""
+    photos are read in parallel, max_workers threads each reading a chunk of them with its own exiftool process. If
+    out_file already exists (eg a previous run over the same directory/drive), a photo that has not changed since
+    then (see _reusable_row()) reuses its fingerprint and metadata from it, instead of recomputing them: only the new
+    or modified photos are actually read. The progress and the ETA are logged at most every PROGRESS_PERIOD seconds.
+    Returns the number of photos inventoried"""
     total = len(files)
     progress_done = _progress_logger(total)
     log.logger.info("Inventorying %d photos into %s", total, out_file)
+    reusable, csv_mtime = _load_reusable_rows(out_file)
+    if reusable:
+        log.logger.info("Reusing the metadata already in %s for the photos that have not changed since", out_file)
     chunks = _chunks(files, max(1, min(max_workers, total)))
     rows: list[list[object]] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="PhotoInventory") as executor:
-        futures = [executor.submit(_process_chunk, chunk, progress_done) for chunk in chunks]
+        futures = [executor.submit(_process_chunk, chunk, progress_done, reusable, csv_mtime) for chunk in chunks]
         for future in concurrent.futures.as_completed(futures):
             rows.extend(future.result())
     log.logger.info("Computing the duplicate likelihood of %d photos...", total)
@@ -693,20 +759,158 @@ def inventory(files: list[str], out_file: str, max_workers: int = DEFAULT_WORKER
     return total
 
 
+DEFAULT_GOOGLE_OUTPUT: str = "google-photos-inventory.csv"
+GOOGLE_FINGERPRINT_PARAMS: str = f"=w{FINGERPRINT_GRID + 1}-h{FINGERPRINT_GRID}"  # Resizes the thumbnail to compute_fingerprint()'s grid
+
+
+def _default_pictures_dir() -> str:
+    r"""Returns the OS default directory for pictures (eg 'C:\Users\<user>\Pictures' on Windows), used to default
+    the output of --google since there is no input directory to default it from"""
+    return os.path.join(os.path.expanduser("~"), "Pictures")
+
+
+def _google_dimensions(media_file_metadata: dict[str, object]) -> tuple[int | None, int | None]:
+    """Returns the (width, height) of a picked Google Photos media item, from its mediaFileMetadata, (None, None) if missing"""
+    width, height = media_file_metadata.get("width"), media_file_metadata.get("height")
+    return (int(width), int(height)) if width and height else (None, None)
+
+
+def _google_device(photo_metadata: dict[str, object]) -> str | None:
+    """Returns the device (make and model) that took a picked Google Photos media item, from its photoMetadata, None if there is none"""
+    make = str(photo_metadata.get("cameraMake", "")).strip()
+    model = str(photo_metadata.get("cameraModel", "")).strip()
+    return f"{make} {model}".strip() or None
+
+
+def _google_date_taken(item: dict[str, object]) -> str | None:
+    """Returns the date a picked Google Photos media item was created (its closest available equivalent to the date a
+    photo was taken), from its createTime, None if missing or not parseable"""
+    create_time = item.get("createTime")
+    if not create_time:
+        return None
+    try:
+        return datetime.strptime(str(create_time), "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FMT)
+    except ValueError:
+        return None
+
+
+def google_photo_row(access_token: str, item: dict[str, object]) -> list[object]:
+    """Returns the row (in PHOTO_CSV_HEADER order) of a photo picked from a Google Photos library (see
+    google_photos.list_picked_media_items()). Its full_path is a synthetic 'googlephotos:<id>' identifier (there is
+    no local file), and the columns the Picker API does not expose for a picked photo (GPS coordinates, the file's
+    own creation/modification dates, lens model, orientation, software) are left empty"""
+    media_file = item.get("mediaFile", {})
+    metadata = media_file.get("mediaFileMetadata", {})
+    photo_metadata = metadata.get("photoMetadata", {})
+    base_url = media_file.get("baseUrl")
+    width, height = _google_dimensions(metadata)
+    fingerprint = None
+    size_bytes = None
+    if base_url:
+        data = google_photos.fetch_bytes(access_token, base_url, GOOGLE_FINGERPRINT_PARAMS)
+        if data is not None:
+            fingerprint = compute_fingerprint_from_bytes(data, media_file.get("filename") or str(item.get("id")))
+        size_bytes = google_photos.fetch_size(access_token, base_url)
+    return [
+        f"googlephotos:{item.get('id')}",
+        media_file.get("filename"),
+        size_bytes,
+        width,
+        height,
+        fingerprint,
+        _google_date_taken(item),
+        None,
+        None,
+        None,
+        None,
+        None,
+        _google_device(photo_metadata),
+        None,
+        photo_metadata.get("isoEquivalent"),
+        photo_metadata.get("apertureFNumber"),
+        photo_metadata.get("exposureTime"),
+        photo_metadata.get("focalLength"),
+        None,
+        None,
+    ]
+
+
+def _process_google_item(access_token: str, item: dict[str, object], progress_done: Callable[[], None]) -> list[object]:
+    """Returns the CSV row of one Google Photos item picked by the user, and records its progress"""
+    row = google_photo_row(access_token, item)
+    progress_done()
+    return row
+
+
+def _existing_full_paths(out_file: str) -> set[str]:
+    """Returns the full_path of every photo already inventoried in out_file, an empty set if it doesn't exist yet"""
+    if not os.path.isfile(out_file):
+        return set()
+    with open(out_file, newline="", encoding="utf-8") as fh:
+        return {row["full_path"] for row in csv.DictReader(fh) if row.get("full_path")}
+
+
+def google_inventory(out_file: str, max_workers: int = DEFAULT_WORKERS) -> int:
+    """Lets the user pick, through the Google Photos picker UI opened in their browser, the photos and/or albums of
+    their Google Photos library to inventory, then writes a CSV inventory of them (same columns as inventory(), with
+    the ones the Picker API does not expose for a picked photo left empty, see google_photo_row()) to out_file. If
+    out_file already exists (eg from an earlier run, since the picker only lets you select a limited number of
+    photos at a time), it is extended rather than replaced: a picked photo already in it (by its full_path) is
+    skipped, not fetched nor added again, and the duplicate likelihood is recomputed across the whole, now larger,
+    CSV. Returns the number of (new) photos inventoried, 0 if every picked photo was already in out_file. Exits with
+    code 1 if nothing was picked"""
+    access_token = google_photos.get_access_token()
+    session = google_photos.create_picker_session(access_token)
+    session = google_photos.wait_for_selection(access_token, session)
+    items = list(google_photos.list_picked_media_items(access_token, session["id"]))
+    google_photos.delete_picker_session(access_token, session["id"])
+    if not items:
+        log.logger.error("No photo was picked in the Google Photos picker")
+        sys.exit(1)
+    existing_paths = _existing_full_paths(out_file)
+    new_items = [item for item in items if f"googlephotos:{item.get('id')}" not in existing_paths]
+    skipped = len(items) - len(new_items)
+    if skipped:
+        log.logger.info("%d of the %d picked photos are already in %s, skipping them", skipped, len(items), out_file)
+    if not new_items:
+        log.logger.info("Nothing new to inventory: all %d picked photos are already in %s", len(items), out_file)
+        return 0
+    total = len(new_items)
+    progress_done = _progress_logger(total)
+    log.logger.info("Inventorying %d photos picked from Google Photos into %s", total, out_file)
+    rows: list[list[object]] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="GooglePhotoInventory") as executor:
+        futures = [executor.submit(_process_google_item, access_token, item, progress_done) for item in new_items]
+        rows.extend(future.result() for future in concurrent.futures.as_completed(futures))
+    if existing_paths:
+        rows = _read_inventory_csv(out_file) + rows
+    log.logger.info("Computing the duplicate likelihood of %d photos...", len(rows))
+    add_duplicate_likelihood(rows)
+    _write_csv(rows, out_file)
+    log.logger.info("Inventory of %d new Google Photos photos added to %s (%d total)", total, out_file, len(rows))
+    return total
+
+
 def main() -> None:
     """Inventories the photos found in directories, disk drives and/or files given in -i into a CSV file. -i can instead be
     a single, already existing inventory CSV file: its duplicate_likelihood and duplicate_of columns are then (re)computed
     from the metadata and fingerprints it already has, without rescanning any photo. With --dedup, -i must be such a CSV
     file, already having its duplicate_likelihood computed: the likely duplicates it lists are then interactively
-    reviewed, highest likelihood first, and the chosen one of each pair deleted, see dedup()"""
+    reviewed, highest likelihood first, and the chosen one of each pair deleted, see dedup(). With --google, -i is not
+    used: the photos are picked from a Google Photos library instead, see google_inventory()"""
     util.init("image-inventory")
     parser = argparse.ArgumentParser(description="Inventories photos (size, dimensions, dates, GPS coordinates, device...) into a CSV file")
     util.add_input_args(
         parser,
         "Directories, disk drives and/or photo files to inventory (directories are scanned recursively), "
-        "or a single existing inventory CSV file to only (re)compute the duplicate likelihood of",
+        "or a single existing inventory CSV file to only (re)compute the duplicate likelihood of. Not used with --google",
+        required=False,
     )
-    util.add_output_args(parser, f"CSV file to write (default: {DEFAULT_OUTPUT}, or the input CSV file itself when -i is one)")
+    util.add_output_args(
+        parser,
+        f"CSV file to write (default: {DEFAULT_OUTPUT}, or the input CSV file itself when -i is one, or "
+        f"<Pictures>/{DEFAULT_GOOGLE_OUTPUT} with --google)",
+    )
     util.add_verbosity_arg(parser)
     parser.add_argument(
         "--threads", type=int, default=DEFAULT_WORKERS, help=f"Number of threads reading the photos metadata in parallel (default: {DEFAULT_WORKERS})"
@@ -717,8 +921,22 @@ def main() -> None:
         help="Interactively review the pairs of likely duplicate photos of an existing inventory CSV given in -i, from the "
         "highest duplicate_likelihood down, and delete one of each pair (or neither)",
     )
+    parser.add_argument(
+        "--google",
+        action="store_true",
+        help="Inventory photos picked from a Google Photos library instead of local files: a browser page lets you pick "
+        "the photos/albums to inventory (see docs/imagetool-inventory.md for the one-time Google OAuth2 setup needed). "
+        "-i is not used",
+    )
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE, expand_inputs=False)
-    inputs = kwargs[util.INPUT_FILES]
+    inputs = kwargs.get(util.INPUT_FILES, [])
+
+    if kwargs.get("google"):
+        out_file = kwargs.get(util.OUTPUT_FILE) or os.path.join(_default_pictures_dir(), DEFAULT_GOOGLE_OUTPUT)
+        nb_photos = google_inventory(out_file, max_workers=kwargs.get("threads", DEFAULT_WORKERS))
+        util.generated_file(out_file)
+        log.logger.info("%d photos inventoried", nb_photos)
+        return
 
     if kwargs.get("dedup"):
         if len(inputs) != 1 or not inputs[0].lower().endswith(".csv") or not os.path.isfile(inputs[0]):
@@ -726,6 +944,10 @@ def main() -> None:
             sys.exit(1)
         dedup(inputs[0])
         return
+
+    if not inputs:
+        log.logger.error("-i is required unless --google is given")
+        sys.exit(1)
 
     if len(inputs) == 1 and inputs[0].lower().endswith(".csv") and os.path.isfile(inputs[0]):
         out_file = kwargs.get(util.OUTPUT_FILE) or inputs[0]
