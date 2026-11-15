@@ -415,7 +415,8 @@ DEDUP_SIZE_RATIO_THRESHOLD: float = 0.8  # A photo is "significantly smaller" th
 # Unedited camera/phone original file names, as opposed to a descriptive name a photo was renamed to: eg IMG_1234.jpg,
 # IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
 # PANO_20190415_103823.jpg (Android panorama), DSC_0001.jpg, HPIM1234.jpg (HP cameras), 100_1234.jpg
-# (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix)
+# (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix), "25-12-2011 16-46-10_0021.JPG"
+# (DD-MM-YYYY HH-MM-SS_sequence, used by some photo management software)
 _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -434,6 +435,7 @@ _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
         r"^\d{8}[-_]\d{6}$",
         r"^signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?$",
         r"^wa\d{10,}$",
+        r"^\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}_\d+$",
     )
 )
 
