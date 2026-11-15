@@ -67,7 +67,7 @@ not present in the photo:
 | `size_bytes` | Size of the file, in bytes |
 | `width`, `height` | Dimensions of the photo, in pixels |
 | `fingerprint` | Perceptual fingerprint of the photo, see below |
-| `date_taken` | Date and time the photo was taken (EXIF `DateTimeOriginal`, else `CreateDate`) |
+| `date_taken` | Date and time the photo was taken (EXIF `DateTimeOriginal`, else `CreateDate`), falling back to the date guessed from the file name (eg `IMG_20180706_125922.jpg`), then to the file's own creation/modification date, when there is no EXIF date |
 | `date_created`, `date_modified` | Creation and modification dates of the file itself |
 | `gps_latitude`, `gps_longitude`, `gps_altitude` | GPS coordinates the photo was taken at |
 | `device` | Make and model of the camera or phone that took the photo |
@@ -137,8 +137,9 @@ property, default `~/.mediatools-google-token.json`) so later runs don't ask aga
 
 The columns the Picker API does not expose for a picked photo are left empty: GPS coordinates, the file's own
 creation/modification dates (as opposed to the date it was taken), lens model, orientation and software. `date_taken`
-is the photo's `createTime` (its closest available equivalent). The duplicate likelihood (see above) is computed
-across the picked photos only, not against any local inventory.
+is the photo's `createTime`, falling back to the date guessed from its file name, then to the `Last-Modified` HTTP
+header of the original file, when `createTime` is missing. The duplicate likelihood (see above) is computed across
+the picked photos only, not against any local inventory.
 
 Without `-o`, the CSV is written to `google-photos-inventory.csv` in the OS pictures folder (`%USERPROFILE%\Pictures`
 on Windows) rather than the current directory, since there is no input directory to default it from. `--dedup` works
@@ -166,8 +167,8 @@ recommendation of which one to delete, decided by the first of these rules that 
 3. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
 4. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
    `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`,
-   `25-12-2011 16-46-10_0021.JPG`) while the other was renamed to something more descriptive: the one with the
-   original name is recommended.
+   `25-12-2011 16-46-10_0021.JPG`, `2014-07-20 20.19.20.jpg`) while the other was renamed to something more
+   descriptive: the one with the original name is recommended.
 5. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
 
 If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same

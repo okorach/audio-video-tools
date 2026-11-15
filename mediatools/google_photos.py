@@ -301,3 +301,16 @@ def fetch_size(access_token: str, base_url: str) -> int | None:
     except requests.RequestException as e:
         log.logger.warning("Could not read the size of %s: %s", base_url, e)
         return None
+
+
+def fetch_last_modified(access_token: str, base_url: str) -> str | None:
+    """Returns the raw Last-Modified HTTP header of the original file behind base_url, read from a streamed request
+    whose body is never read, None if it can't be determined. Used as a fallback date taken (image_inventory's
+    _parse_http_date()) when a picked item has no createTime of its own"""
+    try:
+        with requests.get(f"{base_url}=d", headers=_auth_header(access_token), stream=True, timeout=REQUEST_TIMEOUT) as response:
+            response.raise_for_status()
+            return response.headers.get("Last-Modified")
+    except requests.RequestException as e:
+        log.logger.warning("Could not read the last-modified date of %s: %s", base_url, e)
+        return None

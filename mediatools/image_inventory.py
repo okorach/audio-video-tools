@@ -39,6 +39,7 @@ import threading
 import time
 import unicodedata
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING
 
 from exiftool import ExifToolHelper
@@ -417,7 +418,8 @@ DEDUP_SIZE_RATIO_THRESHOLD: float = 0.8  # A photo is "significantly smaller" th
 # IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
 # PANO_20190415_103823.jpg (Android panorama), DSC_0001.jpg, HPIM1234.jpg (HP cameras), 100_1234.jpg
 # (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix), "25-12-2011 16-46-10_0021.JPG"
-# (DD-MM-YYYY HH-MM-SS_sequence, used by some photo management software)
+# (DD-MM-YYYY HH-MM-SS_sequence, used by some photo management software), "2014-07-20 20.19.20.jpg"
+# (YYYY-MM-DD HH.MM.SS, used by other photo management software)
 _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
@@ -437,6 +439,7 @@ _ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
         r"^signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?$",
         r"^wa\d{10,}$",
         r"^\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}_\d+$",
+        r"^\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}$",
     )
 )
 
@@ -695,9 +698,49 @@ def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
     return st.st_size, datetime.fromtimestamp(st.st_ctime).strftime(DATE_FMT), datetime.fromtimestamp(st.st_mtime).strftime(DATE_FMT)
 
 
+# Date/time encoded in a file name, as (regex, strptime format) pairs tried from the most to the least specific; the
+# regex's whole match is fed to strptime. Covers the date_time-bearing patterns of _ORIGINAL_FILENAME_PATTERNS (eg
+# IMG_20180706_125922, PXL_20210101_123456, PANO_20190415_103823, 20130804_174038, signal-2020-01-01-123456,
+# IMG-20200101-WA0001), plus "25-12-2011 16-46-10_0021"
+_FILENAME_DATE_PATTERNS: tuple[tuple[re.Pattern, str], ...] = (
+    (re.compile(r"\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}"), "%d-%m-%Y %H-%M-%S"),
+    (re.compile(r"\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}"), "%Y-%m-%d %H.%M.%S"),
+    (re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}"), "%Y-%m-%d-%H%M%S"),
+    (re.compile(r"\d{8}_\d{6}"), "%Y%m%d_%H%M%S"),
+    (re.compile(r"\d{8}"), "%Y%m%d"),
+)
+
+
+def _date_from_filename(file_name: str) -> str | None:
+    """Returns the date (and time, when the file name encodes one) guessed from file_name, as a fallback date taken
+    when there is no EXIF (or, for a Google Photos item, API) date to use instead. Tries _FILENAME_DATE_PATTERNS
+    from the most to the least specific, the first one that both matches and parses to a valid date wins, None if
+    none does"""
+    stem = os.path.splitext(file_name)[0]
+    for pattern, fmt in _FILENAME_DATE_PATTERNS:
+        match = pattern.search(stem)
+        if match:
+            try:
+                return datetime.strptime(match.group(), fmt).strftime(DATE_FMT)
+            except ValueError:
+                continue
+    return None
+
+
+def _resolve_date_taken(exif_date: datetime | None, file_name: str, date_created: str | None, date_modified: str | None) -> str | None:
+    """Returns the best available date a photo was taken: its EXIF date when it has one, else the date guessed from
+    its file name (see _date_from_filename()), else its own file creation date, falling back to its modification
+    date; None if none of these is available"""
+    if exif_date:
+        return exif_date.strftime(DATE_FMT)
+    return _date_from_filename(file_name) or date_created or date_modified
+
+
 def photo_row(et: ExifToolHelper, filename: str) -> list[object]:
     """Returns the row (in PHOTO_CSV_HEADER order) of a photo, with its EXIF data read with an already open ExifToolHelper
-    (a single exiftool process is kept open for a whole chunk of photos, see inventory())"""
+    (a single exiftool process is kept open for a whole chunk of photos, see inventory()). date_taken falls back to
+    the date guessed from the file name, then to the file's own creation/modification date (see
+    _resolve_date_taken()), when the photo has no EXIF date of its own"""
     try:
         exif_data = et.get_metadata(filename)[0]
     except Exception as e:
@@ -707,14 +750,15 @@ def photo_row(et: ExifToolHelper, filename: str) -> list[object]:
     lat, lon, alt = _get_gps(exif_data)
     date_taken = _get_date_taken(exif_data)
     size_bytes, date_created, date_modified = _file_dates(filename)
+    file_name = fil.basename(filename, strip_ext=False)
     return [
         os.path.abspath(filename),
-        fil.basename(filename, strip_ext=False),
+        file_name,
         size_bytes,
         width,
         height,
         compute_fingerprint(filename),
-        date_taken.strftime(DATE_FMT) if date_taken else None,
+        _resolve_date_taken(date_taken, file_name, date_created, date_modified),
         date_created,
         date_modified,
         lat,
@@ -852,31 +896,49 @@ def _google_date_taken(item: dict[str, object]) -> str | None:
         return None
 
 
+def _parse_http_date(value: str | None) -> str | None:
+    """Returns an HTTP date header value (eg 'Wed, 21 Oct 2015 07:28:00 GMT', as found in a Last-Modified header)
+    reformatted to DATE_FMT, None if value is missing or not parseable"""
+    if not value:
+        return None
+    try:
+        return parsedate_to_datetime(value).strftime(DATE_FMT)
+    except (TypeError, ValueError):
+        return None
+
+
 def google_photo_row(access_token: str, item: dict[str, object]) -> list[object]:
     """Returns the row (in PHOTO_CSV_HEADER order) of a photo picked from a Google Photos library (see
     google_photos.list_picked_media_items()). Its full_path is a synthetic 'googlephotos:<id>' identifier (there is
     no local file), and the columns the Picker API does not expose for a picked photo (GPS coordinates, the file's
-    own creation/modification dates, lens model, orientation, software) are left empty"""
+    own creation/modification dates, lens model, orientation, software) are left empty. date_taken falls back to the
+    date guessed from the file name (see _date_from_filename()), then to the Last-Modified HTTP header of the
+    original file (the closest available equivalent to a local file's own creation date), when the item's
+    createTime is missing"""
     media_file = item.get("mediaFile", {})
     metadata = media_file.get("mediaFileMetadata", {})
     photo_metadata = metadata.get("photoMetadata", {})
     base_url = media_file.get("baseUrl")
+    file_name = media_file.get("filename")
     width, height = _google_dimensions(metadata)
     fingerprint = None
     size_bytes = None
+    date_taken = _google_date_taken(item) or (_date_from_filename(file_name) if file_name else None)
     if base_url:
         data = google_photos.fetch_bytes(access_token, base_url, GOOGLE_FINGERPRINT_PARAMS)
         if data is not None:
-            fingerprint = compute_fingerprint_from_bytes(data, media_file.get("filename") or str(item.get("id")))
+            fingerprint = compute_fingerprint_from_bytes(data, file_name or str(item.get("id")))
         size_bytes = google_photos.fetch_size(access_token, base_url)
+        if date_taken is None:
+            date_taken = _parse_http_date(google_photos.fetch_last_modified(access_token, base_url))
     return [
         f"googlephotos:{item.get('id')}",
-        media_file.get("filename"),
+        file_name,
         size_bytes,
         width,
         height,
         fingerprint,
-        _google_date_taken(item),
+        date_taken,
         None,
         None,
         None,
