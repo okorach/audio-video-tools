@@ -183,7 +183,7 @@ Each feature has a page in `docs/` (options, behavior, examples), linked from th
 - **Line length:** 150 (black/flake8/pylint)
 - **Formatter:** `black --line-length=150`
 - All files that can hold comments carry the LGPL v3 license header (`#`, `::`, `//`, or an HTML comment for markdown); a test checks it
-- Python 3.10+ required
+- Python 3.11+ required
 - All functions, methods, classes and modules have a docstring (third person, eg "Returns...") and type hints for all their parameters and their return value (`**kwargs: object`)
 - All new code should be systematically covered by tests
 - All new code should not have any issues reported by ruff (`select = ["ALL"]` with the ignores of `pyproject.toml`), pylint or SonarQube
