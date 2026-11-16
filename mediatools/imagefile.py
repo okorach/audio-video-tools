@@ -780,9 +780,12 @@ class _PosterGeometry(NamedTuple):
     full_h: int
 
 
-def __poster_geometry__(col_images: list[list[ImageFile]], columns: list[dict], gutter: int, extra_top: int, extra_bottom: int) -> _PosterGeometry:
+def __poster_geometry__(
+    col_images: list[list[ImageFile]], columns: list[dict], gutter: int, extra_top: str | float, extra_bottom: str | float
+) -> _PosterGeometry:
     """Computes the geometry of a poster (see posterize_columns), reduced if needed to stay within ffmpeg's max frame size
-    (see __reduction_factor__)"""
+    (see __reduction_factor__). extra_top/extra_bottom are a number of pixels or a percentage of the grid's own height (eg for a
+    title stripe sized relative to the poster, see __parse_gutter__)"""
     all_images = [im for col in col_images for im in col]
     max_w = max(im.width for im in all_images)
     col_widths = [int(__parse_percent__(col.get("width") or f"{100 / len(columns)}%") * len(columns) * max_w / 100) for col in columns]
@@ -795,8 +798,11 @@ def __poster_geometry__(col_images: list[list[ImageFile]], columns: list[dict], 
     ]
     scaled_heights = [[int(eh * w / ew) for ew, eh in dims] for dims, w in zip(eff_dims, col_widths, strict=True)]
 
+    grid_h = max((sum(h) + (len(h) + 1) * gutter for h in scaled_heights), default=0)
+    extra_top = __parse_gutter__(extra_top, grid_h)
+    extra_bottom = __parse_gutter__(extra_bottom, grid_h)
     full_w = sum(col_widths) + (len(columns) + 1) * gutter
-    full_h = extra_top + max((sum(h) + (len(h) + 1) * gutter for h in scaled_heights), default=0) + extra_bottom
+    full_h = extra_top + grid_h + extra_bottom
 
     factor = __reduction_factor__(full_w, full_h)
     if factor == 1:
@@ -871,9 +877,10 @@ def posterize_columns(
     vertical stack of its images, scaled to the column's pixel width; the width of a column is a percentage of the poster's content
     width (excluding the gutters). When the images don't all share the same aspect ratio, the odd ones out are cropped (centered) to
     the ratio shared by most of them, so that every image of the poster ends up the same shape (see __common_aspect_ratio__); otherwise
-    each image keeps its own aspect ratio. The gutter between the images is a number of pixels or a percentage of the width of the
-    top-left image of the poster. A column shorter than the tallest one is padded with the background color at the bottom.
-    extra_margin_top/extra_margin_bottom add blank background (eg to overlay a title), in pixels, above/below the grid of images.
+    each image keeps its own aspect ratio. The gutter between the images is a number of pixels or a percentage of the largest
+    dimension (width or height) of the top-left image of the poster; it is also the outer margin of the poster. A column shorter
+    than the tallest one is padded with the background color at the bottom. extra_margin_top/extra_margin_bottom add blank
+    background (eg to overlay a title) above/below the grid of images, as a number of pixels or a percentage of the grid's height.
     Returns the generated file"""
     log.logger.debug("posterize_columns(%s)", str(columns))
     col_images = [[ImageFile(f) for f in fil.file_list(*col["images"], file_type=fil.FileType.IMAGE_FILE)] for col in columns]
@@ -881,8 +888,8 @@ def posterize_columns(
     if not all_images:
         raise ex.InputError("No image to posterize", "poster")
 
-    gutter = __parse_gutter__(gutter, all_images[0].width)
-    geometry = __poster_geometry__(col_images, columns, gutter, int(extra_margin_top or 0), int(extra_margin_bottom or 0))
+    gutter = __parse_gutter__(gutter, max(all_images[0].width, all_images[0].height))
+    geometry = __poster_geometry__(col_images, columns, gutter, extra_margin_top or 0, extra_margin_bottom or 0)
     log.logger.debug("Poster %d x %d, gutter = %d, column widths = %s", geometry.full_w, geometry.full_h, geometry.gutter, str(geometry.col_widths))
 
     fcomplex, out_stream = __build_poster_filtergraph__(col_images, geometry, background_color)
