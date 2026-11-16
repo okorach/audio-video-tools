@@ -326,7 +326,12 @@ def get_audio_filters(**kwargs: object) -> filters.Simple:
     log.logger.debug("Afilters options = %s", str(kwargs))
     afilters = filters.Simple(filters.AUDIO_TYPE)
     if kwargs.get("volume") is not None:
-        vol = util.percent_or_absolute(kwargs["volume"])
+        raw_volume = kwargs["volume"]
+        # A "dB" value (eg "-6dB") is understood by ffmpeg's volume filter as-is, unlike a percentage
+        if isinstance(raw_volume, str) and raw_volume.strip().lower().endswith("db"):
+            vol: str | float = raw_volume.strip()
+        else:
+            vol = util.percent_or_absolute(raw_volume)
         afilters.append(filters.volume(vol))
     if kwargs.get("audio_reverse", False) or kwargs.get("areverse", False):
         afilters.append(filters.areverse())

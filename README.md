@@ -39,6 +39,8 @@ Slideshows are created with `videotool slideshow` (50 fps by default): see [docs
 
 Videos can be flipped (left/right or top/bottom) with `videotool flip`: see [docs/videotool-flip.md](docs/videotool-flip.md).
 
+The volume of audio and video files can be changed, or normalized across a batch of files to their average, with `audiotool volume` / `videotool volume`: see [docs/audiotool-volume.md](docs/audiotool-volume.md).
+
 Posters are created from photos arranged in columns with `imagetool poster`: see [docs/imagetool-poster.md](docs/imagetool-poster.md).
 
 Photos found in directories and/or disk drives, or picked from a Google Photos library, can be inventoried (size, dimensions, a perceptual fingerprint for duplicate detection, dates, GPS coordinates, device, EXIF metadata) into a CSV file with `imagetool inventory`: see [docs/imagetool-inventory.md](docs/imagetool-inventory.md).
