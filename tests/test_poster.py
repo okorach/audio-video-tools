@@ -370,3 +370,89 @@ def test_main_yaml_in_inputs_with_photos(tmp_path: Path) -> None:
     assert image_name == "trip.jpg"
     assert os.path.isfile(tmp_path / image_name)
     assert [os.path.basename(i) for i in content["columns"][0]["images"]] == [os.path.basename(IMG1), os.path.basename(IMG2)]
+
+
+# ------------------------------------------------------------------------------
+# Gutter relative to the largest dimension, and percentage extra margins
+# ------------------------------------------------------------------------------
+
+
+def test_gutter_percent_uses_largest_dimension(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A percentage gutter is relative to the largest dimension (width or height) of the top-left image, not just its width"""
+    commands: list[str] = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
+    portrait_img = DIR + "img-2320x4000.jpg"  # Genuinely portrait pixels (2320x4000)
+    img.posterize_columns([{"width": "100%", "images": [portrait_img]}], out_file=TMP1, gutter="8%")
+    # 8% of 4000 (its largest dimension) = 320, not 8% of 2320 (186)
+    assert "scale=2960:4640" in commands[0]
+    assert "overlay=320:320" in commands[0]
+
+
+def test_extra_margin_bottom_percent_of_grid_height(monkeypatch: pytest.MonkeyPatch) -> None:
+    """extra_margin_bottom can be a percentage of the grid's own height, eg for a title stripe sized relative to the poster"""
+    commands: list[str] = []
+    monkeypatch.setattr(util, "run_ffmpeg", lambda cmd, *_a, **_k: commands.append(cmd))
+    img.posterize_columns([{"width": "100%", "images": [IMG1]}], out_file=TMP1, gutter=0, extra_margin_bottom="50%")
+    assert "scale=640:720" in commands[0]  # 480 (image) + 50% of 480 (title stripe) = 720 tall
+    assert "overlay=0:0" in commands[0]
+
+
+# ------------------------------------------------------------------------------
+# --template
+# ------------------------------------------------------------------------------
+
+
+def test_template_requires_exact_image_count() -> None:
+    """The command aborts if the number of images doesn't match the template's grid"""
+    with patch.object(sys, "argv", ["imagetool", "poster", "--template", "landscape40-1x1", "-i", IMG1, IMG6]), pytest.raises(SystemExit):
+        tools.imagetool()
+
+
+def test_template_rejects_unsupported_image_ratio() -> None:
+    """The command aborts if an image's aspect ratio isn't one accepted by templates (4:3, 15:10, 10:15, 16:9)"""
+    portrait_img = DIR + "img-2320x4000.jpg"  # ratio 0.58, not close enough to 10:15 (0.667)
+    with patch.object(sys, "argv", ["imagetool", "poster", "--template", "landscape40-1x1", "-i", portrait_img]), pytest.raises(SystemExit):
+        tools.imagetool()
+
+
+def test_template_rejects_yaml_input(tmp_path: Path) -> None:
+    """--template can't be combined with a YAML poster description"""
+    yaml_in = tmp_path / "trip.yaml"
+    columns = [{"width": "100%", "images": [os.path.abspath(IMG1)]}]
+    yaml_in.write_text(yaml.safe_dump({"poster": {}, "columns": columns}), encoding="utf-8")
+    with patch.object(sys, "argv", ["imagetool", "poster", "--template", "landscape40-1x1", "-i", str(yaml_in)]), pytest.raises(SystemExit):
+        tools.imagetool()
+
+
+def test_template_success_writes_expected_yaml() -> None:
+    """A valid --template invocation produces the poster and a YAML description with the template's fixed settings"""
+    with patch.object(sys, "argv", ["imagetool", "poster", "--template", "landscape40-1x1", "-i", IMG1, "-o", TMP1]):
+        try:
+            assert tools.imagetool() is None
+        except SystemExit as e:
+            assert int(str(e)) == 0
+    yaml_file = fil.strip_extension(TMP1) + ".yaml"
+    content = yaml.safe_load(Path(yaml_file).read_text(encoding="utf-8"))
+    settings = content["poster"]
+    assert settings["template"] == "landscape40-1x1"
+    assert settings["background_color"] == "black"
+    assert settings["gutter"] == "8%"
+    assert settings["extra_margin_bottom"] == "18%"
+    assert settings["rows"] == 1
+    assert settings["columns"] == 1
+    _remove_with_yaml(TMP1)
+
+
+def test_template_grid_matches_rows_and_columns() -> None:
+    """A template's grid (rows x cols) is exactly the one declared, when given exactly as many images"""
+    with patch.object(sys, "argv", ["imagetool", "poster", "--template", "landscape40-2x2", "-i", IMG1, IMG6, IMG1, IMG6, "-o", TMP1]):
+        try:
+            assert tools.imagetool() is None
+        except SystemExit as e:
+            assert int(str(e)) == 0
+    yaml_file = fil.strip_extension(TMP1) + ".yaml"
+    content = yaml.safe_load(Path(yaml_file).read_text(encoding="utf-8"))
+    assert content["poster"]["rows"] == 2
+    assert content["poster"]["columns"] == 2
+    assert len(content["columns"]) == 2
+    _remove_with_yaml(TMP1)

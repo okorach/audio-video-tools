@@ -26,8 +26,8 @@ of them, so every photo of the poster ends up the same shape; otherwise each pho
 
 ```
 imagetool poster -i <photos and/or directories> [-o <output>] [--background_color black|white] [--gutter <px or %>]
-                  [--extra_margin_top <px>] [--extra_margin_bottom <px>] [--orientation portrait|landscape] [--aspect_ratio <W/H or W:H>]
-                  [--layout <rows>x<cols>] [--hw_accel auto|on|off]
+                  [--extra_margin_top <px or %>] [--extra_margin_bottom <px or %>] [--orientation portrait|landscape]
+                  [--aspect_ratio <W/H or W:H>] [--layout <rows>x<cols>] [--template <name>] [--hw_accel auto|on|off]
 imagetool poster -i <file.yaml> [<more photos>] [same options]
 ```
 
@@ -37,13 +37,43 @@ imagetool poster -i <file.yaml> [<more photos>] [same options]
 | `-y`, `--yaml` | Same as giving the YAML file in `-i` |
 | `-o` | Output image. Default: the `output` of the YAML file, else the name of the YAML file (or of the first photo) with the image extension |
 | `-b`, `--background_color` | `black` (default) or `white`: the color of the gutter and of the padding under a column shorter than the tallest one |
-| `--gutter` | Gutter between the images: a number of pixels (eg `64px`), or a percentage of the width of the top-left image (eg `5%`). Default: `80px` |
-| `--extra_margin_top` | Extra margin (pixels) of background color above the images, eg to overlay a title. Default: 0 |
-| `--extra_margin_bottom` | Extra margin (pixels) of background color below the images. Default: 0 |
+| `--gutter` | Gutter between the images: a number of pixels (eg `64px`), or a percentage of the largest dimension (width or height) of the top-left image (eg `5%`). It is also the poster's outer margin. Default: `80px` |
+| `--extra_margin_top` | Extra margin of background color above the images, eg to overlay a title: a number of pixels, or a percentage of the grid's own height. Default: 0 |
+| `--extra_margin_bottom` | Same as `--extra_margin_top`, below the images. Default: 0 |
 | `--orientation` | `portrait` or `landscape`: used, with `--aspect_ratio`, to pick the number of columns when the poster is generated from a flat list of photos (no YAML, no `--layout`) |
 | `--aspect_ratio` | Target aspect ratio of the poster, eg `4/3`, `16:9` or `1.3333`, used the same way as `--orientation`. Default: `70/50`, the most common poster printing format |
 | `--layout` | Number of rows x columns (eg `2x3`), used instead of `--orientation`/`--aspect_ratio` to pick the number of columns when there is no YAML |
+| `--template` | A named template for printing (see below), instead of `--layout`/`--orientation`/`--aspect_ratio`/`--background_color`/`--gutter`/`--extra_margin_bottom` |
 | `--hw_accel` | `auto` (default), `on` or `off`, see [hw-accel.md](hw-accel.md) |
+
+## Templates
+
+`--template <name>` picks one of 10 named templates for printing: a fixed `rows`x`cols` grid of images on one of the 4 standard print
+aspect ratios (4:3, 3:4, 7:5, 5:7), with a black background, a gutter that is 8% of the largest dimension of the top-left image (used
+both between the images and as the poster's outer margin), and an 18%-of-the-grid-height stripe reserved at the bottom for a title.
+
+A template requires exactly as many images as its grid (`rows * cols`); the command aborts if a different number is given. It also
+requires every image's aspect ratio to be one of `4:3`, `15:10`, `10:15` or `16:9` (within 2%); the command aborts otherwise.
+
+Names follow `<orientation><format>-<rows>x<cols>`, eg `landscape40-4x3` (12 images, page ratio 4:3) or `portrait70-2x4` (8 images, page
+ratio 5:7). The 10 templates are:
+
+| Name | Grid | Page ratio |
+|---|---|---|
+| `landscape40-1x1` | 1x1 | 4:3 |
+| `landscape40-2x2` | 2x2 | 4:3 |
+| `landscape40-2x3` | 2x3 | 4:3 |
+| `landscape40-4x3` | 4x3 | 4:3 |
+| `landscape70-1x2` | 1x2 | 7:5 |
+| `landscape70-2x3` | 2x3 | 7:5 |
+| `portrait40-1x1` | 1x1 | 3:4 |
+| `portrait40-2x2` | 2x2 | 3:4 |
+| `portrait40-3x2` | 3x2 | 3:4 |
+| `portrait70-2x4` | 2x4 | 5:7 |
+
+```bash
+imagetool poster --template landscape40-4x3 -i photo01.jpg photo02.jpg ... photo12.jpg
+```
 
 When the poster is generated from a flat list of photos, with no `--orientation`, `--aspect_ratio` nor `--layout`, the number of columns
 is picked so that the poster approximates the most common poster printing format (70/50 or 50/70 cm), in whichever of the 2 orientations

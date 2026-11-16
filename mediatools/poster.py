@@ -33,12 +33,13 @@ from pathlib import Path
 import yaml
 
 import mediatools.imagefile as image
+import mediatools.poster_templates as templates
 import mediatools.utilities as util
 import utilities.file as fil
 from mediatools import log
 
-USAGE = "image-poster [--background_color black|white] [--gutter <px or %>] [--extra_margin_top <px>] [--extra_margin_bottom <px>] \
-[--orientation portrait|landscape] [--aspect_ratio <W/H or W:H>] [--layout <rows>x<cols>] [-g 0-4] file1 file2 ... filen"
+USAGE = "image-poster [--background_color black|white] [--gutter <px or %>] [--extra_margin_top <px or %>] [--extra_margin_bottom <px or %>] \
+[--orientation portrait|landscape] [--aspect_ratio <W/H or W:H>] [--layout <rows>x<cols>] [--template <name>] [-g 0-4] file1 file2 ... filen"
 
 is_yaml = fil.is_yaml
 relative_path = fil.relative_path
@@ -99,8 +100,16 @@ def __add_poster_args__(parser: argparse.ArgumentParser) -> None:
         required=False,
         help="Gutter between the images: a number of pixels (eg 64px), or a percentage of the top-left image's width (eg 5%%). Default: 80px",
     )
-    parser.add_argument("--extra_margin_top", required=False, type=int, help="Extra margin (pixels) above the images, eg for a title")
-    parser.add_argument("--extra_margin_bottom", required=False, type=int, help="Extra margin (pixels) below the images")
+    parser.add_argument(
+        "--extra_margin_top",
+        required=False,
+        help="Extra margin above the images, eg for a title: a number of pixels or a percentage of the grid's height",
+    )
+    parser.add_argument(
+        "--extra_margin_bottom",
+        required=False,
+        help="Extra margin below the images, eg for a title: a number of pixels or a percentage of the grid's height",
+    )
     parser.add_argument(
         "--orientation",
         required=False,
@@ -115,6 +124,13 @@ def __add_poster_args__(parser: argparse.ArgumentParser) -> None:
         "common poster printing format",
     )
     parser.add_argument("-l", "--layout", required=False, help="Layout of the images: rows x columns, eg 2x3")
+    parser.add_argument(
+        "--template",
+        required=False,
+        choices=sorted(templates.TEMPLATES),
+        help="Named poster template for printing: a fixed image grid on a standard print aspect ratio, with a black background "
+        "and a title stripe at the bottom. Requires exactly as many images as the template's grid. One of: " + ", ".join(sorted(templates.TEMPLATES)),
+    )
 
 
 def __resolve_poster_input__(parser: argparse.ArgumentParser, kwargs: dict) -> tuple[dict, list[dict] | None, dict | None, str | None, list[str]]:
@@ -142,17 +158,41 @@ def __resolve_poster_input__(parser: argparse.ArgumentParser, kwargs: dict) -> t
     return params, columns, previous, yaml_file, photos
 
 
-def __poster_settings__(kwargs: dict, params: dict) -> dict:
-    """Returns the poster's settings merged from the command line (kwargs) and the YAML file (params), the former taking precedence"""
+def __poster_settings__(kwargs: dict, params: dict, template_defaults: dict | None = None) -> dict:
+    """Returns the poster's settings merged from the command line (kwargs), the YAML file (params) and a template's defaults
+    (template_defaults, when --template is used), in that order of precedence"""
+    template_defaults = template_defaults or {}
     return {
-        "background_color": kwargs.get("background_color") or params.get("background_color") or "black",
-        "gutter": kwargs.get("gutter", params.get("gutter", 80)),
-        "extra_margin_top": kwargs.get("extra_margin_top", params.get("extra_margin_top", 0)),
-        "extra_margin_bottom": kwargs.get("extra_margin_bottom", params.get("extra_margin_bottom", 0)),
+        "background_color": kwargs.get("background_color") or params.get("background_color") or template_defaults.get("background_color") or "black",
+        "gutter": kwargs.get("gutter") or params.get("gutter") or template_defaults.get("gutter") or 80,
+        "extra_margin_top": kwargs.get("extra_margin_top") or params.get("extra_margin_top") or template_defaults.get("extra_margin_top") or 0,
+        "extra_margin_bottom": kwargs.get("extra_margin_bottom")
+        or params.get("extra_margin_bottom")
+        or template_defaults.get("extra_margin_bottom")
+        or 0,
         "orientation": kwargs.get("orientation") or params.get("orientation"),
         "aspect_ratio": kwargs.get("aspect_ratio") or params.get("aspect_ratio"),
-        "layout": kwargs.get("layout") or params.get("layout"),
+        "layout": kwargs.get("layout") or params.get("layout") or template_defaults.get("layout"),
     }
+
+
+def __resolve_template__(parser: argparse.ArgumentParser, kwargs: dict, yaml_file: str | None, photos: list[str]) -> dict:
+    """Resolves --template into the poster settings it imposes (see poster_templates.defaults()). Aborts (via parser.error) if a
+    YAML poster description is also given, if the number of images doesn't match the template's grid, or if an image's aspect
+    ratio isn't one of the ratios accepted by templates"""
+    template_name = kwargs.get("template")
+    if not template_name:
+        return {}
+    if yaml_file:
+        parser.error("--template can't be combined with a YAML poster description")
+    template = templates.TEMPLATES[template_name]
+    if len(photos) != template.image_count:
+        parser.error(f"Template '{template_name}' requires exactly {template.image_count} images ({template.layout}), got {len(photos)}")
+    bad = templates.bad_ratio_images(photos)
+    if bad:
+        details = ", ".join(f"{f} ({ratio:.3g})" for f, ratio in bad)
+        parser.error(f"Template '{template_name}' only accepts images in 4:3, 15:10, 10:15 or 16:9 format, got: {details}")
+    return templates.defaults(template)
 
 
 def main() -> None:
@@ -167,7 +207,8 @@ def main() -> None:
     kwargs = util.parse_media_args(parser, input_type=fil.FileType.IMAGE_FILE)
 
     params, columns, previous, yaml_file, photos = __resolve_poster_input__(parser, kwargs)
-    settings = __poster_settings__(kwargs, params)
+    template_defaults = __resolve_template__(parser, kwargs, yaml_file, photos)
+    settings = __poster_settings__(kwargs, params, template_defaults)
 
     if columns is None:
         auto_kwargs = {k: settings[k] for k in ("orientation", "aspect_ratio", "layout") if settings[k]}
@@ -192,6 +233,8 @@ def main() -> None:
     yaml_file = yaml_file or fil.strip_extension(output) + ".yaml"
     rows_count, cols_count = image.poster_rows_and_columns(columns)
     yaml_settings = {"rows": rows_count, "columns": cols_count, **{k: v for k, v in settings.items() if k != "layout"}}
+    if kwargs.get("template"):
+        yaml_settings["template"] = kwargs["template"]
     yaml_settings = {k: v for k, v in yaml_settings.items() if v}
     write_yaml(yaml_file, params.get("output") or output, yaml_settings, columns, previous)
     log.logger.info("Poster description written to %s", yaml_file)
