@@ -25,11 +25,14 @@ from __future__ import annotations
 import datetime
 import math
 import os
+import platform
 import re
+import subprocess
 from typing import TYPE_CHECKING
 
 from exiftool import ExifToolHelper
 
+import mediatools.audiofile as audio
 import mediatools.exceptions as ex
 import mediatools.imagefile as image
 import mediatools.media_config as conf
@@ -1098,9 +1101,29 @@ def speed(filename: str, target_speed: str | float, output: str | None = None, m
 
 
 def volume(filename: str, vol: str | float, output: str | None = None, **kwargs: object) -> str:
-    """Changes the volume of a video, in a new file. Returns the name of the new file"""
+    """Changes the volume of an audio or video file, in a new file. Returns the name of the new file"""
     output = util.automatic_output_file_name(outfile=output, infile=filename, postfix="volume")
+    if fil.get_type(filename) == fil.FileType.AUDIO_FILE:
+        return audio.AudioFile(filename).encode(volume=vol, target_file=output, **kwargs)
     return VideoFile(filename).encode(volume=vol, target_file=output, **kwargs)
+
+
+_MEAN_VOLUME_RE = re.compile(r"mean_volume:\s*(-?\d+(?:\.\d+)?)\s*dB")
+
+
+def get_mean_volume(filename: str) -> float:
+    """Returns the mean volume (in dBFS) of the audio stream of a file, measured with FFmpeg's volumedetect filter"""
+    null_out = "NUL" if platform.system() == "Windows" else "/dev/null"
+    result = subprocess.run(
+        [util.get_ffmpeg(), "-i", filename, "-af", "volumedetect", "-f", "null", null_out],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    match = _MEAN_VOLUME_RE.search(result.stderr)
+    if not match:
+        raise ex.InputError(f"Could not measure the volume of {filename}", "volume")
+    return float(match.group(1))
 
 
 def __get_source_vcodec__(source: VideoFile) -> str | None:
