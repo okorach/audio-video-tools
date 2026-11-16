@@ -57,9 +57,10 @@ setuptools.setup(
         "librosa",
         "musicbrainzngs",
         "mutagen",
-        "Pillow>=10.3.0",
+        "Pillow>=13.0.0",
         "PyYAML",
         "requests",
+        "certifi>=2026.10.18",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -78,5 +79,5 @@ setuptools.setup(
             "pdftool = mediatools.tools:pdftool",
         ]
     },
-    python_requires=">=3.10",
+    python_requires=">=3.11",
 )

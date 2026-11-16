@@ -35,7 +35,7 @@ license-files = ["LICEN[CS]E*"]
 keywords = ["ffmpeg", "video", "audio", "image", "media", "transcode", "stabilize", "tools"]
 
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 
 dependencies = [
     "argparse",
@@ -49,9 +49,10 @@ dependencies = [
     "pywin32",
     "musicbrainzngs",
     "mutagen",
-    "Pillow>=10.3.0",
+    "Pillow>=13.0.0",
     "PyYAML",
     "requests",
+    "certifi>=2026.10.18",
 ]
 
 classifiers = [
@@ -60,7 +61,6 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Conversion",
     "Topic :: Multimedia :: Video :: Conversion",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -117,6 +117,7 @@ lint = [
 build = [
     "poetry (>=2.0)",
     "twine (>=5.0)",
+    "filelock (>=4.2.1)",
 ]
 dev = [
     {include-group = "test"},
