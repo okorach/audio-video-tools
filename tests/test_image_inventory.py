@@ -29,6 +29,7 @@ import shutil
 import sys
 import time
 import types
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
@@ -95,6 +96,41 @@ def test_file_dates_returns_size_and_formatted_dates(tmp_path: Path) -> None:
 def test_file_dates_handles_missing_file() -> None:
     """A missing file returns None values instead of raising"""
     assert image_inventory._file_dates("does-not-exist.jpg") == (None, None, None)
+
+
+def test_date_from_filename_guesses_the_date_and_time_when_encoded() -> None:
+    """The date (and time, when encoded) is guessed from common camera/phone file name patterns"""
+    assert image_inventory._date_from_filename("IMG_20180706_125922.jpg") == "2018-07-06 12:59:22"
+    assert image_inventory._date_from_filename("PXL_20210101_123456.jpg") == "2021-01-01 12:34:56"
+    assert image_inventory._date_from_filename("20130804_174038.jpg") == "2013-08-04 17:40:38"
+    assert image_inventory._date_from_filename("25-12-2011 16-46-10_0021.JPG") == "2011-12-25 16:46:10"
+    assert image_inventory._date_from_filename("2014-07-20 20.19.20.jpg") == "2014-07-20 20:19:20"
+    assert image_inventory._date_from_filename("signal-2020-01-01-123456.jpg") == "2020-01-01 12:34:56"
+    assert image_inventory._date_from_filename("IMG-20200101-WA0001.jpg") == "2020-01-01 00:00:00"
+
+
+def test_date_from_filename_returns_none_when_nothing_is_encoded_or_invalid() -> None:
+    """A descriptive file name, or one with an invalid date embedded, guesses nothing rather than a wrong date"""
+    assert image_inventory._date_from_filename("Chicago 2018 55.jpg") is None
+    assert image_inventory._date_from_filename("DSC_0001.jpg") is None
+    assert image_inventory._date_from_filename("HPIM00001234.jpg") is None  # 00001234 is not a valid YYYYMMDD
+
+
+def test_resolve_date_taken_prefers_exif_then_filename_then_file_dates() -> None:
+    """The EXIF date wins when there is one; otherwise the file name is tried, then the file's own dates"""
+    exif_date = datetime.strptime("2020-06-15 10:30:00", image_inventory.DATE_FMT)
+    assert image_inventory._resolve_date_taken(exif_date, "IMG_20180706_125922.jpg", "2019-01-01 00:00:00", None) == "2020-06-15 10:30:00"
+    assert image_inventory._resolve_date_taken(None, "IMG_20180706_125922.jpg", "2019-01-01 00:00:00", None) == "2018-07-06 12:59:22"
+    assert image_inventory._resolve_date_taken(None, "Chicago 2018 55.jpg", "2019-01-01 00:00:00", None) == "2019-01-01 00:00:00"
+    assert image_inventory._resolve_date_taken(None, "Chicago 2018 55.jpg", None, "2019-02-02 00:00:00") == "2019-02-02 00:00:00"
+    assert image_inventory._resolve_date_taken(None, "Chicago 2018 55.jpg", None, None) is None
+
+
+def test_parse_http_date_reformats_to_date_fmt() -> None:
+    """An HTTP date header (eg a Last-Modified one) is reformatted to DATE_FMT"""
+    assert image_inventory._parse_http_date("Wed, 04 Aug 2013 17:40:38 GMT") == "2013-08-04 17:40:38"
+    assert image_inventory._parse_http_date(None) is None
+    assert image_inventory._parse_http_date("not a date") is None
 
 
 def test_photo_row_matches_the_csv_header_order(tmp_path: Path) -> None:
@@ -340,6 +376,7 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "P1010001.jpg",
         "20130804_174038.jpg",  # Date_time name with no camera prefix
         "25-12-2011 16-46-10_0021.JPG",  # DD-MM-YYYY HH-MM-SS_sequence
+        "2014-07-20 20.19.20.jpg",  # YYYY-MM-DD HH.MM.SS
     ):
         assert image_inventory._is_original_filename(name), name
 
@@ -717,6 +754,28 @@ def test_google_photo_row_matches_the_csv_header_order(monkeypatch: pytest.Monke
     assert values["aperture"] == 1.7
     assert values["gps_latitude"] is None
     assert values["lens_model"] is None
+
+
+def test_google_photo_row_falls_back_to_the_filename_date_when_there_is_no_create_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without a createTime, the date guessed from the file name is used, without even checking the Last-Modified header"""
+    item = {"id": "X", "mediaFile": {"baseUrl": "https://photos.example/base", "filename": "IMG_20180706_125922.jpg"}}
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda *_a: None)
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_size", lambda *_a: None)
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_last_modified", lambda *_a: pytest.fail("Should not be called"))
+    row = image_inventory.google_photo_row("token", item)
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, row, strict=True))
+    assert values["date_taken"] == "2018-07-06 12:59:22"
+
+
+def test_google_photo_row_falls_back_to_the_last_modified_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without a createTime or a date encoded in the file name, the Last-Modified header of the original file is used"""
+    item = {"id": "X", "mediaFile": {"baseUrl": "https://photos.example/base", "filename": "vacation.jpg"}}
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_bytes", lambda *_a: None)
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_size", lambda *_a: None)
+    monkeypatch.setattr(image_inventory.google_photos, "fetch_last_modified", lambda *_a: "Wed, 04 Aug 2013 17:40:38 GMT")
+    row = image_inventory.google_photo_row("token", item)
+    values = dict(zip(image_inventory.PHOTO_CSV_HEADER, row, strict=True))
+    assert values["date_taken"] == "2013-08-04 17:40:38"
 
 
 def test_google_photo_row_handles_an_item_without_a_base_url() -> None:

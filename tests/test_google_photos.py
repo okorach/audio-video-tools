@@ -247,3 +247,27 @@ def test_fetch_size_returns_none_on_error(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(google_photos.requests, "get", failing_get)
     assert google_photos.fetch_size("token", "https://example/base") is None
+
+
+def test_fetch_last_modified_reads_the_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_last_modified() returns the raw Last-Modified header, without reading the response body"""
+    response = _mock_response(headers={"Last-Modified": "Wed, 04 Aug 2013 17:40:38 GMT"})
+    monkeypatch.setattr(google_photos.requests, "get", lambda *_a, **_k: response)
+    assert google_photos.fetch_last_modified("token", "https://example/base") == "Wed, 04 Aug 2013 17:40:38 GMT"
+    response.iter_content.assert_not_called()
+
+
+def test_fetch_last_modified_returns_none_when_the_header_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_last_modified() returns None, rather than raising, when the server does not send a Last-Modified header"""
+    monkeypatch.setattr(google_photos.requests, "get", lambda *_a, **_k: _mock_response(headers={}))
+    assert google_photos.fetch_last_modified("token", "https://example/base") is None
+
+
+def test_fetch_last_modified_returns_none_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """fetch_last_modified() returns None, instead of raising, when the request fails"""
+
+    def failing_get(*_args: object, **_kwargs: object) -> None:
+        raise requests.RequestException("boom")
+
+    monkeypatch.setattr(google_photos.requests, "get", failing_get)
+    assert google_photos.fetch_last_modified("token", "https://example/base") is None
