@@ -72,6 +72,7 @@ IMAGE_ACTIONS: dict[str, tuple[str, str]] = {
     "crop-ratio": ("mediatools.crop_ratio:main", "Crops to an aspect ratio"),
     "inventory": ("mediatools.image_inventory:main", "Inventories photos (EXIF, GPS, dates...) into a CSV file"),
     "poster": ("mediatools.poster:main", "Creates a poster from images"),
+    "poster-webapp": ("mediatools.poster_webapp:main", "Interactive web app to design a poster"),
     "scale": ("mediatools.rescale:main", "Rescales images"),
     "shake": ("mediatools.shake:main", "Creates a shake effect"),
     "specs": SPECS_ACTION,

@@ -53,6 +53,7 @@ dependencies = [
     "PyYAML",
     "requests",
     "certifi>=2026.10.18",
+    "Flask>=3.0.0",
 ]
 
 classifiers = [
@@ -100,6 +101,7 @@ include = [
     {path = "mediatools/black.jpg"},
     {path = "mediatools/white.jpg"},
     {path = "mediatools/video-720p.mp4"},
+    {path = "mediatools/poster_webapp.html"},
 ]
 
 [dependency-groups]
