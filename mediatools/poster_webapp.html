@@ -49,22 +49,22 @@
   <div id="side">
     <fieldset>
       <legend>Poster settings</legend>
-      <label>Background color</label>
+      <label for="background_color">Background color</label>
       <select id="background_color">
         <option value="black">black</option>
         <option value="white">white</option>
       </select>
-      <label>Gutter (px or %)</label>
+      <label for="gutter">Gutter (px or %)</label>
       <input id="gutter" type="text">
-      <label>Extra margin top (px or %)</label>
+      <label for="extra_margin_top">Extra margin top (px or %)</label>
       <input id="extra_margin_top" type="text">
-      <label>Extra margin bottom / title stripe (px or %)</label>
+      <label for="extra_margin_bottom">Extra margin bottom / title stripe (px or %)</label>
       <input id="extra_margin_bottom" type="text">
       <p><button id="btn-preview">Refresh preview</button></p>
     </fieldset>
     <fieldset>
       <legend>Save</legend>
-      <label>Output file</label>
+      <label for="output">Output file</label>
       <input id="output" type="text">
       <p><button id="btn-save">Save poster + YAML</button></p>
       <div id="status"></div>
@@ -72,7 +72,7 @@
     <div id="preview"></div>
   </div>
 </div>
-<script>
+<script type="module">
 const STATE = __INITIAL_STATE__;
 
 function render() {
@@ -212,7 +212,7 @@ document.getElementById("btn-save").addEventListener("click", savePoster);
 });
 
 render();
-refreshPreview();
+await refreshPreview();
 </script>
 </body>
 </html>
