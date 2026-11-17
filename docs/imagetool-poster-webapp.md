@@ -64,3 +64,8 @@ imagetool poster-webapp --template landscape40-4x3 -i photo01.jpg photo02.jpg ..
 
 Opens the app with the 12 photos laid out on the `landscape40-4x3` template's grid, ready to be cropped, reordered and tuned before
 saving.
+
+## Batch file
+
+`batch-files-images/poster.bat` runs `imagetool poster` (the CLI version) on the images dragged onto it; run with no images dragged
+onto it (eg double-clicked), it asks for images and/or folders and opens the web app on them instead.

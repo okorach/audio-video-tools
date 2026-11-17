@@ -17,5 +17,12 @@
 :: along with this program; if not, write to the Free Software Foundation,
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
-set /p layout=Layout ?
-imagetool poster -i %* --layout %layout% --gutter 150
+setlocal enabledelayedexpansion
+
+if "%~1"=="" (
+    set /p paths=Images and/or folders for the poster, space separated ?
+    imagetool poster-webapp -i !paths!
+) else (
+    set /p layout=Layout ?
+    imagetool poster -i %* --layout !layout! --gutter 150
+)
