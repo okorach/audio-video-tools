@@ -18,9 +18,9 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""Interactive local web app to design a poster: pick images and a layout or template, crop each image to a standard print
-ratio, drag them around to reorder, tune the gutter/background/title stripe and visualize the result on small rescaled copies,
-then save the poster in full quality together with its YAML description (see mediatools.poster)"""
+"""Interactive local web app to design a poster: load images from the browser, pick a layout or template, crop each image to a
+standard print ratio, drag them around to reorder, tune the gutter/background/title stripe and visualize the result on small
+rescaled copies, then save the poster in full quality together with its YAML description (see mediatools.poster)"""
 
 from __future__ import annotations
 
@@ -32,10 +32,11 @@ import os
 import tempfile
 import threading
 import webbrowser
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from flask import Flask, Response, jsonify, request
 from PIL import Image, ImageOps
+from werkzeug.utils import secure_filename
 
 import mediatools.imagefile as image
 import mediatools.poster_templates as templates
@@ -62,8 +63,8 @@ _ASSET_FILE: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pos
 
 @dataclass
 class _PosterItem:
-    """One photo of the poster being designed: its full resolution source, a small rescaled copy used to render the fast
-    preview, and the crop ratio chosen for it in the app (None keeps its original aspect ratio)"""
+    """One photo of the poster being designed: its full resolution source (the file uploaded from the browser), a small
+    rescaled copy used to render the fast preview, and the crop ratio chosen for it in the app (None keeps its own ratio)"""
 
     item_id: str
     source: str
@@ -72,17 +73,28 @@ class _PosterItem:
 
 
 @dataclass
+class _PosterDirs:
+    """The directories of a poster design session: where uploaded photos are saved, and the caches of their rescaled preview
+    and cropped copies"""
+
+    uploads: str
+    preview_cache: str
+    full_cache: str
+
+
+@dataclass
 class _PosterAppState:
-    """The state of a poster design session: its photos (items), their grouping into columns (each column a list of item ids,
-    top to bottom), the poster settings and the directories used to cache the rescaled/cropped copies of the photos"""
+    """The state of a poster design session: its photos (items, added from the browser), their grouping into columns (each
+    column a list of item ids, top to bottom), the poster settings and the directories used to store the uploaded photos and
+    to cache their rescaled/cropped copies"""
 
     items: dict[str, _PosterItem]
     columns: list[dict]
     settings: dict
-    preview_cache: str
-    full_cache: str
+    dirs: _PosterDirs
     default_output: str
-    template: str | None = field(default=None)
+    template: str | None = None
+    cols_count: int | None = None
 
 
 def _crop_box(width: int, height: int, ratio: float) -> tuple[int, int, int, int]:
@@ -138,11 +150,21 @@ def _resolved_image(item: _PosterItem, *, full_res: bool, cache_dir: str) -> str
 def _resolved_columns(state: _PosterAppState, *, full_res: bool, cache_dir: str | None = None) -> list[dict]:
     """Returns the poster's columns (as expected by mediatools.imagefile.posterize_columns) resolved to actual image files.
     cache_dir overrides where a full resolution crop is saved (see _save route); it is otherwise the session's own cache"""
-    cache_dir = cache_dir or (state.full_cache if full_res else state.preview_cache)
+    cache_dir = cache_dir or (state.dirs.full_cache if full_res else state.dirs.preview_cache)
     return [
         {"width": col["width"], "images": [_resolved_image(state.items[i], full_res=full_res, cache_dir=cache_dir) for i in col["images"]]}
         for col in state.columns
     ]
+
+
+def _image_count(state: _PosterAppState) -> int:
+    """Returns the total number of images currently placed in the poster's columns"""
+    return sum(len(col["images"]) for col in state.columns)
+
+
+def _template_image_count(state: _PosterAppState) -> int | None:
+    """Returns the number of images the session's template requires, None when no template is used"""
+    return templates.TEMPLATES[state.template].image_count if state.template else None
 
 
 def _update_state(state: _PosterAppState, body: dict) -> None:
@@ -171,7 +193,7 @@ def _state_to_json(state: _PosterAppState) -> dict:
     """Returns the session state as sent to the browser: the items (with a small embedded thumbnail), the columns and the settings"""
     thumbs = {}
     for item_id, item in state.items.items():
-        thumb = _make_resized_copy(item.source, state.preview_cache, THUMB_MAX_DIM)
+        thumb = _make_resized_copy(item.source, state.dirs.preview_cache, THUMB_MAX_DIM)
         with open(thumb, "rb") as f:
             thumbs[item_id] = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode("ascii")
     return {
@@ -180,16 +202,54 @@ def _state_to_json(state: _PosterAppState) -> dict:
         "settings": state.settings,
         "ratios": list(CROP_RATIOS),
         "default_output": state.default_output,
+        "max_images": _template_image_count(state),
     }
 
 
-def _render_preview(state: _PosterAppState) -> str:
-    """Renders the poster on the rescaled preview copies of the photos. Returns it as a data: URL"""
+def _render_preview(state: _PosterAppState) -> str | None:
+    """Renders the poster on the rescaled preview copies of the photos. Returns it as a data: URL, None if there is no image yet"""
+    if not _image_count(state):
+        return None
     columns = _resolved_columns(state, full_res=False)
-    out = os.path.join(state.preview_cache, "preview.jpg")
+    out = os.path.join(state.dirs.preview_cache, "preview.jpg")
     image.posterize_columns(columns, out_file=out, **state.settings)
     with open(out, "rb") as f:
         return "data:image/jpeg;base64," + base64.b64encode(f.read()).decode("ascii")
+
+
+def _unique_path(directory: str, filename: str) -> str:
+    """Returns a path for filename in directory that doesn't collide with an existing file, numbering it if needed"""
+    base, ext = os.path.splitext(filename)
+    candidate, n = os.path.join(directory, filename), 1
+    while os.path.isfile(candidate):
+        candidate = os.path.join(directory, f"{base}-{n}{ext}")
+        n += 1
+    return candidate
+
+
+def _add_item(state: _PosterAppState, saved_path: str) -> str:
+    """Adds a newly uploaded photo as a new item of the session. Returns its id"""
+    item_id = f"img-{len(state.items)}"
+    state.items[item_id] = _PosterItem(item_id, saved_path, _make_resized_copy(saved_path, state.dirs.preview_cache, PREVIEW_MAX_DIM))
+    return item_id
+
+
+def _place_new_items(state: _PosterAppState, new_ids: list[str], new_paths: list[str]) -> None:
+    """Places newly added items into the poster's columns: round-robin into the existing columns when there are some, into
+    cols_count new (empty) columns when a layout/template fixes their number, or laid out automatically from the images
+    themselves (see mediatools.imagefile.auto_poster_columns) when this is the very first batch of a fully automatic poster"""
+    if not state.columns:
+        if state.cols_count:
+            width = f"{100 / state.cols_count:g}%"
+            state.columns = [{"width": width, "images": []} for _ in range(state.cols_count)]
+        else:
+            path_columns = image.auto_poster_columns(*new_paths)
+            path_to_id = dict(zip(new_paths, new_ids, strict=True))
+            state.columns = [{"width": col["width"], "images": [path_to_id[p] for p in col["images"]]} for col in path_columns]
+            return
+    order = sorted(range(len(state.columns)), key=lambda i: len(state.columns[i]["images"]))
+    for i, item_id in enumerate(new_ids):
+        state.columns[order[i % len(state.columns)]]["images"].append(item_id)
 
 
 def create_app(state: _PosterAppState) -> Flask:
@@ -201,6 +261,27 @@ def create_app(state: _PosterAppState) -> Flask:
         with open(_ASSET_FILE, encoding="utf-8") as f:
             html = f.read()
         return Response(html.replace("__INITIAL_STATE__", json.dumps(_state_to_json(state))), mimetype="text/html")
+
+    @app.route("/api/upload", methods=["POST"])
+    def _upload() -> tuple[Response, int] | Response:
+        files = request.files.getlist("images")
+        if not files:
+            return jsonify({"error": "No file given"}), 400
+        max_images = _template_image_count(state)
+        if max_images is not None and _image_count(state) + len(files) > max_images:
+            return jsonify({"error": f"Template '{state.template}' accepts at most {max_images} images"}), 400
+        accepted_ext = fil.FileType.FILE_EXTENSIONS[fil.FileType.IMAGE_FILE]
+        new_ids, new_paths = [], []
+        for f in files:
+            name = secure_filename(f.filename or "photo")
+            if "." not in name or name.rsplit(".", 1)[-1].lower() not in accepted_ext:
+                return jsonify({"error": f"{f.filename} is not a supported image type"}), 400
+            saved_path = _unique_path(state.dirs.uploads, name)
+            f.save(saved_path)
+            new_paths.append(saved_path)
+            new_ids.append(_add_item(state, saved_path))
+        _place_new_items(state, new_ids, new_paths)
+        return jsonify(_state_to_json(state))
 
     @app.route("/api/preview", methods=["POST"])
     def _preview() -> tuple[Response, int] | Response:
@@ -215,6 +296,8 @@ def create_app(state: _PosterAppState) -> Flask:
         try:
             body = request.get_json(force=True) or {}
             _update_state(state, body)
+            if not _image_count(state):
+                return jsonify({"error": "No image loaded yet"}), 400
             output = body.get("output") or state.default_output
             crops_dir = fil.strip_extension(os.path.abspath(output)) + "_crops"
             os.makedirs(crops_dir, exist_ok=True)
@@ -235,48 +318,24 @@ def create_app(state: _PosterAppState) -> Flask:
     return app
 
 
-def _cache_dirs() -> tuple[str, str]:
-    """Creates and returns the (preview, full resolution) cache directories of a new session, in the OS default temp directory"""
+def _cache_dirs() -> _PosterDirs:
+    """Creates and returns the (uploads, preview cache, full resolution cache) directories of a new session, in the OS default
+    temp directory"""
     cache_root = tempfile.mkdtemp(prefix="poster-webapp-")
-    preview_cache, full_cache = os.path.join(cache_root, "preview"), os.path.join(cache_root, "full")
-    os.makedirs(preview_cache, exist_ok=True)
-    os.makedirs(full_cache, exist_ok=True)
-    return preview_cache, full_cache
+    dirs = _PosterDirs(*(os.path.join(cache_root, name) for name in ("uploads", "preview", "full")))
+    for directory in (dirs.uploads, dirs.preview_cache, dirs.full_cache):
+        os.makedirs(directory, exist_ok=True)
+    return dirs
 
 
-def _build_items(columns: list[dict], preview_cache: str) -> tuple[dict[str, _PosterItem], list[dict]]:
-    """Returns the session's items (one per photo, with its rescaled preview copy) and the columns of their ids, numbered in the
-    order of columns"""
-    items: dict[str, _PosterItem] = {}
-    id_columns: list[dict] = []
-    counter = 0
-    for col in columns:
-        ids = []
-        for path in col["images"]:
-            item_id = f"img-{counter}"
-            counter += 1
-            source = os.path.abspath(path)
-            items[item_id] = _PosterItem(item_id, source, _make_resized_copy(source, preview_cache, PREVIEW_MAX_DIM))
-            ids.append(item_id)
-        id_columns.append({"width": col["width"], "images": ids})
-    return items, id_columns
-
-
-def _build_initial_state(parser: argparse.ArgumentParser, photos: list[str], *, template: str | None, layout: str | None) -> _PosterAppState:
-    """Builds the initial session state: the photos are laid out with the template or layout given (or the usual automatic
-    layout), each starting with no crop. Aborts (via parser.error) if a template is given with the wrong number of images"""
+def _build_empty_state(*, template: str | None, layout: str | None) -> _PosterAppState:
+    """Builds a new, empty session: no photo yet, laid out with the template or layout given (or fully automatically, once the
+    first photos are loaded from the browser) once photos are added (see _place_new_items)"""
     template_defaults: dict = {}
     if template:
-        tmpl = templates.TEMPLATES[template]
-        if len(photos) != tmpl.image_count:
-            parser.error(f"Template '{template}' requires exactly {tmpl.image_count} images ({tmpl.layout}), got {len(photos)}")
-        template_defaults = templates.defaults(tmpl)
+        template_defaults = templates.defaults(templates.TEMPLATES[template])
         layout = layout or template_defaults["layout"]
-
-    layout_kwargs = {"layout": layout} if layout else {}
-    columns = image.auto_poster_columns(*photos, **layout_kwargs)
-    preview_cache, full_cache = _cache_dirs()
-    items, id_columns = _build_items(columns, preview_cache)
+    cols_count = int(layout.split("x")[1]) if layout else None
 
     settings = {
         "background_color": template_defaults.get("background_color", "black"),
@@ -284,17 +343,18 @@ def _build_initial_state(parser: argparse.ArgumentParser, photos: list[str], *, 
         "extra_margin_top": template_defaults.get("extra_margin_top", 0),
         "extra_margin_bottom": template_defaults.get("extra_margin_bottom", 0),
     }
-    default_output = os.path.join(os.path.dirname(os.path.abspath(photos[0])), "poster.jpg")
-    return _PosterAppState(items, id_columns, settings, preview_cache, full_cache, default_output, template)
+    default_output = os.path.join(os.getcwd(), "poster.jpg")
+    return _PosterAppState({}, [], settings, _cache_dirs(), default_output, template, cols_count)
 
 
 def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
-    """Adds the options of the poster web app (besides -i) to the parser"""
+    """Adds the options of the poster web app to the parser"""
     parser.add_argument(
         "--template",
         required=False,
         choices=sorted(templates.TEMPLATES),
-        help="Named poster template to start from (see 'imagetool poster --help'). Requires exactly as many images as the " "template's grid",
+        help="Named poster template to start from (see 'imagetool poster --help'). The app then accepts at most as many images "
+        "as the template's grid",
     )
     parser.add_argument("-l", "--layout", required=False, help="Layout of the images to start from: rows x columns, eg 2x3")
     parser.add_argument("--host", required=False, default="127.0.0.1", help="Address the local web server listens on")
@@ -303,20 +363,16 @@ def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
 
 
 def main() -> None:
-    """Starts the local web app to interactively design a poster from a set of images"""
+    """Starts the local web app to interactively design a poster: the images are loaded from the browser, not from the command
+    line"""
     util.init("poster-webapp")
-    parser = argparse.ArgumentParser(description="Interactive web app to design a poster: layout, crop, reorder, tune and preview it, then save it")
-    util.add_input_args(parser, "Images and/or directories to use in the poster")
+    parser = argparse.ArgumentParser(description="Interactive web app to design a poster: load images, layout, crop, reorder, tune and preview it")
     util.add_verbosity_arg(parser)
     __add_webapp_args__(parser)
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get("verbosity"))
 
-    photos = fil.file_list(*kwargs[util.INPUT_FILES], file_type=fil.FileType.IMAGE_FILE)
-    if not photos:
-        parser.error("No image found in the input")
-
-    state = _build_initial_state(parser, photos, template=kwargs.get("template"), layout=kwargs.get("layout"))
+    state = _build_empty_state(template=kwargs.get("template"), layout=kwargs.get("layout"))
     app = create_app(state)
 
     url = f"http://{kwargs['host']}:{kwargs['port']}/"

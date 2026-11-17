@@ -20,27 +20,30 @@
 
 # imagetool poster-webapp
 
-Starts a local web app in the browser to interactively design a [poster](imagetool-poster.md): pick the images and a layout or
-[template](imagetool-poster.md#templates), crop each image to a standard print ratio, drag images around to reorder them, tune the
-gutter, background color and title stripe, and visualize the result live on small, quickly-rendered copies of the images. Once the
-result looks right, save it: the full resolution poster and its YAML description (the same format as `imagetool poster`) are written
-to disk.
+Starts a local web app in the browser to interactively design a [poster](imagetool-poster.md): load images from the browser, pick a
+layout or [template](imagetool-poster.md#templates), crop each image to a standard print ratio, drag images around to reorder them,
+tune the gutter, background color and title stripe, and visualize the result live on small, quickly-rendered copies of the images.
+Once the result looks right, save it: the full resolution poster and its YAML description (the same format as `imagetool poster`) are
+written to disk.
 
 ```
-imagetool poster-webapp -i <photos and/or directories> [--template <name>] [--layout <rows>x<cols>]
-                         [--host <address>] [--port <port>] [--no-browser]
+imagetool poster-webapp [--template <name>] [--layout <rows>x<cols>] [--host <address>] [--port <port>] [--no-browser]
 ```
 
 | Option | Description |
 |---|---|
-| `-i` | Photos and/or directories (processed recursively) to use in the poster |
-| `--template` | A named template to start from (see [imagetool poster](imagetool-poster.md#templates)). Requires exactly as many images as the template's grid; the command aborts otherwise |
-| `-l`, `--layout` | Number of rows x columns (eg `2x3`) to start from, instead of the usual automatic layout |
+| `--template` | A named template to start from (see [imagetool poster](imagetool-poster.md#templates)). The app then accepts at most as many images as the template's grid |
+| `-l`, `--layout` | Number of rows x columns (eg `2x3`) to start from, instead of the usual automatic layout (picked once the first images are loaded) |
 | `--host` | Address the local web server listens on. Default: `127.0.0.1` |
 | `--port` | Port of the local web server. Default: `5151` |
 | `--no-browser` | Don't automatically open the web browser |
 
 ## Using the app
+
+The **Load images** panel picks images from the browser's own file picker (no path to type); each one is added to the poster. With
+no `--template`/`--layout`, the layout is picked automatically from the first batch of images loaded (see `imagetool poster`); more
+images can be loaded afterwards, added round-robin into the existing columns. With a template, loading more images than its grid
+needs is rejected.
 
 Each column of the poster is shown as a vertical list of its images. An image can be:
 
@@ -52,15 +55,20 @@ The side panel tunes the poster's `background_color`, `gutter` and `extra_margin
 exactly as the matching options of `imagetool poster`. Every change re-renders the preview on small, rescaled copies of the images, so
 it stays fast regardless of the size of the originals.
 
-Clicking **Save poster + YAML** renders the poster at the full resolution of the original images, at the output path given, and
-writes its YAML description next to it (default: `poster.yaml`, same basename as the output image). A cropped image is saved as a new
+Clicking **Save poster + YAML** renders the poster at the full resolution of the loaded images, at the output path given, and writes
+its YAML description next to it (default: `poster.jpg`/`poster.yaml` in the current directory). A cropped image is saved as a new
 file; an image left as `original` is referenced directly, as `imagetool poster` would.
 
 ## Example
 
 ```bash
-imagetool poster-webapp --template landscape40-4x3 -i photo01.jpg photo02.jpg ... photo12.jpg
+imagetool poster-webapp --template landscape40-4x3
 ```
 
-Opens the app with the 12 photos laid out on the `landscape40-4x3` template's grid, ready to be cropped, reordered and tuned before
-saving.
+Opens the app on the `landscape40-4x3` template's grid (4 rows x 3 columns, 12 images), ready for images to be loaded, cropped,
+reordered and tuned before saving.
+
+## Batch file
+
+`batch-files-images/poster.bat` runs `imagetool poster` (the CLI version) on the images dragged onto it; run with no images dragged
+onto it (eg double-clicked), it opens the web app instead, where images are loaded from the browser.

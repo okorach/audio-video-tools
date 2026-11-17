@@ -48,6 +48,12 @@
   <div id="columns"></div>
   <div id="side">
     <fieldset>
+      <legend>Load images</legend>
+      <label for="file-input">Images to add</label>
+      <input id="file-input" type="file" accept="image/*" multiple>
+      <p><button id="btn-upload">Add images</button></p>
+    </fieldset>
+    <fieldset>
       <legend>Poster settings</legend>
       <label for="background_color">Background color</label>
       <select id="background_color">
@@ -176,7 +182,7 @@ async function refreshPreview() {
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error || "Preview failed");
-    document.getElementById("preview").innerHTML = "<img src='" + data.preview + "'>";
+    document.getElementById("preview").innerHTML = data.preview ? "<img src='" + data.preview + "'>" : "Add images to see a preview";
     setStatus("");
   } catch (e) {
     setStatus(e.message, true);
@@ -205,6 +211,26 @@ async function savePoster() {
   }
 }
 
+async function uploadFiles() {
+  const input = document.getElementById("file-input");
+  if (!input.files.length) return;
+  const form = new FormData();
+  for (const f of input.files) form.append("images", f);
+  setStatus("Uploading...");
+  try {
+    const resp = await fetch("/api/upload", { method: "POST", body: form });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Upload failed");
+    Object.assign(STATE, data);
+    input.value = "";
+    render();
+    await refreshPreview();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+document.getElementById("btn-upload").addEventListener("click", uploadFiles);
 document.getElementById("btn-preview").addEventListener("click", refreshPreview);
 document.getElementById("btn-save").addEventListener("click", savePoster);
 ["background_color", "gutter", "extra_margin_top", "extra_margin_bottom"].forEach(id => {
@@ -212,7 +238,9 @@ document.getElementById("btn-save").addEventListener("click", savePoster);
 });
 
 render();
-await refreshPreview();
+if (Object.keys(STATE.items).length) {
+  await refreshPreview();
+}
 </script>
 </body>
 </html>

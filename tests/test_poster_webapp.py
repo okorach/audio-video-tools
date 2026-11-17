@@ -18,23 +18,32 @@
 # Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-"""Tests of the interactive poster web app"""
+"""Tests of the interactive poster web app: images are loaded from the browser (file upload), not from the command line"""
 
-import argparse
 import os
+from contextlib import ExitStack
 
-import pytest
+from flask.testing import FlaskClient
 
 import mediatools.poster_webapp as webapp
 from mediatools import poster
 
 DIR = "it" + os.sep
-PHOTOS = [os.path.abspath(DIR + f) for f in ("img-640x480.jpg", "img-640x480-2.jpg", "img-3000x1682.jpg", "img-4000x3000.jpg")]
+PHOTOS = [DIR + f for f in ("img-640x480.jpg", "img-640x480-2.jpg", "img-3000x1682.jpg", "img-4000x3000.jpg")]
 
 
-def _state(layout: str | None = "2x2", template: str | None = None, photos: list[str] | None = None) -> webapp._PosterAppState:
-    """Builds an initial session state for the given photos (PHOTOS by default)"""
-    return webapp._build_initial_state(argparse.ArgumentParser(), photos or PHOTOS, template=template, layout=layout)
+def _client(template: str | None = None, layout: str | None = None) -> tuple[FlaskClient, webapp._PosterAppState]:
+    """Returns a (Flask test client, state) pair for a fresh, empty session"""
+    state = webapp._build_empty_state(template=template, layout=layout)
+    return webapp.create_app(state).test_client(), state
+
+
+def _upload(client: FlaskClient, photos: list[str] = PHOTOS) -> dict:
+    """Uploads photos (by path) to the session and returns the JSON response"""
+    with ExitStack() as stack:
+        data = {"images": [(stack.enter_context(open(p, "rb")), os.path.basename(p)) for p in photos]}
+        resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+    return resp, resp.get_json()
 
 
 def test_crop_box_landscape_source() -> None:
@@ -47,45 +56,88 @@ def test_crop_box_portrait_source() -> None:
     assert webapp._crop_box(300, 400, 1.0) == (0, 50, 300, 350)
 
 
-def test_build_initial_state_layout() -> None:
-    """The initial state has one item per photo, grouped into the requested layout, with no crop chosen"""
-    state = _state(layout="2x2")
-    assert len(state.items) == len(PHOTOS)
-    assert len(state.columns) == 2
-    assert all(item.ratio_key is None for item in state.items.values())
+def test_empty_session_has_no_image() -> None:
+    """A fresh session starts with no image and no column"""
+    _, state = _client()
+    assert not state.items
+    assert not state.columns
     assert state.settings["background_color"] == "black"
 
 
-def test_build_initial_state_template_sets_defaults() -> None:
-    """A template sets its own layout, background color, gutter and title stripe"""
-    photos = PHOTOS * 3  # landscape40-4x3 needs 12 images
-    state = _state(layout=None, template="landscape40-4x3", photos=photos)
-    assert len(state.columns) == 3
-    assert state.settings["background_color"] == "black"
+def test_template_sets_defaults_and_cols_count() -> None:
+    """A template sets its own column count, background color, gutter and title stripe before any image is loaded"""
+    _, state = _client(template="landscape40-4x3")
+    assert state.cols_count == 3
     assert state.settings["extra_margin_bottom"] == webapp.templates.TITLE_STRIPE
     assert state.template == "landscape40-4x3"
 
 
-def test_build_initial_state_template_aborts_on_wrong_count() -> None:
-    """Building the initial state aborts when the number of photos doesn't match the template's grid"""
-    with pytest.raises(SystemExit):
-        _state(layout=None, template="landscape40-4x3", photos=PHOTOS[:2])
+def test_upload_with_no_layout_picks_one_automatically() -> None:
+    """The first batch of uploaded images picks the layout automatically, like imagetool poster does with no --layout"""
+    client, state = _client()
+    resp, body = _upload(client)
+    assert resp.status_code == 200
+    assert len(body["items"]) == len(PHOTOS)
+    assert len(state.columns) >= 1
+    assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
+
+
+def test_upload_with_layout_places_round_robin() -> None:
+    """With a fixed layout, uploaded images are placed round-robin into that many columns"""
+    client, state = _client(layout="2x2")
+    _upload(client)
+    assert len(state.columns) == 2
+    assert [len(col["images"]) for col in state.columns] == [2, 2]
+
+
+def test_upload_twice_appends_to_existing_columns() -> None:
+    """A second batch of images is appended into the columns already laid out by the first one"""
+    client, state = _client(layout="1x2")
+    _upload(client, PHOTOS[:2])
+    _upload(client, PHOTOS[2:])
+    assert len(state.columns) == 2
+    assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
+
+
+def test_upload_rejects_exceeding_template_count() -> None:
+    """Uploading more images than a template's grid needs is rejected"""
+    client, _ = _client(template="landscape40-2x2")  # 4 images
+    resp, body = _upload(client, [*PHOTOS, DIR + "img-2320x4000.jpg"])  # 5 images
+    assert resp.status_code == 400
+    assert "landscape40-2x2" in body["error"]
+
+
+def test_upload_rejects_non_image_file(tmp_path) -> None:
+    """Uploading a file that isn't a supported image type is rejected"""
+    client, _ = _client()
+    not_an_image = tmp_path / "notes.txt"
+    not_an_image.write_text("hello")
+    with open(not_an_image, "rb") as f:
+        resp = client.post("/api/upload", data={"images": [(f, "notes.txt")]}, content_type="multipart/form-data")
+    assert resp.status_code == 400
 
 
 def test_index_page_embeds_state() -> None:
-    """The index page is served with the session's items embedded in it"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    """The index page is served with the session's items (once loaded) embedded in it"""
+    client, state = _client()
+    _upload(client)
     resp = client.get("/")
     assert resp.status_code == 200
-    body = resp.get_data(as_text=True)
-    assert next(iter(state.items)) in body
+    assert next(iter(state.items)) in resp.get_data(as_text=True)
+
+
+def test_preview_is_empty_before_any_image() -> None:
+    """There is no preview to render before any image is loaded"""
+    client, _ = _client()
+    resp = client.post("/api/preview", json={})
+    assert resp.status_code == 200
+    assert resp.get_json()["preview"] is None
 
 
 def test_preview_renders_and_reflects_settings() -> None:
     """A preview request renders a poster and applies the settings sent along with it"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, state = _client()
+    _upload(client)
     item_id = next(iter(state.items))
     resp = client.post(
         "/api/preview",
@@ -101,25 +153,31 @@ def test_preview_renders_and_reflects_settings() -> None:
 
 def test_preview_rejects_unknown_item() -> None:
     """A preview request for an image id that doesn't belong to the session is rejected"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, _ = _client()
     resp = client.post("/api/preview", json={"columns": [{"width": "100%", "images": ["does-not-exist"]}]})
     assert resp.status_code == 400
 
 
 def test_preview_rejects_unknown_ratio() -> None:
     """A preview request with an unsupported crop ratio is rejected"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, state = _client()
+    _upload(client)
     item_id = next(iter(state.items))
     resp = client.post("/api/preview", json={"columns": state.columns, "ratios": {item_id: "1:1"}})
     assert resp.status_code == 400
 
 
+def test_save_rejects_when_no_image_loaded(tmp_path) -> None:
+    """Saving before any image is loaded is rejected"""
+    client, _ = _client()
+    resp = client.post("/api/save", json={"output": str(tmp_path / "out.jpg")})
+    assert resp.status_code == 400
+
+
 def test_save_writes_poster_and_yaml(tmp_path) -> None:
     """Saving writes the poster at the requested resolution and a YAML description reflecting the final layout and settings"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, state = _client()
+    _upload(client)
     columns = [{"width": col["width"], "images": list(reversed(col["images"]))} for col in state.columns]
     output = str(tmp_path / "my-poster.jpg")
     resp = client.post(
@@ -138,8 +196,8 @@ def test_save_writes_poster_and_yaml(tmp_path) -> None:
 
 def test_save_persists_crops_next_to_output(tmp_path) -> None:
     """A cropped image is saved as a real file next to the output, not left in the session's temporary cache"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, state = _client()
+    _upload(client)
     item_id = next(iter(state.items))
     output = str(tmp_path / "my-poster.jpg")
     resp = client.post("/api/save", json={"columns": state.columns, "ratios": {item_id: "4:3"}, "output": output})
@@ -151,8 +209,8 @@ def test_save_persists_crops_next_to_output(tmp_path) -> None:
 
 def test_save_rejects_unknown_item(tmp_path) -> None:
     """Saving with an image id that doesn't belong to the session is rejected"""
-    state = _state()
-    client = webapp.create_app(state).test_client()
+    client, _ = _client()
+    _upload(client)
     resp = client.post(
         "/api/save",
         json={"columns": [{"width": "100%", "images": ["nope"]}], "output": str(tmp_path / "out.jpg")},
