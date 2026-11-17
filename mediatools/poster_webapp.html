@@ -1,0 +1,218 @@
+<!--
+  media-tools
+  Copyright (C) 2019-2026 Olivier Korach
+  mailto:olivier.korach AT gmail DOT com
+
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 3 of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with this program; if not, write to the Free Software Foundation,
+  Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Poster designer</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; background: #1e1e1e; color: #eee; }
+  #layout { display: flex; gap: 16px; padding: 16px; }
+  #columns { display: flex; gap: 12px; flex: 1 1 60%; min-width: 0; }
+  .column { background: #2a2a2a; border-radius: 6px; padding: 8px; flex: 1 1 0; min-height: 120px; display: flex; flex-direction: column; gap: 8px; }
+  .item { background: #3a3a3a; border-radius: 4px; padding: 6px; cursor: grab; }
+  .item.dragging { opacity: 0.35; }
+  .item img { display: block; width: 100%; border-radius: 3px; }
+  .item select { width: 100%; margin-top: 4px; font-size: 12px; }
+  #side { flex: 0 0 360px; display: flex; flex-direction: column; gap: 14px; }
+  fieldset { border: 1px solid #444; border-radius: 6px; }
+  legend { color: #ccc; }
+  label { display: block; margin: 6px 0 2px; font-size: 13px; color: #ccc; }
+  input, select { width: 100%; box-sizing: border-box; padding: 4px; }
+  button { padding: 8px 12px; cursor: pointer; }
+  #preview { background: #000; border-radius: 6px; min-height: 200px; display: flex; align-items: center; justify-content: center; overflow: auto; }
+  #preview img { max-width: 100%; }
+  #status { font-size: 13px; color: #9c9; min-height: 18px; }
+  #status.error { color: #e77; }
+</style>
+</head>
+<body>
+<div id="layout">
+  <div id="columns"></div>
+  <div id="side">
+    <fieldset>
+      <legend>Poster settings</legend>
+      <label>Background color</label>
+      <select id="background_color">
+        <option value="black">black</option>
+        <option value="white">white</option>
+      </select>
+      <label>Gutter (px or %)</label>
+      <input id="gutter" type="text">
+      <label>Extra margin top (px or %)</label>
+      <input id="extra_margin_top" type="text">
+      <label>Extra margin bottom / title stripe (px or %)</label>
+      <input id="extra_margin_bottom" type="text">
+      <p><button id="btn-preview">Refresh preview</button></p>
+    </fieldset>
+    <fieldset>
+      <legend>Save</legend>
+      <label>Output file</label>
+      <input id="output" type="text">
+      <p><button id="btn-save">Save poster + YAML</button></p>
+      <div id="status"></div>
+    </fieldset>
+    <div id="preview"></div>
+  </div>
+</div>
+<script>
+const STATE = __INITIAL_STATE__;
+
+function render() {
+  const container = document.getElementById("columns");
+  container.innerHTML = "";
+  STATE.columns.forEach((col, colIndex) => {
+    const colEl = document.createElement("div");
+    colEl.className = "column";
+    colEl.dataset.colIndex = colIndex;
+    col.images.forEach(itemId => colEl.appendChild(makeItem(itemId)));
+    addColumnDropHandlers(colEl);
+    container.appendChild(colEl);
+  });
+  document.getElementById("background_color").value = STATE.settings.background_color || "black";
+  document.getElementById("gutter").value = STATE.settings.gutter ?? "";
+  document.getElementById("extra_margin_top").value = STATE.settings.extra_margin_top ?? "";
+  document.getElementById("extra_margin_bottom").value = STATE.settings.extra_margin_bottom ?? "";
+  document.getElementById("output").value = STATE.default_output || "";
+}
+
+function makeItem(itemId) {
+  const item = STATE.items[itemId];
+  const el = document.createElement("div");
+  el.className = "item";
+  el.draggable = true;
+  el.dataset.itemId = itemId;
+  el.addEventListener("dragstart", () => el.classList.add("dragging"));
+  el.addEventListener("dragend", () => { el.classList.remove("dragging"); syncColumnsFromDom(); refreshPreview(); });
+
+  const img = document.createElement("img");
+  img.src = item.thumb;
+  el.appendChild(img);
+
+  const select = document.createElement("select");
+  const noneOpt = document.createElement("option");
+  noneOpt.value = "";
+  noneOpt.textContent = "original";
+  select.appendChild(noneOpt);
+  STATE.ratios.forEach(r => {
+    const opt = document.createElement("option");
+    opt.value = r;
+    opt.textContent = r;
+    if (item.ratio_key === r) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener("change", () => { item.ratio_key = select.value || null; refreshPreview(); });
+  el.appendChild(select);
+  return el;
+}
+
+function addColumnDropHandlers(colEl) {
+  colEl.addEventListener("dragover", ev => {
+    ev.preventDefault();
+    const dragging = document.querySelector(".item.dragging");
+    if (!dragging) return;
+    const after = [...colEl.querySelectorAll(".item:not(.dragging)")].find(sibling => {
+      const box = sibling.getBoundingClientRect();
+      return ev.clientY < box.top + box.height / 2;
+    });
+    colEl.insertBefore(dragging, after || null);
+  });
+}
+
+function syncColumnsFromDom() {
+  const cols = [...document.querySelectorAll("#columns .column")];
+  STATE.columns = cols.map((colEl, i) => ({
+    width: STATE.columns[i] ? STATE.columns[i].width : null,
+    images: [...colEl.querySelectorAll(".item")].map(el => el.dataset.itemId),
+  }));
+}
+
+function readSettings() {
+  return {
+    background_color: document.getElementById("background_color").value,
+    gutter: document.getElementById("gutter").value,
+    extra_margin_top: document.getElementById("extra_margin_top").value,
+    extra_margin_bottom: document.getElementById("extra_margin_bottom").value,
+  };
+}
+
+function currentRatios() {
+  const ratios = {};
+  Object.keys(STATE.items).forEach(id => { ratios[id] = STATE.items[id].ratio_key || ""; });
+  return ratios;
+}
+
+function setStatus(message, isError) {
+  const el = document.getElementById("status");
+  el.textContent = message;
+  el.className = isError ? "error" : "";
+}
+
+async function refreshPreview() {
+  STATE.settings = readSettings();
+  setStatus("Rendering preview...");
+  try {
+    const resp = await fetch("/api/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ columns: STATE.columns, ratios: currentRatios(), settings: STATE.settings }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Preview failed");
+    document.getElementById("preview").innerHTML = "<img src='" + data.preview + "'>";
+    setStatus("");
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+async function savePoster() {
+  STATE.settings = readSettings();
+  setStatus("Saving...");
+  try {
+    const resp = await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        columns: STATE.columns,
+        ratios: currentRatios(),
+        settings: STATE.settings,
+        output: document.getElementById("output").value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Save failed");
+    setStatus("Saved " + data.output + " and " + data.yaml);
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
+document.getElementById("btn-preview").addEventListener("click", refreshPreview);
+document.getElementById("btn-save").addEventListener("click", savePoster);
+["background_color", "gutter", "extra_margin_top", "extra_margin_bottom"].forEach(id => {
+  document.getElementById(id).addEventListener("change", refreshPreview);
+});
+
+render();
+refreshPreview();
+</script>
+</body>
+</html>

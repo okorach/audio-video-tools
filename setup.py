@@ -45,7 +45,7 @@ setuptools.setup(
         "Source Code": "https://github.com/okorach/audio-video-tools",
     },
     packages=setuptools.find_packages(),
-    package_data={"mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4"]},
+    package_data={"mediatools": ["LICENSE", "media-tools.properties", "black.jpg", "white.jpg", "video-720p.mp4", "poster_webapp.html"]},
     install_requires=[
         "argparse",
         "datetime",
@@ -61,6 +61,7 @@ setuptools.setup(
         "PyYAML",
         "requests",
         "certifi>=2026.10.18",
+        "Flask>=3.0.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
