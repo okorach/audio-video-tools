@@ -38,13 +38,17 @@ def _client(template: str | None = None, layout: str | None = None, orientation:
     return webapp.create_app(state).test_client(), state
 
 
-def _upload(client: FlaskClient, photos: list[str] = PHOTOS, orientation: str | None = None) -> dict:
+def _upload(client: FlaskClient, photos: list[str] = PHOTOS) -> dict:
     """Uploads photos (by path) to the session and returns the JSON response"""
     with ExitStack() as stack:
         data = {"images": [(stack.enter_context(open(p, "rb")), os.path.basename(p)) for p in photos]}
-        if orientation is not None:
-            data["orientation"] = orientation
         resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+    return resp, resp.get_json()
+
+
+def _set_layout(client: FlaskClient, orientation: str | None = None, aspect_ratio: str | None = None) -> dict:
+    """Sets the session's orientation and/or aspect ratio hint and returns the JSON response"""
+    resp = client.post("/api/layout", json={"orientation": orientation, "aspect_ratio": aspect_ratio})
     return resp, resp.get_json()
 
 
@@ -84,36 +88,60 @@ def test_upload_with_no_layout_picks_one_automatically() -> None:
     assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
 
 
-def test_upload_with_orientation_overrides_automatic_layout() -> None:
-    """A portrait orientation sent with the first upload picks a narrower grid than the automatic (landscape-leaning) default"""
+def test_layout_orientation_overrides_automatic_layout() -> None:
+    """A portrait orientation set before any image is loaded picks a narrower grid than the automatic (landscape-leaning) default"""
     client, state = _client()
-    _upload(client, orientation="portrait")
+    _set_layout(client, orientation="portrait")
+    _upload(client)
     assert len(state.columns) == 1
 
 
-def test_upload_rejects_unknown_orientation() -> None:
-    """Uploading with an orientation that isn't portrait or landscape is rejected"""
+def test_layout_rejects_unknown_orientation() -> None:
+    """Setting an orientation that isn't portrait or landscape is rejected"""
     client, _ = _client()
-    resp, body = _upload(client, orientation="sideways")
+    resp, body = _set_layout(client, orientation="sideways")
     assert resp.status_code == 400
     assert "sideways" in body["error"]
 
 
-def test_orientation_is_ignored_once_a_layout_is_fixed() -> None:
+def test_layout_rejects_unknown_aspect_ratio() -> None:
+    """Setting an aspect ratio that isn't one of the app's named ratios is rejected"""
+    client, _ = _client()
+    resp, body = _set_layout(client, aspect_ratio="1:1")
+    assert resp.status_code == 400
+    assert "1:1" in body["error"]
+
+
+def test_layout_is_ignored_once_a_layout_is_fixed() -> None:
     """A fixed layout (or template) decides the number of columns; an orientation sent alongside it has no effect"""
     client, state = _client(layout="2x2")
-    _upload(client, orientation="portrait")
+    _, body = _set_layout(client, orientation="portrait")
+    _upload(client)
     assert len(state.columns) == 2
     assert state.layout.orientation is None
+    assert body["layout_locked"] is True
 
 
-def test_orientation_is_locked_after_the_first_batch() -> None:
-    """Orientation only shapes the very first automatic layout; it is reported as locked once columns already exist"""
+def test_changing_orientation_relayouts_images_already_loaded() -> None:
+    """Changing the orientation after images are already loaded recomputes the columns from all of them, not just new ones"""
     client, state = _client()
-    _upload(client, PHOTOS[:2], orientation="landscape")
-    _, body = _upload(client, PHOTOS[2:], orientation="portrait")
-    assert state.layout.orientation == "landscape"
-    assert body["orientation_locked"] is True
+    _upload(client)
+    assert len(state.columns) >= 2
+    _, body = _set_layout(client, orientation="portrait")
+    assert len(state.columns) == 1
+    assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
+    assert body["layout_locked"] is False
+
+
+def test_changing_aspect_ratio_relayouts_images_already_loaded() -> None:
+    """Changing the aspect ratio after images are already loaded recomputes the columns from all of them"""
+    client, state = _client()
+    _upload(client)
+    cols_before = len(state.columns)
+    _set_layout(client, aspect_ratio="9:16")
+    assert state.layout.aspect_ratio == "9:16"
+    assert len(state.columns) != cols_before
+    assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
 
 
 def test_upload_with_layout_places_round_robin() -> None:

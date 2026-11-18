@@ -54,6 +54,10 @@ CROP_RATIOS: dict[str, float] = {
     "16:9": 16 / 9,
 }
 
+# Target aspect ratios (width:height) the poster itself can be laid out to in the app: the standard printing/display formats,
+# each in landscape and its reverse, portrait, form (see mediatools.imagefile.auto_poster_columns's aspect_ratio argument)
+POSTER_RATIOS: tuple[str, ...] = ("7:5", "5:7", "4:3", "3:4", "15:10", "10:15", "16:10", "10:16", "16:9", "9:16")
+
 PREVIEW_MAX_DIM: int = 700
 THUMB_MAX_DIM: int = 180
 DEFAULT_PORT: int = 5151
@@ -85,12 +89,13 @@ class _PosterDirs:
 @dataclass
 class _PosterLayout:
     """How a session's first batch of images is laid out into columns: a named template, an explicit number of columns (either
-    one fixes the grid upfront), or an orientation hint for the fully automatic layout (see mediatools.imagefile.auto_poster_columns).
-    Once the first batch is placed into columns, template/cols_count/orientation no longer have any effect"""
+    one fixes the grid upfront), or an orientation and/or a target aspect ratio hint for the fully automatic layout (see
+    mediatools.imagefile.auto_poster_columns). Once the first batch is placed into columns, none of these have any effect anymore"""
 
     template: str | None = None
     cols_count: int | None = None
     orientation: str | None = None
+    aspect_ratio: str | None = None
 
 
 @dataclass
@@ -214,7 +219,9 @@ def _state_to_json(state: _PosterAppState) -> dict:
         "default_output": state.default_output,
         "max_images": _template_image_count(state),
         "orientation": state.layout.orientation,
-        "orientation_locked": bool(state.layout.cols_count or state.columns),
+        "aspect_ratio": state.layout.aspect_ratio,
+        "aspect_ratios": POSTER_RATIOS,
+        "layout_locked": bool(state.layout.cols_count),
     }
 
 
@@ -255,13 +262,26 @@ def _place_new_items(state: _PosterAppState, new_ids: list[str], new_paths: list
             width = f"{100 / state.layout.cols_count:g}%"
             state.columns = [{"width": width, "images": []} for _ in range(state.layout.cols_count)]
         else:
-            path_columns = image.auto_poster_columns(*new_paths, orientation=state.layout.orientation)
+            path_columns = image.auto_poster_columns(*new_paths, orientation=state.layout.orientation, aspect_ratio=state.layout.aspect_ratio)
             path_to_id = dict(zip(new_paths, new_ids, strict=True))
             state.columns = [{"width": col["width"], "images": [path_to_id[p] for p in col["images"]]} for col in path_columns]
             return
     order = sorted(range(len(state.columns)), key=lambda i: len(state.columns[i]["images"]))
     for i, item_id in enumerate(new_ids):
         state.columns[order[i % len(state.columns)]]["images"].append(item_id)
+
+
+def _relayout(state: _PosterAppState) -> None:
+    """Recomputes the poster's columns from all the items currently loaded, in their current flat order, using the session's
+    orientation/aspect ratio hint (see _PosterLayout). Has no effect when an explicit layout/template fixes the number of
+    columns, or when there is no image yet"""
+    if state.layout.cols_count or not state.items:
+        return
+    ordered_ids = [item_id for col in state.columns for item_id in col["images"]] or list(state.items)
+    paths = [state.items[item_id].source for item_id in ordered_ids]
+    path_columns = image.auto_poster_columns(*paths, orientation=state.layout.orientation, aspect_ratio=state.layout.aspect_ratio)
+    path_to_id = dict(zip(paths, ordered_ids, strict=True))
+    state.columns = [{"width": col["width"], "images": [path_to_id[p] for p in col["images"]]} for col in path_columns]
 
 
 def create_app(state: _PosterAppState) -> Flask:
@@ -279,11 +299,6 @@ def create_app(state: _PosterAppState) -> Flask:
         files = request.files.getlist("images")
         if not files:
             return jsonify({"error": "No file given"}), 400
-        orientation = request.form.get("orientation") or None
-        if orientation not in (None, "portrait", "landscape"):
-            return jsonify({"error": f"Unknown orientation {orientation}"}), 400
-        if not state.columns and not state.layout.cols_count:
-            state.layout.orientation = orientation
         max_images = _template_image_count(state)
         if max_images is not None and _image_count(state) + len(files) > max_images:
             return jsonify({"error": f"Template '{state.layout.template}' accepts at most {max_images} images"}), 400
@@ -298,6 +313,21 @@ def create_app(state: _PosterAppState) -> Flask:
             new_paths.append(saved_path)
             new_ids.append(_add_item(state, saved_path))
         _place_new_items(state, new_ids, new_paths)
+        return jsonify(_state_to_json(state))
+
+    @app.route("/api/layout", methods=["POST"])
+    def _layout() -> tuple[Response, int] | Response:
+        body = request.get_json(force=True) or {}
+        orientation = body.get("orientation") or None
+        if orientation not in (None, "portrait", "landscape"):
+            return jsonify({"error": f"Unknown orientation {orientation}"}), 400
+        aspect_ratio = body.get("aspect_ratio") or None
+        if aspect_ratio is not None and aspect_ratio not in POSTER_RATIOS:
+            return jsonify({"error": f"Unknown aspect ratio {aspect_ratio}"}), 400
+        if not state.layout.cols_count:
+            state.layout.orientation = orientation
+            state.layout.aspect_ratio = aspect_ratio
+            _relayout(state)
         return jsonify(_state_to_json(state))
 
     @app.route("/api/preview", methods=["POST"])
@@ -345,9 +375,12 @@ def _cache_dirs() -> _PosterDirs:
     return dirs
 
 
-def _build_empty_state(*, template: str | None, layout: str | None, orientation: str | None = None) -> _PosterAppState:
-    """Builds a new, empty session: no photo yet, laid out with the template or layout given (or fully automatically, in the
-    orientation given, once the first photos are loaded from the browser) once photos are added (see _place_new_items)"""
+def _build_empty_state(
+    *, template: str | None, layout: str | None, orientation: str | None = None, aspect_ratio: str | None = None
+) -> _PosterAppState:
+    """Builds a new, empty session: no photo yet, laid out with the template or layout given (or fully automatically, towards the
+    orientation and/or aspect ratio given, once the first photos are loaded from the browser) once photos are added (see
+    _place_new_items)"""
     template_defaults: dict = {}
     if template:
         template_defaults = templates.defaults(templates.TEMPLATES[template])
@@ -361,7 +394,8 @@ def _build_empty_state(*, template: str | None, layout: str | None, orientation:
         "extra_margin_bottom": template_defaults.get("extra_margin_bottom", 0),
     }
     default_output = os.path.join(os.getcwd(), "poster.jpg")
-    return _PosterAppState({}, [], settings, _cache_dirs(), default_output, _PosterLayout(template, cols_count, orientation))
+    layout_spec = _PosterLayout(template, cols_count, orientation, aspect_ratio)
+    return _PosterAppState({}, [], settings, _cache_dirs(), default_output, layout_spec)
 
 
 def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
@@ -381,6 +415,14 @@ def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
         help="Orientation of the poster (no --template/--layout): default picks whichever of the 2 standard printing formats "
         "(70/50 or 50/70) best fits the first images loaded. Can also be picked in the app before the first image is loaded",
     )
+    parser.add_argument(
+        "--aspect_ratio",
+        required=False,
+        choices=POSTER_RATIOS,
+        help="Target aspect ratio of the poster (no --template/--layout), eg 4:3 or 16:9 (its reverse, eg 3:4 or 9:16, for a "
+        "portrait poster). Default: whichever of the 2 standard printing formats (70/50 or 50/70) best fits the first images "
+        "loaded. Can also be picked in the app before the first image is loaded",
+    )
     parser.add_argument("--host", required=False, default="127.0.0.1", help="Address the local web server listens on")
     parser.add_argument("--port", required=False, type=int, default=DEFAULT_PORT, help="Port of the local web server")
     parser.add_argument("--no-browser", required=False, action="store_true", help="Don't automatically open the web browser")
@@ -396,7 +438,12 @@ def main() -> None:
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get("verbosity"))
 
-    state = _build_empty_state(template=kwargs.get("template"), layout=kwargs.get("layout"), orientation=kwargs.get("orientation"))
+    state = _build_empty_state(
+        template=kwargs.get("template"),
+        layout=kwargs.get("layout"),
+        orientation=kwargs.get("orientation"),
+        aspect_ratio=kwargs.get("aspect_ratio"),
+    )
     app = create_app(state)
 
     url = f"http://{kwargs['host']}:{kwargs['port']}/"

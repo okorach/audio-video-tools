@@ -48,13 +48,18 @@
   <div id="columns"></div>
   <div id="side">
     <fieldset>
-      <legend>Load images</legend>
-      <label for="orientation">Orientation (first batch only)</label>
+      <legend>Layout</legend>
+      <label for="orientation">Orientation</label>
       <select id="orientation">
         <option value="">Auto</option>
         <option value="landscape">Landscape</option>
         <option value="portrait">Portrait</option>
       </select>
+      <label for="aspect_ratio">Aspect ratio</label>
+      <select id="aspect_ratio"></select>
+    </fieldset>
+    <fieldset>
+      <legend>Load images</legend>
       <label for="file-input">Images to add</label>
       <input id="file-input" type="file" accept="image/*" multiple>
       <p><button id="btn-upload">Add images</button></p>
@@ -103,10 +108,35 @@ function render() {
   document.getElementById("extra_margin_top").value = STATE.settings.extra_margin_top ?? "";
   document.getElementById("extra_margin_bottom").value = STATE.settings.extra_margin_bottom ?? "";
   document.getElementById("output").value = STATE.default_output || "";
+  const lockedTitle = STATE.layout_locked ? "Fixed by the --layout/--template option" : "";
   const orientationEl = document.getElementById("orientation");
   orientationEl.value = STATE.orientation || "";
-  orientationEl.disabled = !!STATE.orientation_locked;
-  orientationEl.title = STATE.orientation_locked ? "Fixed once a layout/template is used, or the first batch of images is loaded" : "";
+  orientationEl.disabled = !!STATE.layout_locked;
+  orientationEl.title = lockedTitle;
+  const aspectRatioEl = document.getElementById("aspect_ratio");
+  aspectRatioEl.value = STATE.aspect_ratio || "";
+  aspectRatioEl.disabled = !!STATE.layout_locked;
+  aspectRatioEl.title = lockedTitle;
+}
+
+function populateAspectRatios() {
+  const select = document.getElementById("aspect_ratio");
+  const auto = document.createElement("option");
+  auto.value = "";
+  auto.textContent = "Auto";
+  select.appendChild(auto);
+  const groups = { Landscape: document.createElement("optgroup"), Portrait: document.createElement("optgroup") };
+  groups.Landscape.label = "Landscape";
+  groups.Portrait.label = "Portrait";
+  STATE.aspect_ratios.forEach(ratio => {
+    const [w, h] = ratio.split(":").map(Number);
+    const opt = document.createElement("option");
+    opt.value = ratio;
+    opt.textContent = ratio;
+    groups[w > h ? "Landscape" : "Portrait"].appendChild(opt);
+  });
+  select.appendChild(groups.Landscape);
+  select.appendChild(groups.Portrait);
 }
 
 function makeItem(itemId) {
@@ -226,7 +256,6 @@ async function uploadFiles() {
   if (!input.files.length) return;
   const form = new FormData();
   for (const f of input.files) form.append("images", f);
-  form.append("orientation", document.getElementById("orientation").value);
   setStatus("Uploading...");
   try {
     const resp = await fetch("/api/upload", { method: "POST", body: form });
@@ -241,13 +270,38 @@ async function uploadFiles() {
   }
 }
 
+async function updateLayout() {
+  setStatus("Updating layout...");
+  try {
+    const resp = await fetch("/api/layout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orientation: document.getElementById("orientation").value,
+        aspect_ratio: document.getElementById("aspect_ratio").value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || "Layout update failed");
+    Object.assign(STATE, data);
+    render();
+    await refreshPreview();
+  } catch (e) {
+    setStatus(e.message, true);
+  }
+}
+
 document.getElementById("btn-upload").addEventListener("click", uploadFiles);
 document.getElementById("btn-preview").addEventListener("click", refreshPreview);
 document.getElementById("btn-save").addEventListener("click", savePoster);
+["orientation", "aspect_ratio"].forEach(id => {
+  document.getElementById(id).addEventListener("change", updateLayout);
+});
 ["background_color", "gutter", "extra_margin_top", "extra_margin_bottom"].forEach(id => {
   document.getElementById(id).addEventListener("change", refreshPreview);
 });
 
+populateAspectRatios();
 render();
 if (Object.keys(STATE.items).length) {
   await refreshPreview();
