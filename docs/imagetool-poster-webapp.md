@@ -27,13 +27,15 @@ Once the result looks right, save it: the full resolution poster and its YAML de
 written to disk.
 
 ```
-imagetool poster-webapp [--template <name>] [--layout <rows>x<cols>] [--host <address>] [--port <port>] [--no-browser]
+imagetool poster-webapp [--template <name>] [--layout <rows>x<cols>] [--orientation portrait|landscape] [--host <address>]
+                        [--port <port>] [--no-browser]
 ```
 
 | Option | Description |
 |---|---|
 | `--template` | A named template to start from (see [imagetool poster](imagetool-poster.md#templates)). The app then accepts at most as many images as the template's grid |
 | `-l`, `--layout` | Number of rows x columns (eg `2x3`) to start from, instead of the usual automatic layout (picked once the first images are loaded) |
+| `--orientation` | `portrait` or `landscape`, to bias the automatic layout (no `--template`/`--layout`) towards a narrower or wider grid. Can also be picked in the app, in the **Load images** panel, before the first image is loaded |
 | `--host` | Address the local web server listens on. Default: `127.0.0.1` |
 | `--port` | Port of the local web server. Default: `5151` |
 | `--no-browser` | Don't automatically open the web browser |
@@ -41,9 +43,11 @@ imagetool poster-webapp [--template <name>] [--layout <rows>x<cols>] [--host <ad
 ## Using the app
 
 The **Load images** panel picks images from the browser's own file picker (no path to type); each one is added to the poster. With
-no `--template`/`--layout`, the layout is picked automatically from the first batch of images loaded (see `imagetool poster`); more
-images can be loaded afterwards, added round-robin into the existing columns. With a template, loading more images than its grid
-needs is rejected.
+no `--template`/`--layout`, the layout is picked automatically from the first batch of images loaded (see `imagetool poster`),
+biased towards the **Orientation** dropdown's choice (`Auto` picks whichever of the 2 standard printing formats best fits the
+images, same as the CLI's default); more images can be loaded afterwards, added round-robin into the existing columns. With a
+template, loading more images than its grid needs is rejected. Once the first batch of images has set the columns (or a
+template/layout was given upfront), the orientation choice is locked and no longer has any effect.
 
 Each column of the poster is shown as a vertical list of its images. An image can be:
 
