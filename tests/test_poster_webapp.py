@@ -32,16 +32,18 @@ DIR = "it" + os.sep
 PHOTOS = [DIR + f for f in ("img-640x480.jpg", "img-640x480-2.jpg", "img-3000x1682.jpg", "img-4000x3000.jpg")]
 
 
-def _client(template: str | None = None, layout: str | None = None) -> tuple[FlaskClient, webapp._PosterAppState]:
+def _client(template: str | None = None, layout: str | None = None, orientation: str | None = None) -> tuple[FlaskClient, webapp._PosterAppState]:
     """Returns a (Flask test client, state) pair for a fresh, empty session"""
-    state = webapp._build_empty_state(template=template, layout=layout)
+    state = webapp._build_empty_state(template=template, layout=layout, orientation=orientation)
     return webapp.create_app(state).test_client(), state
 
 
-def _upload(client: FlaskClient, photos: list[str] = PHOTOS) -> dict:
+def _upload(client: FlaskClient, photos: list[str] = PHOTOS, orientation: str | None = None) -> dict:
     """Uploads photos (by path) to the session and returns the JSON response"""
     with ExitStack() as stack:
         data = {"images": [(stack.enter_context(open(p, "rb")), os.path.basename(p)) for p in photos]}
+        if orientation is not None:
+            data["orientation"] = orientation
         resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
     return resp, resp.get_json()
 
@@ -67,9 +69,9 @@ def test_empty_session_has_no_image() -> None:
 def test_template_sets_defaults_and_cols_count() -> None:
     """A template sets its own column count, background color, gutter and title stripe before any image is loaded"""
     _, state = _client(template="landscape40-4x3")
-    assert state.cols_count == 3
+    assert state.layout.cols_count == 3
     assert state.settings["extra_margin_bottom"] == webapp.templates.TITLE_STRIPE
-    assert state.template == "landscape40-4x3"
+    assert state.layout.template == "landscape40-4x3"
 
 
 def test_upload_with_no_layout_picks_one_automatically() -> None:
@@ -80,6 +82,38 @@ def test_upload_with_no_layout_picks_one_automatically() -> None:
     assert len(body["items"]) == len(PHOTOS)
     assert len(state.columns) >= 1
     assert sum(len(col["images"]) for col in state.columns) == len(PHOTOS)
+
+
+def test_upload_with_orientation_overrides_automatic_layout() -> None:
+    """A portrait orientation sent with the first upload picks a narrower grid than the automatic (landscape-leaning) default"""
+    client, state = _client()
+    _upload(client, orientation="portrait")
+    assert len(state.columns) == 1
+
+
+def test_upload_rejects_unknown_orientation() -> None:
+    """Uploading with an orientation that isn't portrait or landscape is rejected"""
+    client, _ = _client()
+    resp, body = _upload(client, orientation="sideways")
+    assert resp.status_code == 400
+    assert "sideways" in body["error"]
+
+
+def test_orientation_is_ignored_once_a_layout_is_fixed() -> None:
+    """A fixed layout (or template) decides the number of columns; an orientation sent alongside it has no effect"""
+    client, state = _client(layout="2x2")
+    _upload(client, orientation="portrait")
+    assert len(state.columns) == 2
+    assert state.layout.orientation is None
+
+
+def test_orientation_is_locked_after_the_first_batch() -> None:
+    """Orientation only shapes the very first automatic layout; it is reported as locked once columns already exist"""
+    client, state = _client()
+    _upload(client, PHOTOS[:2], orientation="landscape")
+    _, body = _upload(client, PHOTOS[2:], orientation="portrait")
+    assert state.layout.orientation == "landscape"
+    assert body["orientation_locked"] is True
 
 
 def test_upload_with_layout_places_round_robin() -> None:

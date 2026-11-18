@@ -83,18 +83,28 @@ class _PosterDirs:
 
 
 @dataclass
+class _PosterLayout:
+    """How a session's first batch of images is laid out into columns: a named template, an explicit number of columns (either
+    one fixes the grid upfront), or an orientation hint for the fully automatic layout (see mediatools.imagefile.auto_poster_columns).
+    Once the first batch is placed into columns, template/cols_count/orientation no longer have any effect"""
+
+    template: str | None = None
+    cols_count: int | None = None
+    orientation: str | None = None
+
+
+@dataclass
 class _PosterAppState:
     """The state of a poster design session: its photos (items, added from the browser), their grouping into columns (each
-    column a list of item ids, top to bottom), the poster settings and the directories used to store the uploaded photos and
-    to cache their rescaled/cropped copies"""
+    column a list of item ids, top to bottom), the poster settings, the starting layout and the directories used to store the
+    uploaded photos and to cache their rescaled/cropped copies"""
 
     items: dict[str, _PosterItem]
     columns: list[dict]
     settings: dict
     dirs: _PosterDirs
     default_output: str
-    template: str | None = None
-    cols_count: int | None = None
+    layout: _PosterLayout
 
 
 def _crop_box(width: int, height: int, ratio: float) -> tuple[int, int, int, int]:
@@ -164,7 +174,7 @@ def _image_count(state: _PosterAppState) -> int:
 
 def _template_image_count(state: _PosterAppState) -> int | None:
     """Returns the number of images the session's template requires, None when no template is used"""
-    return templates.TEMPLATES[state.template].image_count if state.template else None
+    return templates.TEMPLATES[state.layout.template].image_count if state.layout.template else None
 
 
 def _update_state(state: _PosterAppState, body: dict) -> None:
@@ -203,6 +213,8 @@ def _state_to_json(state: _PosterAppState) -> dict:
         "ratios": list(CROP_RATIOS),
         "default_output": state.default_output,
         "max_images": _template_image_count(state),
+        "orientation": state.layout.orientation,
+        "orientation_locked": bool(state.layout.cols_count or state.columns),
     }
 
 
@@ -239,11 +251,11 @@ def _place_new_items(state: _PosterAppState, new_ids: list[str], new_paths: list
     cols_count new (empty) columns when a layout/template fixes their number, or laid out automatically from the images
     themselves (see mediatools.imagefile.auto_poster_columns) when this is the very first batch of a fully automatic poster"""
     if not state.columns:
-        if state.cols_count:
-            width = f"{100 / state.cols_count:g}%"
-            state.columns = [{"width": width, "images": []} for _ in range(state.cols_count)]
+        if state.layout.cols_count:
+            width = f"{100 / state.layout.cols_count:g}%"
+            state.columns = [{"width": width, "images": []} for _ in range(state.layout.cols_count)]
         else:
-            path_columns = image.auto_poster_columns(*new_paths)
+            path_columns = image.auto_poster_columns(*new_paths, orientation=state.layout.orientation)
             path_to_id = dict(zip(new_paths, new_ids, strict=True))
             state.columns = [{"width": col["width"], "images": [path_to_id[p] for p in col["images"]]} for col in path_columns]
             return
@@ -267,9 +279,14 @@ def create_app(state: _PosterAppState) -> Flask:
         files = request.files.getlist("images")
         if not files:
             return jsonify({"error": "No file given"}), 400
+        orientation = request.form.get("orientation") or None
+        if orientation not in (None, "portrait", "landscape"):
+            return jsonify({"error": f"Unknown orientation {orientation}"}), 400
+        if not state.columns and not state.layout.cols_count:
+            state.layout.orientation = orientation
         max_images = _template_image_count(state)
         if max_images is not None and _image_count(state) + len(files) > max_images:
-            return jsonify({"error": f"Template '{state.template}' accepts at most {max_images} images"}), 400
+            return jsonify({"error": f"Template '{state.layout.template}' accepts at most {max_images} images"}), 400
         accepted_ext = fil.FileType.FILE_EXTENSIONS[fil.FileType.IMAGE_FILE]
         new_ids, new_paths = [], []
         for f in files:
@@ -308,8 +325,8 @@ def create_app(state: _PosterAppState) -> Flask:
         yaml_file = fil.strip_extension(out_path) + ".yaml"
         rows_count, cols_count = image.poster_rows_and_columns(columns)
         yaml_settings = {"rows": rows_count, "columns": cols_count, **state.settings}
-        if state.template:
-            yaml_settings["template"] = state.template
+        if state.layout.template:
+            yaml_settings["template"] = state.layout.template
         poster.write_yaml(yaml_file, out_path, {k: v for k, v in yaml_settings.items() if v}, columns)
         util.generated_file(out_path)
         log.logger.info("Poster description written to %s", yaml_file)
@@ -328,9 +345,9 @@ def _cache_dirs() -> _PosterDirs:
     return dirs
 
 
-def _build_empty_state(*, template: str | None, layout: str | None) -> _PosterAppState:
-    """Builds a new, empty session: no photo yet, laid out with the template or layout given (or fully automatically, once the
-    first photos are loaded from the browser) once photos are added (see _place_new_items)"""
+def _build_empty_state(*, template: str | None, layout: str | None, orientation: str | None = None) -> _PosterAppState:
+    """Builds a new, empty session: no photo yet, laid out with the template or layout given (or fully automatically, in the
+    orientation given, once the first photos are loaded from the browser) once photos are added (see _place_new_items)"""
     template_defaults: dict = {}
     if template:
         template_defaults = templates.defaults(templates.TEMPLATES[template])
@@ -344,7 +361,7 @@ def _build_empty_state(*, template: str | None, layout: str | None) -> _PosterAp
         "extra_margin_bottom": template_defaults.get("extra_margin_bottom", 0),
     }
     default_output = os.path.join(os.getcwd(), "poster.jpg")
-    return _PosterAppState({}, [], settings, _cache_dirs(), default_output, template, cols_count)
+    return _PosterAppState({}, [], settings, _cache_dirs(), default_output, _PosterLayout(template, cols_count, orientation))
 
 
 def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
@@ -357,6 +374,13 @@ def __add_webapp_args__(parser: argparse.ArgumentParser) -> None:
         "as the template's grid",
     )
     parser.add_argument("-l", "--layout", required=False, help="Layout of the images to start from: rows x columns, eg 2x3")
+    parser.add_argument(
+        "--orientation",
+        required=False,
+        choices=["portrait", "landscape"],
+        help="Orientation of the poster (no --template/--layout): default picks whichever of the 2 standard printing formats "
+        "(70/50 or 50/70) best fits the first images loaded. Can also be picked in the app before the first image is loaded",
+    )
     parser.add_argument("--host", required=False, default="127.0.0.1", help="Address the local web server listens on")
     parser.add_argument("--port", required=False, type=int, default=DEFAULT_PORT, help="Port of the local web server")
     parser.add_argument("--no-browser", required=False, action="store_true", help="Don't automatically open the web browser")
@@ -372,7 +396,7 @@ def main() -> None:
     kwargs = vars(parser.parse_args())
     util.set_debug_level(kwargs.get("verbosity"))
 
-    state = _build_empty_state(template=kwargs.get("template"), layout=kwargs.get("layout"))
+    state = _build_empty_state(template=kwargs.get("template"), layout=kwargs.get("layout"), orientation=kwargs.get("orientation"))
     app = create_app(state)
 
     url = f"http://{kwargs['host']}:{kwargs['port']}/"
