@@ -361,8 +361,13 @@ def test_main_csv_input_defaults_the_output_to_the_input_file(tmp_path: Path) ->
     assert not (tmp_path / image_inventory.DEFAULT_OUTPUT).exists()
 
 
-def test_is_original_filename_recognizes_common_camera_patterns() -> None:
-    """Common unedited camera/phone file names are recognized as such"""
+def _matches_any(patterns: tuple, full_path: str) -> bool:
+    """Returns whether full_path matches any of patterns (compiled regexes), see _regex_priority_rule()"""
+    return any(p.search(full_path) for p in patterns)
+
+
+def test_default_original_filename_patterns_recognize_common_camera_names() -> None:
+    """Common unedited camera/phone file names, anywhere in the path, are recognized as such"""
     for name in (
         "IMG_1234.jpg",
         "IMG_20180706_125922.jpg",  # Android date_time name
@@ -380,13 +385,15 @@ def test_is_original_filename_recognizes_common_camera_patterns() -> None:
         "25-12-2011 16-46-10_0021.JPG",  # DD-MM-YYYY HH-MM-SS_sequence
         "2014-07-20 20.19.20.jpg",  # YYYY-MM-DD HH.MM.SS
     ):
-        assert image_inventory._is_original_filename(name), name
+        full_path = os.path.join("C:", "Photos", name)
+        assert _matches_any(image_inventory.DEFAULT_ORIGINAL_FILENAME_PATTERNS, full_path), name
 
 
-def test_is_original_filename_rejects_descriptive_names() -> None:
+def test_default_original_filename_patterns_reject_descriptive_names() -> None:
     """A file name that was changed to something descriptive is not mistaken for a camera original one"""
     for name in ("Chicago 2018 55.jpg", "family-beach-trip.jpg", "vacation.png"):
-        assert not image_inventory._is_original_filename(name), name
+        full_path = os.path.join("C:", "Photos", name)
+        assert not _matches_any(image_inventory.DEFAULT_ORIGINAL_FILENAME_PATTERNS, full_path), name
 
 
 def test_size_rule_recommends_the_significantly_smaller_photo() -> None:
@@ -401,13 +408,13 @@ def test_size_rule_returns_none_when_sizes_are_close_or_missing() -> None:
     assert image_inventory._size_rule(_csv_row(size_bytes="1000"), _csv_row()) is None
 
 
-def test_original_filename_rule_recommends_the_unedited_name() -> None:
+def test_original_filename_patterns_recommend_the_unedited_name() -> None:
     """The photo with a camera original file name is recommended for deletion over the one renamed descriptively"""
-    original = _csv_row(file_name="IMG_1234.jpg")
-    descriptive = _csv_row(file_name="Chicago 2018 55.jpg")
-    assert image_inventory._original_filename_rule(original, descriptive) == 1
-    assert image_inventory._original_filename_rule(descriptive, original) == 2
-    assert image_inventory._original_filename_rule(original, original) is None
+    original = _csv_row(full_path=os.path.join("Photos", "IMG_1234.jpg"), file_name="IMG_1234.jpg")
+    descriptive = _csv_row(full_path=os.path.join("Photos", "Chicago 2018 55.jpg"), file_name="Chicago 2018 55.jpg")
+    assert image_inventory._recommend_deletion(original, descriptive) == 1
+    assert image_inventory._recommend_deletion(descriptive, original) == 2
+    assert image_inventory._recommend_deletion(original, original) is None
 
 
 def test_gps_rule_recommends_the_photo_without_gps() -> None:
@@ -495,22 +502,46 @@ def test_low_quality_patterns_outrank_every_other_rule() -> None:
     assert image_inventory._recommend_deletion(tilde_elsewhere, in_duplicates) == 1
 
 
-def test_low_quality_patterns_falls_back_to_the_default_when_the_property_is_missing() -> None:
-    """_low_quality_patterns() falls back to DEFAULT_LOW_QUALITY_PATTERNS when the configuration property is
-    missing or empty, eg an existing ~/.mediatools.properties created before it existed"""
+_CONFIGURABLE_PATTERN_GROUPS = (
+    ("_low_quality_patterns", "LOW_QUALITY_PATTERNS_PROPERTY", "DEFAULT_LOW_QUALITY_PATTERNS"),
+    ("_duplicate_folder_patterns", "DUPLICATE_FOLDER_PATTERNS_PROPERTY", "DEFAULT_DUPLICATE_FOLDER_PATTERNS"),
+    ("_to_sort_folder_patterns", "TO_SORT_FOLDER_PATTERNS_PROPERTY", "DEFAULT_TO_SORT_FOLDER_PATTERNS"),
+    ("_original_filename_patterns", "ORIGINAL_FILENAME_PATTERNS_PROPERTY", "DEFAULT_ORIGINAL_FILENAME_PATTERNS"),
+)
+
+
+@pytest.mark.parametrize("accessor_name, property_name, default_name", _CONFIGURABLE_PATTERN_GROUPS)
+def test_configured_patterns_fall_back_to_the_default_when_the_property_is_missing(accessor_name: str, property_name: str, default_name: str) -> None:
+    """Every configurable pattern group falls back to its own default when its property is missing or empty, eg an
+    existing ~/.mediatools.properties created before that property existed"""
+    accessor, default = getattr(image_inventory, accessor_name), getattr(image_inventory, default_name)
     with mock.patch("mediatools.media_config.get_property", return_value=None):
-        assert image_inventory._low_quality_patterns() == image_inventory.DEFAULT_LOW_QUALITY_PATTERNS
+        assert accessor() == default
     with mock.patch("mediatools.media_config.get_property", return_value=""):
-        assert image_inventory._low_quality_patterns() == image_inventory.DEFAULT_LOW_QUALITY_PATTERNS
+        assert accessor() == default
 
 
-def test_low_quality_patterns_reads_a_semicolon_separated_list_from_the_configuration() -> None:
-    """_low_quality_patterns() parses the LOW_QUALITY_PATTERNS_PROPERTY configuration property as a
-    semicolon-separated, case-insensitive list of regexes, in order, overriding the default entirely"""
+@pytest.mark.parametrize("accessor_name, property_name, default_name", _CONFIGURABLE_PATTERN_GROUPS)
+def test_configured_patterns_read_a_semicolon_separated_list_from_the_configuration(
+    accessor_name: str, property_name: str, default_name: str
+) -> None:
+    """Every configurable pattern group parses its property as a semicolon-separated, case-insensitive list of
+    regexes, in order, overriding its default entirely"""
+    accessor = getattr(image_inventory, accessor_name)
     with mock.patch("mediatools.media_config.get_property", return_value="foo;BAR"):
-        patterns = image_inventory._low_quality_patterns()
+        patterns = accessor()
     assert [p.pattern for p in patterns] == ["foo", "BAR"]
     assert patterns[1].search("a bar b")  # Matched case-insensitively
+
+
+@pytest.mark.parametrize("accessor_name, property_name, default_name", _CONFIGURABLE_PATTERN_GROUPS)
+def test_default_properties_file_declares_a_valid_pattern_property(accessor_name: str, property_name: str, default_name: str) -> None:
+    """Every configurable pattern group's property, as packaged in the default media-tools.properties and read with
+    jprops, matches its own default exactly (a regression check for Java-properties backslash escaping)"""
+    property_value, default = getattr(image_inventory, property_name), getattr(image_inventory, default_name)
+    with open(util.package_home() / "media-tools.properties", encoding="utf-8") as fh:
+        value = jprops.load_properties(fh)[property_value]
+    assert [re.compile(p, re.IGNORECASE).pattern for p in value.split(";")] == [p.pattern for p in default]
 
 
 def test_low_quality_patterns_rule_uses_the_configured_property(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -521,52 +552,46 @@ def test_low_quality_patterns_rule_uses_the_configured_property(monkeypatch: pyt
     assert image_inventory._recommend_deletion(junk_named, elsewhere) == 1
 
 
-def test_default_properties_file_declares_a_valid_low_quality_patterns_property() -> None:
-    """The packaged default media-tools.properties file's dedup.low_quality_patterns property, read with jprops,
-    matches DEFAULT_LOW_QUALITY_PATTERNS exactly (a regression check for its Java-properties backslash escaping)"""
-    with open(util.package_home() / "media-tools.properties", encoding="utf-8") as fh:
-        value = jprops.load_properties(fh)[image_inventory.LOW_QUALITY_PATTERNS_PROPERTY]
-    assert [re.compile(p, re.IGNORECASE).pattern for p in value.split(";")] == [p.pattern for p in image_inventory.DEFAULT_LOW_QUALITY_PATTERNS]
-
-
-def test_in_duplicate_folder_matches_a_folder_name_containing_duplicate() -> None:
+def test_default_duplicate_folder_patterns_match_a_folder_name_containing_duplicate() -> None:
     """A folder with 'duplicate' anywhere in its name, anywhere in the path, is detected: case-insensitively (eg
     'DUpliCates'), and whether singular or plural, since it's a plain substring match, not an exact word; the file
     name itself doesn't count"""
-    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "Duplicates", "a.jpg"))
-    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "DUpliCates", "a.jpg"))
-    assert image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "zzz_Duplicate Photos", "a.jpg"))
-    assert not image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "2020", "duplicate.jpg"))
-    assert not image_inventory._in_duplicate_folder(os.path.join("C:", "Photos", "2020", "a.jpg"))
+    patterns = image_inventory.DEFAULT_DUPLICATE_FOLDER_PATTERNS
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "Duplicates", "a.jpg"))
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "DUpliCates", "a.jpg"))
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "zzz_Duplicate Photos", "a.jpg"))
+    assert not _matches_any(patterns, os.path.join("C:", "Photos", "2020", "duplicate.jpg"))
+    assert not _matches_any(patterns, os.path.join("C:", "Photos", "2020", "a.jpg"))
 
 
-def test_duplicate_folder_rule_recommends_the_photo_filed_as_a_duplicate() -> None:
+def test_duplicate_folder_pattern_recommends_the_photo_filed_as_a_duplicate() -> None:
     """The photo located in a folder whose name indicates known duplicates is recommended for deletion"""
     in_duplicates = _csv_row(full_path=os.path.join("C:", "Photos", "Duplicates", "a.jpg"))
     elsewhere = _csv_row(full_path=os.path.join("C:", "Photos", "2020", "a.jpg"))
-    assert image_inventory._duplicate_folder_rule(in_duplicates, elsewhere) == 1
-    assert image_inventory._duplicate_folder_rule(elsewhere, in_duplicates) == 2
-    assert image_inventory._duplicate_folder_rule(in_duplicates, in_duplicates) is None
+    assert image_inventory._recommend_deletion(in_duplicates, elsewhere) == 1
+    assert image_inventory._recommend_deletion(elsewhere, in_duplicates) == 2
+    assert image_inventory._recommend_deletion(in_duplicates, in_duplicates) is None
 
 
-def test_in_to_sort_folder_matches_a_trier_case_and_accent_insensitively() -> None:
+def test_default_to_sort_folder_patterns_match_a_trier_case_and_accent_insensitively() -> None:
     """The French 'a_trier'/'a trier' ('to be sorted') folder is detected whatever its case, accent, or
     underscore/space spelling; the file name itself doesn't count, and an unrelated folder doesn't match"""
-    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "a_trier", "a.jpg"))
-    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "a trier", "a.jpg"))
-    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "À_Trier", "a.jpg"))
-    assert image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "A TRIER", "a.jpg"))
-    assert not image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "2020", "a_trier.jpg"))
-    assert not image_inventory._in_to_sort_folder(os.path.join("C:", "Photos", "2020", "a.jpg"))
+    patterns = image_inventory.DEFAULT_TO_SORT_FOLDER_PATTERNS
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "a_trier", "a.jpg"))
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "a trier", "a.jpg"))
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "À_Trier", "a.jpg"))
+    assert _matches_any(patterns, os.path.join("C:", "Photos", "A TRIER", "a.jpg"))
+    assert not _matches_any(patterns, os.path.join("C:", "Photos", "2020", "a_trier.jpg"))
+    assert not _matches_any(patterns, os.path.join("C:", "Photos", "2020", "a.jpg"))
 
 
-def test_to_sort_folder_rule_recommends_the_photo_not_yet_sorted() -> None:
+def test_to_sort_folder_pattern_recommends_the_photo_not_yet_sorted() -> None:
     """The photo still sitting in an 'a_trier' folder is recommended for deletion"""
     to_sort = _csv_row(full_path=os.path.join("C:", "Photos", "a_trier", "a.jpg"))
     elsewhere = _csv_row(full_path=os.path.join("C:", "Photos", "2020", "a.jpg"))
-    assert image_inventory._to_sort_folder_rule(to_sort, elsewhere) == 1
-    assert image_inventory._to_sort_folder_rule(elsewhere, to_sort) == 2
-    assert image_inventory._to_sort_folder_rule(to_sort, to_sort) is None
+    assert image_inventory._recommend_deletion(to_sort, elsewhere) == 1
+    assert image_inventory._recommend_deletion(elsewhere, to_sort) == 2
+    assert image_inventory._recommend_deletion(to_sort, to_sort) is None
 
 
 def test_recommend_deletion_checks_rules_in_order() -> None:
