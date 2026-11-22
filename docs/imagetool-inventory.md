@@ -160,19 +160,32 @@ from the highest likelihood down to the lowest, and lets you delete one of each 
 For each pair, it prints their size, date taken, device and GPS coordinates (rounded to 4 decimal digits), and a
 recommendation of which one to delete, decided by the first of these rules that applies:
 
-1. One is in a folder whose name contains "duplicate" (anywhere in its full path, eg `Duplicates`, `Duplicate Photos`),
+1. One, and not the other, matches one of the `dedup.low_quality_patterns` configuration property's regexes (see
+   below), checked in the order they are listed there: that one is recommended. By default:
+   1. A `.picasaoriginals` folder (Picasa's hidden backup of a photo's pixels before any edit done in the app,
+      anywhere in its full path).
+   2. A tilde (`~`) anywhere in its full path, as commonly found in a backup or temporary copy's name (eg
+      `~lockfile`, `image~.jpg`).
+   3. A "copy"/"copie" suffix on its file name, as commonly added when a file manager duplicates a file (eg
+      `some-picture copie.jpg`, `some-picture - Copy.jpg`, `some-picture copy (2).jpg`).
+2. One is in a folder whose name contains "duplicate" (anywhere in its full path, eg `Duplicates`, `Duplicate Photos`),
    the strongest signal since it was deliberately filed away as one: that one is recommended.
-2. One is in an `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space
+3. One is in an `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space
    insensitively, anywhere in its full path): that one is recommended, as still awaiting review.
-3. Both are in the exact same folder and their file names only differ by a trailing sequence number (eg
+4. Both are in the exact same folder and their file names only differ by a trailing sequence number (eg
    `Vallandry 2016 081.jpg` and `Vallandry 2016 140.jpg`): the same shot exported/copied twice under the same
    batch-numbering scheme, so the one with the highest number (the later copy) is recommended.
-4. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
-5. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
+5. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
+6. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
    `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`,
    `25-12-2011 16-46-10_0021.JPG`, `2014-07-20 20.19.20.jpg`) while the other was renamed to something more
    descriptive: the one with the original name is recommended.
-6. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
+7. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
+
+`dedup.low_quality_patterns`, in `~/.mediatools.properties`, is a semicolon-separated list of regexes, matched
+case-insensitively against a candidate duplicate's full path, in the order they are listed. Overriding it replaces
+the whole default list above (rule 1); it doesn't add to it. A property created before this one existed falls back
+to that same default.
 
 If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
 original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes

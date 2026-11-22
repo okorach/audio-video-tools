@@ -47,7 +47,7 @@ from PIL import Image, ImageOps
 
 import mediatools.utilities as util
 import utilities.file as fil
-from mediatools import google_photos, log
+from mediatools import google_photos, log, media_config
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -478,10 +478,59 @@ def _in_to_sort_folder(full_path: str) -> bool:
     return any(_normalize_folder_name(folder) == "a trier" for folder in folders)
 
 
+def _regex_priority_rule(pattern: re.Pattern) -> Callable[[dict[str, str], dict[str, str]], int | None]:
+    """Returns a dedup rule recommending the deletion of whichever of 2 photos' full_path matches pattern, when only
+    one of the two does, None if both or neither do. Used to build the low-quality-pattern rules of
+    _recommend_deletion() (see _low_quality_patterns()): a photo matching one of these patterns is the first
+    candidate for deletion"""
+
+    def rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+        """Returns 1 or 2, the photo whose full_path matches pattern, None if both or neither do"""
+        in_a, in_b = bool(pattern.search(row_a["full_path"])), bool(pattern.search(row_b["full_path"]))
+        if in_a and not in_b:
+            return 1
+        if in_b and not in_a:
+            return 2
+        return None
+
+    return rule
+
+
+# A ".picasaoriginals" folder holds Picasa's hidden backup of a photo's pixels before any edit done in the app: once
+# a duplicate is confirmed, that backup copy is the first candidate for deletion
+_PICASA_ORIGINALS_PATTERN: re.Pattern = re.compile(r"[\\/]\.picasaoriginals[\\/]", re.IGNORECASE)
+# A tilde anywhere in the full path, as commonly found in a backup or temporary copy's name (eg "~lockfile",
+# "image~.jpg")
+_TILDE_PATTERN: re.Pattern = re.compile(r"~")
+# A "copy"/"copie" suffix on the file name (before its extension), as commonly added when a file is duplicated by a
+# file manager (eg "some-picture copie.jpg", "some-picture - Copy.jpg", "some-picture copy (2).jpg")
+_COPY_SUFFIX_PATTERN: re.Pattern = re.compile(r"[ _-](copy|copie)(\s*\(\d+\))?\.[^.\\/]+$", re.IGNORECASE)
+
+LOW_QUALITY_PATTERNS_PROPERTY: str = "dedup.low_quality_patterns"
+# Low-quality file patterns, checked in this order, before every other dedup criterion: a photo matching one of
+# these, while the other doesn't, is a backup/temporary copy that should go first. This default is used when
+# LOW_QUALITY_PATTERNS_PROPERTY is missing from the configuration (eg an existing ~/.mediatools.properties created
+# before this property existed); see _low_quality_patterns()
+DEFAULT_LOW_QUALITY_PATTERNS: tuple[re.Pattern, ...] = (_PICASA_ORIGINALS_PATTERN, _TILDE_PATTERN, _COPY_SUFFIX_PATTERN)
+
+
+def _low_quality_patterns() -> tuple[re.Pattern, ...]:
+    """Returns the low-quality file patterns (see DEFAULT_LOW_QUALITY_PATTERNS) to check, in priority order, before
+    every other dedup criterion. Read fresh from LOW_QUALITY_PATTERNS_PROPERTY every time (a semicolon-separated
+    list of regexes, matched case-insensitively against a candidate duplicate's full_path), so a user can add their
+    own in ~/.mediatools.properties without code changes; falls back to DEFAULT_LOW_QUALITY_PATTERNS when the
+    property is missing or empty"""
+    value = media_config.get_property(LOW_QUALITY_PATTERNS_PROPERTY)
+    if not value:
+        return DEFAULT_LOW_QUALITY_PATTERNS
+    return tuple(re.compile(pattern, re.IGNORECASE) for pattern in str(value).split(";") if pattern)
+
+
 def _duplicate_folder_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
     """Returns 1 or 2, the photo located in a folder whose name indicates it already holds known duplicates (see
-    _in_duplicate_folder()), None if both or neither is. Checked first among _DEDUP_RULES: a photo deliberately
-    filed away as a duplicate is the strongest signal of which one to delete"""
+    _in_duplicate_folder()), None if both or neither is. Checked first among _FIXED_DEDUP_RULES (after the
+    configurable low-quality-pattern rules): a photo deliberately filed away as a duplicate is the strongest signal
+    of which one to delete"""
     in_a, in_b = _in_duplicate_folder(row_a["full_path"]), _in_duplicate_folder(row_b["full_path"])
     if in_a and not in_b:
         return 1
@@ -565,8 +614,9 @@ def _sequence_number_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int |
     return 1 if seq_a[1] > seq_b[1] else 2
 
 
-# Rules deciding which photo of a pair to recommend for deletion, checked in this order, the first conclusive one wins
-_DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
+# Fixed rules deciding which photo of a pair to recommend for deletion, checked in this order after the
+# configurable low-quality-pattern rules (see _low_quality_patterns()), the first conclusive one wins
+_FIXED_DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
     _duplicate_folder_rule,
     _to_sort_folder_rule,
     _sequence_number_rule,
@@ -577,9 +627,11 @@ _DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...]
 
 
 def _recommend_deletion(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
-    """Returns 1 or 2, the photo of the pair (row_a, row_b) recommended for deletion, by the first conclusive rule of
-    _DEDUP_RULES, None if none of them is"""
-    for rule in _DEDUP_RULES:
+    """Returns 1 or 2, the photo of the pair (row_a, row_b) recommended for deletion, by the first conclusive rule
+    among the low-quality-pattern rules (see _low_quality_patterns()) followed by _FIXED_DEDUP_RULES, in that order,
+    None if none of them is"""
+    rules = tuple(_regex_priority_rule(pattern) for pattern in _low_quality_patterns()) + _FIXED_DEDUP_RULES
+    for rule in rules:
         recommendation = rule(row_a, row_b)
         if recommendation is not None:
             return recommendation
