@@ -663,6 +663,27 @@ def test_cli_encode_keep_name(tmp_path: Path) -> None:
     assert [c.args for c in rename.call_args_list] == [(src, str(tmp_path / "a.original.mp4"), False), (out, src)]
 
 
+def run_cli_encode_logs(tmp_path: Path, *names: str) -> list[str]:
+    """Runs the encode command on files and returns the INFO messages that it logged"""
+    with mock.patch.object(cli_encode.log.logger, "info") as info:
+        run_cli_encode("-i", *[str(tmp_path / name) for name in names])
+    return [call.args[0] % call.args[1:] for call in info.call_args_list]
+
+
+def test_cli_encode_logs_the_global_progress(tmp_path: Path) -> None:
+    """Cli encode logs the file counter and the global progress and ETA when it encodes several files"""
+    messages = run_cli_encode_logs(tmp_path, "a.mp4", "b.mp4")
+    assert any(m.startswith("  2/  2 : 100% : ") and m.endswith("b.mp4") for m in messages)
+    assert any("GLOBAL progress 1/2 - 50%" in m for m in messages)
+    assert any("GLOBAL progress 2/2 - 100%" in m for m in messages)
+
+
+def test_cli_encode_single_file_has_no_global_progress(tmp_path: Path) -> None:
+    """Cli encode doesn't log a global progress for a single file"""
+    messages = run_cli_encode_logs(tmp_path, "a.mp4")
+    assert not any("GLOBAL progress" in m for m in messages)
+
+
 # ---------------------------------------------------------------- image-to-video
 def run_image2video(*args: object) -> int | str | None:
     """Runs the image to video command with the arguments given and returns its exit code"""

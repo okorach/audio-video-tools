@@ -75,7 +75,11 @@ def main() -> None:
     else:
         postfix = postfix[1:]
     output = kwargs.get(util.OUTPUT_FILE)
-    for ifile in files_to_encode:
+    nb_files = len(files_to_encode)
+    progress = util.GlobalProgress(nb_files)
+    for i, ifile in enumerate(files_to_encode, start=1):
+        if nb_files > 1:
+            log.logger.info("%3d/%3d : %3d%% : %s", i, nb_files, i * 100 // nb_files, ifile)
         if output is not None and len(files_to_encode) == 1:
             ofile = output
         elif kwargs.get(opt.Option.FORMAT) and util.get_output_format(ifile, None, kwargs[opt.Option.FORMAT]) != fil.extension(ifile).lower():
@@ -90,6 +94,7 @@ def main() -> None:
             base = ".".join(splits)
             fil.rename(ifile, f"{base}.original.{ext}", False)
             fil.rename(ofile, ifile)
+        progress.done()
     sys.exit(0)
 
 
