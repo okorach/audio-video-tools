@@ -536,10 +536,40 @@ def _gps_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
     return None
 
 
+# A file name's trailing sequence number (eg "081" in "Vallandry 2016 081.jpg"), captured along with everything before
+# it (its "prefix", eg "Vallandry 2016 "), so 2 file names can be compared for sharing the same prefix
+_SEQUENCE_SUFFIX_PATTERN: re.Pattern = re.compile(r"^(?P<prefix>.*\D)(?P<seq>\d+)$")
+
+
+def _sequence_number(file_name: str) -> tuple[str, int] | None:
+    """Returns (prefix, sequence number) of file_name's trailing sequence number (eg ("Vallandry 2016 ", 81) for
+    "Vallandry 2016 081.jpg"), None if its name (without extension) doesn't end in one"""
+    match = _SEQUENCE_SUFFIX_PATTERN.match(os.path.splitext(file_name)[0])
+    return (match["prefix"], int(match["seq"])) if match else None
+
+
+def _sequence_number_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo with the highest trailing sequence number, when both photos sit in the exact same
+    folder and their file names only differ by that number (eg "Vallandry 2016 081.jpg" and "Vallandry 2016
+    140.jpg"): such a pair is the same shot exported/copied twice under the same batch-numbering scheme, once under
+    its own sequence number and once under a later one, so the one with the highest number (the later copy) is
+    recommended. None if either photo is not a local file, they are not in the same folder, their file names don't
+    share such a prefix, or the sequence numbers are equal"""
+    if not _is_local_path(row_a["full_path"]) or not _is_local_path(row_b["full_path"]):
+        return None
+    if os.path.dirname(row_a["full_path"]) != os.path.dirname(row_b["full_path"]):
+        return None
+    seq_a, seq_b = _sequence_number(row_a["file_name"]), _sequence_number(row_b["file_name"])
+    if not seq_a or not seq_b or seq_a[0] != seq_b[0] or seq_a[1] == seq_b[1]:
+        return None
+    return 1 if seq_a[1] > seq_b[1] else 2
+
+
 # Rules deciding which photo of a pair to recommend for deletion, checked in this order, the first conclusive one wins
 _DEDUP_RULES: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
     _duplicate_folder_rule,
     _to_sort_folder_rule,
+    _sequence_number_rule,
     _size_rule,
     _original_filename_rule,
     _gps_rule,
@@ -589,17 +619,23 @@ def _print_pair(index: int, total: int, pair: tuple[str, dict[str, str], dict[st
         print("  No recommendation: the 2 photos are equally likely to be the original")
 
 
-def _ask_which_to_delete(recommended: int | None) -> int:
-    """Asks the user which of the 2 photos just printed by _print_pair() to delete, returns 1, 2, or 0 for neither.
-    Pressing Enter without typing anything answers recommended (or 0 if there is none)"""
+ABORT_ANSWER: str = "q"  # A letter, not a digit, so it can't be hit by mistake while answering 1/2/0
+
+
+def _ask_which_to_delete(recommended: int | None) -> int | None:
+    """Asks the user which of the 2 photos just printed by _print_pair() to delete, returns 1, 2, or 0 for neither,
+    or None to stop the whole review gracefully (answering ABORT_ANSWER). Pressing Enter without typing anything
+    answers recommended (or 0 if there is none)"""
     default = recommended if recommended is not None else 0
     while True:
-        answer = input(f"Delete [1], [2], or [0] to keep both (Enter = {default}): ").strip()
+        answer = input(f"Delete [1], [2], [0] to keep both, or [{ABORT_ANSWER}] to stop (Enter = {default}): ").strip().lower()
         if answer == "":
             return default
         if answer in ("0", "1", "2"):
             return int(answer)
-        print("Please answer 1, 2, or 0")
+        if answer == ABORT_ANSWER:
+            return None
+        print(f"Please answer 1, 2, 0, or {ABORT_ANSWER}")
 
 
 def _is_local_path(full_path: str) -> bool:
@@ -685,7 +721,8 @@ def dedup(csv_file: str) -> None:
     neither exists) is simply removed from csv_file, since there is nothing left to choose between. A photo chosen
     for deletion is removed from disk and, whether it was actually deleted or was already missing, also from
     csv_file (which is written back after each removal so an interrupted review can be resumed later without
-    re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted"""
+    re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted. Answering
+    ABORT_ANSWER to a question stops the review right away, keeping every pair not yet handled in csv_file"""
     with open(csv_file, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     if not any(row.get("duplicate_likelihood") for row in rows):
@@ -710,6 +747,9 @@ def dedup(csv_file: str) -> None:
             choice = recommended
         else:
             choice = _ask_which_to_delete(recommended)
+        if choice is None:
+            print("Stopping the review")
+            break
         if choice == 0:
             continue
         to_delete = row_a if choice == 1 else row_b
