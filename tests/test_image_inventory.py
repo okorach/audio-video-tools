@@ -25,6 +25,7 @@
 
 import csv
 import os
+import re
 import shutil
 import sys
 import time
@@ -34,6 +35,7 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import patch
 
+import jprops
 import pytest
 from PIL import Image
 
@@ -448,6 +450,83 @@ def test_sequence_number_rule_returns_none_when_not_applicable() -> None:
     google_a = _csv_row(full_path="googlephotos:a", file_name="Vallandry 2016 081.jpg")
     google_b = _csv_row(full_path="googlephotos:b", file_name="Vallandry 2016 140.jpg")
     assert image_inventory._sequence_number_rule(google_a, google_b) is None
+
+
+def test_regex_priority_rule_recommends_the_only_matching_photo() -> None:
+    """_regex_priority_rule() recommends whichever of 2 photos matches the given pattern, when only one does"""
+    rule = image_inventory._regex_priority_rule(re.compile("~"))
+    matching = _csv_row(full_path=os.path.join("E:", "Photos", "image~.jpg"))
+    other = _csv_row(full_path=os.path.join("E:", "Photos", "image.jpg"))
+    assert rule(matching, other) == 1
+    assert rule(other, matching) == 2
+    assert rule(matching, matching) is None
+    assert rule(other, other) is None
+
+
+def test_picasa_originals_pattern_matches_the_hidden_backup_folder() -> None:
+    """The .picasaoriginals pattern matches a photo sitting in Picasa's hidden backup folder, case-insensitively,
+    but not a photo merely named after it or sitting elsewhere"""
+    assert image_inventory._PICASA_ORIGINALS_PATTERN.search(os.path.join("E:", "Photos", ".picasaoriginals", "a.jpg"))
+    assert image_inventory._PICASA_ORIGINALS_PATTERN.search(os.path.join("E:", "Photos", ".PicasaOriginals", "a.jpg"))
+    assert not image_inventory._PICASA_ORIGINALS_PATTERN.search(os.path.join("E:", "Photos", "a.jpg"))
+
+
+def test_tilde_pattern_matches_a_tilde_anywhere_in_the_path() -> None:
+    """The tilde pattern matches a photo with a tilde anywhere in its full path, not one without"""
+    assert image_inventory._TILDE_PATTERN.search(os.path.join("E:", "Photos", "image~.jpg"))
+    assert image_inventory._TILDE_PATTERN.search(os.path.join("E:", "~Photos", "image.jpg"))
+    assert not image_inventory._TILDE_PATTERN.search(os.path.join("E:", "Photos", "image.jpg"))
+
+
+def test_copy_suffix_pattern_matches_a_copy_or_copie_postfix() -> None:
+    """The copy/copie suffix pattern matches the common ways a file manager names a duplicated file, not an
+    unrelated file name that happens to contain "copy" elsewhere"""
+    assert image_inventory._COPY_SUFFIX_PATTERN.search("some-picture copie.jpg")
+    assert image_inventory._COPY_SUFFIX_PATTERN.search("some-picture - Copy.jpg")
+    assert image_inventory._COPY_SUFFIX_PATTERN.search("some-picture copy (2).jpg")
+    assert not image_inventory._COPY_SUFFIX_PATTERN.search("copying-a-file.jpg")
+    assert not image_inventory._COPY_SUFFIX_PATTERN.search("some-picture.jpg")
+
+
+def test_low_quality_patterns_outrank_every_other_rule() -> None:
+    """A low-quality pattern (here, a tilde) wins over every other rule, including the duplicate-folder one"""
+    tilde_elsewhere = _csv_row(full_path=os.path.join("Elsewhere", "a~.jpg"), size_bytes="100")
+    in_duplicates = _csv_row(full_path=os.path.join("Duplicates", "a.jpg"), size_bytes="1000000")
+    assert image_inventory._recommend_deletion(tilde_elsewhere, in_duplicates) == 1
+
+
+def test_low_quality_patterns_falls_back_to_the_default_when_the_property_is_missing() -> None:
+    """_low_quality_patterns() falls back to DEFAULT_LOW_QUALITY_PATTERNS when the configuration property is
+    missing or empty, eg an existing ~/.mediatools.properties created before it existed"""
+    with mock.patch("mediatools.media_config.get_property", return_value=None):
+        assert image_inventory._low_quality_patterns() == image_inventory.DEFAULT_LOW_QUALITY_PATTERNS
+    with mock.patch("mediatools.media_config.get_property", return_value=""):
+        assert image_inventory._low_quality_patterns() == image_inventory.DEFAULT_LOW_QUALITY_PATTERNS
+
+
+def test_low_quality_patterns_reads_a_semicolon_separated_list_from_the_configuration() -> None:
+    """_low_quality_patterns() parses the LOW_QUALITY_PATTERNS_PROPERTY configuration property as a
+    semicolon-separated, case-insensitive list of regexes, in order, overriding the default entirely"""
+    with mock.patch("mediatools.media_config.get_property", return_value="foo;BAR"):
+        patterns = image_inventory._low_quality_patterns()
+    assert [p.pattern for p in patterns] == ["foo", "BAR"]
+    assert patterns[1].search("a bar b")  # Matched case-insensitively
+
+
+def test_low_quality_patterns_rule_uses_the_configured_property(monkeypatch: pytest.MonkeyPatch) -> None:
+    """_recommend_deletion() picks up a custom low-quality pattern from the configuration instead of the default"""
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "junk")
+    junk_named = _csv_row(full_path=os.path.join("Photos", "a-junk.jpg"))
+    elsewhere = _csv_row(full_path=os.path.join("Photos", "a.jpg"))
+    assert image_inventory._recommend_deletion(junk_named, elsewhere) == 1
+
+
+def test_default_properties_file_declares_a_valid_low_quality_patterns_property() -> None:
+    """The packaged default media-tools.properties file's dedup.low_quality_patterns property, read with jprops,
+    matches DEFAULT_LOW_QUALITY_PATTERNS exactly (a regression check for its Java-properties backslash escaping)"""
+    with open(util.package_home() / "media-tools.properties", encoding="utf-8") as fh:
+        value = jprops.load_properties(fh)[image_inventory.LOW_QUALITY_PATTERNS_PROPERTY]
+    assert [re.compile(p, re.IGNORECASE).pattern for p in value.split(";")] == [p.pattern for p in image_inventory.DEFAULT_LOW_QUALITY_PATTERNS]
 
 
 def test_in_duplicate_folder_matches_a_folder_name_containing_duplicate() -> None:
