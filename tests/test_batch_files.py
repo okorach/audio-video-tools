@@ -36,7 +36,7 @@ CONVERTED = (
     "batch-files/encode with choices",
     "batch-files/stabilize",
     "batch-files/volume",
-    "batch-files/_Pinnacle 1080p ",
+    "batch-files/_Pinnacle 1080p",
     "batch-files-images/image-panorama",
     "batch-files-images/image-zoom",
     "batch-files-audio/aac",
@@ -93,7 +93,7 @@ def test_removed_and_renamed_batch_files() -> None:
     assert "img-zoom.bat" not in names
     assert not {"flex-encode.bat", "720p x265 25fps.bat"} & names
     assert not {"_Pinnacle 1080p CPU.bat", "_Pinnacle 1080p GPU.bat"} & names
-    assert "_Pinnacle 1080p .bat" in names
+    assert "_Pinnacle 1080p.bat" in names
     assert not {"aac 128.bat", "mp3 128.bat", "mp3 192.bat"} & names
     assert {"flip.bat", "stabilize.bat", "crop.bat", "image-zoom.bat", "image-panorama.bat", "aac.bat", "mp3.bat"} <= names
 
@@ -111,7 +111,7 @@ def test_audio_batch_files_ask_for_the_bitrate(name: str, profile: str) -> None:
 
 def test_pinnacle_1080p_asks_for_the_hardware_acceleration_and_the_quality() -> None:
     """Pinnacle 1080p asks for the hardware acceleration and the quality"""
-    content = [line.strip() for line in lines(ROOT / "batch-files" / "_Pinnacle 1080p .bat")]
+    content = [line.strip() for line in lines(ROOT / "batch-files" / "_Pinnacle 1080p.bat")]
     assert "set hwaccel=auto" in content
     assert "set quality=high" in content
     assert any("--hw_accel !hwaccel!" in line and "--quality !quality!" in line for line in content)
