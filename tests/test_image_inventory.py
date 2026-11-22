@@ -543,6 +543,19 @@ def test_delete_photo_returns_false_when_it_exists_but_cannot_be_deleted(tmp_pat
     assert image_inventory._delete_photo(str(file_path)) is False
 
 
+def test_is_missing_detects_a_local_file_that_no_longer_exists(tmp_path: Path) -> None:
+    """_is_missing() is true for a local path that doesn't exist, false for one that does"""
+    file_path = tmp_path / "a.jpg"
+    file_path.write_bytes(b"x")
+    assert not image_inventory._is_missing(str(file_path))
+    assert image_inventory._is_missing(str(tmp_path / "missing.jpg"))
+
+
+def test_is_missing_ignores_google_photos_synthetic_ids() -> None:
+    """_is_missing() is always false for a synthetic 'googlephotos:<id>' full_path, which has no file to check"""
+    assert not image_inventory._is_missing("googlephotos:abc123")
+
+
 def _write_dedup_csv(csv_file: Path, *rows: dict[str, str]) -> None:
     """Writes rows (of CSV_HEADER columns) to csv_file, as the inventory tool would"""
     with open(csv_file, "w", newline="", encoding="utf-8") as fh:
@@ -624,8 +637,9 @@ def test_dedup_keeps_both_when_answer_is_0(tmp_path: Path, monkeypatch: pytest.M
     assert file_b.exists()
 
 
-def test_dedup_removes_an_already_missing_photo_from_the_csv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Choosing a photo that is already missing on disk still removes it from the CSV"""
+def test_dedup_removes_a_missing_photo_from_the_csv_without_asking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When one photo of a pair no longer exists on disk, it is silently removed from the CSV, the other one is kept,
+    and the user is never asked to choose"""
     file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
     file_b.write_bytes(b"x")  # file_a is never created: already missing
     csv_file = tmp_path / "inventory.csv"
@@ -634,11 +648,42 @@ def test_dedup_removes_an_already_missing_photo_from_the_csv(tmp_path: Path, mon
         _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="60", duplicate_of=str(file_b)),
         _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="60", duplicate_of=str(file_a)),
     )
-    monkeypatch.setattr("builtins.input", lambda _prompt: "1")
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask when a photo is missing"))
     image_inventory.dedup(str(csv_file))
     with open(csv_file, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     assert [row["full_path"] for row in rows] == [str(file_b)]
+
+
+def test_dedup_removes_both_photos_when_both_are_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When neither photo of a pair exists on disk anymore, both are silently removed from the CSV, without asking"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"  # Neither is ever created: both already missing
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="60", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="60", duplicate_of=str(file_a)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask when both photos are missing"))
+    image_inventory.dedup(str(csv_file))
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert not rows
+
+
+def test_dedup_does_not_treat_google_photos_ids_as_missing_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A synthetic 'googlephotos:<id>' full_path has no existence on disk to check, so it is never auto-removed as missing"""
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path="googlephotos:a", file_name="a.jpg", duplicate_likelihood="60", duplicate_of="googlephotos:b"),
+        _csv_row(full_path="googlephotos:b", file_name="b.jpg", duplicate_likelihood="60", duplicate_of="googlephotos:a"),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: "0")
+    image_inventory.dedup(str(csv_file))
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert {row["full_path"] for row in rows} == {"googlephotos:a", "googlephotos:b"}
 
 
 def test_dedup_keeps_the_csv_row_when_deletion_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

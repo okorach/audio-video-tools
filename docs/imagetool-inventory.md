@@ -180,9 +180,13 @@ A pair at 100% duplicate likelihood with a recommendation is deleted automatical
 reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
 copies with the same original name), is still asked about.
 
+Before any recommendation or question, each pair is first checked for photos that no longer exist on disk (eg deleted
+or moved by some other means since the inventory was made): if one of the two is missing, it is silently removed from
+the CSV, the other one is kept, and nothing is asked; if both are missing, both are removed from the CSV, also without
+asking, since there is nothing left to choose between.
+
 A photo chosen for deletion is removed from disk and from the CSV, which is rewritten after each removal so an
-interrupted review can be resumed later without going through the pairs already handled. A photo already missing on
-disk (eg deleted by some other means since the inventory was made) is removed from the CSV too; one that still exists
-but could not be deleted (eg permission denied) is kept in the CSV.
+interrupted review can be resumed later without going through the pairs already handled. One that exists but could
+not be deleted (eg permission denied) is kept in the CSV.
 
 Requires `exiftool` on PATH, or, with `--google`, a Google Cloud OAuth2 client (see above).
