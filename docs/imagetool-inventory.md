@@ -160,38 +160,37 @@ from the highest likelihood down to the lowest, and lets you delete one of each 
 For each pair, it prints their size, date taken, device and GPS coordinates (rounded to 4 decimal digits), and a
 recommendation of which one to delete, decided by the first of these rules that applies:
 
-1. One, and not the other, matches one of the `dedup.low_quality_patterns` property's regexes (see below), checked
-   in the order they are listed there: that one is recommended. By default:
+1. One, and not the other, matches one of the `dedup.delete_priority` property's regexes (see below), checked in
+   the order they are listed there: that one is recommended. By default, in order:
    1. A `.picasaoriginals` folder (Picasa's hidden backup of a photo's pixels before any edit done in the app,
       anywhere in its full path).
    2. A tilde (`~`) anywhere in its full path, as commonly found in a backup or temporary copy's name (eg
       `~lockfile`, `image~.jpg`).
    3. A "copy"/"copie" suffix on its file name, as commonly added when a file manager duplicates a file (eg
       `some-picture copie.jpg`, `some-picture - Copy.jpg`, `some-picture copy (2).jpg`).
-2. One, and not the other, matches one of the `dedup.duplicate_folder_patterns` property's regexes: by default, a
-   folder whose name contains "duplicate" (anywhere in its full path, eg `Duplicates`, `Duplicate Photos`), the
-   strongest signal since it was deliberately filed away as one.
-3. One, and not the other, matches one of the `dedup.to_sort_folder_patterns` property's regexes: by default, an
-   `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space insensitively,
-   anywhere in its full path), as still awaiting review.
-4. Both are in the exact same folder and their file names only differ by a trailing sequence number (eg
+   4. A folder whose name contains "duplicate" (anywhere in its full path, eg `Duplicates`, `Duplicate Photos`),
+      the strongest folder signal since it was deliberately filed away as one.
+   5. An `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space
+      insensitively, anywhere in its full path), as still awaiting review.
+   6. An unedited camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
+      `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`,
+      `25-12-2011 16-46-10_0021.JPG`, `2014-07-20 20.19.20.jpg`), as opposed to a descriptive name the other was
+      renamed to.
+2. Both are in the exact same folder and their file names only differ by a trailing sequence number (eg
    `Vallandry 2016 081.jpg` and `Vallandry 2016 140.jpg`): the same shot exported/copied twice under the same
    batch-numbering scheme, so the one with the highest number (the later copy) is recommended. This one isn't a
-   pattern match (it compares the 2 photos' numbers to each other), so it isn't configurable like the others.
-5. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended. Not
+   pattern match (it compares the 2 photos' numbers to each other), so it isn't configurable like rule 1.
+3. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended. Not
    configurable either.
-6. One, and not the other, matches one of the `dedup.original_filename_patterns` property's regexes: by default, an
-   unedited camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`, `PANO_20190415_103823.jpg`,
-   `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`, `25-12-2011 16-46-10_0021.JPG`, `2014-07-20 20.19.20.jpg`),
-   as opposed to a descriptive name the other was renamed to.
-7. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended. Not configurable.
+4. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended. Not configurable.
 
-Each of `dedup.low_quality_patterns`, `dedup.duplicate_folder_patterns`, `dedup.to_sort_folder_patterns` and
-`dedup.original_filename_patterns`, in `~/.mediatools.properties`, is its own semicolon-separated list of regexes,
-matched case-insensitively against a candidate duplicate's full path, in the order they are listed. Overriding one
-replaces its whole default list above entirely; it doesn't add to it, and the other 3 properties are unaffected. A
-property created before it existed falls back to that same default. This is how to extend or replace any of these
-checks (eg adding your own camera's file name pattern) without touching the code.
+`dedup.delete_priority`, in `~/.mediatools.properties`, is a semicolon-separated list of regexes, matched
+case-insensitively against a candidate duplicate's full path, in the order they are listed (whitespace around each
+one, eg after a `;`, is stripped and has no effect). Overriding it replaces the whole default list above (rule 1)
+entirely; it doesn't add to it. A property created before it existed falls back to that same default. This is how
+to extend or reorder any of these pattern checks (eg adding your own camera's file name pattern) without touching
+the code; the sequence-number, size and GPS rules (2-4) stay fixed since they compare the 2 photos to each other
+rather than matching a pattern.
 
 If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
 original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes

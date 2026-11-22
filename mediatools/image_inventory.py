@@ -440,102 +440,77 @@ def _regex_priority_rule(pattern: re.Pattern) -> Callable[[dict[str, str], dict[
 def _configured_patterns(property_name: str, defaults: tuple[re.Pattern, ...]) -> tuple[re.Pattern, ...]:
     """Returns the compiled, case-insensitive regexes configured for property_name, read fresh from the
     configuration every time (a semicolon-separated list, matched against a candidate duplicate's full_path, in
-    priority order), so a user can extend or replace any pattern-based dedup criterion from ~/.mediatools.properties
-    without code changes. Falls back to defaults when the property is missing or empty (eg an existing
-    ~/.mediatools.properties created before that property existed)"""
+    priority order; surrounding whitespace around each regex is stripped and ignored, so it has no effect), so a
+    user can extend or replace the pattern-based dedup criteria from ~/.mediatools.properties without code changes.
+    Falls back to defaults when the property is missing or empty (eg an existing ~/.mediatools.properties created
+    before that property existed)"""
     value = media_config.get_property(property_name)
     if not value:
         return defaults
-    return tuple(re.compile(pattern, re.IGNORECASE) for pattern in str(value).split(";") if pattern)
+    return tuple(re.compile(pattern.strip(), re.IGNORECASE) for pattern in str(value).split(";") if pattern.strip())
 
 
-# A ".picasaoriginals" folder holds Picasa's hidden backup of a photo's pixels before any edit done in the app: once
-# a duplicate is confirmed, that backup copy is the first candidate for deletion
-_PICASA_ORIGINALS_PATTERN: re.Pattern = re.compile(r"[\\/]\.picasaoriginals[\\/]", re.IGNORECASE)
+# A ".picasaoriginals" folder holds Picasa's hidden backup of a photo's pixels before any edit done in the app
+_PICASA_ORIGINALS_PATTERN: str = r"[\\/]\.picasaoriginals[\\/]"
 # A tilde anywhere in the full path, as commonly found in a backup or temporary copy's name (eg "~lockfile",
 # "image~.jpg")
-_TILDE_PATTERN: re.Pattern = re.compile(r"~")
+_TILDE_PATTERN: str = r"~"
 # A "copy"/"copie" suffix on the file name (before its extension), as commonly added when a file is duplicated by a
 # file manager (eg "some-picture copie.jpg", "some-picture - Copy.jpg", "some-picture copy (2).jpg")
-_COPY_SUFFIX_PATTERN: re.Pattern = re.compile(r"[ _-](copy|copie)(\s*\(\d+\))?\.[^.\\/]+$", re.IGNORECASE)
-
-LOW_QUALITY_PATTERNS_PROPERTY: str = "dedup.low_quality_patterns"
-# Checked first, before every other dedup criterion: a photo matching one of these, while the other doesn't, is a
-# backup/temporary copy that should go first. Default used when LOW_QUALITY_PATTERNS_PROPERTY is missing
-DEFAULT_LOW_QUALITY_PATTERNS: tuple[re.Pattern, ...] = (_PICASA_ORIGINALS_PATTERN, _TILDE_PATTERN, _COPY_SUFFIX_PATTERN)
-
-
-def _low_quality_patterns() -> tuple[re.Pattern, ...]:
-    """Returns the low-quality file patterns (see DEFAULT_LOW_QUALITY_PATTERNS, LOW_QUALITY_PATTERNS_PROPERTY and
-    _configured_patterns())"""
-    return _configured_patterns(LOW_QUALITY_PATTERNS_PROPERTY, DEFAULT_LOW_QUALITY_PATTERNS)
-
-
-DUPLICATE_FOLDER_PATTERNS_PROPERTY: str = "dedup.duplicate_folder_patterns"
+_COPY_SUFFIX_PATTERN: str = r"[ _-](copy|copie)(\s*\(\d+\))?\.[^.\\/]+$"
 # A folder (not the file name itself, hence the trailing separator) whose name contains "duplicate", as commonly
-# used for folders already known to hold duplicate photos (eg "Duplicates", "Duplicate Photos", "zzz_duplicates").
-# Checked right after the low-quality patterns: a photo deliberately filed away as a duplicate is a strong signal
-# of which one to delete. Default used when DUPLICATE_FOLDER_PATTERNS_PROPERTY is missing
-DEFAULT_DUPLICATE_FOLDER_PATTERNS: tuple[re.Pattern, ...] = (re.compile(r"(?:^|[\\/])[^\\/]*duplicate[^\\/]*[\\/]", re.IGNORECASE),)
-
-
-def _duplicate_folder_patterns() -> tuple[re.Pattern, ...]:
-    """Returns the duplicate-folder patterns (see DEFAULT_DUPLICATE_FOLDER_PATTERNS, DUPLICATE_FOLDER_PATTERNS_PROPERTY
-    and _configured_patterns())"""
-    return _configured_patterns(DUPLICATE_FOLDER_PATTERNS_PROPERTY, DEFAULT_DUPLICATE_FOLDER_PATTERNS)
-
-
-TO_SORT_FOLDER_PATTERNS_PROPERTY: str = "dedup.to_sort_folder_patterns"
+# used for folders already known to hold duplicate photos (eg "Duplicates", "Duplicate Photos", "zzz_duplicates")
+_DUPLICATE_FOLDER_PATTERN: str = r"(?:^|[\\/])[^\\/]*duplicate[^\\/]*[\\/]"
 # A folder (not the file name itself) named "a_trier"/"a trier" (French for "to be sorted"), whatever its case,
-# accent or underscore/space spelling. Checked right after the duplicate-folder patterns: once a duplicate is
-# confirmed, a photo not yet sorted out of such a folder is a priority candidate for deletion. Default used when
-# TO_SORT_FOLDER_PATTERNS_PROPERTY is missing
-DEFAULT_TO_SORT_FOLDER_PATTERNS: tuple[re.Pattern, ...] = (re.compile(r"(?:^|[\\/])[aà][ _]trier[\\/]", re.IGNORECASE),)
-
-
-def _to_sort_folder_patterns() -> tuple[re.Pattern, ...]:
-    """Returns the to-sort-folder patterns (see DEFAULT_TO_SORT_FOLDER_PATTERNS, TO_SORT_FOLDER_PATTERNS_PROPERTY and
-    _configured_patterns())"""
-    return _configured_patterns(TO_SORT_FOLDER_PATTERNS_PROPERTY, DEFAULT_TO_SORT_FOLDER_PATTERNS)
-
-
-ORIGINAL_FILENAME_PATTERNS_PROPERTY: str = "dedup.original_filename_patterns"
+# accent or underscore/space spelling
+_TO_SORT_FOLDER_PATTERN: str = r"(?:^|[\\/])[aà][ _]trier[\\/]"
 # Unedited camera/phone original file names, as opposed to a descriptive name a photo was renamed to: eg IMG_1234.jpg,
 # IMG_20180209_082726_HDR.jpg (Android), IMG-20200101-WA0001.jpg (WhatsApp), PXL_20210101_123456.jpg (Pixel),
 # PANO_20190415_103823.jpg (Android panorama), DSC_0001.jpg, HPIM1234.jpg (HP cameras), 100_1234.jpg
 # (point-and-shoot cameras), 20130804_174038.jpg (date_time, no camera prefix), "25-12-2011 16-46-10_0021.JPG"
 # (DD-MM-YYYY HH-MM-SS_sequence, used by some photo management software), "2014-07-20 20.19.20.jpg"
-# (YYYY-MM-DD HH.MM.SS, used by other photo management software). Checked after the sequence-number and size
-# rules: a photo with one of these names, while the other was renamed to something more descriptive, is the
-# candidate for deletion. Default used when ORIGINAL_FILENAME_PATTERNS_PROPERTY is missing
-DEFAULT_ORIGINAL_FILENAME_PATTERNS: tuple[re.Pattern, ...] = tuple(
+# (YYYY-MM-DD HH.MM.SS, used by other photo management software)
+_ORIGINAL_FILENAME_PATTERNS: tuple[str, ...] = (
+    r"(?:^|[\\/])img[-_]?\d[\d_]*(_hdr)?\.[^.\\/]+$",
+    r"(?:^|[\\/])img-\d{8}-wa\d+\.[^.\\/]+$",
+    r"(?:^|[\\/])dsc[fn]?[-_]?\d[\d_]*\.[^.\\/]+$",
+    r"(?:^|[\\/])hpim\d+\.[^.\\/]+$",
+    r"(?:^|[\\/])pxl[-_]?\d[\d_]*\.[^.\\/]+$",
+    r"(?:^|[\\/])pano[-_]?\d{8}[-_]\d{6}\.[^.\\/]+$",
+    r"(?:^|[\\/])vid[-_]?\d[\d_]*\.[^.\\/]+$",
+    r"(?:^|[\\/])mov[-_]?\d[\d_]*\.[^.\\/]+$",
+    r"(?:^|[\\/])mvimg[-_]?\d[\d_]*\.[^.\\/]+$",
+    r"(?:^|[\\/])p\d{7,}\.[^.\\/]+$",
+    r"(?:^|[\\/])gopr\d{3,}\.[^.\\/]+$",
+    r"(?:^|[\\/])\d{3,4}[-_]\d{3,}\.[^.\\/]+$",
+    r"(?:^|[\\/])\d{8}[-_]\d{6}\.[^.\\/]+$",
+    r"(?:^|[\\/])signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?\.[^.\\/]+$",
+    r"(?:^|[\\/])wa\d{10,}\.[^.\\/]+$",
+    r"(?:^|[\\/])\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}_\d+\.[^.\\/]+$",
+    r"(?:^|[\\/])\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}\.[^.\\/]+$",
+)
+
+DELETE_PRIORITY_PROPERTY: str = "dedup.delete_priority"
+# Patterns checked first, before the sequence-number, size and GPS rules: a photo matching one of these, while the
+# other doesn't, is the candidate for deletion. Checked in this order (low-quality/backup copy, duplicate folder,
+# to-sort folder, then original camera/phone file name); default used when DELETE_PRIORITY_PROPERTY is missing
+DEFAULT_DELETE_PRIORITY_PATTERNS: tuple[re.Pattern, ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for pattern in (
-        r"(?:^|[\\/])img[-_]?\d[\d_]*(_hdr)?\.[^.\\/]+$",
-        r"(?:^|[\\/])img-\d{8}-wa\d+\.[^.\\/]+$",
-        r"(?:^|[\\/])dsc[fn]?[-_]?\d[\d_]*\.[^.\\/]+$",
-        r"(?:^|[\\/])hpim\d+\.[^.\\/]+$",
-        r"(?:^|[\\/])pxl[-_]?\d[\d_]*\.[^.\\/]+$",
-        r"(?:^|[\\/])pano[-_]?\d{8}[-_]\d{6}\.[^.\\/]+$",
-        r"(?:^|[\\/])vid[-_]?\d[\d_]*\.[^.\\/]+$",
-        r"(?:^|[\\/])mov[-_]?\d[\d_]*\.[^.\\/]+$",
-        r"(?:^|[\\/])mvimg[-_]?\d[\d_]*\.[^.\\/]+$",
-        r"(?:^|[\\/])p\d{7,}\.[^.\\/]+$",
-        r"(?:^|[\\/])gopr\d{3,}\.[^.\\/]+$",
-        r"(?:^|[\\/])\d{3,4}[-_]\d{3,}\.[^.\\/]+$",
-        r"(?:^|[\\/])\d{8}[-_]\d{6}\.[^.\\/]+$",
-        r"(?:^|[\\/])signal-\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?\.[^.\\/]+$",
-        r"(?:^|[\\/])wa\d{10,}\.[^.\\/]+$",
-        r"(?:^|[\\/])\d{2}-\d{2}-\d{4} \d{2}-\d{2}-\d{2}_\d+\.[^.\\/]+$",
-        r"(?:^|[\\/])\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}\.[^.\\/]+$",
+        _PICASA_ORIGINALS_PATTERN,
+        _TILDE_PATTERN,
+        _COPY_SUFFIX_PATTERN,
+        _DUPLICATE_FOLDER_PATTERN,
+        _TO_SORT_FOLDER_PATTERN,
+        *_ORIGINAL_FILENAME_PATTERNS,
     )
 )
 
 
-def _original_filename_patterns() -> tuple[re.Pattern, ...]:
-    """Returns the original-filename patterns (see DEFAULT_ORIGINAL_FILENAME_PATTERNS,
-    ORIGINAL_FILENAME_PATTERNS_PROPERTY and _configured_patterns())"""
-    return _configured_patterns(ORIGINAL_FILENAME_PATTERNS_PROPERTY, DEFAULT_ORIGINAL_FILENAME_PATTERNS)
+def _delete_priority_patterns() -> tuple[re.Pattern, ...]:
+    """Returns the delete-priority patterns (see DEFAULT_DELETE_PRIORITY_PATTERNS, DELETE_PRIORITY_PROPERTY and
+    _configured_patterns())"""
+    return _configured_patterns(DELETE_PRIORITY_PROPERTY, DEFAULT_DELETE_PRIORITY_PATTERNS)
 
 
 def _size_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
@@ -593,16 +568,12 @@ def _sequence_number_rule(row_a: dict[str, str], row_b: dict[str, str]) -> int |
 
 def _recommend_deletion(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
     """Returns 1 or 2, the photo of the pair (row_a, row_b) recommended for deletion, by the first conclusive rule,
-    in this order: the low-quality, duplicate-folder and to-sort-folder patterns (each independently configurable,
-    see _configured_patterns()), the sequence-number and size rules, the original-filename patterns (also
-    configurable), and finally the GPS rule. None if none of them is conclusive"""
+    in this order: the delete-priority patterns (configurable, see _configured_patterns()), then the
+    sequence-number, size and GPS rules (not pattern-based, not configurable). None if none of them is conclusive"""
     rules: tuple[Callable[[dict[str, str], dict[str, str]], int | None], ...] = (
-        *(_regex_priority_rule(pattern) for pattern in _low_quality_patterns()),
-        *(_regex_priority_rule(pattern) for pattern in _duplicate_folder_patterns()),
-        *(_regex_priority_rule(pattern) for pattern in _to_sort_folder_patterns()),
+        *(_regex_priority_rule(pattern) for pattern in _delete_priority_patterns()),
         _sequence_number_rule,
         _size_rule,
-        *(_regex_priority_rule(pattern) for pattern in _original_filename_patterns()),
         _gps_rule,
     )
     for rule in rules:
