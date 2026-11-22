@@ -417,6 +417,39 @@ def test_gps_rule_recommends_the_photo_without_gps() -> None:
     assert image_inventory._gps_rule(with_gps, with_gps) is None
 
 
+def test_sequence_number_extracts_the_prefix_and_trailing_number() -> None:
+    """_sequence_number() splits a file name into its prefix and trailing sequence number, None when there is none"""
+    assert image_inventory._sequence_number("Vallandry 2016 081.jpg") == ("Vallandry 2016 ", 81)
+    assert image_inventory._sequence_number("Vallandry 2016 140.jpg") == ("Vallandry 2016 ", 140)
+    assert image_inventory._sequence_number("Chicago.jpg") is None
+
+
+def test_sequence_number_rule_recommends_the_highest_sequence_number() -> None:
+    """2 photos in the same folder, whose file names only differ by a trailing sequence number, recommend the one
+    with the highest number (the later copy of the same shot)"""
+    lower = _csv_row(full_path=os.path.join("E:", "Photos", "Vallandry 2016 081.jpg"), file_name="Vallandry 2016 081.jpg")
+    higher = _csv_row(full_path=os.path.join("E:", "Photos", "Vallandry 2016 140.jpg"), file_name="Vallandry 2016 140.jpg")
+    assert image_inventory._sequence_number_rule(lower, higher) == 2
+    assert image_inventory._sequence_number_rule(higher, lower) == 1
+
+
+def test_sequence_number_rule_returns_none_when_not_applicable() -> None:
+    """The sequence number rule doesn't apply across different folders, different prefixes, equal numbers, or
+    Google Photos synthetic paths (which have no real folder to compare)"""
+    in_folder = _csv_row(full_path=os.path.join("E:", "Photos", "Vallandry 2016 081.jpg"), file_name="Vallandry 2016 081.jpg")
+    other_folder = _csv_row(full_path=os.path.join("E:", "Other", "Vallandry 2016 140.jpg"), file_name="Vallandry 2016 140.jpg")
+    assert image_inventory._sequence_number_rule(in_folder, other_folder) is None
+
+    different_prefix = _csv_row(full_path=os.path.join("E:", "Photos", "Chicago 2018 140.jpg"), file_name="Chicago 2018 140.jpg")
+    assert image_inventory._sequence_number_rule(in_folder, different_prefix) is None
+
+    assert image_inventory._sequence_number_rule(in_folder, in_folder) is None  # Same file, same number
+
+    google_a = _csv_row(full_path="googlephotos:a", file_name="Vallandry 2016 081.jpg")
+    google_b = _csv_row(full_path="googlephotos:b", file_name="Vallandry 2016 140.jpg")
+    assert image_inventory._sequence_number_rule(google_a, google_b) is None
+
+
 def test_in_duplicate_folder_matches_a_folder_name_containing_duplicate() -> None:
     """A folder with 'duplicate' anywhere in its name, anywhere in the path, is detected: case-insensitively (eg
     'DUpliCates'), and whether singular or plural, since it's a plain substring match, not an exact word; the file
@@ -499,11 +532,17 @@ def test_dedup_pairs_sorts_by_likelihood_and_dedupes_symmetric_pairs() -> None:
 
 
 def test_ask_which_to_delete_reprompts_on_invalid_input(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture) -> None:
-    """An answer that is not 1, 2 or 0 is rejected and the question asked again"""
+    """An answer that is not 1, 2, 0 or the abort letter is rejected and the question asked again"""
     answers = iter(["bogus", "2"])
     monkeypatch.setattr("builtins.input", lambda _prompt: next(answers))
     assert image_inventory._ask_which_to_delete(recommended=1) == 2
-    assert "Please answer 1, 2, or 0" in capsys.readouterr().out
+    assert f"Please answer 1, 2, 0, or {image_inventory.ABORT_ANSWER}" in capsys.readouterr().out
+
+
+def test_ask_which_to_delete_returns_none_on_the_abort_letter(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answering the abort letter (not a digit, so it can't be hit by mistake) returns None to stop the review"""
+    monkeypatch.setattr("builtins.input", lambda _prompt: image_inventory.ABORT_ANSWER.upper())
+    assert image_inventory._ask_which_to_delete(recommended=1) is None
 
 
 def test_ask_which_to_delete_defaults_to_recommended_on_enter(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -584,6 +623,24 @@ def test_dedup_deletes_the_recommended_photo_on_enter(tmp_path: Path, monkeypatc
     assert [row["full_path"] for row in rows] == [str(file_a)]
 
 
+def test_dedup_auto_deletes_the_highest_sequence_number_on_a_100_percent_match(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A 100% likelihood pair in the same folder, whose file names only differ by a trailing sequence number, is
+    deleted automatically (the highest number), without asking the user"""
+    file_lower, file_higher = tmp_path / "Vallandry 2016 081.jpg", tmp_path / "Vallandry 2016 140.jpg"
+    file_lower.write_bytes(b"x")
+    file_higher.write_bytes(b"x")
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_lower), file_name="Vallandry 2016 081.jpg", duplicate_likelihood="100", duplicate_of=str(file_higher)),
+        _csv_row(full_path=str(file_higher), file_name="Vallandry 2016 140.jpg", duplicate_likelihood="100", duplicate_of=str(file_lower)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask for a 100% match"))
+    image_inventory.dedup(str(csv_file))
+    assert file_lower.exists()
+    assert not file_higher.exists()
+
+
 def test_dedup_auto_deletes_a_100_percent_match_without_asking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A 100% likelihood pair with a recommendation is deleted automatically, without asking the user"""
     file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
@@ -635,6 +692,28 @@ def test_dedup_keeps_both_when_answer_is_0(tmp_path: Path, monkeypatch: pytest.M
     image_inventory.dedup(str(csv_file))
     assert file_a.exists()
     assert file_b.exists()
+
+
+def test_dedup_stops_on_the_abort_letter_leaving_remaining_pairs_untouched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answering the abort letter on the first pair stops the whole review right away: neither that pair nor the
+    next one (not even reached) is deleted, and both stay in the CSV"""
+    file_a, file_b, file_c, file_d = (tmp_path / name for name in ("a.jpg", "b.jpg", "c.jpg", "d.jpg"))
+    for f in (file_a, file_b, file_c, file_d):
+        f.write_bytes(b"x")
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="90", duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="90", duplicate_of=str(file_a)),
+        _csv_row(full_path=str(file_c), file_name="c.jpg", duplicate_likelihood="60", duplicate_of=str(file_d)),
+        _csv_row(full_path=str(file_d), file_name="d.jpg", duplicate_likelihood="60", duplicate_of=str(file_c)),
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: image_inventory.ABORT_ANSWER)
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists() and file_b.exists() and file_c.exists() and file_d.exists()
+    with open(csv_file, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    assert len(rows) == 4
 
 
 def test_dedup_removes_a_missing_photo_from_the_csv_without_asking(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

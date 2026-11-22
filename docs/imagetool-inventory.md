@@ -164,17 +164,22 @@ recommendation of which one to delete, decided by the first of these rules that 
    the strongest signal since it was deliberately filed away as one: that one is recommended.
 2. One is in an `a_trier`/`a trier` folder (French for "to be sorted"; matched case, accent and underscore/space
    insensitively, anywhere in its full path): that one is recommended, as still awaiting review.
-3. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
-4. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
+3. Both are in the exact same folder and their file names only differ by a trailing sequence number (eg
+   `Vallandry 2016 081.jpg` and `Vallandry 2016 140.jpg`): the same shot exported/copied twice under the same
+   batch-numbering scheme, so the one with the highest number (the later copy) is recommended.
+4. One is significantly smaller than the other (less than 80% of its size): the smaller one is recommended.
+5. One still has its camera/phone original file name (eg `IMG_1234.jpg`, `PXL_20210101_123456.jpg`,
    `PANO_20190415_103823.jpg`, `DSC_0001.jpg`, `HPIM1234.jpg`, `20130804_174038.jpg`,
    `25-12-2011 16-46-10_0021.JPG`, `2014-07-20 20.19.20.jpg`) while the other was renamed to something more
    descriptive: the one with the original name is recommended.
-5. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
+6. One has GPS coordinates and the other has not: the one without GPS coordinates is recommended.
 
 If none of these rules applies, no recommendation is made: this is expected for 2 byte-for-byte copies with the same
 original name, size and GPS coordinates (eg the same phone photo backed up to 2 folders), since nothing distinguishes
-one from the other. For each pair, answer `1` or `2` to delete that photo, `0` to keep both, or just press `Enter` to
-go with the recommendation (nothing happens on `Enter` when there is none).
+one from the other. For each pair, answer `1` or `2` to delete that photo, `0` to keep both, just press `Enter` to go
+with the recommendation (nothing happens on `Enter` when there is none), or `q` to stop the review right away (a
+letter, not a digit, so it can't be hit by mistake instead of `1`/`2`/`0`): every pair not yet handled, including the
+current one, stays in the CSV, so the review can be resumed later from where it was left off.
 
 A pair at 100% duplicate likelihood with a recommendation is deleted automatically, without asking: there is no
 reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
