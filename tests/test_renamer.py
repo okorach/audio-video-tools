@@ -215,3 +215,20 @@ def test_time_placeholder_no_prefix_in_file_name(tmp_path: Path) -> None:
     """DJI_#TIME# gives DJI_14h05m07s, without sequence prefix"""
     renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2024, 3, 9, 14, 5, 7)], "--video_format", "DJI_#TIME#")
     assert os.path.basename(renames[0][1]) == "DJI_14h05m07s.mp4"
+
+
+def test_date_part_placeholders(tmp_path: Path) -> None:
+    """VID_#YYYY##MM##DD#_#hh##mm##ss# gives VID_20261122_190822, without sequence prefix"""
+    renames = _run_main(tmp_path, ["a.mp4"], [dt.datetime(2026, 11, 22, 19, 8, 22)], "--video_format", "VID_#YYYY##MM##DD#_#hh##mm##ss#")
+    assert os.path.basename(renames[0][1]) == "VID_20261122_190822.mp4"
+
+
+def test_date_part_placeholders_are_case_sensitive(tmp_path: Path) -> None:
+    """#MM# is the month and #mm# the minutes, and the placeholders work in photo formats and with other ones"""
+    renames = _run_main(tmp_path, ["a.jpg"], [dt.datetime(2024, 3, 9, 1, 2, 3)], "--photo_format", "#DD#-#MM#-#YYYY# #hh#h#mm#m#ss#s #SIZE#")
+    assert os.path.basename(renames[0][1]) == "09-03-2024 01h02m03s 10x20.jpg"
+
+
+def test_date_part_placeholders_no_prefix() -> None:
+    """A format with a date part placeholder is used as is: no sequence prefix is added"""
+    assert renamer.get_fmt("a.mp4", "x", "VID_#YYYY#", "x") == "VID_#YYYY#"
