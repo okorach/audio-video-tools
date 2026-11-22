@@ -219,8 +219,12 @@ class VideoFile(media.MediaFile):
         return self.duration
 
     def can_hw_decode(self) -> bool:
-        """Returns False if the video can't be decoded by the GPU (NVDEC), in which case ffmpeg decodes it on the CPU:
-        the codec is not supported (eg msmpeg4 of the old AVI files), or H.264 is beyond 4096 pixels in a dimension or not 8 bits 4:2:0"""
+        """Returns False if the video can't be decoded by the GPU (NVDEC) with its frames kept in GPU memory, in which case ffmpeg decodes
+        it on the CPU: the codec is not supported (eg msmpeg4 of the old AVI files), H.264 is beyond 4096 pixels in a dimension or not
+        8 bits 4:2:0, or the video has a rotation. ffmpeg applies a rotation (eg of a portrait video shot with a phone) with a CPU
+        filter that frames kept on the GPU skip, so the rotation would silently be lost and the video would play in landscape"""
+        if self.get_rotation() % 360 != 0:
+            return False
         stream = self.__get_first_video_stream__()
         codec = stream.get("codec_name")
         if codec and codec not in HW_DECODE_CODECS:

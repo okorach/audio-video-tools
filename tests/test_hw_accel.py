@@ -542,6 +542,11 @@ def video_with_stream(**stream: object) -> video.VideoFile:
         ({"codec_name": "msmpeg4v3"}, False),
         ({"codec_name": "mpeg2video"}, True),
         ({"codec_name": "hevc", "width": 5184, "height": 2916, "pix_fmt": "yuv420p10le"}, True),
+        ({"side_data_list": [{"side_data_type": "Display Matrix", "rotation": 0}]}, True),
+        ({"side_data_list": [{"side_data_type": "Display Matrix", "rotation": -90}]}, False),
+        ({"side_data_list": [{"side_data_type": "Display Matrix", "rotation": 90}]}, False),
+        ({"side_data_list": [{"side_data_type": "Display Matrix", "rotation": 180}]}, False),
+        ({"tags": {"rotate": "90"}}, False),
     ],
 )
 def test_can_hw_decode(stream: dict, expected: bool) -> None:
@@ -568,5 +573,15 @@ def test_encode_decodes_on_the_cpu_when_the_gpu_cant() -> None:
     """Encode decodes on the cpu when the gpu cant"""
     cmd = encode_command(video_with_stream(width=5184, height=2916))
     assert "-hwaccel" not in cmd
+    assert "hwupload_cuda,scale_cuda=1920:-2" in cmd
+    assert "hevc_nvenc" in cmd
+
+
+def test_encode_decodes_a_rotated_video_on_the_cpu() -> None:
+    """The rotation of a video (eg a portrait video shot with a phone) is applied by a CPU filter of ffmpeg: with the frames kept on
+    the GPU it is silently lost and the video plays in landscape. A rotated video is decoded on the CPU, only the encoding is on the GPU"""
+    cmd = encode_command(video_with_stream(side_data_list=[{"side_data_type": "Display Matrix", "rotation": -90}]))
+    assert "-hwaccel" not in cmd
+    assert "-noautorotate" not in cmd
     assert "hwupload_cuda,scale_cuda=1920:-2" in cmd
     assert "hevc_nvenc" in cmd
