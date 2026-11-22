@@ -602,6 +602,17 @@ def _ask_which_to_delete(recommended: int | None) -> int:
         print("Please answer 1, 2, or 0")
 
 
+def _is_local_path(full_path: str) -> bool:
+    """Returns whether full_path is a local file path, as opposed to a synthetic 'googlephotos:<id>' identifier (see
+    google_photo_row()) that has no existence on disk to check"""
+    return not full_path.startswith("googlephotos:")
+
+
+def _is_missing(full_path: str) -> bool:
+    """Returns whether full_path is a local file path (see _is_local_path()) that no longer exists on disk"""
+    return _is_local_path(full_path) and not os.path.isfile(full_path)
+
+
 def _delete_photo(path: str) -> bool:
     """Deletes path from disk, returns True if it was deleted or was already missing (either way, it should no longer
     be in the inventory), False if it exists but could not be deleted (eg permission denied), logging accordingly"""
@@ -645,6 +656,21 @@ def _dedup_pairs(rows: list[dict[str, str]]) -> list[tuple[str, dict[str, str], 
     return pairs
 
 
+def _remove_missing(rows: list[dict[str, str]], row_a: dict[str, str], row_b: dict[str, str], csv_file: str, removed_missing: set[str]) -> bool:
+    """Removes, from rows and csv_file, whichever of row_a/row_b no longer exists on disk (see _is_missing()), adding
+    its full_path to removed_missing, and returns whether any was removed. Called before asking anything about a
+    pair: a photo that is already gone leaves nothing to choose between"""
+    missing = [row for row in (row_a, row_b) if _is_missing(row["full_path"])]
+    if not missing:
+        return False
+    for row in missing:
+        log.logger.info("%s no longer exists on disk, removing it from the inventory", row["full_path"])
+        removed_missing.add(row["full_path"])
+    rows[:] = [row for row in rows if row["full_path"] not in removed_missing]
+    _write_dict_rows(rows, csv_file)
+    return True
+
+
 AUTO_DELETE_LIKELIHOOD: int = 100  # A pair at this duplicate_likelihood is deleted automatically, without asking, see dedup()
 
 
@@ -654,9 +680,12 @@ def dedup(csv_file: str) -> None:
     neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
     delete (see _recommend_deletion()). A pair at AUTO_DELETE_LIKELIHOOD (100%) with a recommendation is deleted
     automatically, without asking, since there is no reasonable doubt they are the same photo; every other pair is
-    asked about. A photo chosen for deletion is removed from disk and, whether it was actually deleted or was already
-    missing, also from csv_file (which is written back after each removal so an interrupted review can be resumed
-    later without re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted"""
+    asked about. Before any of that, a pair where one or both photos no longer exist on disk (eg already deleted or
+    moved outside the inventoried tree since it was built) is never asked about either: the missing one (or both, if
+    neither exists) is simply removed from csv_file, since there is nothing left to choose between. A photo chosen
+    for deletion is removed from disk and, whether it was actually deleted or was already missing, also from
+    csv_file (which is written back after each removal so an interrupted review can be resumed later without
+    re-reviewing already handled pairs); it is kept in csv_file if it exists but could not be deleted"""
     with open(csv_file, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     if not any(row.get("duplicate_likelihood") for row in rows):
@@ -666,9 +695,13 @@ def dedup(csv_file: str) -> None:
     total = len(pairs)
     print(f"{total} potential duplicate pair(s) to review, highest likelihood first")
     deleted: set[str] = set()
+    removed_missing: set[str] = set()
     for index, pair in enumerate(pairs, start=1):
         likelihood, row_a, row_b = pair
         if row_a["full_path"] in deleted or row_b["full_path"] in deleted:
+            continue
+        if _remove_missing(rows, row_a, row_b, csv_file, removed_missing):
+            deleted |= removed_missing
             continue
         recommended = _recommend_deletion(row_a, row_b)
         _print_pair(index, total, pair, recommended)
@@ -685,7 +718,7 @@ def dedup(csv_file: str) -> None:
         deleted.add(to_delete["full_path"])
         rows = [row for row in rows if row["full_path"] != to_delete["full_path"]]
         _write_dict_rows(rows, csv_file)
-    print(f"{len(deleted)} photo(s) deleted")
+    print(f"{len(deleted) - len(removed_missing)} photo(s) deleted, {len(removed_missing)} already missing from disk removed from the inventory")
 
 
 def _file_dates(filename: str) -> tuple[int | None, str | None, str | None]:
