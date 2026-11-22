@@ -22,7 +22,8 @@
 
 The format may contain the placeholders:
 #SEQ# (#SEQ1# ... #SEQ5#) sequence number, #SIZE# WxH, #DEVICE#, #FPS#, #BITRATE#,
-#TIMESTAMP# date and time (YYYY-MM-DD HHhMMmSSs) and #TIME# time only (HHhMMmSSs)
+#TIMESTAMP# date and time (YYYY-MM-DD HHhMMmSSs), #TIME# time only (HHhMMmSSs) and
+#YYYY# #MM# #DD# #hh# #mm# #ss# year, month, day, hour, minute and second of the creation date (eg VID_#YYYY##MM##DD#_#hh##mm##ss#)
 """
 
 from __future__ import annotations
@@ -47,6 +48,9 @@ BITRATE: str = "#BITRATE#"
 
 # strftime format of the time of day, substituted to #TIME#
 TIME_FMT: str = "%Hh%Mm%Ss"
+
+# Placeholders of a part of the creation date (case sensitive: #MM# is the month, #mm# the minutes) and their strftime format
+DATE_PLACEHOLDERS: dict[str, str] = {"#YYYY#": "%Y", "#MM#": "%m", "#DD#": "%d", "#hh#": "%H", "#mm#": "%M", "#ss#": "%S"}
 
 DEFAULT_FORMAT: str = f"{util.FILE_DATE_FMT} - #SEQ3# - {SIZE} - {DEVICE}"
 DEFAULT_VIDEO_FORMAT: str = f"{util.FILE_DATE_FMT} - {SEQ} - {SIZE} - {FPS}fps - {BITRATE}MBps"
@@ -197,7 +201,7 @@ def get_fmt(filename: str, photo_format: str, video_format: str, other_format: s
         fmt = photo_format
     elif fil.is_video_file(filename):
         fmt = video_format
-    if TIMESTAMP not in fmt and TIME not in fmt and SEQ[:3] not in fmt:
+    if TIMESTAMP not in fmt and TIME not in fmt and SEQ[:3] not in fmt and not any(p in fmt for p in DATE_PLACEHOLDERS):
         fmt = f"{SEQ} - {fmt}"
     return fmt
 
@@ -281,7 +285,10 @@ def main() -> None:
     parser.add_argument("--video_format", help="Format for the renamed video files", required=False)
     parser.add_argument(
         "--format",
-        help="Format for files. Placeholders: #SEQ# #SIZE# #DEVICE# #FPS# #BITRATE# #TIMESTAMP# (date and time) #TIME# (time only, HHhMMmSSs)",
+        help=(
+            "Format for files. Placeholders: #SEQ# #SIZE# #DEVICE# #FPS# #BITRATE# #TIMESTAMP# (date and time) #TIME# (time only, HHhMMmSSs) "
+            "#YYYY# #MM# #DD# #hh# #mm# #ss# (parts of the date)"
+        ),
         required=False,
         default=DEFAULT_FORMAT,
     )
@@ -313,6 +320,8 @@ def main() -> None:
         file_fmt = fmt.replace(DEVICE, device)
         file_fmt = file_fmt.replace(TIMESTAMP, util.FILE_DATE_FMT)
         file_fmt = file_fmt.replace(TIME, TIME_FMT)
+        for placeholder, strftime_fmt in DATE_PLACEHOLDERS.items():
+            file_fmt = file_fmt.replace(placeholder, strftime_fmt)
         file_fmt = file_fmt.replace(BITRATE, str(files_data[key]["bitrate"]))
         file_fmt = file_fmt.replace(FPS, str(files_data[key]["fps"]))
         file_fmt = file_fmt.replace(SIZE, files_data[key]["size"])
