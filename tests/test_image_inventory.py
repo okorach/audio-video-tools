@@ -1342,7 +1342,7 @@ def _dedup_pair_csv(tmp_path: Path, likelihood: str) -> tuple[Path, Path, Path]:
 
 
 def test_dedup_auto_deletes_from_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A pair at or above dedup.auto_delete_likelihood is deleted without asking, even below 100%"""
+    """A pair at or above dedup.auto_delete_threshold is deleted without asking, even below 100%"""
     csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "96")
     monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
     monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask at or above the configured likelihood"))
@@ -1352,7 +1352,7 @@ def test_dedup_auto_deletes_from_the_configured_likelihood(tmp_path: Path, monke
 
 
 def test_dedup_asks_below_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A pair below dedup.auto_delete_likelihood is still asked about"""
+    """A pair below dedup.auto_delete_threshold is still asked about"""
     csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "94")
     monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
     monkeypatch.setattr("builtins.input", lambda _prompt: "0")
@@ -1375,7 +1375,7 @@ def test_dedup_does_not_auto_delete_below_100_by_default(tmp_path: Path, monkeyp
     ("value", "expected"),
     [("95", 95), (" 90% ", 90), (97, 97), ("100", 100), ("1", 1), (None, 100), ("", 100), ("abc", 100), ("0", 100), ("101", 100)],
 )
-def test_auto_delete_likelihood_property(monkeypatch: pytest.MonkeyPatch, value: object, expected: int) -> None:
+def test_auto_delete_threshold_property(monkeypatch: pytest.MonkeyPatch, value: object, expected: int) -> None:
     """The auto-delete likelihood is the 1-100 configured value, 100 when it is missing or invalid"""
     monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: value)
-    assert image_inventory._auto_delete_likelihood() == expected
+    assert image_inventory._auto_delete_threshold() == expected
