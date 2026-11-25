@@ -1408,3 +1408,78 @@ def test_similarity_weighs_the_size_difference() -> None:
     assert image_inventory._similarity(_row(**same), _row(**same)) == 100
     assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=960)) == round(100 * (0.5 + 0.15 * 0.66) / 0.65)
     assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=500)) == round(100 * 0.5 / 0.65)
+
+
+def _gps_pair(tmp_path: Path, **overrides: str) -> tuple[Path, Path, Path]:
+    """Writes a CSV with 2 otherwise identical photos, a.jpg with GPS coordinates (1000 bytes) and b.jpg without (4% smaller), at a likelihood
+    of 80. The columns are overridden for one photo with the suffix _a or _b (eg size_bytes_b="900"). Returns the CSV and the photos"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x")
+    file_b.write_bytes(b"x")
+    common = {"fingerprint": "ff00", "width": "640", "height": "480", "date_taken": "2020-06-15 10:30:00", "device": "Canon"}
+    row_a = {**common, "size_bytes": "1000", "gps_latitude": "10.5", "gps_longitude": "-20.2"}
+    row_b = {**common, "size_bytes": "960"}
+    for key, value in overrides.items():
+        (row_a if key.endswith("_a") else row_b)[key[:-2]] = value
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="80", duplicate_of=str(file_b), **row_a),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="80", duplicate_of=str(file_a), **row_b),
+    )
+    return csv_file, file_a, file_b
+
+
+def test_dedup_auto_deletes_the_photo_without_gps_when_only_gps_and_size_differ(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """2 identical photos, one geotagged and one not, whose sizes differ by less than 10%: the one without GPS is deleted without asking"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path)
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
+
+
+def test_dedup_auto_deletes_the_photo_without_gps_in_either_position(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The photo without GPS is deleted whether it is the first or the second of the pair"""
+    csv_file, file_a, file_b = _gps_pair(
+        tmp_path, size_bytes_a="960", size_bytes_b="1000", gps_latitude_a="", gps_longitude_a="", gps_latitude_b="1", gps_longitude_b="2"
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert not file_a.exists()
+    assert file_b.exists()
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"size_bytes_b": "1000"},  # same size: not this rule
+        {"size_bytes_b": "900"},  # 10% apart
+        {"fingerprint_b": "ff01"},
+        {"width_b": "800"},
+        {"date_taken_b": "2020-06-16 10:30:00"},
+        {"device_b": "Nikon"},
+        {"fingerprint_b": ""},
+        {"date_taken_b": ""},
+        {"gps_latitude_b": "10.5", "gps_longitude_b": "-20.2"},  # both have GPS
+        {"gps_latitude_a": "", "gps_longitude_a": ""},  # neither has GPS
+    ],
+)
+def test_dedup_asks_when_the_gps_rule_does_not_apply(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, overrides: dict[str, str]) -> None:
+    """Any other difference, a missing key criterion, or both/neither having GPS: the pair is asked about (and kept here)"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path, **overrides)
+    asked: list[str] = []
+    monkeypatch.setattr("builtins.input", lambda prompt: asked.append(prompt) or "0")
+    image_inventory.dedup(str(csv_file))
+    assert asked
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+def test_dedup_ignores_a_device_missing_on_either_photo_for_the_gps_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A device missing on one photo does not prevent the photo without GPS from being deleted"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path, device_b="")
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
