@@ -1325,3 +1325,57 @@ def test_main_defaults_the_output_file(tmp_path: Path, monkeypatch: pytest.Monke
     with patch.object(sys, "argv", ["imagetool", "inventory", "-i", os.path.abspath(REAL_IMAGE)]):
         tools.imagetool()
     assert (tmp_path / image_inventory.DEFAULT_OUTPUT).is_file()
+
+
+def _dedup_pair_csv(tmp_path: Path, likelihood: str) -> tuple[Path, Path, Path]:
+    """Writes a CSV with a pair of photos at a likelihood, where the recommendation is to delete the smaller b.jpg. Returns the CSV and the photos"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x" * 1000)
+    file_b.write_bytes(b"x" * 100)
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", size_bytes="1000", duplicate_likelihood=likelihood, duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", size_bytes="100", duplicate_likelihood=likelihood, duplicate_of=str(file_a)),
+    )
+    return csv_file, file_a, file_b
+
+
+def test_dedup_auto_deletes_from_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pair at or above dedup.auto_delete_likelihood is deleted without asking, even below 100%"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "96")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask at or above the configured likelihood"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
+
+
+def test_dedup_asks_below_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pair below dedup.auto_delete_likelihood is still asked about"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "94")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "0")
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+def test_dedup_does_not_auto_delete_below_100_by_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without the property, a 99% pair is asked about"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "99")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: None)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "0")
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("95", 95), (" 90% ", 90), (97, 97), ("100", 100), ("1", 1), (None, 100), ("", 100), ("abc", 100), ("0", 100), ("101", 100)],
+)
+def test_auto_delete_likelihood_property(monkeypatch: pytest.MonkeyPatch, value: object, expected: int) -> None:
+    """The auto-delete likelihood is the 1-100 configured value, 100 when it is missing or invalid"""
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: value)
+    assert image_inventory._auto_delete_likelihood() == expected

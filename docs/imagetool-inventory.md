@@ -203,6 +203,12 @@ A pair at 100% duplicate likelihood with a recommendation is deleted automatical
 reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
 copies with the same original name), is still asked about.
 
+The 100% threshold is configurable with the `dedup.auto_delete_likelihood` property of `~/.mediatools.properties`
+(1 to 100, `100` by default, also when the property is missing or invalid). For instance `dedup.auto_delete_likelihood = 95`
+also deletes, without asking, the recommended photo of every pair that is 95% to 99% alike. Take care: below 100% the
+2 photos are similar but not necessarily the same (eg a crop, an edit or a burst shot), and the recommendation then only
+relies on the rules above. The pairs below the threshold, or without recommendation, are still asked about.
+
 Before any recommendation or question, each pair is first checked for photos that no longer exist on disk (eg deleted
 or moved by some other means since the inventory was made): if one of the two is missing, it is silently removed from
 the CSV, the other one is kept, and nothing is asked; if both are missing, both are removed from the CSV, also without

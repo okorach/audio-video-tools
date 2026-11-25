@@ -704,14 +704,29 @@ def _remove_missing(rows: list[dict[str, str]], row_a: dict[str, str], row_b: di
     return True
 
 
-AUTO_DELETE_LIKELIHOOD: int = 100  # A pair at this duplicate_likelihood is deleted automatically, without asking, see dedup()
+AUTO_DELETE_LIKELIHOOD_PROPERTY: str = "dedup.auto_delete_likelihood"
+# A pair at least at this duplicate_likelihood (and with a recommendation) is deleted automatically, without asking, see dedup().
+# Default used when AUTO_DELETE_LIKELIHOOD_PROPERTY is missing or invalid
+AUTO_DELETE_LIKELIHOOD: int = 100
+
+
+def _auto_delete_likelihood() -> int:
+    """Returns the duplicate likelihood (1-100) from which a pair with a recommendation is deleted automatically, read fresh from the
+    configuration (AUTO_DELETE_LIKELIHOOD_PROPERTY). Falls back to AUTO_DELETE_LIKELIHOOD (100) when the property is missing (eg an existing
+    ~/.mediatools.properties created before it existed), is not a number or is outside 1-100"""
+    value = media_config.get_property(AUTO_DELETE_LIKELIHOOD_PROPERTY)
+    try:
+        threshold = int(float(str(value).strip().rstrip("%")))
+    except ValueError:
+        return AUTO_DELETE_LIKELIHOOD
+    return threshold if 1 <= threshold <= 100 else AUTO_DELETE_LIKELIHOOD
 
 
 def dedup(csv_file: str) -> None:
     """Interactively reviews, from the highest to the lowest duplicate_likelihood, the pairs of photos of csv_file that
     may be duplicates (as computed by add_duplicate_likelihood()), and lets the user delete one of each pair, or
     neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
-    delete (see _recommend_deletion()). A pair at AUTO_DELETE_LIKELIHOOD (100%) with a recommendation is deleted
+    delete (see _recommend_deletion()). A pair at or above the _auto_delete_likelihood() threshold (100% by default) with a recommendation is deleted
     automatically, without asking, since there is no reasonable doubt they are the same photo; every other pair is
     asked about. Before any of that, a pair where one or both photos no longer exist on disk (eg already deleted or
     moved outside the inventoried tree since it was built) is never asked about either: the missing one (or both, if
@@ -739,8 +754,8 @@ def dedup(csv_file: str) -> None:
             continue
         recommended = _recommend_deletion(row_a, row_b)
         _print_pair(index, total, pair, recommended)
-        if recommended is not None and int(likelihood) >= AUTO_DELETE_LIKELIHOOD:
-            print(f"  100% match: automatically deleting [{recommended}]")
+        if recommended is not None and int(likelihood) >= _auto_delete_likelihood():
+            print(f"  {likelihood}% match: automatically deleting [{recommended}]")
             choice = recommended
         else:
             choice = _ask_which_to_delete(recommended)
