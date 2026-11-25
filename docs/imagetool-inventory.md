@@ -98,7 +98,9 @@ photo of the inventory, and point to that most likely duplicate. They are comput
 comparing each photo to the others on:
 
 - How close their fingerprints are (`hamming_distance()`, the main criterion).
-- Whether their file size, dimensions, date taken, device and GPS coordinates match.
+- Whether their dimensions, date taken, device and GPS coordinates match.
+- How close their file sizes are: a full score for identical sizes, 66% of it when they differ by less than 5%, 33% when they
+  differ by less than 10% (relative to the largest file), nothing otherwise.
 
 Only the criteria present on both photos being compared count, so missing metadata never lowers the likelihood: a photo with
 little or no EXIF metadata can still be matched on its fingerprint alone. `duplicate_likelihood` and `duplicate_of` are empty

@@ -1379,3 +1379,32 @@ def test_auto_delete_threshold_property(monkeypatch: pytest.MonkeyPatch, value: 
     """The auto-delete likelihood is the 1-100 configured value, 100 when it is missing or invalid"""
     monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: value)
     assert image_inventory._auto_delete_threshold() == expected
+
+
+@pytest.mark.parametrize(
+    ("size_a", "size_b", "expected"),
+    [
+        (1000, 1000, 1.0),
+        ("1000", "1000", 1.0),
+        (1000, 960, 0.66),  # 4% of the largest
+        (960, 1000, 0.66),
+        (1000, 950, 0.33),  # exactly 5% is not less than 5%
+        (1000, 910, 0.33),  # 9%
+        (1000, 900, 0.0),  # exactly 10% is not less than 10%
+        (1000, 100, 0.0),
+        (None, 1000, None),
+        (1000, None, None),
+        ("abc", 1000, None),
+    ],
+)
+def test_size_match(size_a: object, size_b: object, expected: float | None) -> None:
+    """The size match is 1 if identical, 0.66 if less than 5% apart, 0.33 if less than 10% apart, 0 otherwise, None when a size is missing"""
+    assert image_inventory._size_match(_row(size_bytes=size_a), _row(size_bytes=size_b)) == expected
+
+
+def test_similarity_weighs_the_size_difference() -> None:
+    """With only the fingerprint (0.5) and the size (0.15) applicable, a size 4% off lowers the likelihood from 100 to 92"""
+    same = {"fingerprint": "ff00ff00", "size_bytes": 1000}
+    assert image_inventory._similarity(_row(**same), _row(**same)) == 100
+    assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=960)) == round(100 * (0.5 + 0.15 * 0.66) / 0.65)
+    assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=500)) == round(100 * 0.5 / 0.65)

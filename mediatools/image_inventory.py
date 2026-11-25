@@ -306,6 +306,31 @@ def _exact_match(column: str) -> Callable[[list[object], list[object]], float | 
     return compare
 
 
+# (maximum relative size difference, exclusive, score) pairs checked in order by _size_match(): a size difference below 5% scores 0.66,
+# below 10% scores 0.33, anything else 0 (and identical sizes 1.0)
+SIZE_MATCH_SCORES: tuple[tuple[float, float], ...] = ((0.05, 0.66), (0.10, 0.33))
+
+
+def _size_match(row_a: list[object], row_b: list[object]) -> float | None:
+    """Returns the similarity of the file sizes of 2 photos: 1.0 if identical, 0.66 if they differ by less than 5%, 0.33 if they
+    differ by less than 10%, 0.0 otherwise (the difference being relative to the largest size, see SIZE_MATCH_SCORES). None if either
+    photo has no (or an invalid) size"""
+    try:
+        size_a, size_b = _row_value(row_a, "size_bytes"), _row_value(row_b, "size_bytes")
+        if size_a is None or size_b is None:
+            return None
+        size_a, size_b = float(size_a), float(size_b)
+    except (TypeError, ValueError):
+        return None
+    if size_a == size_b:
+        return 1.0
+    difference = abs(size_a - size_b) / max(size_a, size_b)
+    for max_difference, score in SIZE_MATCH_SCORES:
+        if difference < max_difference:
+            return score
+    return 0.0
+
+
 def _fingerprint_match(row_a: list[object], row_b: list[object]) -> float | None:
     """Returns the fingerprint similarity (1.0 for identical, decreasing to 0.0 at FP_MAX_DISTANCE), None if either
     photo has no fingerprint"""
@@ -317,7 +342,7 @@ def _fingerprint_match(row_a: list[object], row_b: list[object]) -> float | None
 # fingerprint), None when the criterion is not applicable (missing on either photo)
 _MATCH_FUNCTIONS: dict[str, Callable[[list[object], list[object]], float | None]] = {
     "fingerprint": _fingerprint_match,
-    "size_bytes": _exact_match("size_bytes"),
+    "size_bytes": _size_match,
     "dimensions": _dimensions_match,
     "date_taken": _exact_match("date_taken"),
     "device": _exact_match("device"),
