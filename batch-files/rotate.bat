@@ -24,4 +24,4 @@ set /p angle=Clockwise rotation angle [90, 180, 270 or -90] (default 90) ?
 set quality=high
 set /p quality=Quality [high, medium, low] (default high) ? 
 
-videotool rotate -i %* --angle !angle! --quality !quality!
+videotool rotate -i %* --angle !angle! --quality !quality! --keepName
