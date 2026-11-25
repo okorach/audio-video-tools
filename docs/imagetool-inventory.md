@@ -98,7 +98,9 @@ photo of the inventory, and point to that most likely duplicate. They are comput
 comparing each photo to the others on:
 
 - How close their fingerprints are (`hamming_distance()`, the main criterion).
-- Whether their file size, dimensions, date taken, device and GPS coordinates match.
+- Whether their dimensions, date taken, device and GPS coordinates match.
+- How close their file sizes are: a full score for identical sizes, 66% of it when they differ by less than 5%, 33% when they
+  differ by less than 10% (relative to the largest file), nothing otherwise.
 
 Only the criteria present on both photos being compared count, so missing metadata never lowers the likelihood: a photo with
 little or no EXIF metadata can still be matched on its fingerprint alone. `duplicate_likelihood` and `duplicate_of` are empty
@@ -202,6 +204,17 @@ current one, stays in the CSV, so the review can be resumed later from where it 
 A pair at 100% duplicate likelihood with a recommendation is deleted automatically, without asking: there is no
 reasonable doubt they are the same photo. Every other pair, including a 100% one with no recommendation (eg 2 exact
 copies with the same original name), is still asked about.
+
+A pair of photos that are the same in every respect (identical fingerprint, dimensions and date taken, and device when both
+have one) except for their GPS coordinates (one has them, the other has none) and their file size (different, but by less than
+10%, eg because the geotagged copy was saved by an app that rewrote its metadata) is also deleted automatically, whatever its
+likelihood: the one without GPS coordinates is deleted, since the other one carries the same photo plus its location.
+
+The 100% threshold is configurable with the `dedup.auto_delete_threshold` property of `~/.mediatools.properties`
+(1 to 100, `100` by default, also when the property is missing or invalid). For instance `dedup.auto_delete_threshold = 95`
+also deletes, without asking, the recommended photo of every pair that is 95% to 99% alike. Take care: below 100% the
+2 photos are similar but not necessarily the same (eg a crop, an edit or a burst shot), and the recommendation then only
+relies on the rules above. The pairs below the threshold, or without recommendation, are still asked about.
 
 Before any recommendation or question, each pair is first checked for photos that no longer exist on disk (eg deleted
 or moved by some other means since the inventory was made): if one of the two is missing, it is silently removed from

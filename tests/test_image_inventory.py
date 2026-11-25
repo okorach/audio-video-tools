@@ -1325,3 +1325,161 @@ def test_main_defaults_the_output_file(tmp_path: Path, monkeypatch: pytest.Monke
     with patch.object(sys, "argv", ["imagetool", "inventory", "-i", os.path.abspath(REAL_IMAGE)]):
         tools.imagetool()
     assert (tmp_path / image_inventory.DEFAULT_OUTPUT).is_file()
+
+
+def _dedup_pair_csv(tmp_path: Path, likelihood: str) -> tuple[Path, Path, Path]:
+    """Writes a CSV with a pair of photos at a likelihood, where the recommendation is to delete the smaller b.jpg. Returns the CSV and the photos"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x" * 1000)
+    file_b.write_bytes(b"x" * 100)
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", size_bytes="1000", duplicate_likelihood=likelihood, duplicate_of=str(file_b)),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", size_bytes="100", duplicate_likelihood=likelihood, duplicate_of=str(file_a)),
+    )
+    return csv_file, file_a, file_b
+
+
+def test_dedup_auto_deletes_from_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pair at or above dedup.auto_delete_threshold is deleted without asking, even below 100%"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "96")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask at or above the configured likelihood"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
+
+
+def test_dedup_asks_below_the_configured_likelihood(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A pair below dedup.auto_delete_threshold is still asked about"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "94")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: "95")
+    monkeypatch.setattr("builtins.input", lambda _prompt: "0")
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+def test_dedup_does_not_auto_delete_below_100_by_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without the property, a 99% pair is asked about"""
+    csv_file, file_a, file_b = _dedup_pair_csv(tmp_path, "99")
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: None)
+    monkeypatch.setattr("builtins.input", lambda _prompt: "0")
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("95", 95), (" 90% ", 90), (97, 97), ("100", 100), ("1", 1), (None, 100), ("", 100), ("abc", 100), ("0", 100), ("101", 100)],
+)
+def test_auto_delete_threshold_property(monkeypatch: pytest.MonkeyPatch, value: object, expected: int) -> None:
+    """The auto-delete likelihood is the 1-100 configured value, 100 when it is missing or invalid"""
+    monkeypatch.setattr(image_inventory.media_config, "get_property", lambda _name: value)
+    assert image_inventory._auto_delete_threshold() == expected
+
+
+@pytest.mark.parametrize(
+    ("size_a", "size_b", "expected"),
+    [
+        (1000, 1000, 1.0),
+        ("1000", "1000", 1.0),
+        (1000, 960, 0.66),  # 4% of the largest
+        (960, 1000, 0.66),
+        (1000, 950, 0.33),  # exactly 5% is not less than 5%
+        (1000, 910, 0.33),  # 9%
+        (1000, 900, 0.0),  # exactly 10% is not less than 10%
+        (1000, 100, 0.0),
+        (None, 1000, None),
+        (1000, None, None),
+        ("abc", 1000, None),
+    ],
+)
+def test_size_match(size_a: object, size_b: object, expected: float | None) -> None:
+    """The size match is 1 if identical, 0.66 if less than 5% apart, 0.33 if less than 10% apart, 0 otherwise, None when a size is missing"""
+    assert image_inventory._size_match(_row(size_bytes=size_a), _row(size_bytes=size_b)) == expected
+
+
+def test_similarity_weighs_the_size_difference() -> None:
+    """With only the fingerprint (0.5) and the size (0.15) applicable, a size 4% off lowers the likelihood from 100 to 92"""
+    same = {"fingerprint": "ff00ff00", "size_bytes": 1000}
+    assert image_inventory._similarity(_row(**same), _row(**same)) == 100
+    assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=960)) == round(100 * (0.5 + 0.15 * 0.66) / 0.65)
+    assert image_inventory._similarity(_row(**same), _row(fingerprint="ff00ff00", size_bytes=500)) == round(100 * 0.5 / 0.65)
+
+
+def _gps_pair(tmp_path: Path, **overrides: str) -> tuple[Path, Path, Path]:
+    """Writes a CSV with 2 otherwise identical photos, a.jpg with GPS coordinates (1000 bytes) and b.jpg without (4% smaller), at a likelihood
+    of 80. The columns are overridden for one photo with the suffix _a or _b (eg size_bytes_b="900"). Returns the CSV and the photos"""
+    file_a, file_b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    file_a.write_bytes(b"x")
+    file_b.write_bytes(b"x")
+    common = {"fingerprint": "ff00", "width": "640", "height": "480", "date_taken": "2020-06-15 10:30:00", "device": "Canon"}
+    row_a = {**common, "size_bytes": "1000", "gps_latitude": "10.5", "gps_longitude": "-20.2"}
+    row_b = {**common, "size_bytes": "960"}
+    for key, value in overrides.items():
+        (row_a if key.endswith("_a") else row_b)[key[:-2]] = value
+    csv_file = tmp_path / "inventory.csv"
+    _write_dedup_csv(
+        csv_file,
+        _csv_row(full_path=str(file_a), file_name="a.jpg", duplicate_likelihood="80", duplicate_of=str(file_b), **row_a),
+        _csv_row(full_path=str(file_b), file_name="b.jpg", duplicate_likelihood="80", duplicate_of=str(file_a), **row_b),
+    )
+    return csv_file, file_a, file_b
+
+
+def test_dedup_auto_deletes_the_photo_without_gps_when_only_gps_and_size_differ(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """2 identical photos, one geotagged and one not, whose sizes differ by less than 10%: the one without GPS is deleted without asking"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path)
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()
+
+
+def test_dedup_auto_deletes_the_photo_without_gps_in_either_position(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The photo without GPS is deleted whether it is the first or the second of the pair"""
+    csv_file, file_a, file_b = _gps_pair(
+        tmp_path, size_bytes_a="960", size_bytes_b="1000", gps_latitude_a="", gps_longitude_a="", gps_latitude_b="1", gps_longitude_b="2"
+    )
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert not file_a.exists()
+    assert file_b.exists()
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"size_bytes_b": "1000"},  # same size: not this rule
+        {"size_bytes_b": "900"},  # 10% apart
+        {"fingerprint_b": "ff01"},
+        {"width_b": "800"},
+        {"date_taken_b": "2020-06-16 10:30:00"},
+        {"device_b": "Nikon"},
+        {"fingerprint_b": ""},
+        {"date_taken_b": ""},
+        {"gps_latitude_b": "10.5", "gps_longitude_b": "-20.2"},  # both have GPS
+        {"gps_latitude_a": "", "gps_longitude_a": ""},  # neither has GPS
+    ],
+)
+def test_dedup_asks_when_the_gps_rule_does_not_apply(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, overrides: dict[str, str]) -> None:
+    """Any other difference, a missing key criterion, or both/neither having GPS: the pair is asked about (and kept here)"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path, **overrides)
+    asked: list[str] = []
+    monkeypatch.setattr("builtins.input", lambda prompt: asked.append(prompt) or "0")
+    image_inventory.dedup(str(csv_file))
+    assert asked
+    assert file_a.exists()
+    assert file_b.exists()
+
+
+def test_dedup_ignores_a_device_missing_on_either_photo_for_the_gps_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A device missing on one photo does not prevent the photo without GPS from being deleted"""
+    csv_file, file_a, file_b = _gps_pair(tmp_path, device_b="")
+    monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("Should not ask"))
+    image_inventory.dedup(str(csv_file))
+    assert file_a.exists()
+    assert not file_b.exists()

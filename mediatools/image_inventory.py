@@ -306,6 +306,36 @@ def _exact_match(column: str) -> Callable[[list[object], list[object]], float | 
     return compare
 
 
+# (maximum relative size difference, exclusive, score) pairs checked in order by _size_match(): a size difference below 5% scores 0.66,
+# below 10% scores 0.33, anything else 0 (and identical sizes 1.0)
+SIZE_MATCH_SCORES: tuple[tuple[float, float], ...] = ((0.05, 0.66), (0.10, 0.33))
+
+
+def _relative_size_difference(size_a: float, size_b: float) -> float:
+    """Returns the difference between 2 file sizes, relative to the largest one (0 for identical sizes, 0.05 for 5%...)"""
+    return abs(size_a - size_b) / max(size_a, size_b)
+
+
+def _size_match(row_a: list[object], row_b: list[object]) -> float | None:
+    """Returns the similarity of the file sizes of 2 photos: 1.0 if identical, 0.66 if they differ by less than 5%, 0.33 if they
+    differ by less than 10%, 0.0 otherwise (the difference being relative to the largest size, see SIZE_MATCH_SCORES). None if either
+    photo has no (or an invalid) size"""
+    try:
+        size_a, size_b = _row_value(row_a, "size_bytes"), _row_value(row_b, "size_bytes")
+        if size_a is None or size_b is None:
+            return None
+        size_a, size_b = float(size_a), float(size_b)
+    except (TypeError, ValueError):
+        return None
+    if size_a == size_b:
+        return 1.0
+    difference = _relative_size_difference(size_a, size_b)
+    for max_difference, score in SIZE_MATCH_SCORES:
+        if difference < max_difference:
+            return score
+    return 0.0
+
+
 def _fingerprint_match(row_a: list[object], row_b: list[object]) -> float | None:
     """Returns the fingerprint similarity (1.0 for identical, decreasing to 0.0 at FP_MAX_DISTANCE), None if either
     photo has no fingerprint"""
@@ -317,7 +347,7 @@ def _fingerprint_match(row_a: list[object], row_b: list[object]) -> float | None
 # fingerprint), None when the criterion is not applicable (missing on either photo)
 _MATCH_FUNCTIONS: dict[str, Callable[[list[object], list[object]], float | None]] = {
     "fingerprint": _fingerprint_match,
-    "size_bytes": _exact_match("size_bytes"),
+    "size_bytes": _size_match,
     "dimensions": _dimensions_match,
     "date_taken": _exact_match("date_taken"),
     "device": _exact_match("device"),
@@ -704,15 +734,88 @@ def _remove_missing(rows: list[dict[str, str]], row_a: dict[str, str], row_b: di
     return True
 
 
-AUTO_DELETE_LIKELIHOOD: int = 100  # A pair at this duplicate_likelihood is deleted automatically, without asking, see dedup()
+AUTO_DELETE_THRESHOLD_PROPERTY: str = "dedup.auto_delete_threshold"
+# A pair at least at this duplicate_likelihood (and with a recommendation) is deleted automatically, without asking, see dedup().
+# Default used when AUTO_DELETE_THRESHOLD_PROPERTY is missing or invalid
+AUTO_DELETE_THRESHOLD: int = 100
+
+
+def _auto_delete_threshold() -> int:
+    """Returns the duplicate likelihood (1-100) from which a pair with a recommendation is deleted automatically, read fresh from the
+    configuration (AUTO_DELETE_THRESHOLD_PROPERTY). Falls back to AUTO_DELETE_THRESHOLD (100) when the property is missing (eg an existing
+    ~/.mediatools.properties created before it existed), is not a number or is outside 1-100"""
+    value = media_config.get_property(AUTO_DELETE_THRESHOLD_PROPERTY)
+    try:
+        threshold = int(float(str(value).strip().rstrip("%")))
+    except ValueError:
+        return AUTO_DELETE_THRESHOLD
+    return threshold if 1 <= threshold <= 100 else AUTO_DELETE_THRESHOLD
+
+
+# Maximum relative file size difference (exclusive) between 2 photos otherwise identical, one with GPS coordinates and the other
+# without, for the one without GPS to be deleted automatically, see _missing_gps_only_difference()
+GPS_ONLY_MAX_SIZE_DIFFERENCE: float = 0.10
+
+
+def _same_value(row_a: dict[str, str], row_b: dict[str, str], column: str, required: bool = True) -> bool:
+    """Returns whether a column has the same value in 2 rows. A column empty on either row is a mismatch when required, else is ignored"""
+    value_a, value_b = row_a.get(column), row_b.get(column)
+    if not value_a or not value_b:
+        return not required
+    return value_a == value_b
+
+
+def _missing_gps_only_difference(row_a: dict[str, str], row_b: dict[str, str]) -> int | None:
+    """Returns 1 or 2, the photo to delete automatically (the one without GPS coordinates) when the 2 photos only differ by their GPS
+    coordinates (one has them, the other has not) and by a file size that is not identical but less than GPS_ONLY_MAX_SIZE_DIFFERENCE
+    (10%) apart. Everything else must match: the fingerprint, the dimensions and the date taken (all required), and the device (ignored if
+    missing on either photo). None if it is not the case"""
+    gps = _gps_rule(row_a, row_b)
+    size_a, size_b = _to_float(row_a.get("size_bytes")), _to_float(row_b.get("size_bytes"))
+    if gps is None or not size_a or not size_b or size_a == size_b:
+        return None
+    if _relative_size_difference(size_a, size_b) >= GPS_ONLY_MAX_SIZE_DIFFERENCE:
+        return None
+    same = (
+        _same_value(row_a, row_b, "fingerprint")
+        and _same_value(row_a, row_b, "width")
+        and _same_value(row_a, row_b, "height")
+        and _same_value(row_a, row_b, "date_taken")
+        and _same_value(row_a, row_b, "device", required=False)
+    )
+    return gps if same else None
+
+
+def _auto_deletion(likelihood: str, row_a: dict[str, str], row_b: dict[str, str], recommended: int | None) -> tuple[int, str] | None:
+    """Returns the (photo to delete: 1 or 2, reason) of a pair that dedup() deletes without asking, None if the pair must be asked about:
+    the photo without GPS of 2 photos only differing by their GPS and a small file size difference (see _missing_gps_only_difference()),
+    else the recommended photo (see _recommend_deletion()) of a pair at or above _auto_delete_threshold()"""
+    no_gps = _missing_gps_only_difference(row_a, row_b)
+    if no_gps is not None:
+        return no_gps, "Same photo, only the GPS coordinates and the file size (< 10%) differ"
+    if recommended is not None and int(likelihood) >= _auto_delete_threshold():
+        return recommended, f"{likelihood}% match"
+    return None
+
+
+def _choose_deletion(likelihood: str, row_a: dict[str, str], row_b: dict[str, str], recommended: int | None) -> int | None:
+    """Returns the answer for a pair: 1 or 2 (the photo to delete) or 0 (keep both), decided automatically when the pair qualifies (see
+    _auto_deletion()), else asked to the user (see _ask_which_to_delete()). None if the user aborts the review"""
+    auto = _auto_deletion(likelihood, row_a, row_b, recommended)
+    if auto is None:
+        return _ask_which_to_delete(recommended)
+    choice, reason = auto
+    print(f"  {reason}: automatically deleting [{choice}]")
+    return choice
 
 
 def dedup(csv_file: str) -> None:
     """Interactively reviews, from the highest to the lowest duplicate_likelihood, the pairs of photos of csv_file that
     may be duplicates (as computed by add_duplicate_likelihood()), and lets the user delete one of each pair, or
     neither. For each pair, prints their size, date taken, device and GPS coordinates, and suggests which one to
-    delete (see _recommend_deletion()). A pair at AUTO_DELETE_LIKELIHOOD (100%) with a recommendation is deleted
-    automatically, without asking, since there is no reasonable doubt they are the same photo; every other pair is
+    delete (see _recommend_deletion()). A pair at or above the _auto_delete_threshold() threshold (100% by default) with a recommendation is deleted
+    automatically, without asking, since there is no reasonable doubt they are the same photo, and so is the photo without GPS
+    coordinates of 2 photos that otherwise only differ by a small file size difference (see _auto_deletion()); every other pair is
     asked about. Before any of that, a pair where one or both photos no longer exist on disk (eg already deleted or
     moved outside the inventoried tree since it was built) is never asked about either: the missing one (or both, if
     neither exists) is simply removed from csv_file, since there is nothing left to choose between. A photo chosen
@@ -739,11 +842,7 @@ def dedup(csv_file: str) -> None:
             continue
         recommended = _recommend_deletion(row_a, row_b)
         _print_pair(index, total, pair, recommended)
-        if recommended is not None and int(likelihood) >= AUTO_DELETE_LIKELIHOOD:
-            print(f"  100% match: automatically deleting [{recommended}]")
-            choice = recommended
-        else:
-            choice = _ask_which_to_delete(recommended)
+        choice = _choose_deletion(likelihood, row_a, row_b, recommended)
         if choice is None:
             print("Stopping the review")
             break
