@@ -18,4 +18,4 @@
 :: Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ::
 
-audiotool normalize -f %*
+audiotool volume -i %* --normalize --audio_only

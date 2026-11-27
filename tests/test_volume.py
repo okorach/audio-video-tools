@@ -26,15 +26,16 @@
 import csv
 import os
 import shutil
+from pathlib import Path
 from unittest import mock
 
+import ffmpeg
 import pytest
 
 import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.videofile as video
 import mediatools.volume as vol_mod
-import utilities.file as fil
 
 
 def completed(stdout: str = "", stderr: str = "") -> mock.Mock:
@@ -66,10 +67,10 @@ def test_normalize_volume_skips_files_within_threshold(tmp_path: pytest.TempPath
 
     with (
         mock.patch.object(video, "get_mean_volume", side_effect=lambda f: means[f]),
-        mock.patch.object(video, "volume") as fake_volume,
+        mock.patch.object(vol_mod, "_encode_with_volume") as fake_encode,
     ):
         vol_mod._normalize_volume({util.INPUT_FILES: [str(f1), str(f2)], "threshold": 2.0, util.OUTPUT_FILE: str(out_csv)})
-        fake_volume.assert_not_called()
+        fake_encode.assert_not_called()
 
     assert f1.read_text() == "a"
     assert f2.read_text() == "b"
@@ -86,15 +87,13 @@ def test_normalize_volume_adjusts_outliers(tmp_path: pytest.TempPathFactory) -> 
     f2.write_text("original-quiet")
     means = {str(f1): -10.0, str(f2): -30.0}  # average = -20.0, both 10dB away
 
-    def fake_volume(filename: str, vol: str, output: str | None = None) -> str:
-        """Simulates video.volume(): writes a new file with a postfix, as the real encode would"""
-        adjusted = util.add_postfix(filename, "volume", fil.extension(filename))
-        with open(adjusted, "w", encoding="utf-8") as fh:
-            fh.write(f"adjusted:{vol}")
-        return adjusted
+    def fake_encode(_filename: str, gain: float, output: str) -> None:
+        """Simulates _encode_with_volume(): writes the adjusted file"""
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(f"adjusted:{gain:.2f}dB")
 
     out_csv = tmp_path / "report.csv"
-    with mock.patch.object(video, "get_mean_volume", side_effect=lambda f: means[f]), mock.patch.object(video, "volume", side_effect=fake_volume):
+    with mock.patch.object(video, "get_mean_volume", side_effect=lambda f: means[f]), mock.patch.object(vol_mod, "_encode_with_volume", fake_encode):
         vol_mod._normalize_volume({util.INPUT_FILES: [str(f1), str(f2)], "threshold": 2.0, util.OUTPUT_FILE: str(out_csv)})
 
     before_loud = tmp_path / "loud.before_volume.mp3"
@@ -156,3 +155,197 @@ def test_normalize_real_ffmpeg(short_audio: str, tmp_path: pytest.TempPathFactor
     with open(out_csv, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
     assert len(rows) == 2
+
+
+def two_files(tmp_path: Path) -> tuple[Path, Path]:
+    """Creates a loud and a quiet file"""
+    loud, quiet = tmp_path / "loud.mp3", tmp_path / "quiet.mp3"
+    loud.write_text("original-loud")
+    quiet.write_text("original-quiet")
+    return loud, quiet
+
+
+def fake_encoder(_filename: str, _gain: float, output: str) -> None:
+    """Simulates a successful _encode_with_volume()"""
+    Path(output).write_text("adjusted", encoding="utf-8")
+
+
+def run_normalize(files: list[Path], out_csv: Path, encoder: object = fake_encoder) -> None:
+    """Normalizes files, the loud ones measured at -10 dB and the others at -30 dB, with a simulated encoding"""
+    with (
+        mock.patch.object(video, "get_mean_volume", side_effect=lambda f: -10.0 if "loud" in f else -30.0),
+        mock.patch.object(vol_mod, "_encode_with_volume", side_effect=encoder),
+    ):
+        vol_mod._normalize_volume({util.INPUT_FILES: [str(f) for f in files], "threshold": 2.0, util.OUTPUT_FILE: str(out_csv)})
+
+
+def test_normalize_ignores_the_backups(tmp_path: Path) -> None:
+    """The backups of a previous normalization are neither measured nor modified"""
+    loud, quiet = two_files(tmp_path)
+    backups = [tmp_path / "loud.before_volume.mp3", tmp_path / "loud.before_volume.2.mp3"]
+    for backup in backups:
+        backup.write_text("backup")
+    run_normalize([loud, quiet, *backups], tmp_path / "report.csv")
+    assert [b.read_text() for b in backups] == ["backup", "backup"]
+    assert (tmp_path / "loud.before_volume.3.mp3").read_text() == "original-loud"
+    assert not list(tmp_path.glob("*before_volume*before_volume*"))
+
+
+def test_normalize_never_overwrites_a_file_named_like_the_temporary_one(tmp_path: Path) -> None:
+    """A user file named <file>.volume.<ext> is left untouched"""
+    loud, quiet = two_files(tmp_path)
+    mine = tmp_path / "loud.volume.mp3"
+    mine.write_text("mine")
+    run_normalize([loud, quiet], tmp_path / "report.csv")
+    assert mine.read_text() == "mine"
+    assert loud.read_text() == "adjusted"
+
+
+def test_normalize_carries_on_after_a_failing_file(tmp_path: Path) -> None:
+    """A file that fails is left as it was, without partial output, the others are adjusted and reported, and the exit code is 1"""
+    loud, quiet = two_files(tmp_path)
+
+    def encoder(filename: str, gain: float, output: str) -> None:
+        """Fails on the loud file, after writing a partial output"""
+        fake_encoder(filename, gain, output)
+        if "loud" in filename:
+            raise OSError("boom")
+
+    out_csv = tmp_path / "report.csv"
+    with pytest.raises(SystemExit) as e:
+        run_normalize([loud, quiet], out_csv, encoder)
+    assert e.value.code == 1
+    assert loud.read_text() == "original-loud"
+    assert quiet.read_text() == "adjusted"
+    assert not (tmp_path / "loud.volume.mp3").exists()
+    with open(out_csv, newline="", encoding="utf-8") as fh:
+        assert [row["full_path"] for row in csv.DictReader(fh)] == [os.path.abspath(quiet)]
+
+
+def test_normalize_skips_a_file_that_can_not_be_measured(tmp_path: Path) -> None:
+    """A file whose volume can't be measured doesn't stop the others"""
+    files = [*two_files(tmp_path), tmp_path / "broken.mp3"]
+    files[-1].write_text("broken")
+
+    def measure(filename: str) -> float:
+        """Fails on the broken file"""
+        if "broken" in filename:
+            raise ex.InputError("no audio", "volume")
+        return -10.0 if "loud" in filename else -30.0
+
+    with (
+        mock.patch.object(video, "get_mean_volume", side_effect=measure),
+        mock.patch.object(vol_mod, "_encode_with_volume", side_effect=fake_encoder),
+        pytest.raises(SystemExit),
+    ):
+        vol_mod._normalize_volume({util.INPUT_FILES: [str(f) for f in files], util.OUTPUT_FILE: str(tmp_path / "report.csv")})
+    assert files[0].read_text() == "adjusted"
+    assert files[2].read_text() == "broken"
+
+
+def test_normalize_exits_when_nothing_can_be_measured(tmp_path: Path) -> None:
+    """Exit code 1 when no file can be measured"""
+    with mock.patch.object(video, "get_mean_volume", side_effect=OSError("boom")), pytest.raises(SystemExit):
+        vol_mod._normalize_volume({util.INPUT_FILES: [str(tmp_path / "a.mp3")], util.OUTPUT_FILE: str(tmp_path / "report.csv")})
+
+
+def run_volume_main(*args: str) -> dict:
+    """Runs the volume command with a simulated normalization and returns the options given to it"""
+    with mock.patch("sys.argv", ["media-volume", *args]), mock.patch.object(vol_mod, "_normalize_volume") as normalize:
+        vol_mod.main()
+    return normalize.call_args.args[0]
+
+
+def test_audio_only_and_default_report_in_the_input_directory(tmp_path: Path) -> None:
+    """--audio_only leaves the videos out, and the report goes in the input directory without overwriting a previous one"""
+    for name in ("a.mp3", "b.mp4"):
+        (tmp_path / name).write_text("x")
+    options = run_volume_main("-i", str(tmp_path), "--normalize", "--audio_only")
+    assert [os.path.basename(f) for f in options[util.INPUT_FILES]] == ["a.mp3"]
+    assert options[util.OUTPUT_FILE] == os.path.join(str(tmp_path), "volume-normalize.csv")
+    (tmp_path / "volume-normalize.csv").write_text("previous")
+    options = run_volume_main("-i", str(tmp_path / "a.mp3"), "--normalize")
+    assert options[util.OUTPUT_FILE] == os.path.join(str(tmp_path), "volume-normalize.2.csv")
+
+
+def test_audio_only_with_only_videos(tmp_path: Path) -> None:
+    """--audio_only exits with an error when there is no audio file"""
+    (tmp_path / "b.mp4").write_text("x")
+    with pytest.raises(SystemExit):
+        run_volume_main("-i", str(tmp_path / "b.mp4"), "--normalize", "--audio_only")
+
+
+@pytest.mark.parametrize(
+    ("stream", "expected"),
+    [
+        ({"codec_name": "mp3", "bit_rate": "320000"}, "-c:a libmp3lame -b:a 320000"),
+        ({"codec_name": "aac", "bit_rate": "256000"}, "-c:a aac -b:a 256000"),
+        ({"codec_name": "opus"}, "-c:a libopus -b:a 99000"),
+        ({"codec_name": "flac", "sample_fmt": "s32"}, "-c:a flac -sample_fmt s32"),
+        ({"codec_name": "pcm_s24le"}, "-c:a pcm_s24le"),
+    ],
+)
+def test_audio_encoding_keeps_the_codec_and_the_bitrate(stream: dict, expected: str) -> None:
+    """The audio is re-encoded in its codec, at its bitrate (or the one of the file) or sample format"""
+    specs = {"streams": [{"codec_type": "audio", **stream}], "format": {"bit_rate": "99000"}}
+    with mock.patch.object(vol_mod.ffmpeg, "probe", return_value=specs):
+        assert vol_mod._audio_encoding_options("a.xyz") == expected
+
+
+@pytest.mark.parametrize(
+    "streams",
+    [
+        [{"codec_type": "video"}],
+        [{"codec_type": "audio", "codec_name": "dts", "bit_rate": "1"}],
+        [{"codec_type": "video"}, {"codec_type": "audio", "codec_name": "opus"}],
+    ],
+)
+def test_audio_encoding_refuses_to_degrade(streams: list[dict]) -> None:
+    """No audio, an unsupported codec or an unknown bitrate (in a video) raise an error"""
+    specs = {"streams": streams, "format": {"bit_rate": "5000000"}}
+    with mock.patch.object(vol_mod.ffmpeg, "probe", return_value=specs), pytest.raises(ex.InputError):
+        vol_mod._audio_encoding_options("a.xyz")
+
+
+def probe_audio(filename: str) -> dict:
+    """Returns the first audio stream of a file"""
+    return next(s for s in ffmpeg.probe(filename, cmd=util.get_ffprobe())["streams"] if s["codec_type"] == "audio")
+
+
+@pytest.mark.parametrize(
+    ("name", "options"),
+    [
+        ("a.mp3", "-b:a 320k"),
+        ("a.flac", "-sample_fmt s32"),
+        ("a.m4a", "-c:a aac -b:a 192k"),
+        ("a.wav", "-c:a pcm_s24le"),
+        ("a.ogg", "-c:a libvorbis -b:a 160k"),
+        ("a.mp4", "-c:a aac -b:a 192k"),
+    ],
+)
+def test_encode_with_volume_real_ffmpeg(tmp_path: Path, name: str, options: str) -> None:
+    """The adjusted file keeps the codec, bitrate or sample format and tags of the source, with the volume changed"""
+    source, output = str(tmp_path / name), str(tmp_path / f"out.{name}")
+    video_input = "-f lavfi -i color=s=64x64:d=2 " if name.endswith("mp4") else ""
+    util.run_ffmpeg(f'{video_input}-f lavfi -i sine=d=2 {options} -metadata title=Song "{source}"')
+    vol_mod._encode_with_volume(source, -6.0, output)
+    before, after = probe_audio(source), probe_audio(output)
+    assert after["codec_name"] == before["codec_name"]
+    assert after.get("sample_fmt") == before.get("sample_fmt")
+    if "-b:a" in options:
+        assert int(after["bit_rate"]) == pytest.approx(int(before["bit_rate"]), rel=0.15)
+    assert video.get_mean_volume(output) == pytest.approx(video.get_mean_volume(source) - 6, abs=1)
+    tags = ffmpeg.probe(output, cmd=util.get_ffprobe())
+    assert "Song" in str(tags)
+
+
+def test_flac_with_cover_art_real_ffmpeg(tmp_path: Path) -> None:
+    """A FLAC file with a cover art can be measured and adjusted, and keeps its cover and its sample format"""
+    audio_file, cover, source, output = (str(tmp_path / name) for name in ("audio.flac", "cover.jpg", "a.flac", "out.flac"))
+    util.run_ffmpeg(f'-f lavfi -i sine=d=2 -sample_fmt s32 "{audio_file}"')
+    util.run_ffmpeg(f'-f lavfi -i color=red:s=64x64 -frames:v 1 "{cover}"')
+    util.run_ffmpeg(f'-i "{audio_file}" -i "{cover}" -map 0 -map 1 -c copy -disposition:v attached_pic "{source}"')
+    vol_mod._encode_with_volume(source, -6.0, output)
+    assert video.get_mean_volume(output) == pytest.approx(video.get_mean_volume(source) - 6, abs=1)
+    streams = ffmpeg.probe(output, cmd=util.get_ffprobe())["streams"]
+    assert [(s["codec_name"], s.get("sample_fmt")) for s in streams] == [("flac", "s32"), ("mjpeg", None)]
