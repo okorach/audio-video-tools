@@ -36,14 +36,12 @@ import os
 import sys
 from pathlib import Path
 
-from mediatools import creator, log
+from mediatools import backups, creator, log
 import mediatools.utilities as util
 import utilities.file as fil
 
 METHODS = ("wind", "afftdn", "arnndn")
 DEFAULT_METHOD = "wind"
-# Postfix of the original file name when --keepName is used
-BACKUP_POSTFIX = ".before-denoise"
 # Wind reduction levels: (high-pass cutoff in Hz, noise reduction in dB)
 LEVELS: dict[str, tuple[float, float]] = {"light": (80.0, 6.0), "medium": (120.0, 12.0), "strong": (200.0, 20.0)}
 DEFAULT_LEVEL = "medium"
@@ -106,9 +104,9 @@ def build_filter(
 
 
 def backup_file(input_file: str) -> str:
-    """Returns the name under which the original file is kept with --keepName: foo.mp4 -> foo.before-denoise.mp4"""
-    root, ext = os.path.splitext(input_file)
-    return f"{root}{BACKUP_POSTFIX}{ext}"
+    """Returns the name under which the original file is kept with --keepName: foo.mp4 -> foo.before-denoise.mp4
+    (foo.before-denoise.2.mp4 if another tool already made a backup of the file, see backups.next_name())"""
+    return backups.next_name(input_file, backups.DENOISE)
 
 
 def denoise(input_file: str, output_file: str | None = None, keep_name: bool = False, **kwargs: object) -> str:
@@ -119,8 +117,10 @@ def denoise(input_file: str, output_file: str | None = None, keep_name: bool = F
         raise ValueError(f"{input_file} is not an audio or video file")
     if keep_name and output_file:
         raise ValueError("An output file can't be given with --keepName")
-    if keep_name and os.path.exists(backup_file(input_file)):
-        raise ValueError(f"{backup_file(input_file)} already exists, not overwriting it")
+    history = backups.find([input_file]).get(os.path.abspath(input_file), []) if keep_name else []
+    former = next((backup.path for backup in history if backup.kind == backups.DENOISE), None)
+    if former is not None:
+        raise ValueError(f"{former} already exists: the file is already denoised, use --restore first to denoise it again")
     audio_filter = build_filter(**kwargs)
     media = creator.file(input_file)
     media.get_specs()
@@ -159,8 +159,13 @@ def main() -> None:
     )
     parser.add_argument("--model", required=False, help="arnndn: path of the RNN model file (eg std.rnnn)")
     parser.add_argument("--mix", required=False, type=float, default=DEFAULT_MIX, help="arnndn: mix of denoised signal, -1 to 1 (default 0.8)")
-    kwargs = util.parse_media_args(parser, input_type=(fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
-    inputs = kwargs[util.INPUT_FILES]
+    backups.add_restore_arg(parser)
+    kwargs = util.parse_media_args(parser, expand_inputs=False)
+    if kwargs.pop("restore", False):
+        backups.restore(kwargs[util.INPUT_FILES], backups.DENOISE)
+        sys.exit(0)
+    inputs = backups.expand_inputs(kwargs[util.INPUT_FILES], (fil.FileType.AUDIO_FILE, fil.FileType.VIDEO_FILE))
+    kwargs[util.INPUT_FILES] = inputs
     if len(inputs) > 1 and kwargs.get(util.OUTPUT_FILE):
         log.logger.error("-o can't be used with several input files")
         sys.exit(2)

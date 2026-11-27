@@ -1468,6 +1468,7 @@ def test_dedup_auto_deletes_the_photo_without_gps_in_either_position(tmp_path: P
 def test_dedup_asks_when_the_gps_rule_does_not_apply(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, overrides: dict[str, str]) -> None:
     """Any other difference, a missing key criterion, or both/neither having GPS: the pair is asked about (and kept here)"""
     csv_file, file_a, file_b = _gps_pair(tmp_path, **overrides)
+    monkeypatch.setattr(image_inventory, "_auto_delete_threshold", lambda: 100)  # Not the one of the configuration of the user
     asked: list[str] = []
     monkeypatch.setattr("builtins.input", lambda prompt: asked.append(prompt) or "0")
     image_inventory.dedup(str(csv_file))

@@ -45,7 +45,7 @@ from filters import (
     filter,  # noqa: A004
     filters,
 )
-from mediatools import log
+from mediatools import backups, log
 
 if TYPE_CHECKING:
     import argparse
@@ -1144,7 +1144,8 @@ def __filter_video__(filename: str, output: str | None, postfix: str, keep_name:
     """Re-encodes a video with a CPU video filter (given in kwargs, eg rotate or flip) and returns the generated file.
     The video codec is the one of the original video, unless vcodec is given (or if the codec of the original video is not supported).
     The output file is <original>.<postfix>.<ext> by default, or <original>.<format> if the format option changes the format of the original.
-    With keep_name, the output has the name of the original, which is renamed <original>.before_<postfix>.<ext> (unless the format is changed)"""
+    With keep_name, the output has the name of the original, which is renamed <original>.before_<postfix>.<ext> (unless the format is changed),
+    with a number after the postfix if the original already has backups (see backups.next_name())"""
     if keep_name and output is not None:
         raise ex.InputError("An output file can't be given with keepName", postfix)
     ext = fil.extension(filename)
@@ -1158,7 +1159,7 @@ def __filter_video__(filename: str, output: str | None, postfix: str, keep_name:
     generated = source.encode(target_file=target, **kwargs)
     if keep_name and fil.extension(generated).lower() == ext.lower():
         # When the format is changed the generated file has another name than the original, which is not renamed
-        fil.rename(filename, util.add_postfix(filename, f"before_{postfix}", ext))
+        fil.rename(filename, backups.next_name(filename, f"before_{postfix}"))
         fil.rename(generated, filename)
         generated = filename
     return generated

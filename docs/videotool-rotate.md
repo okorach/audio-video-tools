@@ -36,6 +36,7 @@ videotool rotate -i <files and/or directories> [--angle -90|90|180|270] [--quali
 | `--vcodec` | Video codec. Default: the codec of the original video |
 | `--hw_accel` | `auto` (default), `on` or `off`, see [hw-accel.md](hw-accel.md). The GPU encodes the video, the rotation itself is done by the CPU. In `auto` mode, the CPU is used if the command fails with the GPU |
 | `--keepName` | The output has the name of the original video, which is renamed `<original>.before_r<rotation>.<ext>` |
+| `--restore` | Undoes the rotations made with `--keepName`: puts back the original videos from their backups, see [restore.md](restore.md) |
 | `-o` | Output file (a single input file only, not with `--keepName`) |
 
 By default the output file is `<original>.r<rotation>.<ext>`, for instance `video.r90.mp4`, `video.r180.mp4`, `video.r270.mp4`.

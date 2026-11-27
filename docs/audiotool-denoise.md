@@ -37,6 +37,9 @@ With `--keepName` the denoised file takes the name of the input file, and the or
 The original is only renamed once the denoised file is generated, and an existing `.before-denoise` file is never
 overwritten (the file is then skipped with an error). `--keepName` can't be combined with `-o`.
 
+`--restore` puts back the original files from their `.before-denoise` backups and removes the denoised ones, see
+[restore.md](restore.md): `audiotool denoise -i <files and/or directories> --restore`.
+
 ## Methods
 
 ### `wind` (default)
