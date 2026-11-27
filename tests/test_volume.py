@@ -349,3 +349,123 @@ def test_flac_with_cover_art_real_ffmpeg(tmp_path: Path) -> None:
     assert video.get_mean_volume(output) == pytest.approx(video.get_mean_volume(source) - 6, abs=1)
     streams = ffmpeg.probe(output, cmd=util.get_ffprobe())["streams"]
     assert [(s["codec_name"], s.get("sample_fmt")) for s in streams] == [("flac", "s32"), ("mjpeg", None)]
+
+
+def snapshot(folder: Path) -> dict[str, tuple[bytes, int]]:
+    """Returns the content and the modification time of all the files of a directory"""
+    return {str(f.relative_to(folder)): (f.read_bytes(), f.stat().st_mtime_ns) for f in folder.rglob("*") if f.is_file()}
+
+
+def music_folder(tmp_path: Path) -> Path:
+    """Creates a directory with a loud file and a quiet one in a sub directory, and an unrelated CSV file"""
+    folder = tmp_path / "music"
+    (folder / "cd2").mkdir(parents=True)
+    (folder / "loud.mp3").write_text("original-loud")
+    (folder / "cd2" / "quiet.mp3").write_text("original-quiet")
+    (folder / "volume-normalize.9.csv").write_text("not,a,report")
+    return folder
+
+
+def test_restore_puts_the_file_system_back_after_several_normalizations(tmp_path: Path) -> None:
+    """After 2 normalizations, --restore gives the same files, contents and dates, without backups nor reports"""
+    folder = music_folder(tmp_path)
+    before = snapshot(folder)
+    files = [folder / "loud.mp3", folder / "cd2" / "quiet.mp3"]
+    run_normalize(files, folder / "volume-normalize.csv")
+    run_normalize(files, folder / "volume-normalize.2.csv")
+    assert (folder / "loud.before_volume.2.mp3").is_file()
+    with mock.patch("sys.argv", ["media-volume", "-i", str(folder), "--restore"]):
+        vol_mod.main()
+    assert snapshot(folder) == before
+
+
+def test_restore_of_a_single_file_keeps_the_others(tmp_path: Path) -> None:
+    """Restoring one file leaves the other one adjusted, with its backup and the report listing it"""
+    folder = music_folder(tmp_path)
+    loud, quiet = folder / "loud.mp3", folder / "cd2" / "quiet.mp3"
+    report = folder / "volume-normalize.csv"
+    run_normalize([loud, quiet], report)
+    vol_mod._restore_volume([str(loud)])
+    assert loud.read_text() == "original-loud"
+    assert quiet.read_text() == "adjusted"
+    assert report.is_file()
+    vol_mod._restore_volume([str(folder / "cd2" / "quiet.before_volume.mp3")], str(report))
+    assert quiet.read_text() == "original-quiet"
+    assert not report.exists()
+
+
+def test_restore_a_missing_file_and_backups_of_backups(tmp_path: Path) -> None:
+    """A modified file that was deleted is restored too, and the backup of a backup is restored before the backup itself"""
+    (tmp_path / "a.before_volume.mp3").write_text("adjusted-backup")
+    (tmp_path / "a.before_volume.before_volume.mp3").write_text("original")
+    vol_mod._restore_volume([str(tmp_path)])
+    assert [f.name for f in tmp_path.iterdir()] == ["a.mp3"]
+    assert (tmp_path / "a.mp3").read_text() == "original"
+
+
+def test_restore_audio_only_leaves_the_videos(tmp_path: Path) -> None:
+    """--audio_only restores the audio files only"""
+    for name in ("a.before_volume.mp3", "v.before_volume.mp4"):
+        (tmp_path / name).write_text("original")
+    vol_mod._restore_volume([str(tmp_path)], audio_only=True)
+    assert sorted(f.name for f in tmp_path.iterdir()) == ["a.mp3", "v.before_volume.mp4"]
+
+
+def test_restore_carries_on_after_a_failure_and_keeps_the_report(tmp_path: Path) -> None:
+    """A file that can't be restored doesn't stop the others; the reports are kept and the exit code is 1"""
+    folder = music_folder(tmp_path)
+    report = folder / "volume-normalize.csv"
+    run_normalize([folder / "loud.mp3", folder / "cd2" / "quiet.mp3"], report)
+    replace = Path.replace
+
+    def failing(source: Path, target: str) -> None:
+        """Fails on the loud file"""
+        if "loud" in source.name:
+            raise PermissionError("read only")
+        replace(source, target)
+
+    with mock.patch.object(Path, "replace", autospec=True, side_effect=failing), pytest.raises(SystemExit) as e:
+        vol_mod._restore_volume([str(folder)])
+    assert e.value.code == 1
+    assert (folder / "cd2" / "quiet.mp3").read_text() == "original-quiet"
+    assert (folder / "loud.before_volume.mp3").is_file()
+    assert report.is_file()
+
+
+def test_restore_without_backup_changes_nothing(tmp_path: Path) -> None:
+    """Nothing is removed when there is no backup"""
+    folder = music_folder(tmp_path)
+    before = snapshot(folder)
+    vol_mod._restore_volume([str(folder), str(tmp_path / "missing" / "a.mp3")])
+    assert snapshot(folder) == before
+
+
+def test_restore_excludes_the_other_modes() -> None:
+    """--restore can't be used with --normalize"""
+    with mock.patch("sys.argv", ["media-volume", "-i", "a.mp3", "--restore", "--normalize"]), pytest.raises(SystemExit):
+        vol_mod.main()
+
+
+def test_restore_applies_the_backups_in_reverse_order(tmp_path: Path) -> None:
+    """The latest backup is restored first, down to the first one; after a failure, running --restore again finishes the job"""
+    for name, content in (("a.mp3", "run3"), ("a.before_volume.3.mp3", "run2"), ("a.before_volume.2.mp3", "run1")):
+        (tmp_path / name).write_text(content)
+    (tmp_path / "a.before_volume.mp3").write_text("original")
+    replace = Path.replace
+    restored: list[str] = []
+
+    def failing_on_the_first_backup(source: Path, target: str) -> None:
+        """Records the backups restored, and fails on the first one once"""
+        restored.append(source.name)
+        if restored.count("a.before_volume.mp3") == 1 and source.name == "a.before_volume.mp3":
+            raise PermissionError("locked")
+        replace(source, target)
+
+    with mock.patch.object(Path, "replace", autospec=True, side_effect=failing_on_the_first_backup):
+        with pytest.raises(SystemExit):
+            vol_mod._restore_volume([str(tmp_path)])
+        assert restored == ["a.before_volume.3.mp3", "a.before_volume.2.mp3", "a.before_volume.mp3"]
+        assert (tmp_path / "a.mp3").read_text() == "run1"
+        vol_mod._restore_volume([str(tmp_path)])
+    assert [f.name for f in tmp_path.iterdir()] == ["a.mp3"]
+    assert (tmp_path / "a.mp3").read_text() == "original"

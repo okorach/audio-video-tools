@@ -51,4 +51,18 @@ A large gain applied to a quiet file whose peaks are already high can clip it: c
 
 `--audio_only` ignores the video files, eg in a directory holding both music and videos (the "audio normalize.bat" batch file uses it).
 
-`--volume` and `--normalize` are mutually exclusive.
+## Undoing a normalization
+
+```bash
+audiotool volume -i E:\Musique --restore
+```
+
+`--restore` puts the files back as they were before `--normalize`: each modified file is removed and replaced by its original, renamed from its backup (content and dates unchanged). It looks for the backups in the input directories (recursively), or next to the input files.
+
+- After several normalizations, one `--restore` undoes them all, in reverse order: `<file>.before_volume.<n>.<ext>` is restored first, then `<n-1>`, down to `<file>.before_volume.<ext>`.
+- The `volume-normalize.csv` reports found there are removed once none of their backups remains. Give `-o` to also remove a report written elsewhere.
+- Any change made to a file after its normalization (eg its tags) is lost with the modified file.
+- A file that can't be restored is logged and keeps its older backups (run `--restore` again once fixed), the others are still restored, the reports are kept and the command exits with code 1.
+- The log file of the tool (`media-volume.log`, in the current directory) is not removed.
+
+`--volume`, `--normalize` and `--restore` are mutually exclusive.
