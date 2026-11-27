@@ -24,7 +24,6 @@ import csv
 import os
 import re
 import sys
-from pathlib import Path
 
 import ffmpeg
 
@@ -32,16 +31,11 @@ import mediatools.exceptions as ex
 import mediatools.utilities as util
 import mediatools.videofile as video
 import utilities.file as fil
-from mediatools import log
+from mediatools import backups, log
 
 DEFAULT_THRESHOLD: float = 2.0
 DEFAULT_NORMALIZE_REPORT: str = "volume-normalize.csv"
 CSV_HEADER: tuple[str, ...] = ("full_path", "mean_volume_db", "target_volume_db", "applied_gain_db", "backup_file")
-BACKUP_POSTFIX: str = "before_volume"
-# Matches the name of a backup kept by a previous normalization: x.before_volume.mp3, x.before_volume.2.mp3
-_BACKUP_RE: re.Pattern = re.compile(rf"\.{BACKUP_POSTFIX}\.", re.IGNORECASE)
-# Splits the name of a backup into the name of its original file (stem and extension) and its sequence number (none for the first one)
-_BACKUP_NAME_RE: re.Pattern = re.compile(rf"^(?P<stem>.+)\.{BACKUP_POSTFIX}(?:\.(?P<seq>\d+))?(?P<ext>\.[^.]+)$", re.IGNORECASE)
 # Name of the reports written by default, see _default_report()
 _REPORT_NAME_RE: re.Pattern = re.compile(r"^volume-normalize(\.\d+)?\.csv$", re.IGNORECASE)
 # ffmpeg encoder of each audio codec that can be re-encoded in the same codec (the pcm_* codecs are their own encoder)
@@ -125,7 +119,7 @@ def _adjust_file(filename: str, mean_vol: float, average: float) -> list[object]
         if os.path.isfile(adjusted_file):
             os.remove(adjusted_file)
         raise
-    before_file = _free_name(filename, BACKUP_POSTFIX, extension)
+    before_file = backups.next_name(filename, backups.VOLUME)
     os.rename(filename, before_file)
     try:
         os.rename(adjusted_file, filename)
@@ -156,7 +150,7 @@ def _normalize_volume(kwargs: dict) -> None:
     The others are adjusted in place: the original file is kept as <file>.before_volume.<ext>.
     Writes a CSV report of every modified file at -o (DEFAULT_NORMALIZE_REPORT by default), even if the run is interrupted.
     A file that fails is logged and skipped; the program then exits with code 1 at the end"""
-    input_files = [f for f in kwargs[util.INPUT_FILES] if not _BACKUP_RE.search(os.path.basename(f))]
+    input_files = [f for f in kwargs[util.INPUT_FILES] if not backups.is_backup(f)]
     nb_backups = len(kwargs[util.INPUT_FILES]) - len(input_files)
     if nb_backups:
         log.logger.info("Ignoring %d backup file(s) of a previous normalization", nb_backups)
@@ -193,30 +187,6 @@ def _normalize_volume(kwargs: dict) -> None:
         sys.exit(1)
 
 
-def _find_backups(inputs: list[str]) -> dict[str, list[tuple[int, str]]]:
-    """Returns the backups found for the inputs, as {original file: [(sequence number, backup file), ...]}: all the backups of the
-    input directories (recursively), and for an input file, its backups (or itself if it is a backup)"""
-    candidates: list[tuple[str, str | None]] = []  # (file, the only original wanted, None for any)
-    for path in inputs:
-        path = os.path.abspath(path)
-        if os.path.isdir(path):
-            candidates += [(os.path.join(folder, name), None) for folder, _, names in os.walk(path) for name in names]
-        elif _BACKUP_NAME_RE.match(os.path.basename(path)):
-            candidates.append((path, None))
-        elif os.path.isdir(os.path.dirname(path)):
-            folder = os.path.dirname(path)
-            candidates += [(os.path.join(folder, name), os.path.normcase(path)) for name in os.listdir(folder)]
-    backups: dict[str, set[tuple[int, str]]] = {}
-    for file, wanted in candidates:
-        match = _BACKUP_NAME_RE.match(os.path.basename(file))
-        if not match:
-            continue
-        original = os.path.join(os.path.dirname(file), match["stem"] + match["ext"])
-        if wanted is None or os.path.normcase(original) == wanted:
-            backups.setdefault(original, set()).add((int(match["seq"] or 1), file))
-    return {original: sorted(found) for original, found in backups.items()}
-
-
 def _is_obsolete_report(report: str) -> bool:
     """Returns True if a file is a report of a normalization none of whose backups exists anymore"""
     try:
@@ -248,31 +218,10 @@ def _remove_reports(inputs: list[str], out_file: str | None) -> None:
 
 
 def _restore_volume(inputs: list[str], out_file: str | None = None, audio_only: bool = False) -> None:
-    """Undoes the normalizations of the inputs, in reverse order: each modified file is replaced by its latest backup, then by the one
-    before, until the first one (the file as it was before the first normalization). Then the reports are removed. A file that fails is
-    logged and left at the level reached, with its older backups;
-    the program then exits with code 1 at the end"""
-    backups = _find_backups(inputs)
-    if audio_only:
-        backups = {original: found for original, found in backups.items() if fil.get_type(original) != fil.FileType.VIDEO_FILE}
-    if not backups:
-        log.logger.warning("No backup of a volume normalization found in %s", ", ".join(inputs))
-    progress = util.GlobalProgress(len(backups))
-    failed = 0
-    # A backup of a backup (made by a former version) is restored first
-    for original in sorted(backups, key=lambda f: len(_BACKUP_RE.findall(os.path.basename(f))), reverse=True):
-        try:
-            for _, backup in reversed(backups[original]):
-                Path(backup).replace(original)  # Removes the modified file and renames the backup in a single step
-            log.logger.info("Restored %s", original)
-        except OSError as e:
-            log.logger.error("Could not restore %s: %s", original, e)
-            failed += 1
-        progress.done()
-    log.logger.info("%d file(s) restored", len(backups) - failed)
-    if failed:
-        log.logger.error("%d file(s) could not be restored", failed)
-        sys.exit(1)
+    """Undoes the normalizations of the inputs (see backups.restore()), then removes the reports that have become obsolete.
+    The reports are kept, and the program exits with code 1, if a file can't be restored"""
+    file_filter = (lambda f: fil.get_type(f) != fil.FileType.VIDEO_FILE) if audio_only else None
+    backups.restore(inputs, backups.VOLUME, file_filter)
     _remove_reports(inputs, out_file)
 
 
@@ -295,9 +244,7 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--volume", help="Change volume like 400%% (relative change) or 6dB (absolute)")
     group.add_argument("--normalize", action="store_true", help="Normalize the volume of all input files to their average, see --threshold")
-    group.add_argument(
-        "--restore", action="store_true", help="Undo --normalize: put back the original files from their backups and remove the modified ones"
-    )
+    backups.add_restore_arg(group)
     parser.add_argument(
         "--threshold",
         type=float,

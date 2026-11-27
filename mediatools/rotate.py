@@ -20,6 +20,7 @@
 
 """This script rotates videos clockwise of -90, 90, 180 or 270 degrees"""
 
+from mediatools import backups
 import mediatools.options as opt
 import mediatools.utilities as util
 import mediatools.videofile as video
@@ -39,7 +40,12 @@ def main() -> None:
         f"{opt.DEFAULT_ROTATION_ANGLE} by default",
     )
     video.add_reencode_args(parser)
-    kwargs = util.parse_media_args(parser, input_type=fil.FileType.VIDEO_FILE)
+    backups.add_restore_arg(parser)
+    kwargs = util.parse_media_args(parser, expand_inputs=False)
+    if kwargs.pop("restore", False):
+        backups.restore(kwargs[util.INPUT_FILES], backups.ROTATE + r"-?\d+")
+        return
+    kwargs[util.INPUT_FILES] = backups.expand_inputs(kwargs[util.INPUT_FILES], fil.FileType.VIDEO_FILE)
 
     def process(input_file: str, options: dict) -> None:
         """Rotates one video"""

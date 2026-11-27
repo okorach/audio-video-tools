@@ -36,6 +36,7 @@ videotool flip -i <files and/or directories> [--direction leftright|topbottom] [
 | `--vcodec` | Video codec. Default: the codec of the original video |
 | `--hw_accel` | `auto` (default), `on` or `off`, see [hw-accel.md](hw-accel.md). The GPU encodes the video, the flip itself is done by the CPU. In `auto` mode, the CPU is used if the command fails with the GPU |
 | `--keepName` | The output has the name of the original video, which is renamed `<original>.before_flip_<direction>.<ext>` |
+| `--restore` | Undoes the flips made with `--keepName`: puts back the original videos from their backups, see [restore.md](restore.md) |
 | `-o` | Output file (a single input file only, not with `--keepName`) |
 | `-v` | Verbosity of the logs, see [verbosity.md](verbosity.md) |
 
